@@ -1,5 +1,6 @@
 import React from "react";
 import VoxelScene from "./modeling/VoxelScene";
+import "./App.css";
 
 const App: React.FC = () => {
   return (
