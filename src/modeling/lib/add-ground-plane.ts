@@ -19,7 +19,7 @@ export function addGroundPlane(scene: THREE.Scene) {
 
   createBatchedGrid(gridSize, gridGroup);
 
-  return { groundMaterial, groundGeometry, gridGroup };
+  return { groundMaterial, groundGeometry, groundPlane };
 }
 
 function createBatchedGrid(gridSize: number, gridGroup: THREE.Group) {

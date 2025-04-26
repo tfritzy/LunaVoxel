@@ -1,13 +1,20 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { addGroundPlane } from "./lib/add-ground-plane";
+import { GridRaycaster } from "./lib/grid-raycaster";
+import { GridPosition } from "../types";
+import { Builder } from "./lib/builder";
 
 const VoxelScene: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const raycasterRef = useRef<GridRaycaster | null>(null);
+  const builderRef = useRef<Builder | null>(null);
+
+  const [gridPosition, setGridPosition] = useState<GridPosition | null>(null);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -15,6 +22,8 @@ const VoxelScene: React.FC = () => {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x111111);
     sceneRef.current = scene;
+
+    builderRef.current = new Builder(scene);
 
     const width = mountRef.current.clientWidth;
     const height = mountRef.current.clientHeight;
@@ -34,7 +43,28 @@ const VoxelScene: React.FC = () => {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
 
-    const { groundGeometry, groundMaterial } = addGroundPlane(scene);
+    const { groundMaterial, groundGeometry, groundPlane } =
+      addGroundPlane(scene);
+
+    if (groundPlane && mountRef.current) {
+      raycasterRef.current = new GridRaycaster(
+        camera,
+        groundPlane,
+        mountRef.current,
+        {
+          onHover: (position) => {
+            console.log("hover", position);
+            if (position) builderRef.current!.onMouseHover(position);
+          },
+          onClick: (position) => {
+            setGridPosition(position);
+            console.log(
+              `Grid Position Clicked: (${position?.x}, ${position?.z})`
+            );
+          },
+        }
+      );
+    }
 
     const ambientLight = new THREE.AmbientLight(0xffffff);
     scene.add(ambientLight);
@@ -44,14 +74,15 @@ const VoxelScene: React.FC = () => {
     scene.add(directionalLight);
 
     const handleResize = (): void => {
-      if (!mountRef.current || !renderer || !camera) return;
+      if (!mountRef.current || !rendererRef.current || !cameraRef.current)
+        return;
 
       const width = mountRef.current.clientWidth;
       const height = mountRef.current.clientHeight;
 
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
     };
 
     window.addEventListener("resize", handleResize);
@@ -59,13 +90,17 @@ const VoxelScene: React.FC = () => {
     const animate = (): void => {
       requestAnimationFrame(animate);
       controls.update();
-      renderer.render(scene, camera);
+      if (rendererRef.current && sceneRef.current && cameraRef.current) {
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+      }
     };
 
     animate();
 
     return () => {
       window.removeEventListener("resize", handleResize);
+
+      raycasterRef.current?.dispose();
 
       if (rendererRef.current && mountRef.current) {
         mountRef.current.removeChild(rendererRef.current.domElement);
