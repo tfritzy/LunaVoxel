@@ -73,7 +73,7 @@ export class GridRaycaster {
   private checkIntersection(): GridPosition | null {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const intersects = this.raycaster.intersectObject(this.groundPlane, false);
+    const intersects = this.raycaster.intersectObject(this.groundPlane, true);
 
     if (intersects.length > 0) {
       const point = intersects[0].point;

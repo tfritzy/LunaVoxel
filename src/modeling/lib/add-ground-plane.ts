@@ -73,7 +73,7 @@ function createBatchedGrid(gridSize: number, gridGroup: THREE.Group) {
   const instanceIndices = [0, 0, 0, 0];
 
   for (let i = 0; i <= gridSize; i++) {
-    const pos = -halfGrid + i * cellSize;
+    const pos = -halfGrid + i * cellSize + 0.5;
 
     let typeIndex;
     const index = i + offset;
