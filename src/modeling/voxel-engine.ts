@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { addGroundPlane } from "./lib/add-ground-plane";
 import { GridRaycaster } from "./lib/grid-raycaster";
 import { GridPosition } from "../types";
 import { Builder } from "./lib/builder";
+import { CameraController } from "./lib/camera-controller";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
@@ -15,7 +15,7 @@ export class VoxelEngine {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
-  private controls: OrbitControls;
+  private controls: CameraController;
   private raycaster: GridRaycaster | null = null;
   private builder: Builder;
   private animationFrameId: number | null = null;
@@ -44,9 +44,7 @@ export class VoxelEngine {
     this.camera.position.set(10, 16, 10);
     this.camera.lookAt(0, 0, 0);
 
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls = new CameraController(this.camera, this.renderer.domElement);
 
     this.setupLights();
 
@@ -119,13 +117,9 @@ export class VoxelEngine {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
-
     window.removeEventListener("resize", this.handleResize);
-
     this.raycaster?.dispose();
-
     this.renderer.dispose();
-
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }
