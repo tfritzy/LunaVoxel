@@ -6,12 +6,14 @@ export class CameraController {
   private target: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private panSpeed: number = 0.02;
   private zoomSpeed: number = 2;
+  private rotationSpeed: number = 7.0;
   private keys: { [key: string]: boolean } = {};
-  private keysProcessed: { [key: string]: boolean } = {};
   private panMouseDown: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
-  private rotationAngle: number = 0;
+  private currentRotationAngle: number = 0;
+  private targetRotationAngle: number = 0;
+  private isRotating: boolean = false;
   private distance: number = 0;
 
   private boundKeyDown: (event: KeyboardEvent) => void;
@@ -26,6 +28,11 @@ export class CameraController {
     this.camera = camera;
     this.domElement = domElement;
     this.distance = this.getDistanceToTarget();
+
+    const deltaX = this.camera.position.x - this.target.x;
+    const deltaZ = this.camera.position.z - this.target.z;
+    this.currentRotationAngle = Math.atan2(deltaX, deltaZ);
+    this.targetRotationAngle = this.currentRotationAngle;
 
     this.boundKeyDown = this.onKeyDown.bind(this);
     this.boundKeyUp = this.onKeyUp.bind(this);
@@ -59,13 +66,23 @@ export class CameraController {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
-    this.keys[event.key.toLowerCase()] = true;
+    const key = event.key.toLowerCase();
+
+    if (!this.keys[key]) {
+      this.keys[key] = true;
+
+      if (key === "q") {
+        this.targetRotationAngle = this.currentRotationAngle - Math.PI / 4;
+        this.isRotating = true;
+      } else if (key === "e") {
+        this.targetRotationAngle = this.currentRotationAngle + Math.PI / 4;
+        this.isRotating = true;
+      }
+    }
   }
 
   private onKeyUp(event: KeyboardEvent): void {
-    const key = event.key.toLowerCase();
-    this.keys[key] = false;
-    this.keysProcessed[key] = false;
+    this.keys[event.key.toLowerCase()] = false;
   }
 
   private onMouseDown(event: MouseEvent): void {
@@ -144,33 +161,45 @@ export class CameraController {
     );
   }
 
-  private rotateCamera(angleRadians: number): void {
-    this.rotationAngle += angleRadians;
+  private updateCameraPosition(): void {
     const currentHeight = this.camera.position.y;
-    const deltaX = this.camera.position.x - this.target.x;
-    const deltaZ = this.camera.position.z - this.target.z;
-    const horizontalDistance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    const horizontalDistance = Math.sqrt(
+      Math.pow(this.camera.position.x - this.target.x, 2) +
+        Math.pow(this.camera.position.z - this.target.z, 2)
+    );
 
     const newX =
-      this.target.x + horizontalDistance * Math.sin(this.rotationAngle);
+      this.target.x + horizontalDistance * Math.sin(this.currentRotationAngle);
     const newZ =
-      this.target.z + horizontalDistance * Math.cos(this.rotationAngle);
+      this.target.z + horizontalDistance * Math.cos(this.currentRotationAngle);
+
     this.camera.position.set(newX, currentHeight, newZ);
     this.camera.lookAt(this.target);
   }
 
-  update(): void {
+  update(deltaTime: number = 1 / 60): void {
     let hasUpdated = false;
 
-    if (this.keys["q"] && !this.keysProcessed["q"]) {
-      this.rotateCamera(-Math.PI / 4);
-      this.keysProcessed["q"] = true;
-      hasUpdated = true;
-    }
-    if (this.keys["e"] && !this.keysProcessed["e"]) {
-      this.rotateCamera(Math.PI / 4);
-      this.keysProcessed["e"] = true;
-      hasUpdated = true;
+    if (this.isRotating) {
+      const angleDiff = this.targetRotationAngle - this.currentRotationAngle;
+
+      let normalizedDiff = angleDiff;
+      while (normalizedDiff > Math.PI) normalizedDiff -= Math.PI * 2;
+      while (normalizedDiff < -Math.PI) normalizedDiff += Math.PI * 2;
+
+      const step =
+        Math.sign(normalizedDiff) *
+        Math.min(Math.abs(normalizedDiff), this.rotationSpeed * deltaTime);
+
+      if (Math.abs(step) > 0.001) {
+        this.currentRotationAngle += step;
+        this.updateCameraPosition();
+        hasUpdated = true;
+      } else {
+        this.currentRotationAngle = this.targetRotationAngle;
+        this.updateCameraPosition();
+        this.isRotating = false;
+      }
     }
 
     const movementSpeed = this.panSpeed * 5;
@@ -183,7 +212,6 @@ export class CameraController {
       this.panCamera(0, movementSpeed);
       hasUpdated = true;
     }
-
     if (this.keys["a"] || this.keys["arrowleft"]) {
       this.panCamera(-movementSpeed, 0);
       hasUpdated = true;

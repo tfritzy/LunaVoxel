@@ -103,9 +103,12 @@ export class VoxelEngine {
     );
   };
 
-  private animate = (): void => {
+  private lastFrameTime: number = 0;
+  private animate = (currentTime: number = 0): void => {
     this.animationFrameId = requestAnimationFrame(this.animate);
-    this.controls.update();
+    const deltaTime = (currentTime - this.lastFrameTime) / 1000;
+    this.lastFrameTime = currentTime;
+    this.controls.update(deltaTime);
     this.renderer.render(this.scene, this.camera);
   };
 
