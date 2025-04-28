@@ -14,7 +14,7 @@ export function addGroundPlane(scene: THREE.Scene) {
   groundPlane.rotation.x = Math.PI / 2;
   groundPlane.position.y = 0;
   scene.add(groundPlane);
-  groundPlane.layers.set(layers.blocks);
+  groundPlane.layers.set(layers.raycast);
 
   const gridGroup = new THREE.Group();
   scene.add(gridGroup);
@@ -100,6 +100,9 @@ function createBatchedGrid(gridSize: number, gridGroup: THREE.Group) {
 
   hInstances.forEach((mesh) => gridGroup.add(mesh));
   vInstances.forEach((mesh) => gridGroup.add(mesh));
+
+  hInstances.forEach((i) => i.layers.set(layers.ghost));
+  vInstances.forEach((i) => i.layers.set(layers.ghost));
 
   return gridGroup;
 }

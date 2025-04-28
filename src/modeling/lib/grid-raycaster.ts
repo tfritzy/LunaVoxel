@@ -23,8 +23,7 @@ export class GridRaycaster {
     events: GridRaycasterEvents = {}
   ) {
     this.raycaster = new THREE.Raycaster();
-    this.raycaster.layers.enable(layers.ground);
-    this.raycaster.layers.enable(layers.blocks);
+    this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
     this.camera = camera;
     this.scene = scene;

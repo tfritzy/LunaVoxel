@@ -33,7 +33,7 @@ export class VoxelEngine {
     this.container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x111111);
+    this.scene.background = new THREE.Color(0x222222);
 
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -41,7 +41,6 @@ export class VoxelEngine {
       0.1,
       1000
     );
-    this.camera.layers.enable(layers.blocks);
     this.camera.layers.enable(layers.ghost);
     this.camera.position.set(10, 16, 10);
     this.camera.lookAt(0, 0, 0);

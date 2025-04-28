@@ -1,47 +1,34 @@
-import { BufferGeometry, Material, Vector3 } from "three";
 import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export type Block = {
-  material: Material;
-  geometry: BufferGeometry;
+  name: string;
+  modelPath: string;
+  dimensions: THREE.Vector3;
 };
 
-type BlockProps = {
-  dimensions: Vector3;
-  rounded: boolean;
-  color: string;
-};
-
-const blockProps: BlockProps[] = [
+export const blocks: Block[] = [
   {
-    dimensions: new Vector3(1, 1, 1),
-    color: "#acaeaf",
-    rounded: true,
+    name: "Small Block",
+    modelPath: "models/small-block.glb",
+    dimensions: new THREE.Vector3(1, 1, 1),
   },
   {
-    dimensions: new Vector3(2, 1, 1),
-    color: "#acaeaf",
-    rounded: true,
+    name: "Long Block",
+    modelPath: "models/long-block.glb",
+    dimensions: new THREE.Vector3(2, 1, 1),
   },
 ];
 
-export const blocks: Block[] = blockProps.map((bp) => {
-  const geometry = new RoundedBoxGeometry(
-    bp.dimensions.x,
-    bp.dimensions.y,
-    bp.dimensions.z,
-    3,
-    0.07
-  );
-  const material = new THREE.MeshStandardMaterial({
-    color: bp.color,
-    roughness: 0.8,
-    metalness: 0.5,
-  });
+const loader = new GLTFLoader();
 
-  return {
-    material: material,
-    geometry: geometry,
-  };
-});
+export function loadModel(path: string): Promise<THREE.Group> {
+  return new Promise((resolve, reject) => {
+    loader.load(
+      path,
+      (gltf) => resolve(gltf.scene),
+      (xhr) => console.log(`${(xhr.loaded / xhr.total) * 100}% loaded`),
+      (error) => reject(error)
+    );
+  });
+}
