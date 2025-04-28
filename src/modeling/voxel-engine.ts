@@ -1,13 +1,13 @@
 import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
 import { GridRaycaster } from "./lib/grid-raycaster";
-import { GridPosition } from "../types";
 import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
+import { layers } from "./lib/layers";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
-  onGridPositionUpdate?: (position: GridPosition | null) => void;
+  onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
 }
 
 export class VoxelEngine {
@@ -19,12 +19,12 @@ export class VoxelEngine {
   private raycaster: GridRaycaster | null = null;
   private builder: Builder;
   private animationFrameId: number | null = null;
-  private currentGridPosition: GridPosition | null = null;
+  private currentGridPosition: THREE.Vector3 | null = null;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(
       this.container.clientWidth,
       this.container.clientHeight
@@ -41,6 +41,8 @@ export class VoxelEngine {
       0.1,
       1000
     );
+    this.camera.layers.enable(layers.blocks);
+    this.camera.layers.enable(layers.ghost);
     this.camera.position.set(10, 16, 10);
     this.camera.lookAt(0, 0, 0);
 
@@ -61,7 +63,7 @@ export class VoxelEngine {
     if (groundPlane) {
       this.raycaster = new GridRaycaster(
         this.camera,
-        groundPlane,
+        this.scene,
         this.container,
         {
           onHover: (position) => {
@@ -85,10 +87,10 @@ export class VoxelEngine {
   }
 
   private setupLights(): void {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
     directionalLight.position.set(1, 1, 1);
     this.scene.add(directionalLight);
   }
@@ -110,9 +112,10 @@ export class VoxelEngine {
     this.lastFrameTime = currentTime;
     this.controls.update(deltaTime);
     this.renderer.render(this.scene, this.camera);
+    this.raycaster?.update();
   };
 
-  public getCurrentGridPosition(): GridPosition | null {
+  public getCurrentGridPosition(): THREE.Vector3 | null {
     return this.currentGridPosition;
   }
 

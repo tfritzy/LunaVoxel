@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { layers } from "./layers";
 
 export function addGroundPlane(scene: THREE.Scene) {
   const gridSize = 80;
@@ -13,6 +14,7 @@ export function addGroundPlane(scene: THREE.Scene) {
   groundPlane.rotation.x = Math.PI / 2;
   groundPlane.position.y = 0;
   scene.add(groundPlane);
+  groundPlane.layers.set(layers.blocks);
 
   const gridGroup = new THREE.Group();
   scene.add(gridGroup);

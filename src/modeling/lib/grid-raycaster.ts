@@ -1,16 +1,16 @@
 import * as THREE from "three";
-import { GridPosition } from "../../types";
+import { layers } from "./layers";
 
 export interface GridRaycasterEvents {
-  onHover?: (position: GridPosition | null) => void;
-  onClick?: (position: GridPosition | null) => void;
+  onHover?: (position: THREE.Vector3 | null) => void;
+  onClick?: (position: THREE.Vector3 | null) => void;
 }
 
 export class GridRaycaster {
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
   private camera: THREE.Camera;
-  private groundPlane: THREE.Object3D;
+  private scene: THREE.Scene;
   private domElement: HTMLElement;
   private events: GridRaycasterEvents;
   private boundMouseMove: (event: MouseEvent) => void;
@@ -18,14 +18,16 @@ export class GridRaycaster {
 
   constructor(
     camera: THREE.Camera,
-    groundPlane: THREE.Object3D,
+    scene: THREE.Scene,
     domElement: HTMLElement,
     events: GridRaycasterEvents = {}
   ) {
     this.raycaster = new THREE.Raycaster();
+    this.raycaster.layers.enable(layers.ground);
+    this.raycaster.layers.enable(layers.blocks);
     this.mouse = new THREE.Vector2();
     this.camera = camera;
-    this.groundPlane = groundPlane;
+    this.scene = scene;
     this.domElement = domElement;
     this.events = events;
 
@@ -54,6 +56,13 @@ export class GridRaycaster {
     }
   }
 
+  update(): void {
+    const gridPosition = this.checkIntersection();
+    if (this.events.onHover) {
+      this.events.onHover(gridPosition);
+    }
+  }
+
   private onMouseClick(event: MouseEvent): void {
     this.updateMousePosition(event);
     const gridPosition = this.checkIntersection();
@@ -70,18 +79,22 @@ export class GridRaycaster {
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
-  private checkIntersection(): GridPosition | null {
+  private checkIntersection(): THREE.Vector3 | null {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const intersects = this.raycaster.intersectObject(this.groundPlane, true);
+    const intersects = this.raycaster.intersectObjects(
+      this.scene.children,
+      true
+    );
 
     if (intersects.length > 0) {
       const point = intersects[0].point;
 
       const gridX = Math.floor(point.x + 0.5);
+      const gridY = Math.floor(point.y + 0.5);
       const gridZ = Math.floor(point.z + 0.5);
 
-      return { x: gridX, z: gridZ };
+      return new THREE.Vector3(gridX, gridY, gridZ);
     }
 
     return null;
@@ -91,11 +104,7 @@ export class GridRaycaster {
     this.camera = camera;
   }
 
-  public updateGroundPlane(groundPlane: THREE.Object3D): void {
-    this.groundPlane = groundPlane;
-  }
-
-  public raycastAtMouse(): GridPosition | null {
+  public raycastAtMouse(): THREE.Vector3 | null {
     return this.checkIntersection();
   }
 

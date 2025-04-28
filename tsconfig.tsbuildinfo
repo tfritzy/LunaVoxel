@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/blocks.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/modeling/voxel-engine.ts","./src/modeling/lib/add-ground-plane.ts","./src/modeling/lib/builder.ts","./src/modeling/lib/camera-controller.ts","./src/modeling/lib/grid-raycaster.ts"],"version":"5.7.3"}

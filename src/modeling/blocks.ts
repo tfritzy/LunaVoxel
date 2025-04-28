@@ -36,7 +36,7 @@ export const blocks: Block[] = blockProps.map((bp) => {
   );
   const material = new THREE.MeshStandardMaterial({
     color: bp.color,
-    roughness: 0.5,
+    roughness: 0.8,
     metalness: 0.5,
   });
 
