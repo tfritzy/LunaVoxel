@@ -9,6 +9,7 @@ export class Builder {
   private ghostMaterial: THREE.Material;
   private loadedModels: Map<string, THREE.Group> = new Map();
   private isLoading: boolean = false;
+  private currentRotation: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -66,6 +67,9 @@ export class Builder {
       });
 
       model.position.set(0, 0.5, 0);
+
+      model.rotation.y = this.currentRotation;
+
       this.scene.add(model);
       this.previewBlock = model;
     } catch (error) {
@@ -78,6 +82,16 @@ export class Builder {
   onMouseHover(position: THREE.Vector3) {
     if (this.previewBlock && !this.isLoading) {
       this.previewBlock.position.set(position.x, position.y, position.z);
+    }
+  }
+
+  rotateBlock() {
+    if (this.previewBlock && !this.isLoading) {
+      const rotations = blocks[this.selectedBlockIndex].validRotations;
+      const currentIndex = rotations.indexOf(this.currentRotation);
+      const newIndex = Math.max((currentIndex + 1) % rotations.length, 0);
+      this.currentRotation = rotations[newIndex];
+      this.previewBlock.rotation.y = this.currentRotation;
     }
   }
 
@@ -99,6 +113,9 @@ export class Builder {
 
       model.layers.enable(layers.raycast);
       model.position.copy(position);
+
+      model.rotation.y = this.currentRotation;
+
       this.scene.add(model);
     } catch (error) {
       console.error("Failed to place block:", error);
@@ -113,6 +130,13 @@ export class Builder {
     ) {
       this.selectedBlockIndex = index;
       await this.createPreviewBlock();
+    }
+  }
+
+  resetRotation() {
+    this.currentRotation = 0;
+    if (this.previewBlock) {
+      this.previewBlock.rotation.y = 0;
     }
   }
 }

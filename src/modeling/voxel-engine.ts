@@ -20,6 +20,7 @@ export class VoxelEngine {
   private builder: Builder;
   private animationFrameId: number | null = null;
   private currentGridPosition: THREE.Vector3 | null = null;
+  private boundContextMenu: (event: MouseEvent) => void;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
@@ -53,6 +54,9 @@ export class VoxelEngine {
 
     this.builder = new Builder(this.scene);
 
+    this.boundContextMenu = this.onContextMenu.bind(this);
+    this.container.addEventListener("contextmenu", this.boundContextMenu);
+
     const groundPlane = this.scene.children.find(
       (child) =>
         child instanceof THREE.Mesh &&
@@ -83,6 +87,12 @@ export class VoxelEngine {
     window.addEventListener("resize", this.handleResize);
 
     this.animate();
+  }
+
+  private onContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+
+    this.builder.rotateBlock();
   }
 
   private setupLights(): void {
@@ -118,11 +128,20 @@ export class VoxelEngine {
     return this.currentGridPosition;
   }
 
+  public selectBlock(index: number): void {
+    this.builder.selectBlock(index);
+  }
+
+  public resetRotation(): void {
+    this.builder.resetRotation();
+  }
+
   public dispose(): void {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
     window.removeEventListener("resize", this.handleResize);
+    this.container.removeEventListener("contextmenu", this.boundContextMenu);
     this.raycaster?.dispose();
     this.renderer.dispose();
     if (this.container.contains(this.renderer.domElement)) {
