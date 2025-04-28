@@ -20,7 +20,6 @@ export class VoxelEngine {
   private builder: Builder;
   private animationFrameId: number | null = null;
   private currentGridPosition: THREE.Vector3 | null = null;
-  private boundContextMenu: (event: MouseEvent) => void;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
@@ -52,10 +51,7 @@ export class VoxelEngine {
 
     addGroundPlane(this.scene);
 
-    this.builder = new Builder(this.scene);
-
-    this.boundContextMenu = this.onContextMenu.bind(this);
-    this.container.addEventListener("contextmenu", this.boundContextMenu);
+    this.builder = new Builder(this.scene, this.renderer.domElement);
 
     const groundPlane = this.scene.children.find(
       (child) =>
@@ -87,12 +83,6 @@ export class VoxelEngine {
     window.addEventListener("resize", this.handleResize);
 
     this.animate();
-  }
-
-  private onContextMenu(event: MouseEvent): void {
-    event.preventDefault();
-
-    this.builder.rotateBlock();
   }
 
   private setupLights(): void {
@@ -140,8 +130,9 @@ export class VoxelEngine {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
+
+    this.builder.dispose();
     window.removeEventListener("resize", this.handleResize);
-    this.container.removeEventListener("contextmenu", this.boundContextMenu);
     this.raycaster?.dispose();
     this.renderer.dispose();
     if (this.container.contains(this.renderer.domElement)) {

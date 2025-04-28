@@ -10,15 +10,30 @@ export class Builder {
   private loadedModels: Map<string, THREE.Group> = new Map();
   private isLoading: boolean = false;
   private currentRotation: number = 0;
+  private domElement: HTMLElement;
 
-  constructor(scene: THREE.Scene) {
+  private boundKeyDown: (event: KeyboardEvent) => void;
+  private boundMouseDown: (event: MouseEvent) => void;
+  private boundContextMenu: (event: MouseEvent) => void;
+
+  constructor(scene: THREE.Scene, domElement: HTMLElement) {
     this.scene = scene;
+    this.domElement = domElement;
+
     this.ghostMaterial = new THREE.MeshBasicMaterial({
       color: "#0096FF",
       opacity: 0.3,
       transparent: true,
       depthWrite: false,
     });
+
+    this.boundKeyDown = this.onKeyDown.bind(this);
+    this.boundMouseDown = this.onMouseDown.bind(this);
+    this.boundContextMenu = this.onContextMenu.bind(this);
+
+    window.addEventListener("keydown", this.boundKeyDown);
+    this.domElement.addEventListener("mousedown", this.boundMouseDown);
+    this.domElement.addEventListener("contextmenu", this.boundContextMenu);
 
     this.preloadModels();
   }
@@ -79,6 +94,22 @@ export class Builder {
     this.isLoading = false;
   }
 
+  private onKeyDown(event: KeyboardEvent): void {
+    if (event.key.toLowerCase() === "r") {
+      this.selectBlock((this.selectedBlockIndex + 1) % blocks.length);
+    }
+  }
+
+  private onMouseDown(event: MouseEvent): void {
+    if (event.button === 2) {
+      this.rotateBlock();
+    }
+  }
+
+  private onContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+  }
+
   onMouseHover(position: THREE.Vector3) {
     if (this.previewBlock && !this.isLoading) {
       this.previewBlock.position.set(position.x, position.y, position.z);
@@ -87,10 +118,8 @@ export class Builder {
 
   rotateBlock() {
     if (this.previewBlock && !this.isLoading) {
-      const rotations = blocks[this.selectedBlockIndex].validRotations;
-      const currentIndex = rotations.indexOf(this.currentRotation);
-      const newIndex = Math.max((currentIndex + 1) % rotations.length, 0);
-      this.currentRotation = rotations[newIndex];
+      this.currentRotation =
+        (this.currentRotation + Math.PI / 2) % (Math.PI * 2);
       this.previewBlock.rotation.y = this.currentRotation;
     }
   }
@@ -137,6 +166,17 @@ export class Builder {
     this.currentRotation = 0;
     if (this.previewBlock) {
       this.previewBlock.rotation.y = 0;
+    }
+  }
+
+  dispose() {
+    window.removeEventListener("keydown", this.boundKeyDown);
+    this.domElement.removeEventListener("mousedown", this.boundMouseDown);
+    this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
+
+    if (this.previewBlock) {
+      this.scene.remove(this.previewBlock);
+      this.previewBlock = null;
     }
   }
 }
