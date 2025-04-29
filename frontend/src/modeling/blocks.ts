@@ -29,7 +29,18 @@ export function loadModel(path: string): Promise<THREE.Group> {
   return new Promise((resolve, reject) => {
     loader.load(
       path,
-      (gltf) => resolve(gltf.scene),
+      (gltf) => {
+        const model = gltf.scene;
+
+        model.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        resolve(model);
+      },
       (xhr) => console.log(`${(xhr.loaded / xhr.total) * 100}% loaded`),
       (error) => reject(error)
     );

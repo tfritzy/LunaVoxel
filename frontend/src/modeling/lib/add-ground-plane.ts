@@ -13,6 +13,7 @@ export function addGroundPlane(scene: THREE.Scene) {
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
   groundPlane.position.y = 0;
+  groundPlane.receiveShadow = true;
   scene.add(groundPlane);
   groundPlane.layers.set(layers.raycast);
 
