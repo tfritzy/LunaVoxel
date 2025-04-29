@@ -78,6 +78,7 @@ export class Builder {
         if (child instanceof THREE.Mesh) {
           child.material = this.ghostMaterial;
           child.layers.set(layers.ghost);
+          child.castShadow = false;
         }
       });
 

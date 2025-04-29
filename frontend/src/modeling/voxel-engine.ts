@@ -30,6 +30,7 @@ export class VoxelEngine {
       this.container.clientHeight
     );
     this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.shadowMap.enabled = true;
     this.container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
@@ -100,7 +101,7 @@ export class VoxelEngine {
     directionalLight.shadow.camera.right = 25;
     directionalLight.shadow.camera.top = 25;
     directionalLight.shadow.camera.bottom = -25;
-    directionalLight.shadow.bias = -0.0005;
+    directionalLight.shadow.bias = -0.01;
     this.scene.add(directionalLight);
   }
 

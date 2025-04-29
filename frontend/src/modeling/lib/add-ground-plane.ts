@@ -5,7 +5,7 @@ export function addGroundPlane(scene: THREE.Scene) {
   const gridSize = 80;
   const groundGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
   const groundMaterial = new THREE.MeshPhongMaterial({
-    color: 0x333333,
+    color: 0x555555,
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.5,
@@ -31,7 +31,7 @@ function createBatchedGrid(gridSize: number, gridGroup: THREE.Group) {
   const offset = halfGrid % 20;
 
   const lineMaterial = new THREE.MeshBasicMaterial({
-    color: 0x333333,
+    color: 0x444444,
     transparent: true,
   });
 
