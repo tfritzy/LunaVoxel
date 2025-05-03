@@ -1,0 +1,10 @@
+{
+  "eslint.workingDirectories": ["./frontend", "./quickstart-chat"],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "csharp"
+  ]
+}

@@ -1,40 +1,75 @@
+using System.Reflection.Metadata.Ecma335;
 using SpacetimeDB;
 
 public static partial class Module
 {
-    [Table(Name = "world", Public = true)]
+    [Table(Name = "World", Public = true)]
     public partial class World
     {
         [PrimaryKey]
-        public int Id;
-        public string? Name;
-        public int Width;
+        public string Id;
+        public string Name;
+        public int XWidth;
+        public int YWidth;
         public int Height;
+
+        public static World Build(string name, int xWidth, int yWidth, int height)
+        {
+            return new World
+            {
+                Id = IdGenerator.Generate("wrld"),
+                Name = name,
+                XWidth = xWidth,
+                YWidth = yWidth,
+                Height = height
+            };
+        }
     }
 
     [Type]
     public enum BlockType { Empty, Block, LongBlock }
 
-    public struct BlockRun
-    {
-        public BlockType BlockType;
-        public int RunLength;
-    }
-
-    [Table(Name = "chunk", Public = true)]
+    [Table(Name = "Chunk", Public = true)]
     public partial class Chunk
     {
         [PrimaryKey]
-        public string Id; // World_X_Z
+        public string Id;
+        public BlockType[] Blocks = [];
 
-        public BlockRun[] Blocks = [];
+        public static Chunk Build(string world, int x, int z)
+        {
+            return new Chunk
+            {
+                Id = $"{world}_{x}_{z}",
+                Blocks = []
+            };
+        }
     }
 
     [Reducer]
-    public static void PlaceBlock(ReducerContext ctx, int world, BlockType type, int x, int y, int z)
+    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z)
     {
-        var chunk = ctx.Db.chunk.Id.Find($"{world}_{x}_{z}");
+        var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{z}");
 
+        if (chunk == null)
+            throw new ArgumentException("Could not find specified chunk");
 
+        chunk.Blocks[y] = type;
+        ctx.Db.Chunk.Id.Update(chunk);
+    }
+
+    [Reducer]
+    public static void CreateWorld(ReducerContext ctx, string name, int xDim, int yDim, int zDim)
+    {
+        var world = World.Build(name, xDim, yDim, zDim);
+        ctx.Db.World.Insert(world);
+
+        for (int x = 0; x < xDim; x++)
+        {
+            for (int z = 0; z < zDim; z++)
+            {
+                ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, z));
+            }
+        }
     }
 }
