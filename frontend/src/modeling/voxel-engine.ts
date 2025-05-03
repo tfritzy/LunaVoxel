@@ -4,6 +4,7 @@ import { GridRaycaster } from "./lib/grid-raycaster";
 import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
+import { useChunks } from "../hooks/useChunks";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;

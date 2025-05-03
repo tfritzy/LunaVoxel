@@ -1,0 +1,12 @@
+Generate Types
+spacetime generate --lang typescript --out-dir frontend/src/module_bindings --project-path quickstart-chat/server
+
+Query table
+spacetime sql quickstart-chat "SELECT * FROM Chunk"
+
+Publish
+spacetime publish --project-path quickstart-chat/server quickstart-chat
+spacetime publish -c --project-path quickstart-chat/server quickstart-chat
+
+Create world
+spacetime call quickstart-chat CreateWorld "Cool world" 2, 2, 3

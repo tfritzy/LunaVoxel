@@ -34,14 +34,16 @@ public static partial class Module
     {
         [PrimaryKey]
         public string Id;
+        public string World;
         public BlockType[] Blocks = [];
 
-        public static Chunk Build(string world, int x, int z)
+        public static Chunk Build(string world, int x, int y, int z)
         {
             return new Chunk
             {
-                Id = $"{world}_{x}_{z}",
-                Blocks = []
+                Id = $"{world}_{x}_{y}",
+                World = world,
+                Blocks = new BlockType[z]
             };
         }
     }
@@ -49,12 +51,12 @@ public static partial class Module
     [Reducer]
     public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z)
     {
-        var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{z}");
+        var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}");
 
         if (chunk == null)
             throw new ArgumentException("Could not find specified chunk");
 
-        chunk.Blocks[y] = type;
+        chunk.Blocks[z] = type;
         ctx.Db.Chunk.Id.Update(chunk);
     }
 
@@ -66,9 +68,9 @@ public static partial class Module
 
         for (int x = 0; x < xDim; x++)
         {
-            for (int z = 0; z < zDim; z++)
+            for (int y = 0; y < yDim; y++)
             {
-                ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, z));
+                ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, y, zDim));
             }
         }
     }
