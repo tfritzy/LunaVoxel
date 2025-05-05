@@ -377,6 +377,38 @@
           "lib/netstandard2.0/NuGet.Frameworks.dll": {}
         }
       },
+      "SpacetimeDB.BSATN.Runtime/1.1.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/SpacetimeDB.BSATN.Runtime.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/SpacetimeDB.BSATN.Runtime.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "SpacetimeDB.Runtime/1.1.0": {
+        "type": "package",
+        "dependencies": {
+          "SpacetimeDB.BSATN.Runtime": "1.1.0"
+        },
+        "compile": {
+          "lib/net8.0/SpacetimeDB.Runtime.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/SpacetimeDB.Runtime.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "build/_._": {}
+        }
+      },
       "System.Reflection.Metadata/1.6.0": {
         "type": "package",
         "compile": {
@@ -388,6 +420,19 @@
           "lib/netstandard2.0/System.Reflection.Metadata.dll": {
             "related": ".xml"
           }
+        }
+      },
+      "StdbModule/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "SpacetimeDB.Runtime": "1.1.0"
+        },
+        "compile": {
+          "bin/placeholder/StdbModule.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/StdbModule.dll": {}
         }
       }
     }
@@ -966,6 +1011,46 @@
         "nuget.frameworks.nuspec"
       ]
     },
+    "SpacetimeDB.BSATN.Runtime/1.1.0": {
+      "sha512": "CfuCGdWSVbilIf1HfA9AowLcKSjavXfJmfUrfh8SaObdNChpoB/y6aIyC6hH1Tjcezmy/lwmuqDwJUSjJYyb+w==",
+      "type": "package",
+      "path": "spacetimedb.bsatn.runtime/1.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "analyzers/dotnet/cs/SpacetimeDB.BSATN.Codegen.dll",
+        "lib/net8.0/SpacetimeDB.BSATN.Runtime.dll",
+        "lib/net8.0/SpacetimeDB.BSATN.Runtime.xml",
+        "lib/netstandard2.1/SpacetimeDB.BSATN.Runtime.dll",
+        "lib/netstandard2.1/SpacetimeDB.BSATN.Runtime.xml",
+        "logo.png",
+        "spacetimedb.bsatn.runtime.1.1.0.nupkg.sha512",
+        "spacetimedb.bsatn.runtime.nuspec"
+      ]
+    },
+    "SpacetimeDB.Runtime/1.1.0": {
+      "sha512": "nBfqPf1bfF3wJdCoUArRvtLs+SKnpOrDiGt+X7ptb90HcoLmtiFIQl3ksUjB6T17z47JSxtLYjSePwxlEGjrWA==",
+      "type": "package",
+      "path": "spacetimedb.runtime/1.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "analyzers/dotnet/cs/SpacetimeDB.Codegen.dll",
+        "bindings.c",
+        "build/SpacetimeDB.Runtime.props",
+        "build/SpacetimeDB.Runtime.targets",
+        "driver.h",
+        "lib/net8.0/SpacetimeDB.Runtime.dll",
+        "lib/net8.0/SpacetimeDB.Runtime.xml",
+        "logo.png",
+        "spacetimedb.runtime.1.1.0.nupkg.sha512",
+        "spacetimedb.runtime.nuspec"
+      ]
+    },
     "System.Reflection.Metadata/1.6.0": {
       "sha512": "COC1aiAJjCoA5GBF+QKL2uLqEBew4JsCkQmoHKbN3TlOZKa2fKLz5CpiRQKDz0RsAOEGsVKqOD5bomsXq/4STQ==",
       "type": "package",
@@ -986,6 +1071,11 @@
         "useSharedDesignerContext.txt",
         "version.txt"
       ]
+    },
+    "StdbModule/1.0.0": {
+      "type": "project",
+      "path": "../server/StdbModule.csproj",
+      "msbuildProject": "../server/StdbModule.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -993,6 +1083,7 @@
       "MSTest.TestAdapter >= 3.1.1",
       "MSTest.TestFramework >= 3.1.1",
       "Microsoft.NET.Test.Sdk >= 17.8.0",
+      "StdbModule >= 1.0.0",
       "coverlet.collector >= 6.0.0"
     ]
   },
@@ -1020,7 +1111,11 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj": {
+              "projectPath": "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

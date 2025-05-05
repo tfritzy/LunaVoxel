@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "ij0c470Clo0=",
+  "dgSpecHash": "sPm0tBxyT10=",
   "success": true,
   "projectFilePath": "C:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj",
   "expectedPackageFiles": [
@@ -13,6 +13,8 @@
     "C:\\Users\\tfritzy\\.nuget\\packages\\mstest.testframework\\3.1.1\\mstest.testframework.3.1.1.nupkg.sha512",
     "C:\\Users\\tfritzy\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512",
     "C:\\Users\\tfritzy\\.nuget\\packages\\nuget.frameworks\\6.5.0\\nuget.frameworks.6.5.0.nupkg.sha512",
+    "C:\\Users\\tfritzy\\.nuget\\packages\\spacetimedb.bsatn.runtime\\1.1.0\\spacetimedb.bsatn.runtime.1.1.0.nupkg.sha512",
+    "C:\\Users\\tfritzy\\.nuget\\packages\\spacetimedb.runtime\\1.1.0\\spacetimedb.runtime.1.1.0.nupkg.sha512",
     "C:\\Users\\tfritzy\\.nuget\\packages\\system.reflection.metadata\\1.6.0\\system.reflection.metadata.1.6.0.nupkg.sha512"
   ],
   "logs": []
