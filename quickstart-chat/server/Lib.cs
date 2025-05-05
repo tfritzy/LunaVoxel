@@ -70,12 +70,8 @@ public static partial class Module
     [Reducer]
     public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z)
     {
-        var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}");
-
-        if (chunk == null)
-            throw new ArgumentException("Could not find specified chunk");
-
-        chunk.Blocks[z] = type;
+        var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}") ?? throw new ArgumentException("Could not find specified chunk");
+        BlockCompression.SetBlock(chunk.Blocks, type, z, false);
         ctx.Db.Chunk.Id.Update(chunk);
     }
 
