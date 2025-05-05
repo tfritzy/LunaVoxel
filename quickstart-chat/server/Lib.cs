@@ -27,7 +27,8 @@ public static partial class Module
         }
     }
 
-    public struct Block
+    [Type]
+    public partial struct Block
     {
         public BlockType Type;
         public int Count;
@@ -71,7 +72,7 @@ public static partial class Module
     public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z)
     {
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}") ?? throw new ArgumentException("Could not find specified chunk");
-        BlockCompression.SetBlock(chunk.Blocks, type, z, false);
+        BlockCompression.SetBlock(ref chunk.Blocks, type, z, false);
         ctx.Db.Chunk.Id.Update(chunk);
     }
 

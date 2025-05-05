@@ -2,7 +2,7 @@ using static Module;
 
 public static class BlockCompression
 {
-    public static void SetBlock(Block[] blocks, BlockType blockType, int z, bool ghost)
+    public static void SetBlock(ref Block[] blocks, BlockType blockType, int z, bool ghost)
     {
         int i = 0;
         int zIter = 0;

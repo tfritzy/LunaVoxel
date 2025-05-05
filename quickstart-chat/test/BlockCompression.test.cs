@@ -11,7 +11,7 @@ namespace Test
         {
             Block[] blocks = new Block[] { new Block(BlockType.Empty, 10, false) };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 5, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 5, false);
 
             Assert.AreEqual(3, blocks.Length);
             Assert.AreEqual(BlockType.Empty, blocks[0].Type);
@@ -27,7 +27,7 @@ namespace Test
         {
             Block[] blocks = new Block[] { new Block(BlockType.Empty, 10, false) };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 0, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 0, false);
 
             Assert.AreEqual(2, blocks.Length);
             Assert.AreEqual(BlockType.Block, blocks[0].Type);
@@ -41,7 +41,7 @@ namespace Test
         {
             Block[] blocks = new Block[] { new Block(BlockType.Empty, 10, false) };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 9, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 9, false);
 
             Assert.AreEqual(2, blocks.Length);
             Assert.AreEqual(BlockType.Empty, blocks[0].Type);
@@ -55,7 +55,7 @@ namespace Test
         {
             Block[] blocks = new Block[] { new Block(BlockType.Block, 10, false) };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 5, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 5, false);
 
             Assert.AreEqual(1, blocks.Length);
             Assert.AreEqual(BlockType.Block, blocks[0].Type);
@@ -71,13 +71,15 @@ namespace Test
                 new Block(BlockType.Empty, 5, false)
             };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 4, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 4, false);
 
-            Assert.AreEqual(2, blocks.Length);
+            Assert.AreEqual(3, blocks.Length);
             Assert.AreEqual(BlockType.Empty, blocks[0].Type);
             Assert.AreEqual(4, blocks[0].Count);
             Assert.AreEqual(BlockType.Block, blocks[1].Type);
             Assert.AreEqual(6, blocks[1].Count);
+            Assert.AreEqual(BlockType.Empty, blocks[2].Type);
+            Assert.AreEqual(5, blocks[2].Count);
         }
 
         [TestMethod]
@@ -88,9 +90,9 @@ namespace Test
                 new Block(BlockType.Block, 5, true)
             };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 2, true);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 2, true);
 
-            Assert.AreEqual(3, blocks.Length);
+            Assert.AreEqual(4, blocks.Length);
             Assert.AreEqual(BlockType.Block, blocks[0].Type);
             Assert.AreEqual(2, blocks[0].Count);
             Assert.AreEqual(false, blocks[0].Ghost);
@@ -100,17 +102,20 @@ namespace Test
             Assert.AreEqual(true, blocks[1].Ghost);
 
             Assert.AreEqual(BlockType.Block, blocks[2].Type);
-            Assert.AreEqual(7, blocks[2].Count);
+            Assert.AreEqual(2, blocks[2].Count);
             Assert.AreEqual(false, blocks[2].Ghost);
-        }
 
+            Assert.AreEqual(BlockType.Block, blocks[3].Type);
+            Assert.AreEqual(5, blocks[3].Count);
+            Assert.AreEqual(true, blocks[3].Ghost);
+        }
         [TestMethod]
         public void SetBlock_BeyondBlocksLength_ShouldDoNothing()
         {
             Block[] blocks = new Block[] { new Block(BlockType.Empty, 10, false) };
             int originalLength = blocks.Length;
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 20, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 20, false);
 
             Assert.AreEqual(originalLength, blocks.Length);
             Assert.AreEqual(BlockType.Empty, blocks[0].Type);
@@ -127,15 +132,17 @@ namespace Test
                 new Block(BlockType.Empty, 3, false)
             };
 
-            BlockCompression.SetBlock(blocks, BlockType.LongBlock, 4, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.LongBlock, 4, false);
 
-            Assert.AreEqual(3, blocks.Length);
+            Assert.AreEqual(4, blocks.Length);
             Assert.AreEqual(BlockType.Empty, blocks[0].Type);
             Assert.AreEqual(3, blocks[0].Count);
             Assert.AreEqual(BlockType.Block, blocks[1].Type);
             Assert.AreEqual(1, blocks[1].Count);
             Assert.AreEqual(BlockType.LongBlock, blocks[2].Type);
-            Assert.AreEqual(6, blocks[2].Count);
+            Assert.AreEqual(3, blocks[2].Count);
+            Assert.AreEqual(BlockType.Empty, blocks[3].Type);
+            Assert.AreEqual(3, blocks[3].Count);
         }
 
         [TestMethod]
@@ -143,8 +150,8 @@ namespace Test
         {
             Block[] blocks = new Block[] { new Block(BlockType.Empty, 10, false) };
 
-            BlockCompression.SetBlock(blocks, BlockType.Block, 5, false);
-            BlockCompression.SetBlock(blocks, BlockType.Empty, 5, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Block, 5, false);
+            BlockCompression.SetBlock(ref blocks, BlockType.Empty, 5, false);
 
             Assert.AreEqual(1, blocks.Length);
             Assert.AreEqual(BlockType.Empty, blocks[0].Type);
