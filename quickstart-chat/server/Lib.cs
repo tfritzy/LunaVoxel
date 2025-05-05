@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection.Metadata.Ecma335;
 using SpacetimeDB;
 
@@ -26,6 +27,20 @@ public static partial class Module
         }
     }
 
+    public struct Block
+    {
+        public BlockType Type;
+        public int Count;
+        public bool Ghost;
+
+        public Block(BlockType type, int count, bool ghost)
+        {
+            this.Type = type;
+            this.Count = count;
+            this.Ghost = ghost;
+        }
+    }
+
     [Type]
     public enum BlockType { Empty, Block, LongBlock }
 
@@ -37,7 +52,7 @@ public static partial class Module
         public string World;
         public int X;
         public int Y;
-        public BlockType[] Blocks = [];
+        public Block[] Blocks = [];
 
         public static Chunk Build(string world, int x, int y, int z)
         {
@@ -47,7 +62,7 @@ public static partial class Module
                 X = x,
                 Y = y,
                 World = world,
-                Blocks = new BlockType[z]
+                Blocks = new Block[] { new Block(BlockType.Empty, z, false) }
             };
         }
     }
