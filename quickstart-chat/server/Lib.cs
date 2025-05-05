@@ -35,6 +35,8 @@ public static partial class Module
         [PrimaryKey]
         public string Id;
         public string World;
+        public int X;
+        public int Y;
         public BlockType[] Blocks = [];
 
         public static Chunk Build(string world, int x, int y, int z)
@@ -42,6 +44,8 @@ public static partial class Module
             return new Chunk
             {
                 Id = $"{world}_{x}_{y}",
+                X = x,
+                Y = y,
                 World = world,
                 Blocks = new BlockType[z]
             };

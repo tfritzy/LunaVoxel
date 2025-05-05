@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { BlockType } from "../module_bindings";
 
 export type Block = {
+  type: BlockType;
   name: string;
   modelPath: string;
   dimensions: THREE.Vector3;
@@ -10,12 +12,14 @@ export type Block = {
 
 export const blocks: Block[] = [
   {
+    type: { tag: "Block" },
     name: "Small Block",
     modelPath: "models/small-block.glb",
     dimensions: new THREE.Vector3(1, 1, 1),
     validRotations: [0],
   },
   {
+    type: { tag: "LongBlock" },
     name: "Long Block",
     modelPath: "models/long-block.glb",
     dimensions: new THREE.Vector3(2, 1, 1),

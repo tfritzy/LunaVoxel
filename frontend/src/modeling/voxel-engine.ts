@@ -4,11 +4,14 @@ import { GridRaycaster } from "./lib/grid-raycaster";
 import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { useChunks } from "../hooks/useChunks";
+import { DbConnection } from "../module_bindings";
+import { World } from "./lib/world";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
+  conn: DbConnection;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
+  world: string;
 }
 
 export class VoxelEngine {
@@ -21,10 +24,12 @@ export class VoxelEngine {
   private builder: Builder;
   private animationFrameId: number | null = null;
   private currentGridPosition: THREE.Vector3 | null = null;
+  private conn: DbConnection;
+  private world: World;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
-
+    this.conn = options.conn;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(
       this.container.clientWidth,
@@ -53,7 +58,13 @@ export class VoxelEngine {
 
     addGroundPlane(this.scene);
 
-    this.builder = new Builder(this.scene, this.renderer.domElement);
+    this.world = new World(this.scene, this.conn);
+    this.builder = new Builder(
+      this.scene,
+      this.conn,
+      this.renderer.domElement,
+      options.world
+    );
 
     const groundPlane = this.scene.children.find(
       (child) =>
@@ -130,14 +141,6 @@ export class VoxelEngine {
     return this.currentGridPosition;
   }
 
-  public selectBlock(index: number): void {
-    this.builder.selectBlock(index);
-  }
-
-  public resetRotation(): void {
-    this.builder.resetRotation();
-  }
-
   public dispose(): void {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
@@ -147,6 +150,7 @@ export class VoxelEngine {
     window.removeEventListener("resize", this.handleResize);
     this.raycaster?.dispose();
     this.renderer.dispose();
+    this.world.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }

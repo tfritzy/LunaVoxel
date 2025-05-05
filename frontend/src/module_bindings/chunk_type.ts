@@ -35,6 +35,8 @@ import { BlockType as __BlockType } from "./block_type_type";
 export type Chunk = {
   id: string,
   world: string,
+  x: number,
+  y: number,
   blocks: __BlockType[],
 };
 
@@ -50,6 +52,8 @@ export namespace Chunk {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("world", AlgebraicType.createStringType()),
+      new ProductTypeElement("x", AlgebraicType.createI32Type()),
+      new ProductTypeElement("y", AlgebraicType.createI32Type()),
       new ProductTypeElement("blocks", AlgebraicType.createArrayType(__BlockType.getTypeScriptAlgebraicType())),
     ]);
   }
