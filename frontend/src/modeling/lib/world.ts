@@ -27,27 +27,44 @@ export class World {
     this.setupEvents();
   }
 
+  onQueriesApplied() {
+    this.initBlocks();
+  }
+
+  private initBlocks = () => {
+    for (const chunk of this.dbConn.db.chunk.iter()) {
+      this.spawnChunk(chunk);
+    }
+  };
+
+  spawnChunk(chunk: Chunk) {
+    let i = 0;
+    for (let rbi = 0; rbi < chunk.blocks.length; rbi++) {
+      const runBlock = chunk.blocks[rbi];
+      if (runBlock.type.tag != "Empty") {
+        for (let z = i; z < i + runBlock.count; z++) {
+          this.createBlock(
+            blocks[0],
+            new THREE.Vector3(chunk.x, chunk.y, z),
+            layers.raycast
+          );
+        }
+      }
+      i += runBlock.count;
+    }
+  }
+
   setupEvents = () => {
     console.log("World event setup");
     this.dbConn.db.chunk.onUpdate(this.onUpdate);
   };
 
   onUpdate = (_ctx: EventContext, oldChunk: Chunk, newChunk: Chunk) => {
-    console.log("chunk update called in world for", newChunk);
     if (!this.chunks.has(newChunk.id)) {
       this.chunks.set(newChunk.id, { blocks: [] });
     }
     const chunk = this.chunks.get(newChunk.id)!;
-    for (let z = 0; z < newChunk.blocks.length; z++) {
-      if (!chunk.blocks[z] && newChunk.blocks[z].tag !== "Empty") {
-        console.log("Need to create block");
-        this.createBlock(
-          blocks[0],
-          new THREE.Vector3(newChunk.x, newChunk.y, z),
-          layers.raycast
-        );
-      }
-    }
+    this.spawnChunk(newChunk);
   };
 
   private async preloadModels() {

@@ -30,40 +30,36 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Block as __Block } from "./block_type";
+import { BlockType as __BlockType } from "./block_type_type";
 
-export type Chunk = {
-  id: string,
-  world: string,
-  x: number,
-  y: number,
-  blocks: __Block[],
+export type Block = {
+  type: __BlockType,
+  count: number,
+  ghost: boolean,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace Chunk {
+export namespace Block {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("x", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y", AlgebraicType.createI32Type()),
-      new ProductTypeElement("blocks", AlgebraicType.createArrayType(__Block.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("count", AlgebraicType.createI32Type()),
+      new ProductTypeElement("ghost", AlgebraicType.createBoolType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Chunk): void {
-    Chunk.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Block): void {
+    Block.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Chunk {
-    return Chunk.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Block {
+    return Block.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

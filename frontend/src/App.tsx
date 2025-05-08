@@ -13,16 +13,12 @@ function App() {
 
   useEffect(() => {
     const subscribeToQueries = (conn: DbConnection, queries: string[]) => {
-      let count = 0;
       for (const query of queries) {
         console.log("Subscribe to ", query);
         conn
           ?.subscriptionBuilder()
           .onApplied(() => {
-            count++;
-            if (count === queries.length) {
-              console.log("SDK client cache initialized.");
-            }
+            engineRef.current?.onQueriesApplied();
           })
           .subscribe(query);
       }

@@ -49,7 +49,7 @@ export class VoxelEngine {
       1000
     );
     this.camera.layers.enable(layers.ghost);
-    this.camera.position.set(10, 16, 10);
+    this.camera.position.set(8, 20, 8);
     this.camera.lookAt(0, 0, 0);
 
     this.controls = new CameraController(this.camera, this.renderer.domElement);
@@ -98,12 +98,16 @@ export class VoxelEngine {
     this.animate();
   }
 
+  onQueriesApplied() {
+    this.world.onQueriesApplied();
+  }
+
   private setupLights(): void {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(10, 20, 15);
+    directionalLight.position.set(10, 40, 15);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;

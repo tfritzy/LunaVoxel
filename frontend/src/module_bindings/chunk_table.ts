@@ -31,7 +31,7 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 import { Chunk } from "./chunk_type";
-import { BlockType as __BlockType } from "./block_type_type";
+import { Block as __Block } from "./block_type";
 
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
