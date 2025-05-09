@@ -6,12 +6,29 @@ export function addGroundPlane(
   worldWidth: number,
   worldHeight: number
 ) {
+  const borderExtension = 0.06;
+  const borderGeometry = new THREE.PlaneGeometry(
+    worldWidth + borderExtension * 2,
+    worldHeight + borderExtension * 2
+  );
+  const borderMaterial = new THREE.MeshBasicMaterial({
+    color: 0x444444,
+    side: THREE.DoubleSide,
+    transparent: false,
+  });
+  const borderPlane = new THREE.Mesh(borderGeometry, borderMaterial);
+  borderPlane.rotation.x = Math.PI / 2;
+  borderPlane.position.y = -0.01;
+  borderPlane.position.x = -0.5;
+  borderPlane.position.z = -0.5;
+  borderPlane.receiveShadow = true;
+  scene.add(borderPlane);
+
   const groundGeometry = new THREE.PlaneGeometry(worldWidth, worldHeight);
   const groundMaterial = new THREE.MeshPhongMaterial({
-    color: 0x555555,
+    color: 0x333333,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.5,
   });
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
@@ -39,11 +56,9 @@ function createBatchedGrid(
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: 0x444444,
     transparent: true,
-    opacity: 0.5,
   });
 
   const lineWidths = [0.01, 0.02, 0.04, 0.06];
-
   for (let i = -width / 2; i <= width / 2; i++) {
     const lineWidth = getLineWidth(i);
 

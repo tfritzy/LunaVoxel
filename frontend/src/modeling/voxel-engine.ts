@@ -53,7 +53,7 @@ export class VoxelEngine {
       1000
     );
     this.camera.layers.enable(layers.ghost);
-    this.camera.position.set(8, 20, 8);
+    this.camera.position.set(6, 16, 6);
     this.camera.lookAt(0, 0, 0);
 
     this.controls = new CameraController(this.camera, this.renderer.domElement);
@@ -116,26 +116,9 @@ export class VoxelEngine {
       addGroundPlane(this.scene, worldData.xWidth, worldData.yWidth);
 
       this.setupRaycaster();
-
-      this.centerCameraOnWorld(worldData);
     }
 
     this.worldManager.onQueriesApplied();
-  }
-
-  private centerCameraOnWorld(worldData: WorldData): void {
-    const maxDimension = Math.max(worldData.xWidth, worldData.yWidth);
-    const distance = maxDimension * 1.5;
-
-    this.camera.position.set(
-      worldData.xWidth / 2 - distance * 0.5,
-      distance * 0.8,
-      worldData.yWidth / 2 + distance * 0.5
-    );
-
-    this.controls.setTarget(
-      new THREE.Vector3(worldData.xWidth / 2, 0, worldData.yWidth / 2)
-    );
   }
 
   private setupLights(): void {
