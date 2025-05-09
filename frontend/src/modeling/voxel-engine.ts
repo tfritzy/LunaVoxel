@@ -4,14 +4,14 @@ import { GridRaycaster } from "./lib/grid-raycaster";
 import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { DbConnection } from "../module_bindings";
+import { DbConnection, World as WorldData } from "../module_bindings";
 import { World } from "./lib/world";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
   conn: DbConnection;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
-  world: string;
+  worldId: string;
 }
 
 export class VoxelEngine {
@@ -25,11 +25,15 @@ export class VoxelEngine {
   private animationFrameId: number | null = null;
   private currentGridPosition: THREE.Vector3 | null = null;
   private conn: DbConnection;
-  private world: World;
+  private worldManager: World;
+  private worldId: string;
+  private worldData: WorldData | null = null;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
     this.conn = options.conn;
+    this.worldId = options.worldId;
+
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(
       this.container.clientWidth,
@@ -56,15 +60,24 @@ export class VoxelEngine {
 
     this.setupLights();
 
-    addGroundPlane(this.scene);
-
-    this.world = new World(this.scene, this.conn);
+    this.worldManager = new World(this.scene, this.conn);
     this.builder = new Builder(
       this.scene,
       this.conn,
       this.renderer.domElement,
-      options.world
+      this.worldId
     );
+
+    window.addEventListener("resize", this.handleResize);
+
+    this.animate();
+  }
+
+  private setupRaycaster(): void {
+    if (this.raycaster) {
+      this.raycaster.dispose();
+      this.raycaster = null;
+    }
 
     const groundPlane = this.scene.children.find(
       (child) =>
@@ -92,14 +105,37 @@ export class VoxelEngine {
         }
       );
     }
-
-    window.addEventListener("resize", this.handleResize);
-
-    this.animate();
   }
 
   onQueriesApplied() {
-    this.world.onQueriesApplied();
+    const worldData = this.conn.db.world.id.find(this.worldId);
+
+    if (worldData && !this.worldData) {
+      this.worldData = worldData;
+
+      addGroundPlane(this.scene, worldData.xWidth, worldData.yWidth);
+
+      this.setupRaycaster();
+
+      this.centerCameraOnWorld(worldData);
+    }
+
+    this.worldManager.onQueriesApplied();
+  }
+
+  private centerCameraOnWorld(worldData: WorldData): void {
+    const maxDimension = Math.max(worldData.xWidth, worldData.yWidth);
+    const distance = maxDimension * 1.5;
+
+    this.camera.position.set(
+      worldData.xWidth / 2 - distance * 0.5,
+      distance * 0.8,
+      worldData.yWidth / 2 + distance * 0.5
+    );
+
+    this.controls.setTarget(
+      new THREE.Vector3(worldData.xWidth / 2, 0, worldData.yWidth / 2)
+    );
   }
 
   private setupLights(): void {
@@ -154,7 +190,7 @@ export class VoxelEngine {
     window.removeEventListener("resize", this.handleResize);
     this.raycaster?.dispose();
     this.renderer.dispose();
-    this.world.dispose();
+    this.worldManager.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }

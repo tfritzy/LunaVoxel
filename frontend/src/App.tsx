@@ -3,7 +3,7 @@ import { VoxelEngine } from "./modeling/voxel-engine";
 import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
 
-const world = "wrld_cd7cd7b7686d";
+const worldId = "wrld_cd7cd7b7686d";
 function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
@@ -34,7 +34,8 @@ function App() {
       localStorage.setItem("auth_token", token);
 
       subscribeToQueries(conn, [
-        "SELECT * FROM Chunk where World='" + world + "'",
+        `SELECT * FROM World WHERE Id='${worldId}'`,
+        `SELECT * FROM Chunk WHERE World='${worldId}'`,
       ]);
     };
 
@@ -66,7 +67,7 @@ function App() {
       engineRef.current = new VoxelEngine({
         container: containerRef.current,
         conn,
-        world,
+        worldId,
       });
     }
 

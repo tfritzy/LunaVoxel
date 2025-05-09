@@ -1,9 +1,12 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 
-export function addGroundPlane(scene: THREE.Scene) {
-  const gridSize = 80;
-  const groundGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
+export function addGroundPlane(
+  scene: THREE.Scene,
+  worldWidth: number,
+  worldHeight: number
+) {
+  const groundGeometry = new THREE.PlaneGeometry(worldWidth, worldHeight);
   const groundMaterial = new THREE.MeshPhongMaterial({
     color: 0x555555,
     side: THREE.DoubleSide,
@@ -13,6 +16,10 @@ export function addGroundPlane(scene: THREE.Scene) {
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
   groundPlane.position.y = 0;
+
+  groundPlane.position.x = worldWidth / 2 - 0.5;
+  groundPlane.position.z = worldHeight / 2 - 0.5;
+
   groundPlane.receiveShadow = true;
   scene.add(groundPlane);
   groundPlane.layers.set(layers.raycast);
@@ -20,90 +27,57 @@ export function addGroundPlane(scene: THREE.Scene) {
   const gridGroup = new THREE.Group();
   scene.add(gridGroup);
 
-  createBatchedGrid(gridSize, gridGroup);
+  createBatchedGrid(worldWidth, worldHeight, gridGroup);
 
   return { groundMaterial, groundGeometry, groundPlane };
 }
 
-function createBatchedGrid(gridSize: number, gridGroup: THREE.Group) {
-  const cellSize = 1;
-  const halfGrid = gridSize / 2;
-  const offset = halfGrid % 20;
-
+function createBatchedGrid(
+  width: number,
+  height: number,
+  gridGroup: THREE.Group
+) {
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: 0x444444,
     transparent: true,
+    opacity: 0.5,
   });
 
   const lineWidths = [0.005, 0.01, 0.03, 0.05];
 
-  const hLineGeometries = lineWidths.map(
-    (width) => new THREE.BoxGeometry(gridSize, 0.001, width)
-  );
+  for (let i = 0; i <= width; i++) {
+    const lineWidth = getLineWidth(i);
 
-  const vLineGeometries = lineWidths.map(
-    (width) => new THREE.BoxGeometry(width, 0.001, gridSize)
-  );
+    const hLineGeometry = new THREE.BoxGeometry(lineWidth, 0.001, height);
+    const hLine = new THREE.Mesh(hLineGeometry, lineMaterial);
 
-  const instanceCounts = [0, 0, 0, 0];
-
-  for (let i = 0; i <= gridSize; i++) {
-    let typeIndex;
-    const index = i + offset;
-    if (index % 20 === 0) {
-      typeIndex = 3;
-    } else if (index % 4 === 0) {
-      typeIndex = 2;
-    } else if (index % 2 === 0) {
-      typeIndex = 1;
-    } else {
-      typeIndex = 0;
-    }
-
-    instanceCounts[typeIndex]++;
+    hLine.position.set(i - 0.5, 0.001, height / 2 - 0.5);
+    hLine.layers.set(layers.ghost);
+    gridGroup.add(hLine);
   }
 
-  const hInstances = instanceCounts.map(
-    (count, i) =>
-      new THREE.InstancedMesh(hLineGeometries[i], lineMaterial, count)
-  );
+  for (let i = 0; i <= height; i++) {
+    const lineWidth = getLineWidth(i);
 
-  const vInstances = instanceCounts.map(
-    (count, i) =>
-      new THREE.InstancedMesh(vLineGeometries[i], lineMaterial, count)
-  );
+    const vLineGeometry = new THREE.BoxGeometry(width, 0.001, lineWidth);
+    const vLine = new THREE.Mesh(vLineGeometry, lineMaterial);
 
-  const instanceIndices = [0, 0, 0, 0];
-
-  for (let i = 0; i <= gridSize; i++) {
-    const pos = -halfGrid + i * cellSize + 0.5;
-
-    let typeIndex;
-    const index = i + offset;
-    if (index % 20 === 0) {
-      typeIndex = 3;
-    } else if (index % 4 === 0) {
-      typeIndex = 2;
-    } else if (index % 2 === 0) {
-      typeIndex = 1;
-    } else {
-      typeIndex = 0;
-    }
-
-    const hMatrix = new THREE.Matrix4().setPosition(0, 0, pos);
-    hInstances[typeIndex].setMatrixAt(instanceIndices[typeIndex], hMatrix);
-
-    const vMatrix = new THREE.Matrix4().setPosition(pos, 0, 0);
-    vInstances[typeIndex].setMatrixAt(instanceIndices[typeIndex], vMatrix);
-
-    instanceIndices[typeIndex]++;
+    vLine.position.set(width / 2 - 0.5, 0.001, i - 0.5);
+    vLine.layers.set(layers.ghost);
+    gridGroup.add(vLine);
   }
 
-  hInstances.forEach((mesh) => gridGroup.add(mesh));
-  vInstances.forEach((mesh) => gridGroup.add(mesh));
-
-  hInstances.forEach((i) => i.layers.set(layers.ghost));
-  vInstances.forEach((i) => i.layers.set(layers.ghost));
+  function getLineWidth(index: number): number {
+    if (index % 20 === 0) {
+      return lineWidths[3];
+    } else if (index % 4 === 0) {
+      return lineWidths[2];
+    } else if (index % 2 === 0) {
+      return lineWidths[1];
+    } else {
+      return lineWidths[0];
+    }
+  }
 
   return gridGroup;
 }
