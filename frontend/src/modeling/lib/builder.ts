@@ -51,19 +51,12 @@ export class Builder {
   }
 
   async onMouseClick(position: THREE.Vector3) {
-    console.log(
-      this.world,
-      { tag: "Block" },
-      position.x,
-      position.y,
-      position.z
-    );
     this.dbConn.reducers.placeBlock(
       this.world,
       { tag: "Block" },
       position.x,
-      position.y,
-      position.z
+      position.z,
+      position.y
     );
   }
 

@@ -33,24 +33,32 @@ export class World {
 
   private initBlocks = () => {
     for (const chunk of this.dbConn.db.chunk.iter()) {
-      this.spawnChunk(chunk);
+      this.updateChunk(chunk);
     }
   };
 
-  spawnChunk(chunk: Chunk) {
+  async updateChunk(chunk: Chunk) {
+    if (!this.chunks.has(chunk.id)) {
+      this.chunks.set(chunk.id, { blocks: [] });
+    }
+    const existingChunk = this.chunks.get(chunk.id)!;
+
     let i = 0;
-    for (let rbi = 0; rbi < chunk.blocks.length; rbi++) {
-      const runBlock = chunk.blocks[rbi];
-      if (runBlock.type.tag != "Empty") {
-        for (let z = i; z < i + runBlock.count; z++) {
-          this.createBlock(
-            blocks[0],
-            new THREE.Vector3(chunk.x, chunk.y, z),
-            layers.raycast
-          );
+    for (let rbIndex = 0; rbIndex < chunk.blocks.length; rbIndex++) {
+      const blockRun = chunk.blocks[rbIndex];
+      if (blockRun.type.tag != "Empty") {
+        for (let z = i; z < i + blockRun.count; z++) {
+          if (!existingChunk.blocks[z]) {
+            const block = await this.createBlock(
+              blocks[0],
+              new THREE.Vector3(chunk.x, z, chunk.y),
+              layers.raycast
+            );
+            existingChunk.blocks[z] = block;
+          }
         }
       }
-      i += runBlock.count;
+      i += blockRun.count;
     }
   }
 
@@ -60,11 +68,7 @@ export class World {
   };
 
   onUpdate = (_ctx: EventContext, oldChunk: Chunk, newChunk: Chunk) => {
-    if (!this.chunks.has(newChunk.id)) {
-      this.chunks.set(newChunk.id, { blocks: [] });
-    }
-    const chunk = this.chunks.get(newChunk.id)!;
-    this.spawnChunk(newChunk);
+    this.updateChunk(newChunk);
   };
 
   private async preloadModels() {
@@ -85,7 +89,7 @@ export class World {
     position: THREE.Vector3,
     layer: number,
     material?: THREE.Material
-  ) {
+  ): Promise<THREE.Object3D<THREE.Object3DEventMap>> {
     let model: THREE.Group;
 
     if (this.loadedModels.has(block.modelPath)) {
@@ -95,7 +99,6 @@ export class World {
       this.loadedModels.set(block.modelPath, loadedModel);
       model = loadedModel.clone();
     }
-    console.log("Creating block of: ", model);
 
     model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -108,7 +111,7 @@ export class World {
     model.position.copy(position);
     model.rotation.y = this.currentRotation;
     this.scene.add(model);
-    this.previewBlock = model;
+    return model;
   }
 
   private async createPreviewBlock(position: THREE.Vector3) {
