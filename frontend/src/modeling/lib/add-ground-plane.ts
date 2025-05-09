@@ -16,9 +16,8 @@ export function addGroundPlane(
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
   groundPlane.position.y = 0;
-
-  groundPlane.position.x = worldWidth / 2 - 0.5;
-  groundPlane.position.z = worldHeight / 2 - 0.5;
+  groundPlane.position.x = -0.5;
+  groundPlane.position.z = -0.5;
 
   groundPlane.receiveShadow = true;
   scene.add(groundPlane);
@@ -43,26 +42,26 @@ function createBatchedGrid(
     opacity: 0.5,
   });
 
-  const lineWidths = [0.005, 0.01, 0.03, 0.05];
+  const lineWidths = [0.01, 0.02, 0.04, 0.06];
 
-  for (let i = 0; i <= width; i++) {
+  for (let i = -width / 2; i <= width / 2; i++) {
     const lineWidth = getLineWidth(i);
 
     const hLineGeometry = new THREE.BoxGeometry(lineWidth, 0.001, height);
     const hLine = new THREE.Mesh(hLineGeometry, lineMaterial);
 
-    hLine.position.set(i - 0.5, 0.001, height / 2 - 0.5);
+    hLine.position.set(i - 0.5, 0.001, -0.5);
     hLine.layers.set(layers.ghost);
     gridGroup.add(hLine);
   }
 
-  for (let i = 0; i <= height; i++) {
+  for (let i = -height / 2; i <= height / 2; i++) {
     const lineWidth = getLineWidth(i);
 
     const vLineGeometry = new THREE.BoxGeometry(width, 0.001, lineWidth);
     const vLine = new THREE.Mesh(vLineGeometry, lineMaterial);
 
-    vLine.position.set(width / 2 - 0.5, 0.001, i - 0.5);
+    vLine.position.set(-0.5, 0.001, i - 0.5);
     vLine.layers.set(layers.ghost);
     gridGroup.add(vLine);
   }

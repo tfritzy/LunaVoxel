@@ -82,9 +82,9 @@ public static partial class Module
         var world = World.Build(name, xDim, yDim, zDim);
         ctx.Db.World.Insert(world);
 
-        for (int x = 0; x < xDim; x++)
+        for (int x = -xDim / 2; x < xDim / 2; x++)
         {
-            for (int y = 0; y < yDim; y++)
+            for (int y = -yDim / 2; y < yDim / 2; y++)
             {
                 ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, y, zDim));
             }
