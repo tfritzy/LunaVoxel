@@ -126,17 +126,17 @@ export class VoxelEngine {
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(10, 40, 15);
+    directionalLight.position.set(10, 30, 15);
     directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.mapSize.width = 8192;
+    directionalLight.shadow.mapSize.height = 8192;
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 50;
     directionalLight.shadow.camera.left = -25;
     directionalLight.shadow.camera.right = 25;
     directionalLight.shadow.camera.top = 25;
     directionalLight.shadow.camera.bottom = -25;
-    directionalLight.shadow.bias = -0.01;
+    directionalLight.shadow.bias = -0.0005;
     this.scene.add(directionalLight);
   }
 

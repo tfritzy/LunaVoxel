@@ -104,7 +104,6 @@ export class World {
       if (child instanceof THREE.Mesh) {
         if (material) child.material = material;
         child.layers.set(layer);
-        child.castShadow = false;
       }
     });
 
