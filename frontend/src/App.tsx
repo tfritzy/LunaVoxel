@@ -1,21 +1,35 @@
+// frontend/src/App.tsx
 import { useRef, useEffect, useState } from "react";
 import { VoxelEngine } from "./modeling/voxel-engine";
 import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
+import { AuthProvider, useAuth } from "./firebase/AuthContext";
+import FirebaseAuth from "./firebase/FirebaseAuth";
 
 const worldId = "wrld_cd7cd7b7686d";
-function App() {
+
+function AppContent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [conn, setConn] = useState<DbConnection | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    const subscribeToQueries = (conn: DbConnection, queries: string[]) => {
+    if (currentUser && !conn) {
+      initializeConnection();
+    }
+  }, [currentUser, conn]);
+
+  const initializeConnection = () => {
+    const subscribeToQueries = (
+      connection: DbConnection,
+      queries: string[]
+    ) => {
       for (const query of queries) {
         console.log("Subscribe to ", query);
-        conn
+        connection
           ?.subscriptionBuilder()
           .onApplied(() => {
             engineRef.current?.onQueriesApplied();
@@ -25,7 +39,7 @@ function App() {
     };
 
     const onConnect = (
-      conn: DbConnection,
+      connection: DbConnection,
       identity: Identity,
       token: string
     ) => {
@@ -33,7 +47,7 @@ function App() {
       setConnected(true);
       localStorage.setItem("auth_token", token);
 
-      subscribeToQueries(conn, [
+      subscribeToQueries(connection, [
         `SELECT * FROM World WHERE Id='${worldId}'`,
         `SELECT * FROM Chunk WHERE World='${worldId}'`,
       ]);
@@ -48,17 +62,21 @@ function App() {
       console.log("Error connecting to SpacetimeDB:", err);
     };
 
-    setConn(
-      DbConnection.builder()
-        .withUri("ws://localhost:3000")
-        .withModuleName("quickstart-chat")
-        .withToken(localStorage.getItem("auth_token") || "")
-        .onConnect(onConnect)
-        .onDisconnect(onDisconnect)
-        .onConnectError(onConnectError)
-        .build()
-    );
-  }, []);
+    if (currentUser) {
+      currentUser.getIdToken().then((idToken) => {
+        setConn(
+          DbConnection.builder()
+            .withUri("ws://localhost:3000")
+            .withModuleName("quickstart-chat")
+            .withToken(idToken || localStorage.getItem("auth_token") || "")
+            .onConnect(onConnect)
+            .onDisconnect(onDisconnect)
+            .onConnectError(onConnectError)
+            .build()
+        );
+      });
+    }
+  };
 
   useEffect(() => {
     if (!conn) return;
@@ -91,8 +109,17 @@ function App() {
             position: "relative",
           }}
         />
+        <FirebaseAuth />
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

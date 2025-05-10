@@ -27,6 +27,16 @@ public static partial class Module
         }
     }
 
+    [Table(Name = "Player")]
+    [SpacetimeDB.Index.BTree(Name = "idx_world", Columns = new[] { nameof(World), nameof(Id) })]
+    public partial class PlayerInWorld
+    {
+        public string Id;
+        public string World;
+        public int CursorXPos;
+        public int CursorYPos;
+    }
+
     [Type]
     public partial struct Block
     {
