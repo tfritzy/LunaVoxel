@@ -37,7 +37,7 @@ export namespace BlockType {
   // the tagged union.
   export type Empty = { tag: "Empty" };
   export type Block = { tag: "Block" };
-  export type LongBlock = { tag: "LongBlock" };
+  export type RoundBlock = { tag: "RoundBlock" };
 
   // Helper functions for constructing each variant of the tagged union.
   // ```
@@ -47,13 +47,13 @@ export namespace BlockType {
   // ```
   export const Empty = { tag: "Empty" };
   export const Block = { tag: "Block" };
-  export const LongBlock = { tag: "LongBlock" };
+  export const RoundBlock = { tag: "RoundBlock" };
 
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createSumType([
       new SumTypeVariant("Empty", AlgebraicType.createProductType([])),
       new SumTypeVariant("Block", AlgebraicType.createProductType([])),
-      new SumTypeVariant("LongBlock", AlgebraicType.createProductType([])),
+      new SumTypeVariant("RoundBlock", AlgebraicType.createProductType([])),
     ]);
   }
 
@@ -68,7 +68,7 @@ export namespace BlockType {
 }
 
 // The tagged union or sum type for the algebraic type `BlockType`.
-export type BlockType = BlockType.Empty | BlockType.Block | BlockType.LongBlock;
+export type BlockType = BlockType.Empty | BlockType.Block | BlockType.RoundBlock;
 
 export default BlockType;
 

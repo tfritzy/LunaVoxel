@@ -14,16 +14,16 @@ export const blocks: Block[] = [
   {
     type: { tag: "Block" },
     name: "Small Block",
-    modelPath: "models/small-block.glb",
+    modelPath: "models/block.glb",
     dimensions: new THREE.Vector3(1, 1, 1),
     validRotations: [0],
   },
   {
-    type: { tag: "LongBlock" },
+    type: { tag: "RoundBlock" },
     name: "Long Block",
-    modelPath: "models/long-block.glb",
+    modelPath: "models/round-block.glb",
     dimensions: new THREE.Vector3(2, 1, 1),
-    validRotations: [0, Math.PI / 2],
+    validRotations: [0],
   },
 ];
 

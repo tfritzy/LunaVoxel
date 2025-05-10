@@ -43,7 +43,7 @@ public static partial class Module
     }
 
     [Type]
-    public enum BlockType { Empty, Block, LongBlock }
+    public enum BlockType { Empty, Block, RoundBlock }
 
     [Table(Name = "Chunk", Public = true)]
     public partial class Chunk
