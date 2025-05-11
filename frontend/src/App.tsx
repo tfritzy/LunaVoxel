@@ -1,4 +1,3 @@
-// frontend/src/App.tsx
 import { useRef, useEffect, useState } from "react";
 import { VoxelEngine } from "./modeling/voxel-engine";
 import { DbConnection, ErrorContext } from "./module_bindings";
@@ -62,6 +61,7 @@ function AppContent() {
       console.log("Error connecting to SpacetimeDB:", err);
     };
 
+    // Get the token from the current user
     if (currentUser) {
       currentUser.getIdToken().then((idToken) => {
         setConn(

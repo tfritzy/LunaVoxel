@@ -1,18 +1,12 @@
-// frontend/src/contexts/AuthContext.tsx
+// frontend/src/firebase/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "firebase/auth";
-import {
-  auth,
-  signInWithGoogle,
-  signInAsAnonymous,
-  signOut,
-} from "../firebase/firebase";
+import { auth, signInWithGoogle, signInAsAnonymous, signOut } from "./firebase";
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<User>;
-  signInAsAnonymous: () => Promise<User>;
   signOut: () => Promise<void>;
 }
 
@@ -31,9 +25,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-      setLoading(false);
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        try {
+          await signInAsAnonymous();
+        } catch (error) {
+          console.error("Error during automatic anonymous sign-in:", error);
+          setLoading(false);
+        }
+      } else {
+        setCurrentUser(user);
+        setLoading(false);
+      }
     });
 
     return unsubscribe;
@@ -43,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     loading,
     signInWithGoogle,
-    signInAsAnonymous,
     signOut,
   };
 
