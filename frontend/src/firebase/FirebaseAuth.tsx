@@ -1,24 +1,15 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import { useAuth } from "./AuthContext";
 
 const FirebaseAuth: React.FC = () => {
-  const { currentUser, signInWithGoogle, signOut } = useAuth();
+  const { currentUser, signInWithGoogle } = useAuth();
 
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
     } catch (error) {
       console.error("Error signing in with Google:", error);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
     }
   };
 
@@ -57,18 +48,6 @@ const FirebaseAuth: React.FC = () => {
               />
             </svg>
             Sign in
-          </Button>
-        )}
-
-        {!currentUser.isAnonymous && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
           </Button>
         )}
       </div>

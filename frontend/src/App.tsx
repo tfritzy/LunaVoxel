@@ -1,49 +1,18 @@
-import { useRef, useEffect, useState, useCallback } from "react";
-import { VoxelEngine } from "./modeling/voxel-engine";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
 import FirebaseAuth from "./firebase/FirebaseAuth";
-import { useWorldManagement } from "./hooks/useWorldManagement";
-import React from "react";
+import { DatabaseProvider } from "./contexts/DatabaseContext";
+import WorldListPage from "./pages/WorldListPage";
+import WorldViewPage from "./pages/WorldViewPage";
+import Navigation from "./components/custom/Navigation";
 
 function AppContent() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<VoxelEngine | null>(null);
   const [conn, setConn] = useState<DbConnection | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const { currentUser } = useAuth();
-
-  const onWorldConnected = React.useCallback(
-    (connection: DbConnection, world: string) => {
-      connection
-        .subscriptionBuilder()
-        .onApplied(() => {
-          if (engineRef.current) {
-            engineRef.current.dispose();
-            engineRef.current = null;
-          }
-
-          engineRef.current = new VoxelEngine({
-            container: containerRef.current!,
-            connection,
-            worldId: world,
-          });
-        })
-        .subscribe([`SELECT * FROM Chunk WHERE World='${world}'`]);
-    },
-    []
-  );
-
-  const {
-    currentWorldId,
-    isLoading,
-    myWorlds,
-    selectWorld,
-    createNewWorld,
-    initialize,
-    reset,
-  } = useWorldManagement(onWorldConnected);
 
   useEffect(() => {
     const onConnect = (
@@ -56,30 +25,24 @@ function AppContent() {
         identity.toHexString()
       );
       setIdentity(identity);
+      setConn(connection);
       localStorage.setItem("auth_token", token);
-
-      initialize(connection);
     };
 
     const onDisconnect = () => {
       console.log("Disconnected from SpacetimeDB");
-
-      reset();
-
-      if (engineRef.current) {
-        engineRef.current.dispose();
-        engineRef.current = null;
-      }
+      setConn(null);
+      setIdentity(null);
     };
 
     const onConnectError = (_ctx: ErrorContext, err: Error) => {
       console.log("Error connecting to SpacetimeDB:", err);
-      reset();
+      setConn(null);
     };
 
     try {
       currentUser?.getIdToken().then((idToken) => {
-        const connection = DbConnection.builder()
+        DbConnection.builder()
           .withUri("ws://localhost:3000")
           .withModuleName("quickstart-chat")
           .withToken(idToken || localStorage.getItem("auth_token") || "")
@@ -87,51 +50,35 @@ function AppContent() {
           .onDisconnect(onDisconnect)
           .onConnectError(onConnectError)
           .build();
-
-        setConn(connection);
       });
     } catch (err) {
       console.error("Error initializing connection:", err);
     }
-  }, []);
-
-  const handleWorldChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      if (!conn) return;
-      const worldId = e.target.value;
-      selectWorld(conn, worldId);
-    },
-    [conn, selectWorld]
-  );
+  }, [currentUser]);
 
   return (
-    <div className="app">
-      <main className="app-content">
-        {isLoading ? (
-          <div className="loading-overlay">
-            <div className="loading-spinner">Loading world...</div>
-          </div>
-        ) : (
-          <div
-            ref={containerRef}
-            className="voxel-container"
-            style={{
-              width: "100%",
-              height: "100vh",
-              position: "relative",
-            }}
-          />
-        )}
-        <FirebaseAuth />
-      </main>
-    </div>
+    <DatabaseProvider connection={conn}>
+      <div className="app">
+        <Navigation />
+        <main className="app-content pt-14">
+          <Routes>
+            <Route path="/" element={<WorldListPage />} />
+            <Route path="/worlds/:worldId" element={<WorldViewPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <FirebaseAuth />
+        </main>
+      </div>
+    </DatabaseProvider>
   );
 }
 
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </AuthProvider>
   );
 }

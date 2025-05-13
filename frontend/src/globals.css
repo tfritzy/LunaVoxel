@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+.voxel-container {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+}
