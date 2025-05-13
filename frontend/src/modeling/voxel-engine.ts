@@ -9,7 +9,7 @@ import { World } from "./lib/world";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
-  conn: DbConnection;
+  connection: DbConnection;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
   worldId: string;
 }
@@ -31,7 +31,7 @@ export class VoxelEngine {
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
-    this.conn = options.conn;
+    this.conn = options.connection;
     this.worldId = options.worldId;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -67,6 +67,7 @@ export class VoxelEngine {
       this.renderer.domElement,
       this.worldId
     );
+    this.initChunks();
 
     window.addEventListener("resize", this.handleResize);
 
@@ -107,7 +108,19 @@ export class VoxelEngine {
     }
   }
 
-  onQueriesApplied() {
+  initChunks() {
+    const chunks = Array.from(this.conn.db.chunk.iter()).filter(
+      (chunk) => chunk.world === this.worldId
+    );
+
+    console.log(`Found ${chunks.length} chunks for world ${this.worldId}`);
+
+    if (chunks.length === 0) {
+      console.warn(
+        "No chunks found for this world! Check world creation logic."
+      );
+    }
+
     const worldData = this.conn.db.world.id.find(this.worldId);
 
     if (worldData && !this.worldData) {

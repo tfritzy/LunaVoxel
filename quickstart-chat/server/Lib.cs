@@ -5,6 +5,9 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Table(Name = "World", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "idx_owner", Columns = new[] { nameof(Owner) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited", Columns = new[] { nameof(Owner), nameof(LastVisited) })]
+
     public partial class World
     {
         [PrimaryKey]
@@ -13,8 +16,10 @@ public static partial class Module
         public int XWidth;
         public int YWidth;
         public int Height;
+        public Identity Owner;
+        public Timestamp LastVisited;
 
-        public static World Build(string name, int xWidth, int yWidth, int height)
+        public static World Build(string name, int xWidth, int yWidth, int height, Identity owner, Timestamp timestamp)
         {
             return new World
             {
@@ -22,7 +27,9 @@ public static partial class Module
                 Name = name,
                 XWidth = xWidth,
                 YWidth = yWidth,
-                Height = height
+                Height = height,
+                Owner = owner,
+                LastVisited = timestamp
             };
         }
     }
@@ -89,7 +96,7 @@ public static partial class Module
     [Reducer]
     public static void CreateWorld(ReducerContext ctx, string name, int xDim, int yDim, int zDim)
     {
-        var world = World.Build(name, xDim, yDim, zDim);
+        var world = World.Build(name, xDim, yDim, zDim, ctx.Sender, ctx.Timestamp);
         ctx.Db.World.Insert(world);
 
         for (int x = -xDim / 2; x < xDim / 2; x++)
@@ -99,5 +106,16 @@ public static partial class Module
                 ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, y, zDim));
             }
         }
+    }
+
+    [Reducer]
+    public static void VisitWorld(ReducerContext ctx, string worldId)
+    {
+        var world = ctx.Db.World.Id.Find(worldId) ?? throw new Exception($"World with ID {worldId} not found");
+
+        world.LastVisited = ctx.Timestamp;
+        ctx.Db.World.Id.Update(world);
+
+        Log.Info($"User {ctx.Sender} visited world {worldId} at {ctx.Timestamp}");
     }
 }

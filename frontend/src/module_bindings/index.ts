@@ -36,10 +36,14 @@ import { CreateWorld } from "./create_world_reducer.ts";
 export { CreateWorld };
 import { PlaceBlock } from "./place_block_reducer.ts";
 export { PlaceBlock };
+import { VisitWorld } from "./visit_world_reducer.ts";
+export { VisitWorld };
 
 // Import and reexport all table handle types
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
+import { PlayerTableHandle } from "./player_table.ts";
+export { PlayerTableHandle };
 import { WorldTableHandle } from "./world_table.ts";
 export { WorldTableHandle };
 
@@ -50,6 +54,8 @@ import { BlockType } from "./block_type_type.ts";
 export { BlockType };
 import { Chunk } from "./chunk_type.ts";
 export { Chunk };
+import { PlayerInWorld } from "./player_in_world_type.ts";
+export { PlayerInWorld };
 import { World } from "./world_type.ts";
 export { World };
 
@@ -59,6 +65,10 @@ const REMOTE_MODULE = {
       tableName: "Chunk",
       rowType: Chunk.getTypeScriptAlgebraicType(),
       primaryKey: "id",
+    },
+    Player: {
+      tableName: "Player",
+      rowType: PlayerInWorld.getTypeScriptAlgebraicType(),
     },
     World: {
       tableName: "World",
@@ -74,6 +84,10 @@ const REMOTE_MODULE = {
     PlaceBlock: {
       reducerName: "PlaceBlock",
       argsType: PlaceBlock.getTypeScriptAlgebraicType(),
+    },
+    VisitWorld: {
+      reducerName: "VisitWorld",
+      argsType: VisitWorld.getTypeScriptAlgebraicType(),
     },
   },
   // Constructors which are used by the DbConnectionImpl to
@@ -104,6 +118,7 @@ const REMOTE_MODULE = {
 export type Reducer = never
 | { name: "CreateWorld", args: CreateWorld }
 | { name: "PlaceBlock", args: PlaceBlock }
+| { name: "VisitWorld", args: VisitWorld }
 ;
 
 export class RemoteReducers {
@@ -141,6 +156,22 @@ export class RemoteReducers {
     this.connection.offReducer("PlaceBlock", callback);
   }
 
+  visitWorld(worldId: string) {
+    const __args = { worldId };
+    let __writer = new BinaryWriter(1024);
+    VisitWorld.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("VisitWorld", __argsBuffer, this.setCallReducerFlags.visitWorldFlags);
+  }
+
+  onVisitWorld(callback: (ctx: ReducerEventContext, worldId: string) => void) {
+    this.connection.onReducer("VisitWorld", callback);
+  }
+
+  removeOnVisitWorld(callback: (ctx: ReducerEventContext, worldId: string) => void) {
+    this.connection.offReducer("VisitWorld", callback);
+  }
+
 }
 
 export class SetReducerFlags {
@@ -154,6 +185,11 @@ export class SetReducerFlags {
     this.placeBlockFlags = flags;
   }
 
+  visitWorldFlags: CallReducerFlags = 'FullUpdate';
+  visitWorld(flags: CallReducerFlags) {
+    this.visitWorldFlags = flags;
+  }
+
 }
 
 export class RemoteTables {
@@ -161,6 +197,10 @@ export class RemoteTables {
 
   get chunk(): ChunkTableHandle {
     return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.Chunk));
+  }
+
+  get player(): PlayerTableHandle {
+    return new PlayerTableHandle(this.connection.clientCache.getOrCreateTable<PlayerInWorld>(REMOTE_MODULE.tables.Player));
   }
 
   get world(): WorldTableHandle {

@@ -60,15 +60,17 @@ const FirebaseAuth: React.FC = () => {
           </Button>
         )}
 
-        <Button
-          variant="destructive"
-          size="sm"
-          className="w-full"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
+        {!currentUser.isAnonymous && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        )}
       </div>
     </div>
   );

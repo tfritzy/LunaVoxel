@@ -30,20 +30,17 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-export type World = {
+export type PlayerInWorld = {
   id: string,
-  name: string,
-  xWidth: number,
-  yWidth: number,
-  height: number,
-  owner: Identity,
-  lastVisited: Timestamp,
+  world: string,
+  cursorXPos: number,
+  cursorYPos: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace World {
+export namespace PlayerInWorld {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -51,21 +48,18 @@ export namespace World {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("name", AlgebraicType.createStringType()),
-      new ProductTypeElement("xWidth", AlgebraicType.createI32Type()),
-      new ProductTypeElement("yWidth", AlgebraicType.createI32Type()),
-      new ProductTypeElement("height", AlgebraicType.createI32Type()),
-      new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("lastVisited", AlgebraicType.createTimestampType()),
+      new ProductTypeElement("world", AlgebraicType.createStringType()),
+      new ProductTypeElement("cursorXPos", AlgebraicType.createI32Type()),
+      new ProductTypeElement("cursorYPos", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: World): void {
-    World.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: PlayerInWorld): void {
+    PlayerInWorld.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): World {
-    return World.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): PlayerInWorld {
+    return PlayerInWorld.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
