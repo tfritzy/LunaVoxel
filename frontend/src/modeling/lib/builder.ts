@@ -37,9 +37,13 @@ export class Builder {
   }
 
   onMouseHover(position: THREE.Vector3) {
-    // if (this.previewBlock && !this.isLoading) {
-    //   this.previewBlock.position.set(position.x, position.y, position.z);
-    // }
+    this.dbConn.reducers.placeBlock(
+      this.world,
+      { tag: "Block" },
+      position.x,
+      position.z,
+      position.y
+    );
   }
 
   rotateBlock() {

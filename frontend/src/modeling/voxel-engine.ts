@@ -53,7 +53,7 @@ export class VoxelEngine {
       1000
     );
     this.camera.layers.enable(layers.ghost);
-    this.camera.position.set(6, 10, 6);
+    this.camera.position.set(5, 15, 5);
     this.camera.lookAt(0, 0, 0);
 
     this.controls = new CameraController(this.camera, this.renderer.domElement);
@@ -151,6 +151,14 @@ export class VoxelEngine {
     directionalLight.shadow.camera.bottom = -25;
     directionalLight.shadow.bias = -0.0005;
     this.scene.add(directionalLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffffeb, 0.3);
+    fillLight.position.set(-15, 10, -10);
+    this.scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    rimLight.position.set(5, 5, -20);
+    this.scene.add(rimLight);
   }
 
   private handleResize = (): void => {

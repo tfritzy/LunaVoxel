@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Home, User, LogOut } from "lucide-react";
+import { Home, User, LogOut, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useAuth } from "@/firebase/AuthContext";
@@ -22,10 +22,10 @@ export default function Navigation() {
 
   return (
     <nav className="fixed z-50 top-0 w-full backdrop-brightness-75 backdrop-blur-sm border-b border-border">
-      <div className="container mx-auto px-4 py-2 flex justify-between items-center">
+      <div className="container mx-auto py-2 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2 font-semibold">
-            <Home className="h-5 w-5" />
+            <Moon className="h-5 w-5" />
             <span>Lunavox</span>
           </Link>
         </div>

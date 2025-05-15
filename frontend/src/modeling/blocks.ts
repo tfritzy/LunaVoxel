@@ -56,7 +56,7 @@ function getMaterial(color: number): THREE.MeshStandardMaterial {
 /**
  * Creates a standard cube mesh using shared resources
  */
-export function createCubeMesh(color: number = 0xbbbbbb): THREE.Mesh {
+export function createCubeMesh(color: number = 0xdddddd): THREE.Mesh {
   const geometry = resourceCache.geometries.box;
 
   const material = getMaterial(color);
@@ -70,7 +70,7 @@ export function createCubeMesh(color: number = 0xbbbbbb): THREE.Mesh {
 /**
  * Creates a rounded cube mesh using shared resources
  */
-export function createRoundedCubeMesh(color: number = 0xbbbbbb): THREE.Mesh {
+export function createRoundedCubeMesh(color: number = 0xdddddd): THREE.Mesh {
   const geometry = resourceCache.geometries.roundedBox!;
 
   const material = getMaterial(color);

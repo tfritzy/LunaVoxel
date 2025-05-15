@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
+import { World } from "../module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
 
 export default function WorldViewPage() {
@@ -10,36 +11,75 @@ export default function WorldViewPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [world, setWorld] = useState<World | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!worldId || !connection || !containerRef.current) return;
+    if (!worldId || !connection) return;
 
-    setIsLoading(true);
+    const worldData = connection.db.world.id.find(worldId);
+    if (worldData) {
+      setWorld(worldData);
+      setIsReady(true);
+    } else {
+      const sub = connection
+        .subscriptionBuilder()
+        .onApplied(() => {
+          const foundWorld = connection.db.world.id.find(worldId);
+          if (foundWorld) {
+            setWorld(foundWorld);
+            setIsReady(true);
+          } else {
+            setError(`World ${worldId} not found`);
+            setTimeout(() => navigate("/"), 2000);
+          }
+        })
+        .onError((err) => {
+          setError(`Error loading world: ${err.message}`);
+          setTimeout(() => navigate("/"), 2000);
+        })
+        .subscribe([`SELECT * FROM World WHERE Id='${worldId}'`]);
+
+      return () => {
+        sub.unsubscribe();
+      };
+    }
+  }, [worldId, connection, navigate]);
+
+  useEffect(() => {
+    if (!isReady || !worldId || !connection || !containerRef.current) return;
 
     if (engineRef.current) {
       engineRef.current.dispose();
       engineRef.current = null;
     }
 
-    const worldData = connection.db.world.id.find(worldId);
-    if (!worldData) {
-      navigate("/");
-      return;
-    }
+    setIsLoading(true);
 
     const sub = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        if (!containerRef.current) return;
-        engineRef.current = new VoxelEngine({
-          container: containerRef.current!,
-          connection,
-          worldId,
-        });
-        setIsLoading(false);
+        if (containerRef.current) {
+          setTimeout(() => {
+            try {
+              engineRef.current = new VoxelEngine({
+                container: containerRef.current!,
+                connection,
+                worldId,
+              });
+              setIsLoading(false);
+            } catch (err) {
+              console.error("Error initializing engine:", err);
+              setError("Failed to initialize 3D view");
+              setIsLoading(false);
+            }
+          }, 100);
+        }
       })
-      .onError((error) => {
-        console.error("Error subscribing to chunks:", error);
+      .onError((err) => {
+        console.error("Error subscribing to chunks:", err);
+        setError(`Error loading chunks: ${err.message}`);
         setIsLoading(false);
       })
       .subscribe([`SELECT * FROM Chunk WHERE World='${worldId}'`]);
@@ -51,12 +91,20 @@ export default function WorldViewPage() {
         engineRef.current = null;
       }
     };
-  }, [worldId, connection, navigate]);
+  }, [isReady, worldId, connection, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (engineRef.current) {
+        engineRef.current.dispose();
+        engineRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="relative h-screen w-full">
       <div
-        key="container"
         ref={containerRef}
         className="voxel-container"
         style={{
@@ -67,10 +115,19 @@ export default function WorldViewPage() {
       />
 
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background bg-opacity-50 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 border-4 border-t-accent border-r-transparent border-b-accent border-l-transparent rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
             <p className="text-lg font-medium">Loading world...</p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm z-20">
+          <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center">
+            <p className="text-xl text-destructive font-medium mb-4">{error}</p>
+            <p className="text-muted-foreground">Returning to world list...</p>
           </div>
         </div>
       )}
