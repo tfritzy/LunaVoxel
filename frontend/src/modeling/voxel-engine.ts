@@ -53,7 +53,7 @@ export class VoxelEngine {
       1000
     );
     this.camera.layers.enable(layers.ghost);
-    this.camera.position.set(6, 16, 6);
+    this.camera.position.set(6, 10, 6);
     this.camera.lookAt(0, 0, 0);
 
     this.controls = new CameraController(this.camera, this.renderer.domElement);

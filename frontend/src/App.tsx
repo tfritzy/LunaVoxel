@@ -56,11 +56,13 @@ function AppContent() {
     }
   }, [currentUser]);
 
+  if (!conn) return null;
+
   return (
     <DatabaseProvider connection={conn}>
       <div className="app">
         <Navigation />
-        <main className="app-content pt-14">
+        <main className="">
           <Routes>
             <Route path="/" element={<WorldListPage />} />
             <Route path="/worlds/:worldId" element={<WorldViewPage />} />

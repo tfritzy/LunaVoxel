@@ -1,4 +1,4 @@
-import { Block, blocks, loadModel } from "../blocks";
+import { Block, blocks, createBlockModel } from "../blocks";
 import * as THREE from "three";
 import { layers } from "./layers";
 import { Chunk, DbConnection, EventContext } from "../../module_bindings";
@@ -8,7 +8,6 @@ export class World {
   private scene: THREE.Scene;
   private selectedBlockIndex: number = 1;
   private ghostMaterial: THREE.Material;
-  private loadedModels: Map<string, THREE.Group> = new Map();
   private currentRotation: number = 0;
   private dbConn: DbConnection;
   private chunks: Map<string, { blocks: (THREE.Object3D | null)[] }>;
@@ -23,7 +22,6 @@ export class World {
       transparent: true,
       depthWrite: false,
     });
-    this.preloadModels();
     this.setupEvents();
   }
 
@@ -71,34 +69,15 @@ export class World {
     this.updateChunk(newChunk);
   };
 
-  private async preloadModels() {
-    for (const block of blocks) {
-      try {
-        if (!this.loadedModels.has(block.modelPath)) {
-          const model = await loadModel(block.modelPath);
-          this.loadedModels.set(block.modelPath, model);
-        }
-      } catch (error) {
-        console.error(`Failed to load model: ${block.modelPath}`, error);
-      }
-    }
-  }
-
   private async createBlock(
     block: Block,
     position: THREE.Vector3,
     layer: number,
     material?: THREE.Material
-  ): Promise<THREE.Object3D<THREE.Object3DEventMap>> {
-    let model: THREE.Group;
+  ): Promise<THREE.Object3D<THREE.Object3DEventMap> | null> {
+    const model = createBlockModel(block.type);
 
-    if (this.loadedModels.has(block.modelPath)) {
-      model = this.loadedModels.get(block.modelPath)!.clone();
-    } else {
-      const loadedModel = await loadModel(block.modelPath);
-      this.loadedModels.set(block.modelPath, loadedModel);
-      model = loadedModel.clone();
-    }
+    if (!model) return null;
 
     model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -108,6 +87,7 @@ export class World {
     });
 
     model.position.copy(position);
+    model.position.y += 0.5;
     model.rotation.y = this.currentRotation;
     this.scene.add(model);
     return model;
