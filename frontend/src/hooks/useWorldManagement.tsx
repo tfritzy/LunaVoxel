@@ -10,7 +10,6 @@ export function useWorldManagement() {
 
   const initialize = useCallback(
     (conn: DbConnection) => {
-      console.log("initialize called", conn, isInitialized);
       if (!conn.isActive || isInitialized) return;
 
       const onWorldInsert = (ctx: EventContext, world: World) => {
@@ -62,7 +61,6 @@ export function useWorldManagement() {
 
         if (conn.identity) {
           const myIdentityHex = conn.identity.toHexString();
-          console.log("Subscribing to worlds for identity:", myIdentityHex);
 
           conn
             .subscriptionBuilder()

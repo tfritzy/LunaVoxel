@@ -22,7 +22,8 @@ export class World {
       color: "#0096FF",
       opacity: 0.3,
       transparent: true,
-      depthWrite: false,
+      depthWrite: true,
+      depthTest: true,
     });
     this.setupEvents();
   }
@@ -38,12 +39,6 @@ export class World {
   };
 
   async updateChunk(chunk: Chunk) {
-    console.log(
-      "update chunk to",
-      chunk.blocks
-        .map((br) => `${br.type.tag} ${br.ghost} - ${br.count}`)
-        .join(",")
-    );
     if (!this.chunks.has(chunk.id)) {
       this.chunks.set(chunk.id, { blocks: [] });
     }

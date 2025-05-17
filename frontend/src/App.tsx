@@ -20,10 +20,6 @@ function AppContent() {
       identity: Identity,
       token: string
     ) => {
-      console.log(
-        "Connected to SpacetimeDB with identity:",
-        identity.toHexString()
-      );
       setIdentity(identity);
       setConn(connection);
       localStorage.setItem("auth_token", token);

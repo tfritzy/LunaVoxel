@@ -53,7 +53,7 @@ export class VoxelEngine {
       1000
     );
     this.camera.layers.enable(layers.ghost);
-    this.camera.position.set(5, 15, 5);
+    this.camera.position.set(5, 12, 5);
     this.camera.lookAt(0, 0, 0);
 
     this.controls = new CameraController(this.camera, this.renderer.domElement);
@@ -112,8 +112,6 @@ export class VoxelEngine {
     const chunks = Array.from(this.conn.db.chunk.iter()).filter(
       (chunk) => chunk.world === this.worldId
     );
-
-    console.log(`Found ${chunks.length} chunks for world ${this.worldId}`);
 
     if (chunks.length === 0) {
       console.warn(
