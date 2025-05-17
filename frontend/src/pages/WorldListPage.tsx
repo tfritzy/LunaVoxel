@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateWorldButton from "@/components/custom/CreateWorldButton";
+import CreateWorldDialog from "@/components/custom/CreateWorldDialog";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useWorldManagement } from "@/hooks/useWorldManagement";
 
@@ -9,6 +10,7 @@ export default function WorldListPage() {
   const { connection } = useDatabase();
   const { myWorlds } = useWorldManagement();
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -54,9 +56,14 @@ export default function WorldListPage() {
 
   return (
     <div className="pt-16 mx-auto p-4 max-w-7xl">
+      <CreateWorldDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+
       <div className="flex flex-row justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Worlds</h1>
-        <CreateWorldButton />
+        <CreateWorldButton onClick={() => setIsCreateDialogOpen(true)} />
       </div>
 
       {myWorlds.length === 0 ? (
@@ -64,7 +71,12 @@ export default function WorldListPage() {
           <p className="mb-4 text-muted-foreground">
             You don't have any worlds yet.
           </p>
-          <CreateWorldButton />
+          <CreateWorldButton
+            onClick={() => setIsCreateDialogOpen(true)}
+            variant="secondary"
+          >
+            Create your first world
+          </CreateWorldButton>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
