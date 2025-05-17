@@ -39,6 +39,7 @@ export type PlaceBlock = {
   x: number,
   y: number,
   z: number,
+  isPreview: boolean,
 };
 
 /**
@@ -56,6 +57,7 @@ export namespace PlaceBlock {
       new ProductTypeElement("x", AlgebraicType.createI32Type()),
       new ProductTypeElement("y", AlgebraicType.createI32Type()),
       new ProductTypeElement("z", AlgebraicType.createI32Type()),
+      new ProductTypeElement("isPreview", AlgebraicType.createBoolType()),
     ]);
   }
 

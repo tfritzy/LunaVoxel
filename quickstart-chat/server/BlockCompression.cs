@@ -24,7 +24,7 @@ public static class BlockCompression
 
         int offset = z - zIter;
 
-        List<Block> newBlocks = [];
+        List<Block> newBlocks = new List<Block>();
 
         for (int j = 0; j < i; j++)
         {
@@ -73,5 +73,21 @@ public static class BlockCompression
         {
             blocks[i] = newBlocks[i];
         }
+    }
+
+    public static (BlockType Type, bool Ghost) GetBlock(Block[] blocks, int z)
+    {
+        int zIter = 0;
+
+        foreach (var block in blocks)
+        {
+            if (zIter + block.Count > z)
+            {
+                return (block.Type, block.Ghost);
+            }
+            zIter += block.Count;
+        }
+
+        return (default(BlockType), default(bool));
     }
 }

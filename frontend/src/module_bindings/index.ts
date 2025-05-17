@@ -42,8 +42,8 @@ export { VisitWorld };
 // Import and reexport all table handle types
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
-import { PlayerTableHandle } from "./player_table.ts";
-export { PlayerTableHandle };
+import { PlayerInWorldTableHandle } from "./player_in_world_table.ts";
+export { PlayerInWorldTableHandle };
 import { WorldTableHandle } from "./world_table.ts";
 export { WorldTableHandle };
 
@@ -56,6 +56,8 @@ import { Chunk } from "./chunk_type.ts";
 export { Chunk };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
+import { Vector3 } from "./vector_3_type.ts";
+export { Vector3 };
 import { World } from "./world_type.ts";
 export { World };
 
@@ -66,9 +68,10 @@ const REMOTE_MODULE = {
       rowType: Chunk.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
-    Player: {
-      tableName: "Player",
+    PlayerInWorld: {
+      tableName: "PlayerInWorld",
       rowType: PlayerInWorld.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
     },
     World: {
       tableName: "World",
@@ -140,19 +143,19 @@ export class RemoteReducers {
     this.connection.offReducer("CreateWorld", callback);
   }
 
-  placeBlock(world: string, type: BlockType, x: number, y: number, z: number) {
-    const __args = { world, type, x, y, z };
+  placeBlock(world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) {
+    const __args = { world, type, x, y, z, isPreview };
     let __writer = new BinaryWriter(1024);
     PlaceBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("PlaceBlock", __argsBuffer, this.setCallReducerFlags.placeBlockFlags);
   }
 
-  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number) => void) {
+  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
     this.connection.onReducer("PlaceBlock", callback);
   }
 
-  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number) => void) {
+  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
     this.connection.offReducer("PlaceBlock", callback);
   }
 
@@ -199,8 +202,8 @@ export class RemoteTables {
     return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.Chunk));
   }
 
-  get player(): PlayerTableHandle {
-    return new PlayerTableHandle(this.connection.clientCache.getOrCreateTable<PlayerInWorld>(REMOTE_MODULE.tables.Player));
+  get playerInWorld(): PlayerInWorldTableHandle {
+    return new PlayerInWorldTableHandle(this.connection.clientCache.getOrCreateTable<PlayerInWorld>(REMOTE_MODULE.tables.PlayerInWorld));
   }
 
   get world(): WorldTableHandle {

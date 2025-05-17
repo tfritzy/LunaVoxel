@@ -30,36 +30,34 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Vector3 as __Vector3 } from "./vector_3_type";
-
-export type PlayerInWorld = {
-  id: string,
-  world: string,
-  previewPos: __Vector3 | undefined,
+export type Vector3 = {
+  x: number,
+  y: number,
+  z: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace PlayerInWorld {
+export namespace Vector3 {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("previewPos", AlgebraicType.createOptionType(__Vector3.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("x", AlgebraicType.createI32Type()),
+      new ProductTypeElement("y", AlgebraicType.createI32Type()),
+      new ProductTypeElement("z", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PlayerInWorld): void {
-    PlayerInWorld.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Vector3): void {
+    Vector3.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PlayerInWorld {
-    return PlayerInWorld.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Vector3 {
+    return Vector3.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

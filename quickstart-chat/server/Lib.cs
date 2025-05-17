@@ -5,9 +5,7 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Table(Name = "World", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "idx_owner", Columns = new[] { nameof(Owner) })]
     [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited", Columns = new[] { nameof(Owner), nameof(LastVisited) })]
-
     public partial class World
     {
         [PrimaryKey]
@@ -34,14 +32,14 @@ public static partial class Module
         }
     }
 
-    [Table(Name = "Player")]
-    [SpacetimeDB.Index.BTree(Name = "idx_world", Columns = new[] { nameof(World), nameof(Id) })]
+    [Table(Name = "PlayerInWorld")]
+    [SpacetimeDB.Index.BTree(Name = "world", Columns = new[] { nameof(World) })]
     public partial class PlayerInWorld
     {
+        [PrimaryKey]
         public string Id;
         public string World;
-        public int CursorXPos;
-        public int CursorYPos;
+        public Vector3? PreviewPos;
     }
 
     [Type]
@@ -57,6 +55,14 @@ public static partial class Module
             this.Count = count;
             this.Ghost = ghost;
         }
+    }
+
+    [Type]
+    public partial struct Vector3(int x, int y, int z)
+    {
+        public int X = x;
+        public int Y = y;
+        public int Z = z;
     }
 
     [Type]
@@ -80,17 +86,50 @@ public static partial class Module
                 X = x,
                 Y = y,
                 World = world,
-                Blocks = new Block[] { new Block(BlockType.Empty, z, false) }
+                Blocks = [new Block(BlockType.Empty, z, false)]
             };
         }
     }
 
     [Reducer]
-    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z)
+    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z, bool isPreview = false)
     {
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}") ?? throw new ArgumentException("Could not find specified chunk");
-        BlockCompression.SetBlock(ref chunk.Blocks, type, z, false);
-        ctx.Db.Chunk.Id.Update(chunk);
+        if (isPreview)
+        {
+            var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{world}") ?? throw new ArgumentException("You're not in this world.");
+
+            if (player.PreviewPos.HasValue)
+            {
+                var previewPos = player.PreviewPos.Value;
+                var chunkId = $"{world}_{previewPos.X}_{previewPos.Y}";
+                var previewChunk = chunkId != chunk.Id ? ctx.Db.Chunk.Id.Find(chunkId) : chunk;
+                if (previewChunk != null && BlockCompression.GetBlock(previewChunk.Blocks, previewPos.Z).Ghost)
+                {
+                    BlockCompression.SetBlock(ref previewChunk.Blocks, BlockType.Empty, previewPos.Z, false);
+
+                    if (chunkId != chunk.Id)
+                    {
+                        ctx.Db.Chunk.Id.Update(previewChunk);
+                    }
+                }
+            }
+
+            var currBlock = BlockCompression.GetBlock(chunk.Blocks, z);
+            if (currBlock.Type == BlockType.Empty || currBlock.Ghost)
+            {
+                player.PreviewPos = new Vector3(x, y, z);
+                ctx.Db.PlayerInWorld.Id.Update(player);
+
+                BlockCompression.SetBlock(ref chunk.Blocks, type, z, true);
+                ctx.Db.Chunk.Id.Update(chunk);
+            }
+        }
+        else
+        {
+            BlockCompression.SetBlock(ref chunk.Blocks, type, z, false);
+            ctx.Db.Chunk.Id.Update(chunk);
+        }
     }
 
     [Reducer]
@@ -115,6 +154,16 @@ public static partial class Module
 
         world.LastVisited = ctx.Timestamp;
         ctx.Db.World.Id.Update(world);
+
+        var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{worldId}");
+        if (player == null)
+        {
+            ctx.Db.PlayerInWorld.Insert(new PlayerInWorld
+            {
+                Id = $"{ctx.Sender}_{worldId}",
+                World = worldId,
+            });
+        }
 
         Log.Info($"User {ctx.Sender} visited world {worldId} at {ctx.Timestamp}");
     }

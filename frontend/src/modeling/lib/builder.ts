@@ -42,7 +42,8 @@ export class Builder {
       { tag: "Block" },
       position.x,
       position.z,
-      position.y
+      position.y,
+      true
     );
   }
 
@@ -60,7 +61,8 @@ export class Builder {
       { tag: "Block" },
       position.x,
       position.z,
-      position.y
+      position.y,
+      false
     );
   }
 

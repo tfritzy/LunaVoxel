@@ -4,13 +4,15 @@ import { layers } from "./layers";
 import { Chunk, DbConnection, EventContext } from "../../module_bindings";
 
 export class World {
-  private previewBlock: THREE.Object3D | null = null;
   private scene: THREE.Scene;
   private selectedBlockIndex: number = 1;
   private ghostMaterial: THREE.Material;
   private currentRotation: number = 0;
   private dbConn: DbConnection;
-  private chunks: Map<string, { blocks: (THREE.Object3D | null)[] }>;
+  private chunks: Map<
+    string,
+    { blocks: ({ model: THREE.Object3D; ghost: boolean } | null)[] }
+  >;
 
   constructor(scene: THREE.Scene, dbConn: DbConnection) {
     this.chunks = new Map();
@@ -36,6 +38,12 @@ export class World {
   };
 
   async updateChunk(chunk: Chunk) {
+    console.log(
+      "update chunk to",
+      chunk.blocks
+        .map((br) => `${br.type.tag} ${br.ghost} - ${br.count}`)
+        .join(",")
+    );
     if (!this.chunks.has(chunk.id)) {
       this.chunks.set(chunk.id, { blocks: [] });
     }
@@ -46,13 +54,28 @@ export class World {
       const blockRun = chunk.blocks[rbIndex];
       if (blockRun.type.tag != "Empty") {
         for (let z = i; z < i + blockRun.count; z++) {
+          if (existingChunk.blocks[z]?.ghost && !blockRun.ghost) {
+            this.scene.remove(existingChunk.blocks[z]!.model);
+            existingChunk.blocks[z] = null;
+          }
+
           if (!existingChunk.blocks[z]) {
             const block = await this.createBlock(
               blocks[0],
               new THREE.Vector3(chunk.x, z, chunk.y),
-              layers.raycast
+              blockRun.ghost ? layers.ghost : layers.raycast,
+              blockRun.ghost ? this.ghostMaterial : undefined,
+              blockRun.ghost ? false : true
             );
-            existingChunk.blocks[z] = block;
+            existingChunk.blocks[z] = { model: block!, ghost: blockRun.ghost };
+          }
+        }
+      } else {
+        for (let z = i; z < i + blockRun.count; z++) {
+          const objectToRemove = existingChunk.blocks[z];
+          if (objectToRemove) {
+            this.scene.remove(objectToRemove.model);
+            existingChunk.blocks[z] = null;
           }
         }
       }
@@ -61,7 +84,6 @@ export class World {
   }
 
   setupEvents = () => {
-    console.log("World event setup");
     this.dbConn.db.chunk.onUpdate(this.onUpdate);
   };
 
@@ -73,7 +95,8 @@ export class World {
     block: Block,
     position: THREE.Vector3,
     layer: number,
-    material?: THREE.Material
+    material?: THREE.Material,
+    castsShadow: boolean = true
   ): Promise<THREE.Object3D<THREE.Object3DEventMap> | null> {
     const model = createBlockModel(block.type);
 
@@ -82,6 +105,7 @@ export class World {
     model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         if (material) child.material = material;
+        if (!castsShadow) child.castShadow = false;
         child.layers.set(layer);
       }
     });
@@ -93,40 +117,5 @@ export class World {
     return model;
   }
 
-  private async createPreviewBlock(position: THREE.Vector3) {
-    if (this.previewBlock) {
-      this.scene.remove(this.previewBlock);
-      this.previewBlock = null;
-    }
-
-    const selectedBlock = blocks[this.selectedBlockIndex];
-    this.createBlock(selectedBlock, position, layers.ghost, this.ghostMaterial);
-  }
-
-  async selectBlock(index: number) {
-    if (
-      index >= 0 &&
-      index < blocks.length &&
-      index !== this.selectedBlockIndex
-    ) {
-      this.selectedBlockIndex = index;
-      await this.createPreviewBlock(
-        this.previewBlock?.position || new THREE.Vector3()
-      );
-    }
-  }
-
-  resetRotation() {
-    this.currentRotation = 0;
-    if (this.previewBlock) {
-      this.previewBlock.rotation.y = 0;
-    }
-  }
-
-  dispose() {
-    if (this.previewBlock) {
-      this.scene.remove(this.previewBlock);
-      this.previewBlock = null;
-    }
-  }
+  dispose() {}
 }
