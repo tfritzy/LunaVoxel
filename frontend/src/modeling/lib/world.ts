@@ -105,8 +105,7 @@ export class World {
       }
     });
 
-    model.position.copy(position);
-    model.position.y += 0.5;
+    model.position.copy(position.addScalar(0.5));
     model.rotation.y = this.currentRotation;
     this.scene.add(model);
     return model;

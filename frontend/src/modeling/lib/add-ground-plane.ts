@@ -19,8 +19,6 @@ export function addGroundPlane(
   const borderPlane = new THREE.Mesh(borderGeometry, borderMaterial);
   borderPlane.rotation.x = Math.PI / 2;
   borderPlane.position.y = -0.01;
-  borderPlane.position.x = -0.5;
-  borderPlane.position.z = -0.5;
   borderPlane.receiveShadow = true;
   scene.add(borderPlane);
 
@@ -32,9 +30,7 @@ export function addGroundPlane(
   });
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
-  groundPlane.position.y = 0;
-  groundPlane.position.x = -0.5;
-  groundPlane.position.z = -0.5;
+  groundPlane.position.y = 0.0001;
 
   groundPlane.receiveShadow = true;
   scene.add(groundPlane);
@@ -65,7 +61,7 @@ function createBatchedGrid(
     const hLineGeometry = new THREE.BoxGeometry(lineWidth, 0.001, height);
     const hLine = new THREE.Mesh(hLineGeometry, lineMaterial);
 
-    hLine.position.set(i - 0.5, 0.001, -0.5);
+    hLine.position.set(i, 0.001, -0);
     hLine.layers.set(layers.ghost);
     gridGroup.add(hLine);
   }
@@ -76,7 +72,7 @@ function createBatchedGrid(
     const vLineGeometry = new THREE.BoxGeometry(width, 0.001, lineWidth);
     const vLine = new THREE.Mesh(vLineGeometry, lineMaterial);
 
-    vLine.position.set(-0.5, 0.001, i - 0.5);
+    vLine.position.set(-0, 0.001, i);
     vLine.layers.set(layers.ghost);
     gridGroup.add(vLine);
   }

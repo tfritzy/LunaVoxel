@@ -48,26 +48,26 @@ export class GridRaycaster {
 
   private onMouseMove(event: MouseEvent): void {
     this.updateMousePosition(event);
-    const gridPosition = this.checkIntersection();
+    const placementPosition = this.checkIntersection();
 
     if (this.events.onHover) {
-      this.events.onHover(gridPosition);
+      this.events.onHover(placementPosition);
     }
   }
 
   update(): void {
-    const gridPosition = this.checkIntersection();
+    const placementPosition = this.checkIntersection();
     if (this.events.onHover) {
-      this.events.onHover(gridPosition);
+      this.events.onHover(placementPosition);
     }
   }
 
   private onMouseClick(event: MouseEvent): void {
     this.updateMousePosition(event);
-    const gridPosition = this.checkIntersection();
+    const placementPosition = this.checkIntersection();
 
     if (this.events.onClick) {
-      this.events.onClick(gridPosition);
+      this.events.onClick(placementPosition);
     }
   }
 
@@ -87,13 +87,31 @@ export class GridRaycaster {
     );
 
     if (intersects.length > 0) {
-      const point = intersects[0].point;
+      const intersection = intersects[0];
+      const isGround = intersection.object.position.y < 0.1;
 
-      const gridX = Math.floor(point.x + 0.5);
-      const gridY = Math.floor(point.y + 0.5);
-      const gridZ = Math.floor(point.z + 0.5);
+      if (isGround) {
+        const point = intersection.point;
+        const gridPos = new THREE.Vector3(
+          Math.floor(point.x),
+          Math.floor(point.y),
+          Math.floor(point.z)
+        );
+        return gridPos;
+      } else {
+        const point = intersection.object.position.clone();
+        const gridPos = new THREE.Vector3(
+          Math.floor(point.x),
+          Math.floor(point.y),
+          Math.floor(point.z)
+        );
+        const normal = intersection.face?.normal;
+        if (normal) {
+          return gridPos.add(normal);
+        }
 
-      return new THREE.Vector3(gridX, gridY, gridZ);
+        return gridPos;
+      }
     }
 
     return null;
