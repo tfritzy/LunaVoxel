@@ -72,6 +72,7 @@ export class VoxelEngine {
     window.addEventListener("resize", this.handleResize);
 
     this.animate();
+    this.setupPerformanceMonitoring();
   }
 
   private setupRaycaster(): void {
@@ -157,6 +158,36 @@ export class VoxelEngine {
     const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
     rimLight.position.set(5, 5, -20);
     this.scene.add(rimLight);
+  }
+
+  private setupPerformanceMonitoring(): void {
+    const rendererStatsElement = document.createElement("div");
+    rendererStatsElement.style.position = "fixed";
+    rendererStatsElement.style.left = "0";
+    rendererStatsElement.style.bottom = "0";
+    rendererStatsElement.style.padding = "5px";
+    rendererStatsElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    rendererStatsElement.style.color = "white";
+    rendererStatsElement.style.fontFamily = "monospace";
+    rendererStatsElement.style.fontSize = "12px";
+    rendererStatsElement.style.zIndex = "100";
+    this.container.appendChild(rendererStatsElement);
+
+    const updateRendererStats = () => {
+      const info = this.renderer.info;
+      rendererStatsElement.innerHTML = `
+      Draw calls: ${info.render.calls}<br>
+      Triangles: ${info.render.triangles.toLocaleString()}<br>
+      Geometries: ${info.memory.geometries}<br>
+      Textures: ${info.memory.textures}
+    `;
+    };
+
+    const originalAnimate = this.animate;
+    this.animate = (currentTime: number = 0) => {
+      originalAnimate(currentTime);
+      updateRendererStats();
+    };
   }
 
   private handleResize = (): void => {

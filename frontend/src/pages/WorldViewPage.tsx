@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { World } from "../module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
+import PerformanceStats from "@/components/custom/PerformanceStats";
 
 export default function WorldViewPage() {
   const { worldId } = useParams<{ worldId: string }>();
@@ -104,6 +105,8 @@ export default function WorldViewPage() {
 
   return (
     <div className="relative h-screen w-full">
+      <PerformanceStats />
+
       <div
         ref={containerRef}
         className="voxel-container"

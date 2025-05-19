@@ -11,7 +11,7 @@ export class World {
   private dbConn: DbConnection;
   private chunks: Map<
     string,
-    { blocks: ({ model: THREE.Object3D; ghost: boolean } | null)[] }
+    { blocks: ({ model: THREE.Mesh; ghost: boolean } | null)[] }
   >;
 
   constructor(scene: THREE.Scene, dbConn: DbConnection) {
@@ -58,9 +58,7 @@ export class World {
             const block = await this.createBlock(
               blocks[0],
               new THREE.Vector3(chunk.x, z, chunk.y),
-              blockRun.ghost ? layers.ghost : layers.raycast,
-              blockRun.ghost ? this.ghostMaterial : undefined,
-              blockRun.ghost ? false : true
+              blockRun.ghost
             );
             existingChunk.blocks[z] = { model: block!, ghost: blockRun.ghost };
           }
@@ -89,22 +87,16 @@ export class World {
   private async createBlock(
     block: Block,
     position: THREE.Vector3,
-    layer: number,
-    material?: THREE.Material,
-    castsShadow: boolean = true
-  ): Promise<THREE.Object3D<THREE.Object3DEventMap> | null> {
+    ghost: boolean
+  ): Promise<THREE.Mesh | null> {
     const model = createBlockModel(block.type);
 
     if (!model) return null;
-
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        if (material) child.material = material;
-        if (!castsShadow) child.castShadow = false;
-        child.layers.set(layer);
-      }
-    });
-
+    if (ghost) {
+      model.material = this.ghostMaterial;
+      model.castShadow = false;
+      model.layers.set(layers.ghost);
+    }
     model.position.copy(position.addScalar(0.5));
     model.rotation.y = this.currentRotation;
     this.scene.add(model);

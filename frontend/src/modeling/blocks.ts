@@ -84,7 +84,7 @@ export function createRoundedCubeMesh(color: number = 0xdddddd): THREE.Mesh {
 /**
  * Creates a block model based on block type
  */
-export function createBlockModel(blockType: BlockType): THREE.Object3D | null {
+export function createBlockModel(blockType: BlockType): THREE.Mesh | null {
   if (blockType.tag === "Block") {
     return createCubeMesh();
   } else if (blockType.tag === "RoundBlock") {
