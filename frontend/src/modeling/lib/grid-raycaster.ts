@@ -38,12 +38,12 @@ export class GridRaycaster {
 
   private addEventListeners(): void {
     this.domElement.addEventListener("mousemove", this.boundMouseMove);
-    this.domElement.addEventListener("click", this.boundMouseClick);
+    this.domElement.addEventListener("mousedown", this.boundMouseClick);
   }
 
   private removeEventListeners(): void {
     this.domElement.removeEventListener("mousemove", this.boundMouseMove);
-    this.domElement.removeEventListener("click", this.boundMouseClick);
+    this.domElement.removeEventListener("mousedown", this.boundMouseClick);
   }
 
   private onMouseMove(event: MouseEvent): void {
@@ -55,14 +55,11 @@ export class GridRaycaster {
     }
   }
 
-  update(): void {
-    const placementPosition = this.checkIntersection();
-    if (this.events.onHover) {
-      this.events.onHover(placementPosition);
-    }
-  }
-
   private onMouseClick(event: MouseEvent): void {
+    if (event.button !== 0) {
+      return;
+    }
+
     this.updateMousePosition(event);
     const placementPosition = this.checkIntersection();
 

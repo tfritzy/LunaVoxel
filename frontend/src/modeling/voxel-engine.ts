@@ -4,14 +4,14 @@ import { GridRaycaster } from "./lib/grid-raycaster";
 import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { DbConnection, World as WorldData } from "../module_bindings";
-import { World } from "./lib/world";
+import { DbConnection, World } from "../module_bindings";
+import { WorldManager } from "./lib/world-manager";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
   connection: DbConnection;
+  world: World;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
-  worldId: string;
 }
 
 export class VoxelEngine {
@@ -25,24 +25,15 @@ export class VoxelEngine {
   private animationFrameId: number | null = null;
   private currentGridPosition: THREE.Vector3 | null = null;
   private conn: DbConnection;
-  private worldManager: World;
-  private worldId: string;
-  private worldData: WorldData | null = null;
+  private worldManager: WorldManager;
+  private world: World;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
     this.conn = options.connection;
-    this.worldId = options.worldId;
+    this.world = options.world;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setSize(
-      this.container.clientWidth,
-      this.container.clientHeight
-    );
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.shadowMap.enabled = true;
-    this.container.appendChild(this.renderer.domElement);
-
+    this.renderer = this.setupRenderer(this.container);
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x222222);
 
@@ -57,22 +48,30 @@ export class VoxelEngine {
     this.camera.lookAt(0, 0, 0);
 
     this.controls = new CameraController(this.camera, this.renderer.domElement);
-
     this.setupLights();
-
-    this.worldManager = new World(this.scene, this.conn);
+    addGroundPlane(this.scene, this.world.xWidth, this.world.yWidth);
+    this.worldManager = new WorldManager(this.scene, this.conn, this.world);
+    this.setupRaycaster();
     this.builder = new Builder(
       this.scene,
       this.conn,
       this.renderer.domElement,
-      this.worldId
+      this.world.id
     );
-    this.initChunks();
 
     window.addEventListener("resize", this.handleResize);
 
     this.animate();
     this.setupPerformanceMonitoring();
+  }
+
+  private setupRenderer(container: HTMLElement): THREE.WebGLRenderer {
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+    return renderer;
   }
 
   private setupRaycaster(): void {
@@ -107,30 +106,6 @@ export class VoxelEngine {
         }
       );
     }
-  }
-
-  initChunks() {
-    const chunks = Array.from(this.conn.db.chunk.iter()).filter(
-      (chunk) => chunk.world === this.worldId
-    );
-
-    if (chunks.length === 0) {
-      console.warn(
-        "No chunks found for this world! Check world creation logic."
-      );
-    }
-
-    const worldData = this.conn.db.world.id.find(this.worldId);
-
-    if (worldData && !this.worldData) {
-      this.worldData = worldData;
-
-      addGroundPlane(this.scene, worldData.xWidth, worldData.yWidth);
-
-      this.setupRaycaster();
-    }
-
-    this.worldManager.onQueriesApplied();
   }
 
   private setupLights(): void {
@@ -207,7 +182,6 @@ export class VoxelEngine {
     this.lastFrameTime = currentTime;
     this.controls.update(deltaTime);
     this.renderer.render(this.scene, this.camera);
-    this.raycaster?.update();
   };
 
   public getCurrentGridPosition(): THREE.Vector3 | null {

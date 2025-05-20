@@ -3,14 +3,15 @@ import { DbConnection, EventContext, World } from "../module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
 
 export function useWorldManagement() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [myWorlds, setMyWorlds] = useState<World[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [myWorlds, setMyWorlds] = useState<World[]>([]);
   const { connection } = useDatabase();
+
+  console.log("use world management", myWorlds, isInitialized);
 
   const initialize = useCallback(
     (conn: DbConnection) => {
-      if (!conn.isActive || isInitialized) return;
+      if (!conn || isInitialized) return;
 
       const onWorldInsert = (ctx: EventContext, world: World) => {
         if (!conn.identity) return;
@@ -28,10 +29,6 @@ export function useWorldManagement() {
 
             return [...prev, world];
           });
-
-          if (isLoading) {
-            setIsLoading(false);
-          }
         }
       };
 
@@ -67,7 +64,6 @@ export function useWorldManagement() {
             .onApplied(handleSubscriptionApplied)
             .onError((error) => {
               console.error("World subscription error:", error);
-              setIsLoading(false);
             })
             .subscribe([`SELECT * FROM World WHERE Owner='${myIdentityHex}'`]);
         }
@@ -75,7 +71,6 @@ export function useWorldManagement() {
         setIsInitialized(true);
       } catch (error) {
         console.error("Error initializing world management:", error);
-        setIsLoading(false);
       }
 
       return () => {
@@ -85,7 +80,7 @@ export function useWorldManagement() {
         }
       };
     },
-    [isInitialized, isLoading]
+    [isInitialized]
   );
 
   useEffect(() => {
@@ -98,11 +93,10 @@ export function useWorldManagement() {
     console.log("Resetting world management state");
     setIsInitialized(false);
     setMyWorlds([]);
-    setIsLoading(true);
   }, []);
 
   return {
-    isLoading,
+    isLoading: !isInitialized,
     myWorlds,
     reset,
   };
