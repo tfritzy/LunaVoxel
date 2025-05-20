@@ -27,10 +27,6 @@ export class WorldManager {
   };
 
   setupChunks() {
-    console.log(
-      "Setting up chunks with: ",
-      this.dbConn.db.chunk.tableCache.iter()
-    );
     this.dbConn.db.chunk.tableCache.iter().forEach((chunk) => {
       const c = chunk as Chunk;
       if (!this.chunkMeshes.has(c.x + "_" + c.y)) {

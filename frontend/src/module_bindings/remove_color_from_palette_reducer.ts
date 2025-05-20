@@ -31,44 +31,32 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-import { BlockType as __BlockType } from "./block_type_type";
-
-export type PlaceBlock = {
-  world: string,
-  type: __BlockType,
-  x: number,
-  y: number,
-  z: number,
-  color: string,
-  isPreview: boolean,
+export type RemoveColorFromPalette = {
+  worldId: string,
+  colorHex: string,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace PlaceBlock {
+export namespace RemoveColorFromPalette {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("x", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y", AlgebraicType.createI32Type()),
-      new ProductTypeElement("z", AlgebraicType.createI32Type()),
-      new ProductTypeElement("color", AlgebraicType.createStringType()),
-      new ProductTypeElement("isPreview", AlgebraicType.createBoolType()),
+      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("colorHex", AlgebraicType.createStringType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PlaceBlock): void {
-    PlaceBlock.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: RemoveColorFromPalette): void {
+    RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PlaceBlock {
-    return PlaceBlock.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): RemoveColorFromPalette {
+    return RemoveColorFromPalette.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

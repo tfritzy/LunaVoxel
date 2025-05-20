@@ -32,16 +32,24 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 // Import and reexport all reducer arg types
+import { AddColorToPalette } from "./add_color_to_palette_reducer.ts";
+export { AddColorToPalette };
 import { CreateWorld } from "./create_world_reducer.ts";
 export { CreateWorld };
+import { InitializePalette } from "./initialize_palette_reducer.ts";
+export { InitializePalette };
 import { PlaceBlock } from "./place_block_reducer.ts";
 export { PlaceBlock };
+import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
+export { RemoveColorFromPalette };
 import { VisitWorld } from "./visit_world_reducer.ts";
 export { VisitWorld };
 
 // Import and reexport all table handle types
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
+import { PaletteTableHandle } from "./palette_table.ts";
+export { PaletteTableHandle };
 import { PlayerInWorldTableHandle } from "./player_in_world_table.ts";
 export { PlayerInWorldTableHandle };
 import { WorldTableHandle } from "./world_table.ts";
@@ -54,6 +62,8 @@ import { BlockType } from "./block_type_type.ts";
 export { BlockType };
 import { Chunk } from "./chunk_type.ts";
 export { Chunk };
+import { Palette } from "./palette_type.ts";
+export { Palette };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
 import { Vector3 } from "./vector_3_type.ts";
@@ -68,6 +78,11 @@ const REMOTE_MODULE = {
       rowType: Chunk.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
+    Palette: {
+      tableName: "Palette",
+      rowType: Palette.getTypeScriptAlgebraicType(),
+      primaryKey: "world",
+    },
     PlayerInWorld: {
       tableName: "PlayerInWorld",
       rowType: PlayerInWorld.getTypeScriptAlgebraicType(),
@@ -80,13 +95,25 @@ const REMOTE_MODULE = {
     },
   },
   reducers: {
+    AddColorToPalette: {
+      reducerName: "AddColorToPalette",
+      argsType: AddColorToPalette.getTypeScriptAlgebraicType(),
+    },
     CreateWorld: {
       reducerName: "CreateWorld",
       argsType: CreateWorld.getTypeScriptAlgebraicType(),
     },
+    InitializePalette: {
+      reducerName: "InitializePalette",
+      argsType: InitializePalette.getTypeScriptAlgebraicType(),
+    },
     PlaceBlock: {
       reducerName: "PlaceBlock",
       argsType: PlaceBlock.getTypeScriptAlgebraicType(),
+    },
+    RemoveColorFromPalette: {
+      reducerName: "RemoveColorFromPalette",
+      argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
     },
     VisitWorld: {
       reducerName: "VisitWorld",
@@ -119,13 +146,32 @@ const REMOTE_MODULE = {
 
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
+| { name: "AddColorToPalette", args: AddColorToPalette }
 | { name: "CreateWorld", args: CreateWorld }
+| { name: "InitializePalette", args: InitializePalette }
 | { name: "PlaceBlock", args: PlaceBlock }
+| { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "VisitWorld", args: VisitWorld }
 ;
 
 export class RemoteReducers {
   constructor(private connection: DbConnectionImpl, private setCallReducerFlags: SetReducerFlags) {}
+
+  addColorToPalette(worldId: string, colorHex: string) {
+    const __args = { worldId, colorHex };
+    let __writer = new BinaryWriter(1024);
+    AddColorToPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("AddColorToPalette", __argsBuffer, this.setCallReducerFlags.addColorToPaletteFlags);
+  }
+
+  onAddColorToPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+    this.connection.onReducer("AddColorToPalette", callback);
+  }
+
+  removeOnAddColorToPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+    this.connection.offReducer("AddColorToPalette", callback);
+  }
 
   createWorld(name: string, xDim: number, yDim: number, zDim: number) {
     const __args = { name, xDim, yDim, zDim };
@@ -143,20 +189,52 @@ export class RemoteReducers {
     this.connection.offReducer("CreateWorld", callback);
   }
 
-  placeBlock(world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) {
-    const __args = { world, type, x, y, z, isPreview };
+  initializePalette(worldId: string) {
+    const __args = { worldId };
+    let __writer = new BinaryWriter(1024);
+    InitializePalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("InitializePalette", __argsBuffer, this.setCallReducerFlags.initializePaletteFlags);
+  }
+
+  onInitializePalette(callback: (ctx: ReducerEventContext, worldId: string) => void) {
+    this.connection.onReducer("InitializePalette", callback);
+  }
+
+  removeOnInitializePalette(callback: (ctx: ReducerEventContext, worldId: string) => void) {
+    this.connection.offReducer("InitializePalette", callback);
+  }
+
+  placeBlock(world: string, type: BlockType, x: number, y: number, z: number, color: string, isPreview: boolean) {
+    const __args = { world, type, x, y, z, color, isPreview };
     let __writer = new BinaryWriter(1024);
     PlaceBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("PlaceBlock", __argsBuffer, this.setCallReducerFlags.placeBlockFlags);
   }
 
-  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
+  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, color: string, isPreview: boolean) => void) {
     this.connection.onReducer("PlaceBlock", callback);
   }
 
-  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
+  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, color: string, isPreview: boolean) => void) {
     this.connection.offReducer("PlaceBlock", callback);
+  }
+
+  removeColorFromPalette(worldId: string, colorHex: string) {
+    const __args = { worldId, colorHex };
+    let __writer = new BinaryWriter(1024);
+    RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("RemoveColorFromPalette", __argsBuffer, this.setCallReducerFlags.removeColorFromPaletteFlags);
+  }
+
+  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+    this.connection.onReducer("RemoveColorFromPalette", callback);
+  }
+
+  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+    this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 
   visitWorld(worldId: string) {
@@ -178,14 +256,29 @@ export class RemoteReducers {
 }
 
 export class SetReducerFlags {
+  addColorToPaletteFlags: CallReducerFlags = 'FullUpdate';
+  addColorToPalette(flags: CallReducerFlags) {
+    this.addColorToPaletteFlags = flags;
+  }
+
   createWorldFlags: CallReducerFlags = 'FullUpdate';
   createWorld(flags: CallReducerFlags) {
     this.createWorldFlags = flags;
   }
 
+  initializePaletteFlags: CallReducerFlags = 'FullUpdate';
+  initializePalette(flags: CallReducerFlags) {
+    this.initializePaletteFlags = flags;
+  }
+
   placeBlockFlags: CallReducerFlags = 'FullUpdate';
   placeBlock(flags: CallReducerFlags) {
     this.placeBlockFlags = flags;
+  }
+
+  removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
+  removeColorFromPalette(flags: CallReducerFlags) {
+    this.removeColorFromPaletteFlags = flags;
   }
 
   visitWorldFlags: CallReducerFlags = 'FullUpdate';
@@ -200,6 +293,10 @@ export class RemoteTables {
 
   get chunk(): ChunkTableHandle {
     return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.Chunk));
+  }
+
+  get palette(): PaletteTableHandle {
+    return new PaletteTableHandle(this.connection.clientCache.getOrCreateTable<Palette>(REMOTE_MODULE.tables.Palette));
   }
 
   get playerInWorld(): PlayerInWorldTableHandle {

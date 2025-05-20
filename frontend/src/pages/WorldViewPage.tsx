@@ -17,8 +17,6 @@ export default function WorldViewPage() {
   useEffect(() => {
     if (!worldId || !connection) return;
 
-    console.log("New chunks query");
-
     setChunksLoading(true);
 
     const sub = connection
@@ -28,7 +26,7 @@ export default function WorldViewPage() {
       })
       .onError((err) => {
         console.error("Error subscribing to chunks:", err);
-        setError(`Error loading chunks: ${err.message}`);
+        setError(`Error loading chunks: ${err}`);
         setChunksLoading(false);
       })
       .subscribe([`SELECT * FROM Chunk WHERE World='${worldId}'`]);
@@ -39,7 +37,6 @@ export default function WorldViewPage() {
   }, [worldId, connection, navigate]);
 
   useEffect(() => {
-    console.log("Try make engine", worldsLoading, chunksLoading, !!connection);
     if (worldsLoading || chunksLoading || !connection) return;
 
     if (engineRef.current) {

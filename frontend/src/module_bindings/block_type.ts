@@ -36,6 +36,7 @@ export type Block = {
   type: __BlockType,
   count: number,
   ghost: boolean,
+  color: string,
 };
 
 /**
@@ -51,6 +52,7 @@ export namespace Block {
       new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("count", AlgebraicType.createI32Type()),
       new ProductTypeElement("ghost", AlgebraicType.createBoolType()),
+      new ProductTypeElement("color", AlgebraicType.createStringType()),
     ]);
   }
 

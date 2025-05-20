@@ -42,18 +42,28 @@ public static partial class Module
         public Vector3? PreviewPos;
     }
 
+    [Table(Name = "Palette")]
+    public partial class Palette
+    {
+        [PrimaryKey]
+        public string World;
+        public string[] Colors;
+    }
+
     [Type]
     public partial struct Block
     {
         public BlockType Type;
         public int Count;
         public bool Ghost;
+        public string Color;
 
-        public Block(BlockType type, int count, bool ghost)
+        public Block(BlockType type, int count, bool ghost, string color = "#FFFFFF")
         {
             this.Type = type;
             this.Count = count;
             this.Ghost = ghost;
+            this.Color = color;
         }
     }
 
@@ -90,9 +100,8 @@ public static partial class Module
             };
         }
     }
-
     [Reducer]
-    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z, bool isPreview = false)
+    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z, string color = "#FFFFFF", bool isPreview = false)
     {
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}") ?? throw new ArgumentException("Could not find specified chunk");
         if (isPreview)
@@ -106,7 +115,7 @@ public static partial class Module
                 var previewChunk = chunkId != chunk.Id ? ctx.Db.Chunk.Id.Find(chunkId) : chunk;
                 if (previewChunk != null && BlockCompression.GetBlock(previewChunk.Blocks, previewPos.Z).Ghost)
                 {
-                    BlockCompression.SetBlock(ref previewChunk.Blocks, BlockType.Empty, previewPos.Z, false);
+                    BlockCompression.SetBlock(ref previewChunk.Blocks, BlockType.Empty, previewPos.Z, false, "#FFFFFF");
 
                     if (chunkId != chunk.Id)
                     {
@@ -121,13 +130,13 @@ public static partial class Module
                 player.PreviewPos = new Vector3(x, y, z);
                 ctx.Db.PlayerInWorld.Id.Update(player);
 
-                BlockCompression.SetBlock(ref chunk.Blocks, type, z, true);
+                BlockCompression.SetBlock(ref chunk.Blocks, type, z, true, color);
                 ctx.Db.Chunk.Id.Update(chunk);
             }
         }
         else
         {
-            BlockCompression.SetBlock(ref chunk.Blocks, type, z, false);
+            BlockCompression.SetBlock(ref chunk.Blocks, type, z, false, color);
             ctx.Db.Chunk.Id.Update(chunk);
         }
     }
@@ -145,6 +154,8 @@ public static partial class Module
                 ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, y, zDim));
             }
         }
+
+        InitializePalette(ctx, world.Id);
     }
 
     [Reducer]
@@ -166,5 +177,96 @@ public static partial class Module
         }
 
         Log.Info($"User {ctx.Sender} visited world {worldId} at {ctx.Timestamp}");
+    }
+
+    [Reducer]
+    public static void InitializePalette(ReducerContext ctx, string worldId)
+    {
+        var existingPalette = ctx.Db.Palette.World.Find(worldId);
+        if (existingPalette != null)
+        {
+            return;
+        }
+
+        var defaultColors = new string[]
+        {
+        "#FF0000",
+        "#00FF00",
+        "#0000FF",
+        "#FFFF00",
+        "#FF00FF",
+        "#00FFFF",
+        "#FFFFFF",
+        "#000000"
+        };
+
+        ctx.Db.Palette.Insert(new Palette
+        {
+            World = worldId,
+            Colors = defaultColors
+        });
+
+        Log.Info($"Initialized color palette for world {worldId}");
+    }
+
+    [Reducer]
+    public static void AddColorToPalette(ReducerContext ctx, string worldId, string colorHex)
+    {
+        var world = ctx.Db.World.Id.Find(worldId)
+            ?? throw new Exception($"World with ID {worldId} not found");
+
+        if (!IsValidHexColor(colorHex))
+        {
+            throw new Exception("Invalid color format. Use #RRGGBB format.");
+        }
+
+        var palette = ctx.Db.Palette.World.Find(worldId);
+        if (palette == null)
+        {
+            InitializePalette(ctx, worldId);
+            palette = ctx.Db.Palette.World.Find(worldId)!;
+        }
+
+        if (palette.Colors.Contains(colorHex))
+        {
+            return;
+        }
+
+        var newColors = palette.Colors.ToList();
+        newColors.Add(colorHex);
+        palette.Colors = newColors.ToArray();
+
+        ctx.Db.Palette.World.Update(palette);
+    }
+
+    [Reducer]
+    public static void RemoveColorFromPalette(ReducerContext ctx, string worldId, string colorHex)
+    {
+        var world = ctx.Db.World.Id.Find(worldId)
+            ?? throw new Exception($"World with ID {worldId} not found");
+
+        var palette = ctx.Db.Palette.World.Find(worldId);
+        if (palette == null || !palette.Colors.Contains(colorHex))
+        {
+            return;
+        }
+
+        var newColors = palette.Colors.Where(c => c != colorHex).ToArray();
+
+        palette.Colors = newColors;
+        ctx.Db.Palette.World.Update(palette);
+    }
+
+    private static bool IsValidHexColor(string color)
+    {
+        if (string.IsNullOrWhiteSpace(color) || color.Length != 7 || !color.StartsWith("#"))
+        {
+            return false;
+        }
+
+        return color.Substring(1).All(c =>
+            (c >= '0' && c <= '9') ||
+            (c >= 'a' && c <= 'f') ||
+            (c >= 'A' && c <= 'F'));
     }
 }

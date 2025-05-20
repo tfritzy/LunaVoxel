@@ -30,23 +30,15 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-
-import { BlockType as __BlockType } from "./block_type_type";
-
-export type PlaceBlock = {
+export type Palette = {
   world: string,
-  type: __BlockType,
-  x: number,
-  y: number,
-  z: number,
-  color: string,
-  isPreview: boolean,
+  colors: string[],
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace PlaceBlock {
+export namespace Palette {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -54,22 +46,18 @@ export namespace PlaceBlock {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("x", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y", AlgebraicType.createI32Type()),
-      new ProductTypeElement("z", AlgebraicType.createI32Type()),
-      new ProductTypeElement("color", AlgebraicType.createStringType()),
-      new ProductTypeElement("isPreview", AlgebraicType.createBoolType()),
+      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createStringType())),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PlaceBlock): void {
-    PlaceBlock.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Palette): void {
+    Palette.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PlaceBlock {
-    return PlaceBlock.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Palette {
+    return Palette.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
+
 

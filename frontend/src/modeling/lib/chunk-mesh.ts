@@ -43,41 +43,41 @@ export class ChunkMesh {
         const x = 0;
         const y = 0;
 
+        const needsUpdate =
+          !this.blocks[x]?.[y]?.[z] ||
+          this.blocks[x][y][z]?.userData.type !== blockRun.type.tag ||
+          this.blocks[x][y][z]?.userData.ghost !== blockRun.ghost ||
+          this.blocks[x][y][z]?.userData.color !== blockRun.color;
+
         if (blockRun.type.tag === "Empty") {
           if (this.blocks[x]?.[y]?.[z]) {
             this.scene.remove(this.blocks[x][y][z]!);
             this.blocks[x][y][z] = null;
           }
-        } else {
-          if (
-            !this.blocks[x]?.[y]?.[z] ||
-            this.blocks[x][y][z]?.userData.ghost !== blockRun.ghost
-          ) {
-            if (this.blocks[x]?.[y]?.[z]) {
-              this.scene.remove(this.blocks[x][y][z]!);
-              this.blocks[x][y][z] = null;
+        } else if (needsUpdate) {
+          if (this.blocks[x]?.[y]?.[z]) {
+            this.scene.remove(this.blocks[x][y][z]!);
+            this.blocks[x][y][z] = null;
+          }
+
+          const blockMesh = createBlockModel(blockRun.type, blockRun.color);
+          if (blockMesh) {
+            blockMesh.position.set(
+              newChunk.x + x + 0.5,
+              z + 0.5,
+              newChunk.y + y + 0.5
+            );
+
+            if (blockRun.ghost) {
+              blockMesh.castShadow = false;
+              blockMesh.layers.set(layers.ghost);
+              blockMesh.material = this.ghostMaterial;
+            } else {
+              blockMesh.castShadow = true;
             }
 
-            const blockMesh = createBlockModel(blockRun.type);
-            if (blockMesh) {
-              blockMesh.position.set(
-                newChunk.x + x + 0.5,
-                z + 0.5,
-                newChunk.y + y + 0.5
-              );
-
-              if (blockRun.ghost) {
-                blockMesh.material = this.ghostMaterial;
-                blockMesh.castShadow = false;
-                blockMesh.layers.set(layers.ghost);
-                blockMesh.userData.ghost = true;
-              } else {
-                blockMesh.userData.ghost = false;
-              }
-
-              this.scene.add(blockMesh);
-              this.blocks[x][y][z] = blockMesh;
-            }
+            this.scene.add(blockMesh);
+            this.blocks[x][y][z] = blockMesh;
           }
         }
       }
@@ -96,6 +96,7 @@ export class ChunkMesh {
         }
       }
     }
+
     this.blocks = [];
   }
 }

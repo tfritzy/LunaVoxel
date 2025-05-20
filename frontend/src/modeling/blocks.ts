@@ -30,20 +30,20 @@ const resourceCache = {
     roundedBox: new RoundedBoxGeometry(1, 1, 1, 2, 0.15),
   },
   materials: {
-    byColor: new Map<number, THREE.MeshStandardMaterial>(),
+    byColor: new Map<string, THREE.MeshStandardMaterial>(),
   },
 };
 
 /**
  * Get or create a material with the specified color
  */
-function getMaterial(color: number): THREE.MeshStandardMaterial {
+function getMaterial(color: string): THREE.MeshStandardMaterial {
   if (resourceCache.materials.byColor.has(color)) {
     return resourceCache.materials.byColor.get(color)!;
   }
 
   const material = new THREE.MeshStandardMaterial({
-    color: color,
+    color: parseInt(color, 16),
     roughness: 0.7,
     metalness: 0.2,
   });
@@ -56,7 +56,7 @@ function getMaterial(color: number): THREE.MeshStandardMaterial {
 /**
  * Creates a standard cube mesh using shared resources
  */
-export function createCubeMesh(color: number = 0xdddddd): THREE.Mesh {
+export function createCubeMesh(color: string = "0xffffff"): THREE.Mesh {
   const geometry = resourceCache.geometries.box;
 
   const material = getMaterial(color);
@@ -70,7 +70,7 @@ export function createCubeMesh(color: number = 0xdddddd): THREE.Mesh {
 /**
  * Creates a rounded cube mesh using shared resources
  */
-export function createRoundedCubeMesh(color: number = 0xdddddd): THREE.Mesh {
+export function createRoundedCubeMesh(color: string = "0xffffff"): THREE.Mesh {
   const geometry = resourceCache.geometries.roundedBox!;
 
   const material = getMaterial(color);
@@ -84,11 +84,14 @@ export function createRoundedCubeMesh(color: number = 0xdddddd): THREE.Mesh {
 /**
  * Creates a block model based on block type
  */
-export function createBlockModel(blockType: BlockType): THREE.Mesh | null {
+export function createBlockModel(
+  blockType: BlockType,
+  color: string
+): THREE.Mesh | null {
   if (blockType.tag === "Block") {
-    return createCubeMesh();
+    return createCubeMesh(color);
   } else if (blockType.tag === "RoundBlock") {
-    return createRoundedCubeMesh();
+    return createRoundedCubeMesh(color);
   } else if (blockType.tag === "Empty") {
     return null;
   }

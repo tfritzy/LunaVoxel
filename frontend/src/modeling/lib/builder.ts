@@ -43,6 +43,7 @@ export class Builder {
       position.x,
       position.z,
       position.y,
+      "0x678678",
       true
     );
   }
@@ -62,6 +63,7 @@ export class Builder {
       position.x,
       position.z,
       position.y,
+      "0x578578",
       false
     );
   }
