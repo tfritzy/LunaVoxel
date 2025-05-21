@@ -30,23 +30,23 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Palette } from "./palette_type";
+import { ColorPalette } from "./color_palette_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `Palette`.
+ * Table handle for the table `ColorPalette`.
  *
- * Obtain a handle from the [`palette`] property on [`RemoteTables`],
- * like `ctx.db.palette`.
+ * Obtain a handle from the [`colorPalette`] property on [`RemoteTables`],
+ * like `ctx.db.colorPalette`.
  *
  * Users are encouraged not to explicitly reference this type,
  * but to directly chain method calls,
- * like `ctx.db.palette.on_insert(...)`.
+ * like `ctx.db.colorPalette.on_insert(...)`.
  */
-export class PaletteTableHandle {
-  tableCache: TableCache<Palette>;
+export class ColorPaletteTableHandle {
+  tableCache: TableCache<ColorPalette>;
 
-  constructor(tableCache: TableCache<Palette>) {
+  constructor(tableCache: TableCache<ColorPalette>) {
     this.tableCache = tableCache;
   }
 
@@ -54,24 +54,24 @@ export class PaletteTableHandle {
     return this.tableCache.count();
   }
 
-  iter(): Iterable<Palette> {
+  iter(): Iterable<ColorPalette> {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `world` unique index on the table `Palette`,
+   * Access to the `world` unique index on the table `ColorPalette`,
    * which allows point queries on the field of the same name
-   * via the [`PaletteWorldUnique.find`] method.
+   * via the [`ColorPaletteWorldUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.palette.world().find(...)`.
+   * like `ctx.db.colorPalette.world().find(...)`.
    *
-   * Get a handle on the `world` unique index on the table `Palette`.
+   * Get a handle on the `world` unique index on the table `ColorPalette`.
    */
   world = {
     // Find the subscribed row whose `world` column value is equal to `col_val`,
     // if such a row is present in the client cache.
-    find: (col_val: string): Palette | undefined => {
+    find: (col_val: string): ColorPalette | undefined => {
       for (let row of this.tableCache.iter()) {
         if (deepEqual(row.world, col_val)) {
           return row;
@@ -80,27 +80,27 @@ export class PaletteTableHandle {
     },
   };
 
-  onInsert = (cb: (ctx: EventContext, row: Palette) => void) => {
+  onInsert = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
     return this.tableCache.onInsert(cb);
   }
 
-  removeOnInsert = (cb: (ctx: EventContext, row: Palette) => void) => {
+  removeOnInsert = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
     return this.tableCache.removeOnInsert(cb);
   }
 
-  onDelete = (cb: (ctx: EventContext, row: Palette) => void) => {
+  onDelete = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
     return this.tableCache.onDelete(cb);
   }
 
-  removeOnDelete = (cb: (ctx: EventContext, row: Palette) => void) => {
+  removeOnDelete = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
 
   // Updates are only defined for tables with primary keys.
-  onUpdate = (cb: (ctx: EventContext, oldRow: Palette, newRow: Palette) => void) => {
+  onUpdate = (cb: (ctx: EventContext, oldRow: ColorPalette, newRow: ColorPalette) => void) => {
     return this.tableCache.onUpdate(cb);
   }
 
-  removeOnUpdate = (cb: (ctx: EventContext, onRow: Palette, newRow: Palette) => void) => {
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: ColorPalette, newRow: ColorPalette) => void) => {
     return this.tableCache.removeOnUpdate(cb);
   }}

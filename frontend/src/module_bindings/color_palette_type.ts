@@ -30,7 +30,7 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-export type Palette = {
+export type ColorPalette = {
   world: string,
   colors: string[],
 };
@@ -38,7 +38,7 @@ export type Palette = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace Palette {
+export namespace ColorPalette {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -50,12 +50,12 @@ export namespace Palette {
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Palette): void {
-    Palette.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ColorPalette): void {
+    ColorPalette.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Palette {
-    return Palette.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ColorPalette {
+    return ColorPalette.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

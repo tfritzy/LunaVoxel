@@ -50,8 +50,8 @@ export { VisitWorld };
 // Import and reexport all table handle types
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
-import { PaletteTableHandle } from "./palette_table.ts";
-export { PaletteTableHandle };
+import { ColorPaletteTableHandle } from "./color_palette_table.ts";
+export { ColorPaletteTableHandle };
 import { PlayerInWorldTableHandle } from "./player_in_world_table.ts";
 export { PlayerInWorldTableHandle };
 import { WorldTableHandle } from "./world_table.ts";
@@ -64,8 +64,8 @@ import { BlockType } from "./block_type_type.ts";
 export { BlockType };
 import { Chunk } from "./chunk_type.ts";
 export { Chunk };
-import { Palette } from "./palette_type.ts";
-export { Palette };
+import { ColorPalette } from "./color_palette_type.ts";
+export { ColorPalette };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
 import { Vector3 } from "./vector_3_type.ts";
@@ -80,9 +80,9 @@ const REMOTE_MODULE = {
       rowType: Chunk.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
-    Palette: {
-      tableName: "Palette",
-      rowType: Palette.getTypeScriptAlgebraicType(),
+    ColorPalette: {
+      tableName: "ColorPalette",
+      rowType: ColorPalette.getTypeScriptAlgebraicType(),
       primaryKey: "world",
     },
     PlayerInWorld: {
@@ -323,8 +323,8 @@ export class RemoteTables {
     return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.Chunk));
   }
 
-  get palette(): PaletteTableHandle {
-    return new PaletteTableHandle(this.connection.clientCache.getOrCreateTable<Palette>(REMOTE_MODULE.tables.Palette));
+  get colorPalette(): ColorPaletteTableHandle {
+    return new ColorPaletteTableHandle(this.connection.clientCache.getOrCreateTable<ColorPalette>(REMOTE_MODULE.tables.ColorPalette));
   }
 
   get playerInWorld(): PlayerInWorldTableHandle {

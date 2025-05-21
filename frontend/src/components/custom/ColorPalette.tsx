@@ -42,12 +42,12 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
       }
     };
 
-    connection.db.palette.onInsert(onPaletteUpdate);
-    connection.db.palette.onUpdate(onPaletteUpdate);
+    connection.db.colorPalette.onInsert(onPaletteUpdate);
+    connection.db.colorPalette.onUpdate(onPaletteUpdate);
     connection.db.playerInWorld.onInsert(onPlayerInWorldInsert);
     connection.db.playerInWorld.onUpdate(onPlayerInWorldUpdate);
 
-    const currentPalette = connection.db.palette.world.find(worldId);
+    const currentPalette = connection.db.colorPalette.world.find(worldId);
     if (currentPalette) {
       console.log("Query palette and set to", currentPalette);
       setPalette(currentPalette);
@@ -74,8 +74,8 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
 
     return () => {
       sub.unsubscribe();
-      connection.db.palette.removeOnInsert(onPaletteUpdate);
-      connection.db.palette.removeOnUpdate(onPaletteUpdate);
+      connection.db.colorPalette.removeOnInsert(onPaletteUpdate);
+      connection.db.colorPalette.removeOnUpdate(onPaletteUpdate);
       connection.db.playerInWorld.removeOnInsert(onPlayerInWorldInsert);
       connection.db.playerInWorld.removeOnUpdate(onPlayerInWorldUpdate);
     };
