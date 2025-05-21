@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useWorldManagement } from "@/hooks/useWorldManagement";
+import ColorPalette from "@/components/custom/ColorPalette";
 
 export default function WorldViewPage() {
   const { worldId } = useParams<{ worldId: string }>();
@@ -76,6 +77,10 @@ export default function WorldViewPage() {
           position: "relative",
         }}
       />
+
+      {!chunksLoading && !error && worldId && (
+        <ColorPalette worldId={worldId} />
+      )}
 
       {chunksLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">

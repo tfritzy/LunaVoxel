@@ -40,10 +40,11 @@ public static partial class Module
         public string Id;
         public string World;
         public Vector3? PreviewPos;
+        public int SelectedColorIndex = 0;
     }
 
-    [Table(Name = "Palette")]
-    public partial class Palette
+    [Table(Name = "ColorPalette")]
+    public partial class ColorPalette
     {
         [PrimaryKey]
         public string World;
@@ -182,7 +183,7 @@ public static partial class Module
     [Reducer]
     public static void InitializePalette(ReducerContext ctx, string worldId)
     {
-        var existingPalette = ctx.Db.Palette.World.Find(worldId);
+        var existingPalette = ctx.Db.ColorPalette.World.Find(worldId);
         if (existingPalette != null)
         {
             return;
@@ -200,7 +201,7 @@ public static partial class Module
         "#000000"
         };
 
-        ctx.Db.Palette.Insert(new Palette
+        ctx.Db.ColorPalette.Insert(new ColorPalette
         {
             World = worldId,
             Colors = defaultColors
@@ -220,11 +221,11 @@ public static partial class Module
             throw new Exception("Invalid color format. Use #RRGGBB format.");
         }
 
-        var palette = ctx.Db.Palette.World.Find(worldId);
+        var palette = ctx.Db.ColorPalette.World.Find(worldId);
         if (palette == null)
         {
             InitializePalette(ctx, worldId);
-            palette = ctx.Db.Palette.World.Find(worldId)!;
+            palette = ctx.Db.ColorPalette.World.Find(worldId)!;
         }
 
         if (palette.Colors.Contains(colorHex))
@@ -236,7 +237,7 @@ public static partial class Module
         newColors.Add(colorHex);
         palette.Colors = newColors.ToArray();
 
-        ctx.Db.Palette.World.Update(palette);
+        ctx.Db.ColorPalette.World.Update(palette);
     }
 
     [Reducer]
@@ -245,7 +246,7 @@ public static partial class Module
         var world = ctx.Db.World.Id.Find(worldId)
             ?? throw new Exception($"World with ID {worldId} not found");
 
-        var palette = ctx.Db.Palette.World.Find(worldId);
+        var palette = ctx.Db.ColorPalette.World.Find(worldId);
         if (palette == null || !palette.Colors.Contains(colorHex))
         {
             return;
@@ -254,7 +255,26 @@ public static partial class Module
         var newColors = palette.Colors.Where(c => c != colorHex).ToArray();
 
         palette.Colors = newColors;
-        ctx.Db.Palette.World.Update(palette);
+        ctx.Db.ColorPalette.World.Update(palette);
+    }
+
+    [Reducer]
+    public static void SelectColorIndex(ReducerContext ctx, string worldId, int colorIndex)
+    {
+        var playerId = $"{ctx.Sender}_{worldId}";
+        var player = ctx.Db.PlayerInWorld.Id.Find(playerId)
+            ?? throw new Exception($"Player is not in world {worldId}");
+
+        var palette = ctx.Db.ColorPalette.World.Find(worldId)
+            ?? throw new Exception($"Palette not found for world {worldId}");
+
+        if (colorIndex < 0 || colorIndex >= palette.Colors.Length)
+        {
+            throw new Exception($"Color index {colorIndex} is out of range");
+        }
+
+        player.SelectedColorIndex = colorIndex;
+        ctx.Db.PlayerInWorld.Id.Update(player);
     }
 
     private static bool IsValidHexColor(string color)

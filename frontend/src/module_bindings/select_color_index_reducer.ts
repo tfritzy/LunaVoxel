@@ -30,40 +30,34 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Vector3 as __Vector3 } from "./vector_3_type";
 
-export type PlayerInWorld = {
-  id: string,
-  world: string,
-  previewPos: __Vector3 | undefined,
-  selectedColorIndex: number,
+export type SelectColorIndex = {
+  worldId: string,
+  colorIndex: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace PlayerInWorld {
+export namespace SelectColorIndex {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("previewPos", AlgebraicType.createOptionType(__Vector3.getTypeScriptAlgebraicType())),
-      new ProductTypeElement("selectedColorIndex", AlgebraicType.createI32Type()),
+      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("colorIndex", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PlayerInWorld): void {
-    PlayerInWorld.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: SelectColorIndex): void {
+    SelectColorIndex.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PlayerInWorld {
-    return PlayerInWorld.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): SelectColorIndex {
+    return SelectColorIndex.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
-
 
