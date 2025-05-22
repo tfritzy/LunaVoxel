@@ -7,7 +7,7 @@ import FirebaseAuth from "./firebase/FirebaseAuth";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
 import WorldListPage from "./pages/WorldListPage";
 import WorldViewPage from "./pages/WorldViewPage";
-import Navigation from "./components/custom/Navigation";
+import Layout from "./components/custom/Layout";
 import { WorldsProvider } from "./contexts/WorldContext";
 import { CurrentWorldProvider } from "./contexts/CurrentWorldContext";
 
@@ -59,24 +59,21 @@ function AppContent() {
   return (
     <DatabaseProvider connection={conn}>
       <WorldsProvider>
-        <div className="app">
-          <Navigation />
-          <main className="">
-            <Routes>
-              <Route path="/" element={<WorldListPage />} />
-              <Route
-                path="/worlds/:worldId"
-                element={
-                  <CurrentWorldProvider>
-                    <WorldViewPage />
-                  </CurrentWorldProvider>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <FirebaseAuth />
-          </main>
-        </div>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<WorldListPage />} />
+            <Route
+              path="/worlds/:worldId"
+              element={
+                <CurrentWorldProvider>
+                  <WorldViewPage />
+                </CurrentWorldProvider>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <FirebaseAuth />
+        </Layout>
       </WorldsProvider>
     </DatabaseProvider>
   );

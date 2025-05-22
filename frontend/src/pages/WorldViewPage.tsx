@@ -67,38 +67,44 @@ export default function WorldViewPage() {
   }, [chunksLoading, connection, userWorlds, worldId]);
 
   return (
-    <div className="relative h-screen w-full">
-      <div
-        ref={containerRef}
-        className="voxel-container"
-        style={{
-          width: "100%",
-          height: "100vh",
-          position: "relative",
-        }}
-      />
-
+    <div className="h-full flex">
       {!chunksLoading && !error && worldId && (
         <ColorPalette worldId={worldId} />
       )}
 
-      {chunksLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
-            <p className="text-lg font-medium">Loading world...</p>
-          </div>
-        </div>
-      )}
+      <div className="flex-1 relative">
+        <div
+          ref={containerRef}
+          className="voxel-container"
+          style={{
+            width: "100%",
+            height: "100vh",
+            position: "relative",
+          }}
+        />
 
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm z-20">
-          <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center">
-            <p className="text-xl text-destructive font-medium mb-4">{error}</p>
-            <p className="text-muted-foreground">Returning to world list...</p>
+        {chunksLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
+              <p className="text-lg font-medium">Loading world...</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm z-20">
+            <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center">
+              <p className="text-xl text-destructive font-medium mb-4">
+                {error}
+              </p>
+              <p className="text-muted-foreground">
+                Returning to world list...
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

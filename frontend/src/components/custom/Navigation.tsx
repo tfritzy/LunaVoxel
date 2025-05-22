@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Home, User, LogOut, Moon } from "lucide-react";
+import { User, LogOut, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useAuth } from "@/firebase/AuthContext";
@@ -21,8 +21,8 @@ export default function Navigation() {
     : "Not connected";
 
   return (
-    <nav className="fixed z-50 top-0 w-full backdrop-brightness-75 backdrop-blur-sm border-b border-border">
-      <div className="container mx-auto py-2 flex justify-between items-center">
+    <nav className="h-10 w-full backdrop-brightness-75 backdrop-blur-sm border-b border-border">
+      <div className="container mx-auto h-full py-2 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2 font-semibold">
             <Moon className="h-5 w-5" />

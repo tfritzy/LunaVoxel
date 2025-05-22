@@ -23,7 +23,7 @@ export default function WorldListPage() {
   };
 
   return (
-    <div className="pt-16 mx-auto p-4 max-w-7xl">
+    <div className="h-full p-4 max-w-7xl mx-auto overflow-y-auto">
       <CreateWorldDialog
         isOpen={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
