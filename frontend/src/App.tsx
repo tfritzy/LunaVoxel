@@ -8,6 +8,8 @@ import { DatabaseProvider } from "./contexts/DatabaseContext";
 import WorldListPage from "./pages/WorldListPage";
 import WorldViewPage from "./pages/WorldViewPage";
 import Navigation from "./components/custom/Navigation";
+import { WorldsProvider } from "./contexts/WorldContext";
+import { CurrentWorldProvider } from "./contexts/CurrentWorldContext";
 
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
@@ -56,17 +58,26 @@ function AppContent() {
 
   return (
     <DatabaseProvider connection={conn}>
-      <div className="app">
-        <Navigation />
-        <main className="">
-          <Routes>
-            <Route path="/" element={<WorldListPage />} />
-            <Route path="/worlds/:worldId" element={<WorldViewPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <FirebaseAuth />
-        </main>
-      </div>
+      <WorldsProvider>
+        <div className="app">
+          <Navigation />
+          <main className="">
+            <Routes>
+              <Route path="/" element={<WorldListPage />} />
+              <Route
+                path="/worlds/:worldId"
+                element={
+                  <CurrentWorldProvider>
+                    <WorldViewPage />
+                  </CurrentWorldProvider>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <FirebaseAuth />
+          </main>
+        </div>
+      </WorldsProvider>
     </DatabaseProvider>
   );
 }

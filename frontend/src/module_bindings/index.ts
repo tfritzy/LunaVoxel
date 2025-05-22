@@ -212,19 +212,19 @@ export class RemoteReducers {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  placeBlock(world: string, type: BlockType, x: number, y: number, z: number, color: string, isPreview: boolean) {
-    const __args = { world, type, x, y, z, color, isPreview };
+  placeBlock(world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) {
+    const __args = { world, type, x, y, z, isPreview };
     let __writer = new BinaryWriter(1024);
     PlaceBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("PlaceBlock", __argsBuffer, this.setCallReducerFlags.placeBlockFlags);
   }
 
-  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, color: string, isPreview: boolean) => void) {
+  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
     this.connection.onReducer("PlaceBlock", callback);
   }
 
-  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, color: string, isPreview: boolean) => void) {
+  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
     this.connection.offReducer("PlaceBlock", callback);
   }
 

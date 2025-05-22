@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import CreateWorldButton from "@/components/custom/CreateWorldButton";
 import CreateWorldDialog from "@/components/custom/CreateWorldDialog";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useWorldManagement } from "@/hooks/useWorldManagement";
+import { useWorlds } from "@/contexts/WorldContext";
 
 export default function WorldListPage() {
   const navigate = useNavigate();
   const { connection } = useDatabase();
-  const { myWorlds } = useWorldManagement();
+  const { userWorlds } = useWorlds();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const visitWorld = (worldId: string) => {
@@ -34,7 +34,7 @@ export default function WorldListPage() {
         <CreateWorldButton onClick={() => setIsCreateDialogOpen(true)} />
       </div>
 
-      {myWorlds.length === 0 ? (
+      {userWorlds.length === 0 ? (
         <div className="text-center p-8 border border-border rounded-lg bg-card/50">
           <p className="mb-4 text-muted-foreground">
             You don't have any worlds yet.
@@ -48,7 +48,7 @@ export default function WorldListPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {myWorlds
+          {userWorlds
             .sort((w1, w2) => w1.name.localeCompare(w2.name))
             .map((world) => (
               <div

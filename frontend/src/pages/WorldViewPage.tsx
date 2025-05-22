@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useWorldManagement } from "@/hooks/useWorldManagement";
 import ColorPalette from "@/components/custom/ColorPalette";
+import { useWorlds } from "@/contexts/WorldContext";
 
 export default function WorldViewPage() {
   const { worldId } = useParams<{ worldId: string }>();
@@ -13,7 +13,7 @@ export default function WorldViewPage() {
   const engineRef = useRef<VoxelEngine | null>(null);
   const [chunksLoading, setChunksLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { myWorlds, isLoading: worldsLoading } = useWorldManagement();
+  const { userWorlds } = useWorlds();
 
   useEffect(() => {
     if (!worldId || !connection) return;
@@ -38,14 +38,14 @@ export default function WorldViewPage() {
   }, [worldId, connection, navigate]);
 
   useEffect(() => {
-    if (worldsLoading || chunksLoading || !connection) return;
+    if (chunksLoading || !connection) return;
 
     if (engineRef.current) {
       engineRef.current.dispose();
       engineRef.current = null;
     }
 
-    const world = myWorlds.find((w) => w.id === worldId);
+    const world = userWorlds.find((w) => w.id === worldId);
 
     if (!world) {
       setError("Unable to find world " + worldId);
@@ -64,7 +64,7 @@ export default function WorldViewPage() {
         engineRef.current = null;
       }
     };
-  }, [chunksLoading, connection, myWorlds, worldId, worldsLoading]);
+  }, [chunksLoading, connection, userWorlds, worldId]);
 
   return (
     <div className="relative h-screen w-full">

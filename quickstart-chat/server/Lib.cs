@@ -32,7 +32,7 @@ public static partial class Module
         }
     }
 
-    [Table(Name = "PlayerInWorld")]
+    [Table(Name = "PlayerInWorld", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "world", Columns = new[] { nameof(World) })]
     public partial class PlayerInWorld
     {
@@ -43,7 +43,7 @@ public static partial class Module
         public int SelectedColorIndex = 0;
     }
 
-    [Table(Name = "ColorPalette")]
+    [Table(Name = "ColorPalette", Public = true)]
     public partial class ColorPalette
     {
         [PrimaryKey]
@@ -102,13 +102,15 @@ public static partial class Module
         }
     }
     [Reducer]
-    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z, string color = "#FFFFFF", bool isPreview = false)
+    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z, bool isPreview = false)
     {
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}") ?? throw new ArgumentException("Could not find specified chunk");
+        var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{world}") ?? throw new ArgumentException("You're not in this world.");
+        var palette = ctx.Db.ColorPalette.World.Find(world) ?? throw new ArgumentException("No color palette for world.");
+        var color = palette.Colors[player.SelectedColorIndex];
+
         if (isPreview)
         {
-            var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{world}") ?? throw new ArgumentException("You're not in this world.");
-
             if (player.PreviewPos.HasValue)
             {
                 var previewPos = player.PreviewPos.Value;

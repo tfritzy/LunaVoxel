@@ -53,7 +53,6 @@ export class VoxelEngine {
     this.worldManager = new WorldManager(this.scene, this.conn, this.world);
     this.setupRaycaster();
     this.builder = new Builder(
-      this.scene,
       this.conn,
       this.renderer.domElement,
       this.world.id

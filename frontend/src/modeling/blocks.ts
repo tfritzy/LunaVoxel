@@ -42,11 +42,13 @@ function getMaterial(color: string): THREE.MeshStandardMaterial {
     return resourceCache.materials.byColor.get(color)!;
   }
 
+  console.log("Create block of color", parseInt(color, 16));
   const material = new THREE.MeshStandardMaterial({
     color: parseInt(color, 16),
     roughness: 0.7,
     metalness: 0.2,
   });
+  console.log("material", material);
 
   resourceCache.materials.byColor.set(color, material);
 
