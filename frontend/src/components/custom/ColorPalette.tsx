@@ -7,7 +7,7 @@ interface ColorPaletteProps {
 
 export default function ColorPalette({ worldId }: ColorPaletteProps) {
   const { connection } = useDatabase();
-  const { palette } = useCurrentWorld();
+  const { palette, player } = useCurrentWorld();
 
   const selectColor = (index: number) => {
     if (!connection || !worldId) return;
@@ -23,7 +23,7 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
           <button
             key={index}
             className={`w-8 h-8 rounded-md transition-transform ${
-              0 === index
+              player.selectedColorIndex === index
                 ? "ring-2 ring-foreground scale-110"
                 : "ring-1 ring-border/50 hover:scale-105"
             }`}

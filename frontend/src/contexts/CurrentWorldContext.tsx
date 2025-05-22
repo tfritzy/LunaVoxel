@@ -1,17 +1,11 @@
-import {
-  ColorPalette,
-  EventContext,
-  PlayerInWorld,
-  World,
-} from "@/module_bindings";
+import { ColorPalette, EventContext, PlayerInWorld } from "@/module_bindings";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useDatabase } from "./DatabaseContext";
 import { useParams } from "react-router-dom";
 
 interface CurrentWorldContextType {
-  // currentWorld: World;
   palette: ColorPalette;
-  // player: PlayerInWorld;
+  player: PlayerInWorld;
 }
 
 const WorldsContext = createContext<CurrentWorldContextType | undefined>(
@@ -32,15 +26,20 @@ export function CurrentWorldProvider({
   children: React.ReactNode;
 }) {
   const [palette, setPalette] = useState<ColorPalette | null>(null);
+  const [player, setPlayer] = useState<PlayerInWorld | null>(null);
   const { connection } = useDatabase();
   const { worldId } = useParams<{ worldId: string }>();
 
   useEffect(() => {
-    if (!connection?.identity) throw "Connection has no identity";
+    if (!connection?.identity || !worldId) return;
+
+    const playerId = `${connection.identity
+      .toHexString()
+      .toUpperCase()}_${worldId}`;
+
     const colorPaletteSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        console.log("color palette query applied", worldId);
         setPalette(
           connection.db.colorPalette.tableCache
             .iter()
@@ -48,12 +47,25 @@ export function CurrentWorldProvider({
         );
       })
       .onError((error) => {
-        console.error("World subscription error:", error);
+        console.error("Color palette subscription error:", error);
       })
       .subscribe([`SELECT * FROM ColorPalette WHERE World='${worldId}'`]);
 
+    const playerSub = connection
+      .subscriptionBuilder()
+      .onApplied(() => {
+        setPlayer(
+          connection.db.playerInWorld.tableCache
+            .iter()
+            .find((p) => p.id === playerId)
+        );
+      })
+      .onError((error) => {
+        console.error("Player subscription error:", error);
+      })
+      .subscribe([`SELECT * FROM PlayerInWorld WHERE Id='${playerId}'`]);
+
     const onPaletteInsert = (ctx: EventContext, row: ColorPalette) => {
-      console.log("on palette insert", row);
       if (row.world === worldId) {
         setPalette(row);
       }
@@ -64,24 +76,46 @@ export function CurrentWorldProvider({
       oldPalette: ColorPalette,
       newPalette: ColorPalette
     ) => {
-      console.log("on palette update", newPalette);
       if (newPalette.world === worldId) {
         setPalette(newPalette);
       }
     };
 
+    const onPlayerInsert = (ctx: EventContext, row: PlayerInWorld) => {
+      if (row.id === playerId) {
+        setPlayer(row);
+      }
+    };
+
+    const onPlayerUpdate = (
+      ctx: EventContext,
+      oldPlayer: PlayerInWorld,
+      newPlayer: PlayerInWorld
+    ) => {
+      if (newPlayer.id === playerId) {
+        setPlayer(newPlayer);
+      }
+    };
+
     connection.db.colorPalette.onInsert(onPaletteInsert);
     connection.db.colorPalette.onUpdate(onPaletteUpdate);
+    connection.db.playerInWorld.onInsert(onPlayerInsert);
+    connection.db.playerInWorld.onUpdate(onPlayerUpdate);
 
     return () => {
       colorPaletteSub.unsubscribe();
+      playerSub.unsubscribe();
+      connection.db.colorPalette.removeOnInsert(onPaletteInsert);
+      connection.db.colorPalette.removeOnUpdate(onPaletteUpdate);
+      connection.db.playerInWorld.removeOnInsert(onPlayerInsert);
+      connection.db.playerInWorld.removeOnUpdate(onPlayerUpdate);
     };
   }, [connection, worldId]);
 
-  if (!palette) return null;
+  if (!palette || !player) return null;
 
   return (
-    <WorldsContext.Provider value={{ palette: palette! }}>
+    <WorldsContext.Provider value={{ palette, player }}>
       {children}
     </WorldsContext.Provider>
   );

@@ -42,13 +42,11 @@ function getMaterial(color: string): THREE.MeshStandardMaterial {
     return resourceCache.materials.byColor.get(color)!;
   }
 
-  console.log("Create block of color", parseInt(color, 16));
   const material = new THREE.MeshStandardMaterial({
-    color: parseInt(color, 16),
+    color: parseInt(color.replace("#", ""), 16),
     roughness: 0.7,
     metalness: 0.2,
   });
-  console.log("material", material);
 
   resourceCache.materials.byColor.set(color, material);
 
@@ -58,7 +56,7 @@ function getMaterial(color: string): THREE.MeshStandardMaterial {
 /**
  * Creates a standard cube mesh using shared resources
  */
-export function createCubeMesh(color: string = "0xffffff"): THREE.Mesh {
+export function createCubeMesh(color: string = "#ffffff"): THREE.Mesh {
   const geometry = resourceCache.geometries.box;
 
   const material = getMaterial(color);
@@ -72,7 +70,7 @@ export function createCubeMesh(color: string = "0xffffff"): THREE.Mesh {
 /**
  * Creates a rounded cube mesh using shared resources
  */
-export function createRoundedCubeMesh(color: string = "0xffffff"): THREE.Mesh {
+export function createRoundedCubeMesh(color: string = "#ffffff"): THREE.Mesh {
   const geometry = resourceCache.geometries.roundedBox!;
 
   const material = getMaterial(color);

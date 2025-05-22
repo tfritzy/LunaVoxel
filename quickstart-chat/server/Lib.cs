@@ -33,7 +33,6 @@ public static partial class Module
     }
 
     [Table(Name = "PlayerInWorld", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "world", Columns = new[] { nameof(World) })]
     public partial class PlayerInWorld
     {
         [PrimaryKey]
@@ -193,14 +192,38 @@ public static partial class Module
 
         var defaultColors = new string[]
         {
-        "#FF0000",
-        "#00FF00",
-        "#0000FF",
-        "#FFFF00",
-        "#FF00FF",
-        "#00FFFF",
-        "#FFFFFF",
-        "#000000"
+            "#FF2e2e43",
+            "#FF4a4b5b",
+            "#FF707b89",
+            "#FFa9bcbf",
+            "#FFe6eeed",
+            "#FFfcfbf3",
+            "#FFfceba8",
+            "#FFf5c47c",
+            "#FFe39764",
+            "#FFc06852",
+            "#FF9d4343",
+            "#FF813645",
+            "#FF542240",
+            "#FF2a152d",
+            "#FF4f2d4d",
+            "#FF5b3a56",
+            "#FF794e6d",
+            "#FF3e4c7e",
+            "#FF495f94",
+            "#FF5a78b2",
+            "#FF7396d5",
+            "#FF7fbbdc",
+            "#FFaaeeea",
+            "#FFd5f893",
+            "#FF96dc7f",
+            "#FF6ec077",
+            "#FF4e9363",
+            "#FF3c6c54",
+            "#FF2c5049",
+            "#FF34404f",
+            "#FF405967",
+            "#FF5c8995",
         };
 
         ctx.Db.ColorPalette.Insert(new ColorPalette
