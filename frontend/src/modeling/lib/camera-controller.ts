@@ -6,15 +6,20 @@ export class CameraController {
   private target: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private panSpeed: number = 0.02;
   private zoomSpeed: number = 2;
-  private rotationSpeed: number = 7.0;
+  private rotationSpeed: number = 0.003; // Reduced for smoother rotation
   private keys: { [key: string]: boolean } = {};
-  private panMouseDown: boolean = false;
+  // Changed from panMouseDown to rotateMouseDown for right-click
+  private rotateMouseDown: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
   private currentRotationAngle: number = 0;
   private targetRotationAngle: number = 0;
   private isRotating: boolean = false;
   private distance: number = 0;
+  // Variables to track orbital rotation state
+  private phi: number = Math.PI / 4; // vertical angle (start at 45 degrees)
+  private theta: number = Math.PI / 4; // horizontal angle (start at 45 degrees)
+  private isDragging: boolean = false; // Track if we're actually dragging vs just clicking
 
   private boundKeyDown: (event: KeyboardEvent) => void;
   private boundKeyUp: (event: KeyboardEvent) => void;
@@ -27,12 +32,23 @@ export class CameraController {
   constructor(camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
     this.camera = camera;
     this.domElement = domElement;
+
+    // Initialize the distance based on the current camera position
     this.distance = this.getDistanceToTarget();
 
+    // Calculate initial rotation angles based on camera position
     const deltaX = this.camera.position.x - this.target.x;
     const deltaZ = this.camera.position.z - this.target.z;
     this.currentRotationAngle = Math.atan2(deltaX, deltaZ);
     this.targetRotationAngle = this.currentRotationAngle;
+
+    // Set initial theta (horizontal) based on current camera position
+    this.theta = this.currentRotationAngle;
+
+    // Calculate initial phi (vertical angle) based on camera Y position
+    const horizontalDistance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+    const deltaY = this.camera.position.y - this.target.y;
+    this.phi = Math.atan2(horizontalDistance, deltaY);
 
     this.boundKeyDown = this.onKeyDown.bind(this);
     this.boundKeyUp = this.onKeyUp.bind(this);
@@ -87,7 +103,10 @@ export class CameraController {
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 2) {
-      this.panMouseDown = true;
+      // Right click
+      // Changed from panMouseDown to rotateMouseDown
+      this.rotateMouseDown = true;
+      this.isDragging = false; // Reset drag state
       this.domElement.style.cursor = "grabbing";
     }
 
@@ -97,7 +116,9 @@ export class CameraController {
 
   private onMouseUp(event: MouseEvent): void {
     if (event.button === 2) {
-      this.panMouseDown = false;
+      // Changed from panMouseDown to rotateMouseDown
+      this.rotateMouseDown = false;
+      this.isDragging = false;
       this.domElement.style.cursor = "auto";
     }
   }
@@ -106,8 +127,19 @@ export class CameraController {
     const deltaX = event.clientX - this.lastMouseX;
     const deltaY = event.clientY - this.lastMouseY;
 
-    if (this.panMouseDown) {
-      this.panCamera(-deltaX * this.panSpeed, -deltaY * this.panSpeed);
+    // Only process movement if it's significant (prevents camera jump on initial click)
+    const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    if (this.rotateMouseDown) {
+      // Set dragging to true once movement is detected to prevent jumps
+      if (!this.isDragging && moveDistance > 3) {
+        this.isDragging = true;
+      }
+
+      if (this.isDragging) {
+        // Only orbit camera if we're actually dragging
+        this.orbitCamera(deltaX, deltaY);
+      }
     }
 
     this.lastMouseX = event.clientX;
@@ -129,6 +161,23 @@ export class CameraController {
     return this.camera.position.distanceTo(this.target);
   }
 
+  // New method to orbit the camera around the target
+  private orbitCamera(deltaX: number, deltaY: number): void {
+    // Update theta (horizontal rotation) based on mouse X movement
+    this.theta -= deltaX * this.rotationSpeed;
+
+    // Update phi (vertical rotation) based on mouse Y movement
+    // Clamp phi to avoid flipping the camera
+    this.phi = Math.max(
+      0.1,
+      Math.min(Math.PI - 0.1, this.phi - deltaY * this.rotationSpeed)
+    );
+
+    // Update camera position based on spherical coordinates
+    this.updateCameraPosition();
+  }
+
+  // We keep the panCamera method for WASD movement
   private panCamera(deltaX: number, deltaY: number): void {
     const forward = new THREE.Vector3(0, 0, 1);
     forward.applyQuaternion(this.camera.quaternion);
@@ -150,31 +199,32 @@ export class CameraController {
   private zoomCamera(delta: number): void {
     const zoomAmount = delta * this.zoomSpeed;
 
-    const direction = new THREE.Vector3()
-      .subVectors(this.camera.position, this.target)
-      .normalize();
-
     this.distance = Math.max(1, this.distance + zoomAmount);
 
-    this.camera.position.copy(
-      direction.multiplyScalar(this.distance).add(this.target)
-    );
+    // Update camera position after changing distance
+    this.updateCameraPosition();
   }
 
+  // Updated to use spherical coordinates instead of just horizontal rotation
   private updateCameraPosition(): void {
-    const currentHeight = this.camera.position.y;
-    const horizontalDistance = Math.sqrt(
-      Math.pow(this.camera.position.x - this.target.x, 2) +
-        Math.pow(this.camera.position.z - this.target.z, 2)
+    // Convert spherical coordinates to Cartesian
+    // Note the axis arrangement to match THREE.js coordinate system
+    const x = this.distance * Math.sin(this.phi) * Math.sin(this.theta);
+    const y = this.distance * Math.cos(this.phi);
+    const z = this.distance * Math.sin(this.phi) * Math.cos(this.theta);
+
+    // Set camera position relative to target
+    this.camera.position.set(
+      this.target.x + x,
+      this.target.y + y,
+      this.target.z + z
     );
 
-    const newX =
-      this.target.x + horizontalDistance * Math.sin(this.currentRotationAngle);
-    const newZ =
-      this.target.z + horizontalDistance * Math.cos(this.currentRotationAngle);
-
-    this.camera.position.set(newX, currentHeight, newZ);
+    // Make camera look at target
     this.camera.lookAt(this.target);
+
+    // Update current rotation angle for Q/E keys
+    this.currentRotationAngle = this.theta;
   }
 
   update(deltaTime: number = 1 / 60): void {
@@ -189,14 +239,19 @@ export class CameraController {
 
       const step =
         Math.sign(normalizedDiff) *
-        Math.min(Math.abs(normalizedDiff), this.rotationSpeed * deltaTime);
+        Math.min(
+          Math.abs(normalizedDiff),
+          this.rotationSpeed * deltaTime * 140
+        );
 
       if (Math.abs(step) > 0.001) {
         this.currentRotationAngle += step;
+        this.theta = this.currentRotationAngle;
         this.updateCameraPosition();
         hasUpdated = true;
       } else {
         this.currentRotationAngle = this.targetRotationAngle;
+        this.theta = this.currentRotationAngle;
         this.updateCameraPosition();
         this.isRotating = false;
       }

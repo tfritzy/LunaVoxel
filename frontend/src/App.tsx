@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
-import FirebaseAuth from "./firebase/FirebaseAuth";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
 import WorldListPage from "./pages/WorldListPage";
 import WorldViewPage from "./pages/WorldViewPage";
@@ -72,7 +71,6 @@ function AppContent() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <FirebaseAuth />
         </Layout>
       </WorldsProvider>
     </DatabaseProvider>
