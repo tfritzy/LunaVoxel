@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import ColorPalette from "@/components/custom/ColorPalette";
+import FloatingToolbar, { Tool } from "@/components/custom/FloatingToolbar";
 import { useWorlds } from "@/contexts/WorldContext";
 
 export default function WorldViewPage() {
@@ -13,6 +14,7 @@ export default function WorldViewPage() {
   const engineRef = useRef<VoxelEngine | null>(null);
   const [chunksLoading, setChunksLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentTool, setCurrentTool] = useState<Tool>("build");
   const { userWorlds } = useWorlds();
 
   useEffect(() => {
@@ -66,6 +68,16 @@ export default function WorldViewPage() {
     };
   }, [chunksLoading, connection, userWorlds, worldId]);
 
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setTool(currentTool);
+    }
+  }, [currentTool]);
+
+  const handleToolChange = (tool: Tool) => {
+    setCurrentTool(tool);
+  };
+
   return (
     <div className="h-full flex">
       {!chunksLoading && !error && worldId && (
@@ -82,6 +94,13 @@ export default function WorldViewPage() {
             position: "relative",
           }}
         />
+
+        {!chunksLoading && !error && (
+          <FloatingToolbar
+            currentTool={currentTool}
+            onToolChange={handleToolChange}
+          />
+        )}
 
         {chunksLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">

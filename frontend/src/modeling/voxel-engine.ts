@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
 import { GridRaycaster } from "./lib/grid-raycaster";
-import { Builder } from "./lib/builder";
+import { Builder, Tool } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
 import { DbConnection, World } from "../module_bindings";
@@ -185,6 +185,13 @@ export class VoxelEngine {
 
   public getCurrentGridPosition(): THREE.Vector3 | null {
     return this.currentGridPosition;
+  }
+
+  public setTool(tool: Tool): void {
+    this.builder.setTool(tool);
+    if (this.raycaster) {
+      this.raycaster.setTool(tool);
+    }
   }
 
   public dispose(): void {

@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 
+export type Tool = "build" | "erase";
+
 export interface GridRaycasterEvents {
   onHover?: (position: THREE.Vector3 | null) => void;
   onClick?: (position: THREE.Vector3 | null) => void;
@@ -13,6 +15,7 @@ export class GridRaycaster {
   private scene: THREE.Scene;
   private domElement: HTMLElement;
   private events: GridRaycasterEvents;
+  private currentTool: Tool = "build";
   private boundMouseMove: (event: MouseEvent) => void;
   private boundMouseClick: (event: MouseEvent) => void;
 
@@ -34,6 +37,10 @@ export class GridRaycaster {
     this.boundMouseClick = this.onMouseClick.bind(this);
 
     this.addEventListeners();
+  }
+
+  public setTool(tool: Tool): void {
+    this.currentTool = tool;
   }
 
   private addEventListeners(): void {
@@ -102,12 +109,16 @@ export class GridRaycaster {
           Math.floor(point.y),
           Math.floor(point.z)
         );
-        const normal = intersection.face?.normal;
-        if (normal) {
-          return gridPos.add(normal);
-        }
 
-        return gridPos;
+        if (this.currentTool === "erase") {
+          return gridPos;
+        } else {
+          const normal = intersection.face?.normal;
+          if (normal) {
+            return gridPos.add(normal);
+          }
+          return gridPos;
+        }
       }
     }
 

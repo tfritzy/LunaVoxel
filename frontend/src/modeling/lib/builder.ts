@@ -1,10 +1,13 @@
 import * as THREE from "three";
 import { DbConnection } from "../../module_bindings";
 
+export type Tool = "build" | "erase";
+
 export class Builder {
   private domElement: HTMLElement;
   private dbConn: DbConnection;
   private world: string;
+  private currentTool: Tool = "build";
 
   private boundMouseDown: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
@@ -31,12 +34,21 @@ export class Builder {
     event.preventDefault();
   }
 
+  public setTool(tool: Tool): void {
+    this.currentTool = tool;
+  }
+
   onMouseHover(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
+    const blockType =
+      this.currentTool === "erase"
+        ? ({ tag: "Empty" } as const)
+        : ({ tag: "Block" } as const);
+
     this.dbConn.reducers.placeBlock(
       this.world,
-      { tag: "Block" },
+      blockType,
       position.x,
       position.z,
       position.y,
@@ -49,9 +61,14 @@ export class Builder {
   onMouseClick(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
+    const blockType =
+      this.currentTool === "erase"
+        ? ({ tag: "Empty" } as const)
+        : ({ tag: "Block" } as const);
+
     this.dbConn.reducers.placeBlock(
       this.world,
-      { tag: "Block" },
+      blockType,
       position.x,
       position.z,
       position.y,
