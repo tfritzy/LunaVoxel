@@ -30,12 +30,9 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Vector3 as __Vector3 } from "./vector_3_type";
-
 export type PlayerInWorld = {
   id: string,
   world: string,
-  previewPos: __Vector3 | undefined,
   selectedColorIndex: number,
 };
 
@@ -51,7 +48,6 @@ export namespace PlayerInWorld {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("previewPos", AlgebraicType.createOptionType(__Vector3.getTypeScriptAlgebraicType())),
       new ProductTypeElement("selectedColorIndex", AlgebraicType.createI32Type()),
     ]);
   }

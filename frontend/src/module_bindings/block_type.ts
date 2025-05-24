@@ -35,7 +35,6 @@ import { BlockType as __BlockType } from "./block_type_type";
 export type Block = {
   type: __BlockType,
   count: number,
-  ghost: boolean,
   color: string,
 };
 
@@ -51,7 +50,6 @@ export namespace Block {
     return AlgebraicType.createProductType([
       new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("count", AlgebraicType.createI32Type()),
-      new ProductTypeElement("ghost", AlgebraicType.createBoolType()),
       new ProductTypeElement("color", AlgebraicType.createStringType()),
     ]);
   }

@@ -108,28 +108,28 @@ export class VoxelEngine {
   }
 
   private setupLights(): void {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(10, 30, 15);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.6);
+    directionalLight.position.set(10, 40, 15);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 8192;
     directionalLight.shadow.mapSize.height = 8192;
     directionalLight.shadow.camera.near = 0.5;
-    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.far = 100;
     directionalLight.shadow.camera.left = -25;
     directionalLight.shadow.camera.right = 25;
     directionalLight.shadow.camera.top = 25;
     directionalLight.shadow.camera.bottom = -25;
-    directionalLight.shadow.bias = -0.0005;
+    directionalLight.shadow.bias = -0.0001;
     this.scene.add(directionalLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffeb, 0.3);
+    const fillLight = new THREE.DirectionalLight(0xffffeb, 0.4);
     fillLight.position.set(-15, 10, -10);
     this.scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
     rimLight.position.set(5, 5, -20);
     this.scene.add(rimLight);
   }

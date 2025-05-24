@@ -68,8 +68,6 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
-import { Vector3 } from "./vector_3_type.ts";
-export { Vector3 };
 import { World } from "./world_type.ts";
 export { World };
 
@@ -212,19 +210,19 @@ export class RemoteReducers {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  placeBlock(world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) {
-    const __args = { world, type, x, y, z, isPreview };
+  placeBlock(world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
+    const __args = { world, type, x1, y1, z1, x2, y2, z2 };
     let __writer = new BinaryWriter(1024);
     PlaceBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("PlaceBlock", __argsBuffer, this.setCallReducerFlags.placeBlockFlags);
   }
 
-  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
+  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
     this.connection.onReducer("PlaceBlock", callback);
   }
 
-  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x: number, y: number, z: number, isPreview: boolean) => void) {
+  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
     this.connection.offReducer("PlaceBlock", callback);
   }
 

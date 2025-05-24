@@ -1,12 +1,10 @@
 import * as THREE from "three";
 import { Chunk } from "@/module_bindings";
 import { createBlockModel } from "@/modeling/blocks";
-import { layers } from "@/modeling/lib/layers";
 
 export class ChunkMesh {
   private scene: THREE.Scene;
   private blocks: (THREE.Mesh | null)[][][];
-  private ghostMaterial: THREE.Material;
 
   constructor(
     scene: THREE.Scene,
@@ -16,13 +14,6 @@ export class ChunkMesh {
   ) {
     this.scene = scene;
     this.blocks = [];
-    this.ghostMaterial = new THREE.MeshBasicMaterial({
-      color: "#0096FF",
-      opacity: 0.3,
-      transparent: true,
-      depthWrite: true,
-      depthTest: true,
-    });
 
     for (let x = 0; x < width; x++) {
       this.blocks[x] = [];
@@ -46,7 +37,6 @@ export class ChunkMesh {
         const needsUpdate =
           !this.blocks[x]?.[y]?.[z] ||
           this.blocks[x][y][z]?.userData.type !== blockRun.type.tag ||
-          this.blocks[x][y][z]?.userData.ghost !== blockRun.ghost ||
           this.blocks[x][y][z]?.userData.color !== blockRun.color;
 
         if (blockRun.type.tag === "Empty") {
@@ -67,15 +57,7 @@ export class ChunkMesh {
               z + 0.5,
               newChunk.y + y + 0.5
             );
-
-            if (blockRun.ghost) {
-              blockMesh.castShadow = false;
-              blockMesh.layers.set(layers.ghost);
-              blockMesh.material = this.ghostMaterial;
-            } else {
-              blockMesh.castShadow = true;
-            }
-
+            blockMesh.castShadow = true;
             this.scene.add(blockMesh);
             this.blocks[x][y][z] = blockMesh;
           }

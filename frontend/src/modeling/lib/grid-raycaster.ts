@@ -45,12 +45,12 @@ export class GridRaycaster {
 
   private addEventListeners(): void {
     this.domElement.addEventListener("mousemove", this.boundMouseMove);
-    this.domElement.addEventListener("mousedown", this.boundMouseClick);
+    this.domElement.addEventListener("mouseup", this.boundMouseClick);
   }
 
   private removeEventListeners(): void {
     this.domElement.removeEventListener("mousemove", this.boundMouseMove);
-    this.domElement.removeEventListener("mousedown", this.boundMouseClick);
+    this.domElement.removeEventListener("mouseup", this.boundMouseClick);
   }
 
   private onMouseMove(event: MouseEvent): void {

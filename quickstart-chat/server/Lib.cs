@@ -38,7 +38,6 @@ public static partial class Module
         [PrimaryKey]
         public string Id;
         public string World;
-        public Vector3? PreviewPos;
         public int SelectedColorIndex = 0;
     }
 
@@ -55,14 +54,12 @@ public static partial class Module
     {
         public BlockType Type;
         public int Count;
-        public bool Ghost;
         public string Color;
 
-        public Block(BlockType type, int count, bool ghost, string color = "#FFFFFF")
+        public Block(BlockType type, int count, string color = "#FFFFFF")
         {
             this.Type = type;
             this.Count = count;
-            this.Ghost = ghost;
             this.Color = color;
         }
     }
@@ -96,49 +93,62 @@ public static partial class Module
                 X = x,
                 Y = y,
                 World = world,
-                Blocks = [new Block(BlockType.Empty, z, false)]
+                Blocks = [new Block(BlockType.Empty, z)]
             };
         }
     }
+
     [Reducer]
-    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x, int y, int z, bool isPreview = false)
+    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x1, int y1, int z1, int x2, int y2, int z2)
     {
-        var chunk = ctx.Db.Chunk.Id.Find($"{world}_{x}_{y}") ?? throw new ArgumentException("Could not find specified chunk");
         var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{world}") ?? throw new ArgumentException("You're not in this world.");
         var palette = ctx.Db.ColorPalette.World.Find(world) ?? throw new ArgumentException("No color palette for world.");
         var color = palette.Colors[player.SelectedColorIndex];
 
-        if (isPreview)
-        {
-            if (player.PreviewPos.HasValue)
-            {
-                var previewPos = player.PreviewPos.Value;
-                var chunkId = $"{world}_{previewPos.X}_{previewPos.Y}";
-                var previewChunk = chunkId != chunk.Id ? ctx.Db.Chunk.Id.Find(chunkId) : chunk;
-                if (previewChunk != null && BlockCompression.GetBlock(previewChunk.Blocks, previewPos.Z).Ghost)
-                {
-                    BlockCompression.SetBlock(ref previewChunk.Blocks, BlockType.Empty, previewPos.Z, false, "#FFFFFF");
+        int minX = Math.Min(x1, x2);
+        int maxX = Math.Max(x1, x2);
+        int minY = Math.Min(y1, y2);
+        int maxY = Math.Max(y1, y2);
+        int minZ = Math.Min(z1, z2);
+        int maxZ = Math.Max(z1, z2);
 
-                    if (chunkId != chunk.Id)
+        var affectedChunkIds = new HashSet<string>();
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int y = minY; y <= maxY; y++)
+            {
+                affectedChunkIds.Add($"{world}_{x}_{y}");
+            }
+        }
+
+        var chunks = new Dictionary<string, Chunk>();
+        foreach (var chunkId in affectedChunkIds)
+        {
+            var chunk = ctx.Db.Chunk.Id.Find(chunkId);
+            if (chunk != null)
+            {
+                chunks[chunkId] = chunk;
+            }
+        }
+
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int y = minY; y <= maxY; y++)
+            {
+                var chunkId = $"{world}_{x}_{y}";
+                if (chunks.ContainsKey(chunkId))
+                {
+                    var chunk = chunks[chunkId];
+                    for (int z = minZ; z <= maxZ; z++)
                     {
-                        ctx.Db.Chunk.Id.Update(previewChunk);
+                        BlockCompression.SetBlock(ref chunk.Blocks, type, z, color);
                     }
                 }
             }
-
-            var currBlock = BlockCompression.GetBlock(chunk.Blocks, z);
-            if (currBlock.Type == BlockType.Empty || currBlock.Ghost)
-            {
-                player.PreviewPos = new Vector3(x, y, z);
-                ctx.Db.PlayerInWorld.Id.Update(player);
-
-                BlockCompression.SetBlock(ref chunk.Blocks, type, z, true, color);
-                ctx.Db.Chunk.Id.Update(chunk);
-            }
         }
-        else
+
+        foreach (var chunk in chunks.Values)
         {
-            BlockCompression.SetBlock(ref chunk.Blocks, type, z, false, color);
             ctx.Db.Chunk.Id.Update(chunk);
         }
     }
@@ -192,38 +202,38 @@ public static partial class Module
 
         var defaultColors = new string[]
         {
-            "#FF2e2e43",
-            "#FF4a4b5b",
-            "#FF707b89",
-            "#FFa9bcbf",
-            "#FFe6eeed",
-            "#FFfcfbf3",
-            "#FFfceba8",
-            "#FFf5c47c",
-            "#FFe39764",
-            "#FFc06852",
-            "#FF9d4343",
-            "#FF813645",
-            "#FF542240",
-            "#FF2a152d",
-            "#FF4f2d4d",
-            "#FF5b3a56",
-            "#FF794e6d",
-            "#FF3e4c7e",
-            "#FF495f94",
-            "#FF5a78b2",
-            "#FF7396d5",
-            "#FF7fbbdc",
-            "#FFaaeeea",
-            "#FFd5f893",
-            "#FF96dc7f",
-            "#FF6ec077",
-            "#FF4e9363",
-            "#FF3c6c54",
-            "#FF2c5049",
-            "#FF34404f",
-            "#FF405967",
-            "#FF5c8995",
+            "#2e2e43",
+            "#4a4b5b",
+            "#707b89",
+            "#a9bcbf",
+            "#e6eeed",
+            "#fcfbf3",
+            "#fceba8",
+            "#f5c47c",
+            "#e39764",
+            "#c06852",
+            "#9d4343",
+            "#813645",
+            "#542240",
+            "#2a152d",
+            "#4f2d4d",
+            "#5b3a56",
+            "#794e6d",
+            "#3e4c7e",
+            "#495f94",
+            "#5a78b2",
+            "#7396d5",
+            "#7fbbdc",
+            "#aaeeea",
+            "#d5f893",
+            "#96dc7f",
+            "#6ec077",
+            "#4e9363",
+            "#3c6c54",
+            "#2c5049",
+            "#34404f",
+            "#405967",
+            "#5c8995",
         };
 
         ctx.Db.ColorPalette.Insert(new ColorPalette

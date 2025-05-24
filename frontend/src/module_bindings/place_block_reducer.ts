@@ -36,10 +36,12 @@ import { BlockType as __BlockType } from "./block_type_type";
 export type PlaceBlock = {
   world: string,
   type: __BlockType,
-  x: number,
-  y: number,
-  z: number,
-  isPreview: boolean,
+  x1: number,
+  y1: number,
+  z1: number,
+  x2: number,
+  y2: number,
+  z2: number,
 };
 
 /**
@@ -54,10 +56,12 @@ export namespace PlaceBlock {
     return AlgebraicType.createProductType([
       new ProductTypeElement("world", AlgebraicType.createStringType()),
       new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("x", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y", AlgebraicType.createI32Type()),
-      new ProductTypeElement("z", AlgebraicType.createI32Type()),
-      new ProductTypeElement("isPreview", AlgebraicType.createBoolType()),
+      new ProductTypeElement("x1", AlgebraicType.createI32Type()),
+      new ProductTypeElement("y1", AlgebraicType.createI32Type()),
+      new ProductTypeElement("z1", AlgebraicType.createI32Type()),
+      new ProductTypeElement("x2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("y2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("z2", AlgebraicType.createI32Type()),
     ]);
   }
 

@@ -1,15 +1,17 @@
 import * as THREE from "three";
 import { DbConnection } from "../../module_bindings";
-
-export type Tool = "build" | "erase";
+import { Tool } from "./grid-raycaster";
 
 export class Builder {
   private domElement: HTMLElement;
   private dbConn: DbConnection;
   private world: string;
   private currentTool: Tool = "build";
+  private startPosition: THREE.Vector3 | null = null;
+  private isMouseDown: boolean = false;
 
   private boundMouseDown: (event: MouseEvent) => void;
+  private boundMouseUp: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
 
   constructor(dbConn: DbConnection, domElement: HTMLElement, world: string) {
@@ -25,8 +27,8 @@ export class Builder {
   }
 
   private onMouseDown(event: MouseEvent): void {
-    if (event.button === 2) {
-      this.rotateBlock();
+    if (event.button === 0) {
+      this.isMouseDown = true;
     }
   }
 
@@ -41,22 +43,12 @@ export class Builder {
   onMouseHover(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
-    const blockType =
-      this.currentTool === "erase"
-        ? ({ tag: "Empty" } as const)
-        : ({ tag: "Block" } as const);
-
-    this.dbConn.reducers.placeBlock(
-      this.world,
-      blockType,
-      position.x,
-      position.z,
-      position.y,
-      true
-    );
+    if (this.isMouseDown) {
+      if (!this.startPosition) {
+        this.startPosition = position.clone();
+      }
+    }
   }
-
-  rotateBlock() {}
 
   onMouseClick(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
@@ -66,18 +58,27 @@ export class Builder {
         ? ({ tag: "Empty" } as const)
         : ({ tag: "Block" } as const);
 
+    const endPos = position;
+    const startPos = this.startPosition || position;
+
     this.dbConn.reducers.placeBlock(
       this.world,
       blockType,
-      position.x,
-      position.z,
-      position.y,
-      false
+      startPos.x,
+      startPos.z,
+      startPos.y,
+      endPos.x,
+      endPos.z,
+      endPos.y
     );
+
+    this.isMouseDown = false;
+    this.startPosition = null;
   }
 
   dispose() {
     this.domElement.removeEventListener("mousedown", this.boundMouseDown);
+    this.domElement.removeEventListener("mouseup", this.boundMouseUp);
     this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
   }
 }
