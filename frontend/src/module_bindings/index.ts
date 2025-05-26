@@ -54,6 +54,8 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { PlayerInWorldTableHandle } from "./player_in_world_table.ts";
 export { PlayerInWorldTableHandle };
+import { PreviewVoxelsTableHandle } from "./preview_voxels_table.ts";
+export { PreviewVoxelsTableHandle };
 import { WorldTableHandle } from "./world_table.ts";
 export { WorldTableHandle };
 
@@ -68,6 +70,8 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
+import { PreviewVoxels } from "./preview_voxels_type.ts";
+export { PreviewVoxels };
 import { World } from "./world_type.ts";
 export { World };
 
@@ -87,6 +91,10 @@ const REMOTE_MODULE = {
       tableName: "PlayerInWorld",
       rowType: PlayerInWorld.getTypeScriptAlgebraicType(),
       primaryKey: "id",
+    },
+    PreviewVoxels: {
+      tableName: "PreviewVoxels",
+      rowType: PreviewVoxels.getTypeScriptAlgebraicType(),
     },
     World: {
       tableName: "World",
@@ -327,6 +335,10 @@ export class RemoteTables {
 
   get playerInWorld(): PlayerInWorldTableHandle {
     return new PlayerInWorldTableHandle(this.connection.clientCache.getOrCreateTable<PlayerInWorld>(REMOTE_MODULE.tables.PlayerInWorld));
+  }
+
+  get previewVoxels(): PreviewVoxelsTableHandle {
+    return new PreviewVoxelsTableHandle(this.connection.clientCache.getOrCreateTable<PreviewVoxels>(REMOTE_MODULE.tables.PreviewVoxels));
   }
 
   get world(): WorldTableHandle {

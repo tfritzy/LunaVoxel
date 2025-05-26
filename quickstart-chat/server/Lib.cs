@@ -33,12 +33,20 @@ public static partial class Module
     }
 
     [Table(Name = "PlayerInWorld", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "player_world", Columns = new[] { nameof(Player), nameof(World) })]
     public partial class PlayerInWorld
     {
-        [PrimaryKey]
-        public string Id;
+        public Identity Player;
         public string World;
         public int SelectedColorIndex = 0;
+    }
+
+    [Table(Name = "PreviewVoxels", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "player_world", Columns = new[] { nameof(Player), nameof(World) })]
+    public partial class PreviewVoxels
+    {
+        public Identity Player;
+        public string World;
     }
 
     [Table(Name = "ColorPalette", Public = true)]
@@ -101,8 +109,10 @@ public static partial class Module
     [Reducer]
     public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x1, int y1, int z1, int x2, int y2, int z2)
     {
-        var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{world}") ?? throw new ArgumentException("You're not in this world.");
-        var palette = ctx.Db.ColorPalette.World.Find(world) ?? throw new ArgumentException("No color palette for world.");
+        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
+            ?? throw new ArgumentException("You're not in this world.");
+        var palette = ctx.Db.ColorPalette.World.Find(world)
+            ?? throw new ArgumentException("No color palette for world.");
         var color = palette.Colors[player.SelectedColorIndex];
 
         int minX = Math.Min(x1, x2);
@@ -185,6 +195,16 @@ public static partial class Module
             {
                 Id = $"{ctx.Sender}_{worldId}",
                 World = worldId,
+            });
+        }
+
+        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, worldId)).FirstOrDefault();
+        if (previewVoxels == null)
+        {
+            ctx.Db.PreviewVoxels.Insert(new PreviewVoxels
+            {
+                Player = ctx.Sender,
+                World = worldId
             });
         }
 
