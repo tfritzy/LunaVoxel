@@ -31,9 +31,9 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 export type PreviewVoxels = {
+  id: string,
   player: Identity,
   world: string,
-  selectedColorIndex: number,
 };
 
 /**
@@ -46,9 +46,9 @@ export namespace PreviewVoxels {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
+      new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("player", AlgebraicType.createIdentityType()),
       new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("selectedColorIndex", AlgebraicType.createI32Type()),
     ]);
   }
 

@@ -32,6 +32,7 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 export type PlayerInWorld = {
   id: string,
+  player: Identity,
   world: string,
   selectedColorIndex: number,
 };
@@ -47,6 +48,7 @@ export namespace PlayerInWorld {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
+      new ProductTypeElement("player", AlgebraicType.createIdentityType()),
       new ProductTypeElement("world", AlgebraicType.createStringType()),
       new ProductTypeElement("selectedColorIndex", AlgebraicType.createI32Type()),
     ]);

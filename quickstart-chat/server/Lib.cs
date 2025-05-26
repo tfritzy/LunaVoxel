@@ -36,6 +36,8 @@ public static partial class Module
     [SpacetimeDB.Index.BTree(Name = "player_world", Columns = new[] { nameof(Player), nameof(World) })]
     public partial class PlayerInWorld
     {
+        [PrimaryKey]
+        public string Id;
         public Identity Player;
         public string World;
         public int SelectedColorIndex = 0;
@@ -45,6 +47,8 @@ public static partial class Module
     [SpacetimeDB.Index.BTree(Name = "player_world", Columns = new[] { nameof(Player), nameof(World) })]
     public partial class PreviewVoxels
     {
+        [PrimaryKey]
+        public string Id;
         public Identity Player;
         public string World;
     }
@@ -188,13 +192,15 @@ public static partial class Module
         world.LastVisited = ctx.Timestamp;
         ctx.Db.World.Id.Update(world);
 
-        var player = ctx.Db.PlayerInWorld.Id.Find($"{ctx.Sender}_{worldId}");
+        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, worldId)).FirstOrDefault();
         if (player == null)
         {
             ctx.Db.PlayerInWorld.Insert(new PlayerInWorld
             {
-                Id = $"{ctx.Sender}_{worldId}",
+                Id = IdGenerator.Generate("plr_wrld"),
+                Player = ctx.Sender,
                 World = worldId,
+                SelectedColorIndex = 0
             });
         }
 
@@ -203,6 +209,7 @@ public static partial class Module
         {
             ctx.Db.PreviewVoxels.Insert(new PreviewVoxels
             {
+                Id = IdGenerator.Generate("prvw"),
                 Player = ctx.Sender,
                 World = worldId
             });
@@ -317,7 +324,7 @@ public static partial class Module
     public static void SelectColorIndex(ReducerContext ctx, string worldId, int colorIndex)
     {
         var playerId = $"{ctx.Sender}_{worldId}";
-        var player = ctx.Db.PlayerInWorld.Id.Find(playerId)
+        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, worldId)).FirstOrDefault()
             ?? throw new Exception($"Player is not in world {worldId}");
 
         var palette = ctx.Db.ColorPalette.World.Find(worldId)

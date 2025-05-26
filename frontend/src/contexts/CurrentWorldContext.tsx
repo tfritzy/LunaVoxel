@@ -33,10 +33,6 @@ export function CurrentWorldProvider({
   useEffect(() => {
     if (!connection?.identity || !worldId) return;
 
-    const playerId = `${connection.identity
-      .toHexString()
-      .toUpperCase()}_${worldId}`;
-
     const colorPaletteSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
@@ -57,13 +53,15 @@ export function CurrentWorldProvider({
         setPlayer(
           connection.db.playerInWorld.tableCache
             .iter()
-            .find((p) => p.id === playerId)
+            .find((p) => p.world === worldId)
         );
       })
       .onError((error) => {
         console.error("Player subscription error:", error);
       })
-      .subscribe([`SELECT * FROM PlayerInWorld WHERE Id='${playerId}'`]);
+      .subscribe([
+        `SELECT * FROM PlayerInWorld WHERE Player='${connection.identity.toHexString()}' AND World='${worldId}'`,
+      ]);
 
     const onPaletteInsert = (ctx: EventContext, row: ColorPalette) => {
       if (row.world === worldId) {
@@ -82,7 +80,7 @@ export function CurrentWorldProvider({
     };
 
     const onPlayerInsert = (ctx: EventContext, row: PlayerInWorld) => {
-      if (row.id === playerId) {
+      if (row.world === worldId) {
         setPlayer(row);
       }
     };
@@ -92,7 +90,7 @@ export function CurrentWorldProvider({
       oldPlayer: PlayerInWorld,
       newPlayer: PlayerInWorld
     ) => {
-      if (newPlayer.id === playerId) {
+      if (newPlayer.world === worldId) {
         setPlayer(newPlayer);
       }
     };

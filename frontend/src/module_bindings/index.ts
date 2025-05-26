@@ -95,6 +95,7 @@ const REMOTE_MODULE = {
     PreviewVoxels: {
       tableName: "PreviewVoxels",
       rowType: PreviewVoxels.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
     },
     World: {
       tableName: "World",
