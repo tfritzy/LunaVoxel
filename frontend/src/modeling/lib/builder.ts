@@ -9,9 +9,10 @@ export class Builder {
   private currentTool: Tool = "build";
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
+  private lastPreviewStart: THREE.Vector3 | null = null;
+  private lastPreviewEnd: THREE.Vector3 | null = null;
 
   private boundMouseDown: (event: MouseEvent) => void;
-  private boundMouseUp: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
 
   constructor(dbConn: DbConnection, domElement: HTMLElement, world: string) {
@@ -40,17 +41,49 @@ export class Builder {
     this.currentTool = tool;
   }
 
-  onMouseHover(position: THREE.Vector3) {
+  public onMouseHover(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
     if (this.isMouseDown) {
       if (!this.startPosition) {
         this.startPosition = position.clone();
       }
+
+      const currentStart = this.startPosition;
+      const currentEnd = position;
+      console.log(position, currentStart, currentEnd);
+      if (
+        this.lastPreviewStart &&
+        this.lastPreviewEnd &&
+        this.lastPreviewStart.equals(currentStart) &&
+        this.lastPreviewEnd.equals(currentEnd)
+      ) {
+        return;
+      }
+
+      const blockType =
+        this.currentTool === "erase"
+          ? ({ tag: "Empty" } as const)
+          : ({ tag: "Block" } as const);
+      console.log("calling reducer", currentStart, currentEnd);
+      this.dbConn.reducers.placeBlock(
+        this.world,
+        blockType,
+        currentStart.x,
+        currentStart.z,
+        currentStart.y,
+        currentEnd.x,
+        currentEnd.z,
+        currentEnd.y,
+        true
+      );
+
+      this.lastPreviewStart = currentStart.clone();
+      this.lastPreviewEnd = currentEnd.clone();
     }
   }
 
-  onMouseClick(position: THREE.Vector3) {
+  public onMouseClick(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
     const blockType =
@@ -69,16 +102,17 @@ export class Builder {
       startPos.y,
       endPos.x,
       endPos.z,
-      endPos.y
+      endPos.y,
+      false
     );
 
     this.isMouseDown = false;
     this.startPosition = null;
+    this.lastPreviewStart = null;
+    this.lastPreviewEnd = null;
   }
-
   dispose() {
     this.domElement.removeEventListener("mousedown", this.boundMouseDown);
-    this.domElement.removeEventListener("mouseup", this.boundMouseUp);
     this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
   }
 }

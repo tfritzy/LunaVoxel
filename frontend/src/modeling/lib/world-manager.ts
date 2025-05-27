@@ -3,6 +3,7 @@ import {
   Chunk,
   DbConnection,
   EventContext,
+  PreviewVoxels,
   World,
 } from "../../module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
@@ -24,6 +25,33 @@ export class WorldManager {
 
   setupEvents = () => {
     this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
+    this.dbConn.db.previewVoxels.onUpdate(this.onPreviewUpdate);
+  };
+
+  onPreviewUpdate = (
+    ctx: EventContext,
+    oldRow: PreviewVoxels,
+    previewVoxels: PreviewVoxels
+  ) => {
+    if (previewVoxels.world === this.world.id) {
+      this.chunkMeshes.forEach((chunkMesh, chunkKey) => {
+        const [x, y] = chunkKey.split("_").map(Number);
+
+        const chunkPositions = previewVoxels.previewPositions.filter(
+          (pos) => pos.x === x && pos.y === y
+        );
+
+        const chunkPreview =
+          chunkPositions.length > 0
+            ? {
+                ...previewVoxels,
+                previewPositions: chunkPositions,
+              }
+            : null;
+
+        chunkMesh.updatePreview(chunkPreview);
+      });
+    }
   };
 
   setupChunks() {

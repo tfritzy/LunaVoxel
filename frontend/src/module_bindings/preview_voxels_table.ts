@@ -31,6 +31,8 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 import { PreviewVoxels } from "./preview_voxels_type";
+import { Vector3 as __Vector3 } from "./vector_3_type";
+
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**

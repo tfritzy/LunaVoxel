@@ -51,6 +51,9 @@ public static partial class Module
         public string Id;
         public Identity Player;
         public string World;
+        public Vector3[] PreviewPositions = [];
+        public string BlockColor;
+        public bool IsAddMode;
     }
 
     [Table(Name = "ColorPalette", Public = true)]
@@ -111,10 +114,11 @@ public static partial class Module
     }
 
     [Reducer]
-    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x1, int y1, int z1, int x2, int y2, int z2)
+    public static void PlaceBlock(ReducerContext ctx, string world, BlockType type, int x1, int y1, int z1, int x2, int y2, int z2, bool isPreview = false)
     {
         var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
             ?? throw new ArgumentException("You're not in this world.");
+
         var palette = ctx.Db.ColorPalette.World.Find(world)
             ?? throw new ArgumentException("No color palette for world.");
         var color = palette.Colors[player.SelectedColorIndex];
@@ -125,6 +129,51 @@ public static partial class Module
         int maxY = Math.Max(y1, y2);
         int minZ = Math.Min(z1, z2);
         int maxZ = Math.Max(z1, z2);
+
+        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
+
+        if (isPreview)
+        {
+            if (previewVoxels == null)
+            {
+                previewVoxels = new PreviewVoxels
+                {
+                    Id = IdGenerator.Generate("prvw"),
+                    Player = ctx.Sender,
+                    World = world,
+                    PreviewPositions = [],
+                    IsAddMode = type != BlockType.Empty,
+                    BlockColor = color
+                };
+                ctx.Db.PreviewVoxels.Insert(previewVoxels);
+            }
+
+            var positions = new List<Vector3>();
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    for (int z = minZ; z <= maxZ; z++)
+                    {
+                        positions.Add(new Vector3(x, y, z));
+                    }
+                }
+            }
+
+            previewVoxels.PreviewPositions = positions.ToArray();
+            previewVoxels.BlockColor = color;
+            previewVoxels.IsAddMode = type != BlockType.Empty;
+            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
+            return;
+        }
+
+        var existingPreview = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
+        if (existingPreview != null)
+        {
+            existingPreview.PreviewPositions = [];
+            ctx.Db.PreviewVoxels.Id.Update(existingPreview);
+        }
+
 
         var affectedChunkIds = new HashSet<string>();
         for (int x = minX; x <= maxX; x++)
@@ -164,6 +213,12 @@ public static partial class Module
         foreach (var chunk in chunks.Values)
         {
             ctx.Db.Chunk.Id.Update(chunk);
+        }
+
+        if (previewVoxels != null)
+        {
+            previewVoxels.PreviewPositions = [];
+            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
         }
     }
 
