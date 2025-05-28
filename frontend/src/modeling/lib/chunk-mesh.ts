@@ -100,11 +100,13 @@ export class ChunkMesh {
               originalColor: blockRun.color,
               currentColor: displayColor,
             };
-            if (isPreviewAddition) {
+
+            if (isPreviewAddition && !hasBlock) {
               blockMesh.layers.set(layers.ghost);
             } else {
               blockMesh.layers.set(layers.raycast);
             }
+
             this.scene.add(blockMesh);
             this.blocks[x][y][z] = blockMesh;
           } else {
@@ -122,7 +124,7 @@ export class ChunkMesh {
               currentMesh.userData.currentColor = displayColor;
             }
 
-            if (isPreviewAddition) {
+            if (isPreviewAddition && !hasBlock) {
               currentMesh.layers.set(layers.ghost);
             } else {
               currentMesh.layers.set(layers.raycast);
