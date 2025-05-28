@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import { Chunk, PreviewVoxels } from "@/module_bindings";
-import { layers } from "./layers";
+import { Chunk } from "@/module_bindings";
 
 const sharedGeometry = new THREE.BoxGeometry(1, 1, 1);
 const sharedMaterials = new Map<string, THREE.MeshStandardMaterial>();
@@ -44,98 +43,29 @@ export class ChunkMesh {
     }
   }
 
-  update(newChunk: Chunk, previewVoxels?: PreviewVoxels | null) {
-    const previewPositions = new Set<string>();
-    const previewAdditions = new Map<string, string>();
-
-    if (previewVoxels && previewVoxels.previewPositions.length > 0) {
-      previewVoxels.previewPositions.forEach((pos) => {
-        const key = `${pos.x},${pos.y},${pos.z}`;
-        previewPositions.add(key);
-        if (previewVoxels.isAddMode) {
-          previewAdditions.set(key, previewVoxels.blockColor);
-        }
-      });
-    }
-
+  update(
+    chunk: Chunk,
+    previewMap: Map<string, { color: string; isAddMode: boolean }>
+  ) {
     let zIndex = 0;
-    for (const blockRun of newChunk.blocks) {
-      for (let i = 0; i < blockRun.count; i++) {
-        const z = zIndex + i;
-        const x = 0;
-        const y = 0;
-        const worldX = newChunk.x + x;
-        const worldY = newChunk.y + y;
-        const worldZ = z;
-
-        const posKey = `${worldX},${worldY},${worldZ}`;
-        const isInPreview = previewPositions.has(posKey);
-        const isPreviewRemoval = isInPreview && !previewVoxels?.isAddMode;
-        const isPreviewAddition = isInPreview && previewVoxels?.isAddMode;
-
-        const currentMesh = this.blocks[x]?.[y]?.[z];
-        const hasBlock = blockRun.type.tag !== "Empty";
-        const shouldHaveBlock = hasBlock || isPreviewAddition;
-
-        if (!shouldHaveBlock) {
-          if (currentMesh) {
-            this.scene.remove(currentMesh);
-            this.blocks[x][y][z] = null;
-          }
-        } else {
-          const displayColor = isPreviewAddition
-            ? previewAdditions.get(posKey)!
-            : blockRun.color;
-
-          if (!currentMesh) {
-            const material = isPreviewRemoval
-              ? invisibleMaterial
-              : getSharedMaterial(displayColor);
+    for (const blockRun of chunk.blocks) {
+      for (let z = zIndex; z < blockRun.count + zIndex; z++) {
+        const currentBlock = this.blocks[0][0][z];
+        const isPreview = previewMap.has(`${chunk.x},${chunk.y},${z}`);
+        if (!isPreview) {
+          if (currentBlock && blockRun.type.tag === "Empty") {
+            this.scene.remove(currentBlock);
+            this.blocks[0][0][z] = null;
+          } else if (blockRun.type.tag !== "Empty" && !currentBlock) {
+            const material = getSharedMaterial(blockRun.color);
             const blockMesh = new THREE.Mesh(sharedGeometry, material);
-            blockMesh.position.set(worldX + 0.5, worldZ + 0.5, worldY + 0.5);
+            blockMesh.position.set(chunk.x + 0.5, z + 0.5, chunk.y + 0.5);
             blockMesh.castShadow = true;
             blockMesh.receiveShadow = true;
-            blockMesh.userData = {
-              type: blockRun.type.tag,
-              originalColor: blockRun.color,
-              currentColor: displayColor,
-            };
-            if (isPreviewAddition) {
-              blockMesh.layers.set(layers.ghost);
-            } else {
-              blockMesh.layers.set(layers.raycast);
-            }
             this.scene.add(blockMesh);
-            this.blocks[x][y][z] = blockMesh;
-          } else {
-            const needsMaterialUpdate =
-              currentMesh.userData.currentColor !== displayColor ||
-              (isPreviewRemoval &&
-                currentMesh.material !== invisibleMaterial) ||
-              (!isPreviewRemoval && currentMesh.material === invisibleMaterial);
-
-            if (needsMaterialUpdate) {
-              const newMaterial = isPreviewRemoval
-                ? invisibleMaterial
-                : getSharedMaterial(displayColor);
-              currentMesh.material = newMaterial;
-              currentMesh.userData.currentColor = displayColor;
-            }
-
-            if (isPreviewAddition) {
-              currentMesh.layers.set(layers.ghost);
-            } else {
-              currentMesh.layers.set(layers.raycast);
-            }
-
-            if (
-              currentMesh.userData.type !== blockRun.type.tag ||
-              currentMesh.userData.originalColor !== blockRun.color
-            ) {
-              currentMesh.userData.type = blockRun.type.tag;
-              currentMesh.userData.originalColor = blockRun.color;
-            }
+            this.blocks[0][0][z] = blockMesh;
           }
+        } else {
         }
       }
       zIndex += blockRun.count;

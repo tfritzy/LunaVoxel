@@ -114,6 +114,7 @@ export class GridRaycaster {
           return gridPos;
         } else {
           const normal = intersection.face?.normal;
+          console.log(normal);
           if (normal) {
             return gridPos.add(normal);
           }

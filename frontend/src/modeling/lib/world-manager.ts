@@ -13,7 +13,7 @@ export class WorldManager {
   private chunkMeshes: Map<string, ChunkMesh>;
   private dbConn: DbConnection;
   private world: World;
-  private currentPreview: PreviewVoxels | null = null;
+  private playerPreviews: Map<string, PreviewVoxels> = new Map();
 
   constructor(scene: THREE.Scene, dbConn: DbConnection, world: World) {
     this.dbConn = dbConn;
@@ -26,7 +26,19 @@ export class WorldManager {
 
   setupEvents = () => {
     this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
+    this.dbConn.db.previewVoxels.onInsert(this.onPreviewInsert);
     this.dbConn.db.previewVoxels.onUpdate(this.onPreviewUpdate);
+    this.dbConn.db.previewVoxels.onDelete(this.onPreviewDelete);
+  };
+
+  onPreviewInsert = (ctx: EventContext, previewVoxels: PreviewVoxels) => {
+    if (previewVoxels.world === this.world.id) {
+      this.playerPreviews.set(
+        previewVoxels.player.toHexString(),
+        previewVoxels
+      );
+      this.updateAffectedChunks(previewVoxels);
+    }
   };
 
   onPreviewUpdate = (
@@ -35,17 +47,65 @@ export class WorldManager {
     previewVoxels: PreviewVoxels
   ) => {
     if (previewVoxels.world === this.world.id) {
-      this.currentPreview = previewVoxels;
-      this.updateAllChunksWithPreview();
+      this.playerPreviews.set(
+        previewVoxels.player.toHexString(),
+        previewVoxels
+      );
+      const affectedChunks = new Set<string>();
+
+      oldRow.previewPositions.forEach((pos) => {
+        affectedChunks.add(`${pos.x}_${pos.y}`);
+      });
+      previewVoxels.previewPositions.forEach((pos) => {
+        affectedChunks.add(`${pos.x}_${pos.y}`);
+      });
+
+      affectedChunks.forEach((chunkKey) => {
+        const [x, y] = chunkKey.split("_").map(Number);
+        this.updateChunk(x, y);
+      });
     }
   };
+
+  onPreviewDelete = (ctx: EventContext, previewVoxels: PreviewVoxels) => {
+    if (previewVoxels.world === this.world.id) {
+      this.playerPreviews.delete(previewVoxels.player.toHexString());
+      this.updateAffectedChunks(previewVoxels);
+    }
+  };
+
+  private updateAffectedChunks(previewVoxels: PreviewVoxels) {
+    const affectedChunks = new Set<string>();
+    previewVoxels.previewPositions.forEach((pos) => {
+      affectedChunks.add(`${pos.x}_${pos.y}`);
+    });
+
+    affectedChunks.forEach((chunkKey) => {
+      const [x, y] = chunkKey.split("_").map(Number);
+      this.updateChunk(x, y);
+    });
+  }
+
+  private updateChunk(x: number, y: number) {
+    const chunkKey = `${x}_${y}`;
+    const chunkMesh = this.chunkMeshes.get(chunkKey);
+    const chunk = this.dbConn.db.chunk.tableCache
+      .iter()
+      .find((c) => c.x === x && c.y === y);
+
+    if (chunkMesh && chunk) {
+      const previewMap = this.getMergedPreviewsForChunk(x, y);
+      chunkMesh.update(chunk, previewMap);
+    }
+  }
 
   setupChunks() {
     this.dbConn.db.chunk.tableCache.iter().forEach((chunk) => {
       const c = chunk as Chunk;
       if (!this.chunkMeshes.has(c.x + "_" + c.y)) {
         const chunkManager = new ChunkMesh(this.scene, 1, 1, this.world.height);
-        chunkManager.update(c, this.currentPreview);
+        const previewMap = this.getMergedPreviewsForChunk(c.x, c.y);
+        chunkManager.update(c, previewMap);
         this.chunkMeshes.set(c.x + "_" + c.y, chunkManager);
       }
     });
@@ -55,46 +115,36 @@ export class WorldManager {
     const chunkKey = newRow.x + "_" + newRow.y;
     const chunkMesh = this.chunkMeshes.get(chunkKey);
     if (chunkMesh) {
-      chunkMesh.update(newRow, this.getPreviewForChunk(newRow.x, newRow.y));
+      const previewMap = this.getMergedPreviewsForChunk(newRow.x, newRow.y);
+      chunkMesh.update(newRow, previewMap);
     }
   };
 
-  private updateAllChunksWithPreview() {
-    this.chunkMeshes.forEach((chunkMesh, chunkKey) => {
-      const [x, y] = chunkKey.split("_").map(Number);
-      const chunk = this.dbConn.db.chunk.tableCache
-        .iter()
-        .find((c) => c.x === x && c.y === y);
-      if (chunk) {
-        chunkMesh.update(chunk, this.getPreviewForChunk(x, y));
-      }
-    });
-  }
-
-  private getPreviewForChunk(
+  private getMergedPreviewsForChunk(
     chunkX: number,
     chunkY: number
-  ): PreviewVoxels | null {
-    if (
-      !this.currentPreview ||
-      this.currentPreview.previewPositions.length === 0
-    ) {
-      return null;
-    }
+  ): Map<string, { color: string; isAddMode: boolean }> {
+    const mergedPreviews = new Map<
+      string,
+      { color: string; isAddMode: boolean }
+    >();
 
-    const chunkPositions = this.currentPreview.previewPositions.filter(
-      (pos) => pos.x === chunkX && pos.y === chunkY
-    );
+    this.playerPreviews.forEach((preview) => {
+      preview.previewPositions.forEach((pos) => {
+        if (pos.x === chunkX && pos.y === chunkY) {
+          const key = `${pos.x},${pos.y},${pos.z}`;
+          mergedPreviews.set(key, {
+            color: preview.blockColor,
+            isAddMode: preview.isAddMode,
+          });
+        }
+      });
+    });
 
-    if (chunkPositions.length === 0) {
-      return null;
-    }
-
-    return {
-      ...this.currentPreview,
-      previewPositions: chunkPositions,
-    };
+    return mergedPreviews;
   }
 
-  dispose() {}
+  dispose() {
+    this.playerPreviews.clear();
+  }
 }
