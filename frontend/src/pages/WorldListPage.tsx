@@ -16,6 +16,7 @@ export default function WorldListPage() {
 
     try {
       connection.reducers.visitWorld(worldId);
+      console.log("visiting world", worldId);
       navigate(`/worlds/${worldId}`);
     } catch (err) {
       console.error("Error selecting world:", err);

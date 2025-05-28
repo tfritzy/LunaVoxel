@@ -266,7 +266,10 @@ public static partial class Module
             {
                 Id = IdGenerator.Generate("prvw"),
                 Player = ctx.Sender,
-                World = worldId
+                World = worldId,
+                BlockColor = "#FFFFFF",
+                IsAddMode = false,
+                PreviewPositions = []
             });
         }
 

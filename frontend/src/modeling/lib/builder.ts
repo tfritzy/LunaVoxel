@@ -51,7 +51,6 @@ export class Builder {
 
       const currentStart = this.startPosition;
       const currentEnd = position;
-      console.log(position, currentStart, currentEnd);
       if (
         this.lastPreviewStart &&
         this.lastPreviewEnd &&
@@ -65,7 +64,7 @@ export class Builder {
         this.currentTool === "erase"
           ? ({ tag: "Empty" } as const)
           : ({ tag: "Block" } as const);
-      console.log("calling reducer", currentStart, currentEnd);
+      console.log("calling place block reducer");
       this.dbConn.reducers.placeBlock(
         this.world,
         blockType,

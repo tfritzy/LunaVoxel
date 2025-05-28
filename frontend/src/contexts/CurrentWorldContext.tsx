@@ -110,7 +110,10 @@ export function CurrentWorldProvider({
     };
   }, [connection, worldId]);
 
-  if (!palette || !player) return null;
+  if (!palette || !player) {
+    console.log("missing player or missing palette", palette, player);
+    return null;
+  }
 
   return (
     <WorldsContext.Provider value={{ palette, player }}>
