@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 
-export type Tool = "build" | "erase";
+export type Tool = "build" | "erase" | "paint";
 
 export interface GridRaycasterEvents {
   onHover?: (position: THREE.Vector3 | null) => void;
@@ -110,7 +110,7 @@ export class GridRaycaster {
           Math.floor(point.z)
         );
 
-        if (this.currentTool === "erase") {
+        if (this.currentTool === "erase" || this.currentTool === "paint") {
           return gridPos;
         } else {
           const normal = intersection.face?.normal;

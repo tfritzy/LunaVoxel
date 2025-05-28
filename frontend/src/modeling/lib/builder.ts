@@ -60,22 +60,30 @@ export class Builder {
         return;
       }
 
-      const blockType =
-        this.currentTool === "erase"
-          ? ({ tag: "Empty" } as const)
-          : ({ tag: "Block" } as const);
-      console.log("calling place block reducer");
-      this.dbConn.reducers.placeBlock(
-        this.world,
-        blockType,
-        currentStart.x,
-        currentStart.z,
-        currentStart.y,
-        currentEnd.x,
-        currentEnd.z,
-        currentEnd.y,
-        true
-      );
+      if (this.currentTool === "build") {
+        this.dbConn.reducers.buildBlock(
+          this.world,
+          { tag: "Block" },
+          currentStart.x,
+          currentStart.z,
+          currentStart.y,
+          currentEnd.x,
+          currentEnd.z,
+          currentEnd.y,
+          true
+        );
+      } else if (this.currentTool === "erase") {
+        this.dbConn.reducers.eraseBlock(
+          this.world,
+          currentStart.x,
+          currentStart.z,
+          currentStart.y,
+          currentEnd.x,
+          currentEnd.z,
+          currentEnd.y,
+          true
+        );
+      }
 
       this.lastPreviewStart = currentStart.clone();
       this.lastPreviewEnd = currentEnd.clone();
@@ -85,31 +93,50 @@ export class Builder {
   public onMouseClick(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
-    const blockType =
-      this.currentTool === "erase"
-        ? ({ tag: "Empty" } as const)
-        : ({ tag: "Block" } as const);
-
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    this.dbConn.reducers.placeBlock(
-      this.world,
-      blockType,
-      startPos.x,
-      startPos.z,
-      startPos.y,
-      endPos.x,
-      endPos.z,
-      endPos.y,
-      false
-    );
+    if (this.currentTool === "paint") {
+      this.dbConn.reducers.paintBlock(
+        this.world,
+        startPos.x,
+        startPos.z,
+        startPos.y,
+        endPos.x,
+        endPos.z,
+        endPos.y
+      );
+    } else if (this.currentTool === "build") {
+      this.dbConn.reducers.buildBlock(
+        this.world,
+        { tag: "Block" },
+        startPos.x,
+        startPos.z,
+        startPos.y,
+        endPos.x,
+        endPos.z,
+        endPos.y,
+        false
+      );
+    } else if (this.currentTool === "erase") {
+      this.dbConn.reducers.eraseBlock(
+        this.world,
+        startPos.x,
+        startPos.z,
+        startPos.y,
+        endPos.x,
+        endPos.z,
+        endPos.y,
+        false
+      );
+    }
 
     this.isMouseDown = false;
     this.startPosition = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }
+
   dispose() {
     this.domElement.removeEventListener("mousedown", this.boundMouseDown);
     this.domElement.removeEventListener("contextmenu", this.boundContextMenu);

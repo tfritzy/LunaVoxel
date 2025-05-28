@@ -34,12 +34,16 @@ import {
 // Import and reexport all reducer arg types
 import { AddColorToPalette } from "./add_color_to_palette_reducer.ts";
 export { AddColorToPalette };
+import { BuildBlock } from "./build_block_reducer.ts";
+export { BuildBlock };
 import { CreateWorld } from "./create_world_reducer.ts";
 export { CreateWorld };
+import { EraseBlock } from "./erase_block_reducer.ts";
+export { EraseBlock };
 import { InitializePalette } from "./initialize_palette_reducer.ts";
 export { InitializePalette };
-import { PlaceBlock } from "./place_block_reducer.ts";
-export { PlaceBlock };
+import { PaintBlock } from "./paint_block_reducer.ts";
+export { PaintBlock };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { SelectColorIndex } from "./select_color_index_reducer.ts";
@@ -110,17 +114,25 @@ const REMOTE_MODULE = {
       reducerName: "AddColorToPalette",
       argsType: AddColorToPalette.getTypeScriptAlgebraicType(),
     },
+    BuildBlock: {
+      reducerName: "BuildBlock",
+      argsType: BuildBlock.getTypeScriptAlgebraicType(),
+    },
     CreateWorld: {
       reducerName: "CreateWorld",
       argsType: CreateWorld.getTypeScriptAlgebraicType(),
+    },
+    EraseBlock: {
+      reducerName: "EraseBlock",
+      argsType: EraseBlock.getTypeScriptAlgebraicType(),
     },
     InitializePalette: {
       reducerName: "InitializePalette",
       argsType: InitializePalette.getTypeScriptAlgebraicType(),
     },
-    PlaceBlock: {
-      reducerName: "PlaceBlock",
-      argsType: PlaceBlock.getTypeScriptAlgebraicType(),
+    PaintBlock: {
+      reducerName: "PaintBlock",
+      argsType: PaintBlock.getTypeScriptAlgebraicType(),
     },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
@@ -162,9 +174,11 @@ const REMOTE_MODULE = {
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
 | { name: "AddColorToPalette", args: AddColorToPalette }
+| { name: "BuildBlock", args: BuildBlock }
 | { name: "CreateWorld", args: CreateWorld }
+| { name: "EraseBlock", args: EraseBlock }
 | { name: "InitializePalette", args: InitializePalette }
-| { name: "PlaceBlock", args: PlaceBlock }
+| { name: "PaintBlock", args: PaintBlock }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "SelectColorIndex", args: SelectColorIndex }
 | { name: "VisitWorld", args: VisitWorld }
@@ -189,6 +203,22 @@ export class RemoteReducers {
     this.connection.offReducer("AddColorToPalette", callback);
   }
 
+  buildBlock(world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
+    const __args = { world, type, x1, y1, z1, x2, y2, z2, isPreview };
+    let __writer = new BinaryWriter(1024);
+    BuildBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("BuildBlock", __argsBuffer, this.setCallReducerFlags.buildBlockFlags);
+  }
+
+  onBuildBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+    this.connection.onReducer("BuildBlock", callback);
+  }
+
+  removeOnBuildBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+    this.connection.offReducer("BuildBlock", callback);
+  }
+
   createWorld(name: string, xDim: number, yDim: number, zDim: number) {
     const __args = { name, xDim, yDim, zDim };
     let __writer = new BinaryWriter(1024);
@@ -203,6 +233,22 @@ export class RemoteReducers {
 
   removeOnCreateWorld(callback: (ctx: ReducerEventContext, name: string, xDim: number, yDim: number, zDim: number) => void) {
     this.connection.offReducer("CreateWorld", callback);
+  }
+
+  eraseBlock(world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
+    const __args = { world, x1, y1, z1, x2, y2, z2, isPreview };
+    let __writer = new BinaryWriter(1024);
+    EraseBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("EraseBlock", __argsBuffer, this.setCallReducerFlags.eraseBlockFlags);
+  }
+
+  onEraseBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+    this.connection.onReducer("EraseBlock", callback);
+  }
+
+  removeOnEraseBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+    this.connection.offReducer("EraseBlock", callback);
   }
 
   initializePalette(worldId: string) {
@@ -221,20 +267,20 @@ export class RemoteReducers {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  placeBlock(world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
-    const __args = { world, type, x1, y1, z1, x2, y2, z2, isPreview };
+  paintBlock(world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
+    const __args = { world, x1, y1, z1, x2, y2, z2 };
     let __writer = new BinaryWriter(1024);
-    PlaceBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    PaintBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("PlaceBlock", __argsBuffer, this.setCallReducerFlags.placeBlockFlags);
+    this.connection.callReducer("PaintBlock", __argsBuffer, this.setCallReducerFlags.paintBlockFlags);
   }
 
-  onPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
-    this.connection.onReducer("PlaceBlock", callback);
+  onPaintBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+    this.connection.onReducer("PaintBlock", callback);
   }
 
-  removeOnPlaceBlock(callback: (ctx: ReducerEventContext, world: string, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
-    this.connection.offReducer("PlaceBlock", callback);
+  removeOnPaintBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+    this.connection.offReducer("PaintBlock", callback);
   }
 
   removeColorFromPalette(worldId: string, colorHex: string) {
@@ -293,9 +339,19 @@ export class SetReducerFlags {
     this.addColorToPaletteFlags = flags;
   }
 
+  buildBlockFlags: CallReducerFlags = 'FullUpdate';
+  buildBlock(flags: CallReducerFlags) {
+    this.buildBlockFlags = flags;
+  }
+
   createWorldFlags: CallReducerFlags = 'FullUpdate';
   createWorld(flags: CallReducerFlags) {
     this.createWorldFlags = flags;
+  }
+
+  eraseBlockFlags: CallReducerFlags = 'FullUpdate';
+  eraseBlock(flags: CallReducerFlags) {
+    this.eraseBlockFlags = flags;
   }
 
   initializePaletteFlags: CallReducerFlags = 'FullUpdate';
@@ -303,9 +359,9 @@ export class SetReducerFlags {
     this.initializePaletteFlags = flags;
   }
 
-  placeBlockFlags: CallReducerFlags = 'FullUpdate';
-  placeBlock(flags: CallReducerFlags) {
-    this.placeBlockFlags = flags;
+  paintBlockFlags: CallReducerFlags = 'FullUpdate';
+  paintBlock(flags: CallReducerFlags) {
+    this.paintBlockFlags = flags;
   }
 
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';

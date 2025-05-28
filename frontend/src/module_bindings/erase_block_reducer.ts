@@ -31,11 +31,8 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-import { BlockType as __BlockType } from "./block_type_type";
-
-export type PlaceBlock = {
+export type EraseBlock = {
   world: string,
-  type: __BlockType,
   x1: number,
   y1: number,
   z1: number,
@@ -48,7 +45,7 @@ export type PlaceBlock = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace PlaceBlock {
+export namespace EraseBlock {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -56,7 +53,6 @@ export namespace PlaceBlock {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("x1", AlgebraicType.createI32Type()),
       new ProductTypeElement("y1", AlgebraicType.createI32Type()),
       new ProductTypeElement("z1", AlgebraicType.createI32Type()),
@@ -67,12 +63,12 @@ export namespace PlaceBlock {
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PlaceBlock): void {
-    PlaceBlock.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: EraseBlock): void {
+    EraseBlock.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PlaceBlock {
-    return PlaceBlock.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): EraseBlock {
+    return EraseBlock.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
