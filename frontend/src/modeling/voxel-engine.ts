@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
 import { GridRaycaster } from "./lib/grid-raycaster";
-import { Builder, Tool } from "./lib/builder";
+import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { DbConnection, World } from "../module_bindings";
+import { BlockModificationMode, DbConnection, World } from "../module_bindings";
 import { WorldManager } from "./lib/world-manager";
 
 export interface VoxelEngineOptions {
@@ -187,7 +187,7 @@ export class VoxelEngine {
     return this.currentGridPosition;
   }
 
-  public setTool(tool: Tool): void {
+  public setTool(tool: BlockModificationMode): void {
     this.builder.setTool(tool);
     if (this.raycaster) {
       this.raycaster.setTool(tool);

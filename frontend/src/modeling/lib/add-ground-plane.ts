@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { layers } from "./layers";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 export function addGroundPlane(
   scene: THREE.Scene,
@@ -14,7 +15,6 @@ export function addGroundPlane(
   const borderMaterial = new THREE.MeshBasicMaterial({
     color: 0x444444,
     side: THREE.DoubleSide,
-    transparent: false,
   });
   const borderPlane = new THREE.Mesh(borderGeometry, borderMaterial);
   borderPlane.rotation.x = Math.PI / 2;
@@ -31,63 +31,74 @@ export function addGroundPlane(
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
   groundPlane.position.y = 0.0001;
-
   groundPlane.receiveShadow = true;
   scene.add(groundPlane);
   groundPlane.layers.set(layers.raycast);
 
-  const gridGroup = new THREE.Group();
-  scene.add(gridGroup);
-
-  createBatchedGrid(worldWidth, worldHeight, gridGroup);
+  const batchedGridMesh = createBatchedGridLines(worldWidth, worldHeight);
+  if (batchedGridMesh) {
+    scene.add(batchedGridMesh);
+  }
 
   return { groundMaterial, groundGeometry, groundPlane };
 }
 
-function createBatchedGrid(
-  width: number,
-  height: number,
-  gridGroup: THREE.Group
-) {
+function createBatchedGridLines(
+  worldWidth: number,
+  worldHeight: number
+): THREE.Mesh | null {
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: 0x444444,
     transparent: true,
   });
 
   const lineWidths = [0.01, 0.02, 0.04, 0.06];
-  for (let i = -width / 2; i <= width / 2; i++) {
-    const lineWidth = getLineWidth(i);
+  const geometries: THREE.BufferGeometry[] = [];
+  const lineThickness = 0.001;
+  const lineYPosition = 0.001;
 
-    const hLineGeometry = new THREE.BoxGeometry(lineWidth, 0.001, height);
-    const hLine = new THREE.Mesh(hLineGeometry, lineMaterial);
-
-    hLine.position.set(i, 0.001, -0);
-    hLine.layers.set(layers.ghost);
-    gridGroup.add(hLine);
+  function getLineWidthForGrid(index: number): number {
+    if (index % 20 === 0) return lineWidths[3];
+    if (index % 4 === 0) return lineWidths[2];
+    if (index % 2 === 0) return lineWidths[1];
+    return lineWidths[0];
   }
 
-  for (let i = -height / 2; i <= height / 2; i++) {
-    const lineWidth = getLineWidth(i);
-
-    const vLineGeometry = new THREE.BoxGeometry(width, 0.001, lineWidth);
-    const vLine = new THREE.Mesh(vLineGeometry, lineMaterial);
-
-    vLine.position.set(-0, 0.001, i);
-    vLine.layers.set(layers.ghost);
-    gridGroup.add(vLine);
+  for (let i = -worldWidth / 2; i <= worldWidth / 2; i++) {
+    const dynamicLineWidth = getLineWidthForGrid(i);
+    const hLineGeom = new THREE.BoxGeometry(
+      dynamicLineWidth,
+      lineThickness,
+      worldHeight
+    );
+    hLineGeom.translate(i, lineYPosition, 0);
+    geometries.push(hLineGeom);
   }
 
-  function getLineWidth(index: number): number {
-    if (index % 20 === 0) {
-      return lineWidths[3];
-    } else if (index % 4 === 0) {
-      return lineWidths[2];
-    } else if (index % 2 === 0) {
-      return lineWidths[1];
-    } else {
-      return lineWidths[0];
-    }
+  for (let i = -worldHeight / 2; i <= worldHeight / 2; i++) {
+    const dynamicLineWidth = getLineWidthForGrid(i);
+    const vLineGeom = new THREE.BoxGeometry(
+      worldWidth,
+      lineThickness,
+      dynamicLineWidth
+    );
+    vLineGeom.translate(0, lineYPosition, i);
+    geometries.push(vLineGeom);
   }
 
-  return gridGroup;
+  if (geometries.length === 0) {
+    return null;
+  }
+
+  const mergedGeometry = mergeGeometries(geometries);
+  geometries.forEach((geom) => geom.dispose());
+
+  if (!mergedGeometry) {
+    return null;
+  }
+
+  const batchedGridMesh = new THREE.Mesh(mergedGeometry, lineMaterial);
+  batchedGridMesh.layers.set(layers.ghost);
+
+  return batchedGridMesh;
 }

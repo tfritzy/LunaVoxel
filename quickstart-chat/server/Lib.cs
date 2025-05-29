@@ -90,6 +90,9 @@ public static partial class Module
     [Type]
     public enum BlockType { Empty, Block, RoundBlock }
 
+    [Type]
+    public enum BlockModificationMode { Build, Erase, Paint }
+
     [Table(Name = "Chunk", Public = true)]
     public partial class Chunk
     {
@@ -114,7 +117,7 @@ public static partial class Module
     }
 
     [Reducer]
-    public static void BuildBlock(ReducerContext ctx, string world, BlockType type, int x1, int y1, int z1, int x2, int y2, int z2, bool isPreview = false)
+    public static void ModifyBlock(ReducerContext ctx, string world, BlockModificationMode mode, BlockType type, int x1, int y1, int z1, int x2, int y2, int z2, bool isPreview = false)
     {
         var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
             ?? throw new ArgumentException("You're not in this world.");
@@ -131,6 +134,8 @@ public static partial class Module
         int maxZ = Math.Max(z1, z2);
 
         var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
+        HashSet<string> affectedChunkIds = [];
+        Dictionary<string, Chunk> chunks = new();
 
         if (isPreview)
         {
@@ -142,268 +147,84 @@ public static partial class Module
                     Player = ctx.Sender,
                     World = world,
                     PreviewPositions = [],
-                    IsAddMode = true,
-                    BlockColor = color
-                };
-                ctx.Db.PreviewVoxels.Insert(previewVoxels);
-            }
-
-            var positions = new List<Vector3>();
-            for (int x = minX; x <= maxX; x++)
-            {
-                for (int y = minY; y <= maxY; y++)
-                {
-                    for (int z = minZ; z <= maxZ; z++)
-                    {
-                        positions.Add(new Vector3(x, y, z));
-                    }
-                }
-            }
-
-            previewVoxels.PreviewPositions = positions.ToArray();
-            previewVoxels.BlockColor = color;
-            previewVoxels.IsAddMode = true;
-            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
-            return;
-        }
-
-        var existingPreview = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
-        if (existingPreview != null)
-        {
-            existingPreview.PreviewPositions = [];
-            ctx.Db.PreviewVoxels.Id.Update(existingPreview);
-        }
-
-        var affectedChunkIds = new HashSet<string>();
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                affectedChunkIds.Add($"{world}_{x}_{y}");
-            }
-        }
-
-        var chunks = new Dictionary<string, Chunk>();
-        foreach (var chunkId in affectedChunkIds)
-        {
-            var chunk = ctx.Db.Chunk.Id.Find(chunkId);
-            if (chunk != null)
-            {
-                chunks[chunkId] = chunk;
-            }
-        }
-
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                var chunkId = $"{world}_{x}_{y}";
-                if (chunks.ContainsKey(chunkId))
-                {
-                    var chunk = chunks[chunkId];
-                    for (int z = minZ; z <= maxZ; z++)
-                    {
-                        BlockCompression.SetBlock(ref chunk.Blocks, type, z, color);
-                    }
-                }
-            }
-        }
-
-        foreach (var chunk in chunks.Values)
-        {
-            ctx.Db.Chunk.Id.Update(chunk);
-        }
-    }
-
-    [Reducer]
-    public static void EraseBlock(ReducerContext ctx, string world, int x1, int y1, int z1, int x2, int y2, int z2, bool isPreview = false)
-    {
-        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
-            ?? throw new ArgumentException("You're not in this world.");
-
-        int minX = Math.Min(x1, x2);
-        int maxX = Math.Max(x1, x2);
-        int minY = Math.Min(y1, y2);
-        int maxY = Math.Max(y1, y2);
-        int minZ = Math.Min(z1, z2);
-        int maxZ = Math.Max(z1, z2);
-
-        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
-
-        if (isPreview)
-        {
-            if (previewVoxels == null)
-            {
-                previewVoxels = new PreviewVoxels
-                {
-                    Id = IdGenerator.Generate("prvw"),
-                    Player = ctx.Sender,
-                    World = world,
-                    PreviewPositions = [],
-                    IsAddMode = false,
-                    BlockColor = "#FF0000"
-                };
-                ctx.Db.PreviewVoxels.Insert(previewVoxels);
-            }
-
-            var positions = new List<Vector3>();
-            for (int x = minX; x <= maxX; x++)
-            {
-                for (int y = minY; y <= maxY; y++)
-                {
-                    for (int z = minZ; z <= maxZ; z++)
-                    {
-                        positions.Add(new Vector3(x, y, z));
-                    }
-                }
-            }
-
-            previewVoxels.PreviewPositions = positions.ToArray();
-            previewVoxels.IsAddMode = false;
-            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
-            return;
-        }
-
-        var existingPreview = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
-        if (existingPreview != null)
-        {
-            existingPreview.PreviewPositions = [];
-            ctx.Db.PreviewVoxels.Id.Update(existingPreview);
-        }
-
-        var affectedChunkIds = new HashSet<string>();
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                affectedChunkIds.Add($"{world}_{x}_{y}");
-            }
-        }
-
-        var chunks = new Dictionary<string, Chunk>();
-        foreach (var chunkId in affectedChunkIds)
-        {
-            var chunk = ctx.Db.Chunk.Id.Find(chunkId);
-            if (chunk != null)
-            {
-                chunks[chunkId] = chunk;
-            }
-        }
-
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                var chunkId = $"{world}_{x}_{y}";
-                if (chunks.ContainsKey(chunkId))
-                {
-                    var chunk = chunks[chunkId];
-                    for (int z = minZ; z <= maxZ; z++)
-                    {
-                        BlockCompression.SetBlock(ref chunk.Blocks, BlockType.Empty, z);
-                    }
-                }
-            }
-        }
-
-        foreach (var chunk in chunks.Values)
-        {
-            ctx.Db.Chunk.Id.Update(chunk);
-        }
-    }
-
-    [Reducer]
-    public static void PaintBlock(ReducerContext ctx, string world, int x1, int y1, int z1, int x2, int y2, int z2, bool isPreview = false)
-    {
-        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
-            ?? throw new ArgumentException("You're not in this world.");
-
-        var palette = ctx.Db.ColorPalette.World.Find(world)
-            ?? throw new ArgumentException("No color palette for world.");
-        var color = palette.Colors[player.SelectedColorIndex];
-
-        int minX = Math.Min(x1, x2);
-        int maxX = Math.Max(x1, x2);
-        int minY = Math.Min(y1, y2);
-        int maxY = Math.Max(y1, y2);
-        int minZ = Math.Min(z1, z2);
-        int maxZ = Math.Max(z1, z2);
-
-        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
-
-        // Get all affected chunks (shared for both preview and actual operation)
-        var affectedChunkIds = new HashSet<string>();
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                affectedChunkIds.Add($"{world}_{x}_{y}");
-            }
-        }
-
-        var chunks = new Dictionary<string, Chunk>();
-        foreach (var chunkId in affectedChunkIds)
-        {
-            var chunk = ctx.Db.Chunk.Id.Find(chunkId);
-            if (chunk != null)
-            {
-                chunks[chunkId] = chunk;
-            }
-        }
-
-        if (isPreview)
-        {
-            if (previewVoxels == null)
-            {
-                previewVoxels = new PreviewVoxels
-                {
-                    Id = IdGenerator.Generate("prvw"),
-                    Player = ctx.Sender,
-                    World = world,
-                    PreviewPositions = [],
-                    IsAddMode = true,
-                    BlockColor = color
+                    IsAddMode = mode != BlockModificationMode.Erase,
+                    BlockColor = mode == BlockModificationMode.Erase ? "#FF0000" : color
                 };
                 ctx.Db.PreviewVoxels.Insert(previewVoxels);
             }
 
             var positions = new List<Vector3>();
 
-            // Only add positions that have existing non-empty blocks
-            for (int x = minX; x <= maxX; x++)
+            if (mode == BlockModificationMode.Paint)
             {
-                for (int y = minY; y <= maxY; y++)
+                affectedChunkIds = new HashSet<string>();
+                for (int x = minX; x <= maxX; x++)
                 {
-                    var chunkId = $"{world}_{x}_{y}";
-                    if (chunks.ContainsKey(chunkId))
+                    for (int y = minY; y <= maxY; y++)
                     {
-                        var chunk = chunks[chunkId];
+                        affectedChunkIds.Add($"{world}_{x}_{y}");
+                    }
+                }
+
+                chunks = new Dictionary<string, Chunk>();
+                foreach (var chunkId in affectedChunkIds)
+                {
+                    var chunk = ctx.Db.Chunk.Id.Find(chunkId);
+                    if (chunk != null)
+                    {
+                        chunks[chunkId] = chunk;
+                    }
+                }
+
+                for (int x = minX; x <= maxX; x++)
+                {
+                    for (int y = minY; y <= maxY; y++)
+                    {
+                        var chunkId = $"{world}_{x}_{y}";
+                        if (chunks.ContainsKey(chunkId))
+                        {
+                            var chunk = chunks[chunkId];
+                            for (int z = minZ; z <= maxZ; z++)
+                            {
+                                var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
+                                if (existingBlock.Type != BlockType.Empty)
+                                {
+                                    positions.Add(new Vector3(x, y, z));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int x = minX; x <= maxX; x++)
+                {
+                    for (int y = minY; y <= maxY; y++)
+                    {
                         for (int z = minZ; z <= maxZ; z++)
                         {
-                            var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
-                            if (existingBlock.Type != BlockType.Empty)
-                            {
-                                positions.Add(new Vector3(x, y, z));
-                            }
+                            positions.Add(new Vector3(x, y, z));
                         }
                     }
                 }
             }
 
             previewVoxels.PreviewPositions = positions.ToArray();
-            previewVoxels.BlockColor = color;
-            previewVoxels.IsAddMode = true;
+            previewVoxels.BlockColor = mode == BlockModificationMode.Erase ? "#FF0000" : color;
+            previewVoxels.IsAddMode = mode != BlockModificationMode.Erase;
             ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
             return;
         }
 
-        // Clear preview when doing actual paint
         var existingPreview = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
         if (existingPreview != null)
         {
             existingPreview.PreviewPositions = [];
             ctx.Db.PreviewVoxels.Id.Update(existingPreview);
         }
+
+        affectedChunkIds = new HashSet<string>();
         for (int x = minX; x <= maxX; x++)
         {
             for (int y = minY; y <= maxY; y++)
@@ -412,6 +233,7 @@ public static partial class Module
             }
         }
 
+        chunks = new Dictionary<string, Chunk>();
         foreach (var chunkId in affectedChunkIds)
         {
             var chunk = ctx.Db.Chunk.Id.Find(chunkId);
@@ -431,10 +253,21 @@ public static partial class Module
                     var chunk = chunks[chunkId];
                     for (int z = minZ; z <= maxZ; z++)
                     {
-                        var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
-                        if (existingBlock.Type != BlockType.Empty)
+                        switch (mode)
                         {
-                            BlockCompression.SetBlock(ref chunk.Blocks, existingBlock.Type, z, color);
+                            case BlockModificationMode.Build:
+                                BlockCompression.SetBlock(ref chunk.Blocks, type, z, color);
+                                break;
+                            case BlockModificationMode.Erase:
+                                BlockCompression.SetBlock(ref chunk.Blocks, BlockType.Empty, z);
+                                break;
+                            case BlockModificationMode.Paint:
+                                var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
+                                if (existingBlock.Type != BlockType.Empty)
+                                {
+                                    BlockCompression.SetBlock(ref chunk.Blocks, existingBlock.Type, z, color);
+                                }
+                                break;
                         }
                     }
                 }

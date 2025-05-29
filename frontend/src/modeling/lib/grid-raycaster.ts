@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { layers } from "./layers";
+import { BlockModificationMode } from "@/module_bindings";
 
 export type Tool = "build" | "erase" | "paint";
 
@@ -15,7 +16,7 @@ export class GridRaycaster {
   private scene: THREE.Scene;
   private domElement: HTMLElement;
   private events: GridRaycasterEvents;
-  private currentTool: Tool = "build";
+  private currentTool: BlockModificationMode = { tag: "Build" };
   private boundMouseMove: (event: MouseEvent) => void;
   private boundMouseClick: (event: MouseEvent) => void;
 
@@ -39,7 +40,7 @@ export class GridRaycaster {
     this.addEventListeners();
   }
 
-  public setTool(tool: Tool): void {
+  public setTool(tool: BlockModificationMode): void {
     this.currentTool = tool;
   }
 
@@ -110,7 +111,10 @@ export class GridRaycaster {
           Math.floor(point.z)
         );
 
-        if (this.currentTool === "erase" || this.currentTool === "paint") {
+        if (
+          this.currentTool.tag === "Erase" ||
+          this.currentTool.tag === "Paint"
+        ) {
           return gridPos;
         } else {
           const normal = intersection.face?.normal;

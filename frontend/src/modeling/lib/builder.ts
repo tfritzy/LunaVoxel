@@ -1,12 +1,11 @@
 import * as THREE from "three";
-import { DbConnection } from "../../module_bindings";
-import { Tool } from "./grid-raycaster";
+import { BlockModificationMode, DbConnection } from "../../module_bindings";
 
 export class Builder {
   private domElement: HTMLElement;
   private dbConn: DbConnection;
   private world: string;
-  private currentTool: Tool = "build";
+  private currentTool: BlockModificationMode = { tag: "Build" };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
   private lastPreviewStart: THREE.Vector3 | null = null;
@@ -37,8 +36,30 @@ export class Builder {
     event.preventDefault();
   }
 
-  public setTool(tool: Tool): void {
+  public setTool(tool: BlockModificationMode): void {
     this.currentTool = tool;
+  }
+
+  private modifyBlock(
+    tool: BlockModificationMode,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    isPreview: boolean
+  ) {
+    if (!this.dbConn.isActive) return;
+
+    this.dbConn.reducers.modifyBlock(
+      this.world,
+      tool,
+      { tag: "Block" },
+      startPos.x,
+      startPos.z,
+      startPos.y,
+      endPos.x,
+      endPos.z,
+      endPos.y,
+      isPreview
+    );
   }
 
   public onMouseHover(position: THREE.Vector3) {
@@ -60,41 +81,7 @@ export class Builder {
         return;
       }
 
-      if (this.currentTool === "build") {
-        this.dbConn.reducers.buildBlock(
-          this.world,
-          { tag: "Block" },
-          currentStart.x,
-          currentStart.z,
-          currentStart.y,
-          currentEnd.x,
-          currentEnd.z,
-          currentEnd.y,
-          true
-        );
-      } else if (this.currentTool === "erase") {
-        this.dbConn.reducers.eraseBlock(
-          this.world,
-          currentStart.x,
-          currentStart.z,
-          currentStart.y,
-          currentEnd.x,
-          currentEnd.z,
-          currentEnd.y,
-          true
-        );
-      } else if (this.currentTool === "paint") {
-        this.dbConn.reducers.paintBlock(
-          this.world,
-          currentStart.x,
-          currentStart.z,
-          currentStart.y,
-          currentEnd.x,
-          currentEnd.z,
-          currentEnd.y,
-          true
-        );
-      }
+      this.modifyBlock(this.currentTool, currentStart, currentEnd, true);
 
       this.lastPreviewStart = currentStart.clone();
       this.lastPreviewEnd = currentEnd.clone();
@@ -107,41 +94,7 @@ export class Builder {
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    if (this.currentTool === "paint") {
-      this.dbConn.reducers.paintBlock(
-        this.world,
-        startPos.x,
-        startPos.z,
-        startPos.y,
-        endPos.x,
-        endPos.z,
-        endPos.y,
-        false
-      );
-    } else if (this.currentTool === "build") {
-      this.dbConn.reducers.buildBlock(
-        this.world,
-        { tag: "Block" },
-        startPos.x,
-        startPos.z,
-        startPos.y,
-        endPos.x,
-        endPos.z,
-        endPos.y,
-        false
-      );
-    } else if (this.currentTool === "erase") {
-      this.dbConn.reducers.eraseBlock(
-        this.world,
-        startPos.x,
-        startPos.z,
-        startPos.y,
-        endPos.x,
-        endPos.z,
-        endPos.y,
-        false
-      );
-    }
+    this.modifyBlock(this.currentTool, startPos, endPos, false);
 
     this.isMouseDown = false;
     this.startPosition = null;

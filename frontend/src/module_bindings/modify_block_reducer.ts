@@ -31,8 +31,13 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type EraseBlock = {
+import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
+import { BlockType as __BlockType } from "./block_type_type";
+
+export type ModifyBlock = {
   world: string,
+  mode: __BlockModificationMode,
+  type: __BlockType,
   x1: number,
   y1: number,
   z1: number,
@@ -45,7 +50,7 @@ export type EraseBlock = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace EraseBlock {
+export namespace ModifyBlock {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -53,6 +58,8 @@ export namespace EraseBlock {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("world", AlgebraicType.createStringType()),
+      new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("x1", AlgebraicType.createI32Type()),
       new ProductTypeElement("y1", AlgebraicType.createI32Type()),
       new ProductTypeElement("z1", AlgebraicType.createI32Type()),
@@ -63,12 +70,12 @@ export namespace EraseBlock {
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: EraseBlock): void {
-    EraseBlock.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ModifyBlock): void {
+    ModifyBlock.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): EraseBlock {
-    return EraseBlock.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ModifyBlock {
+    return ModifyBlock.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

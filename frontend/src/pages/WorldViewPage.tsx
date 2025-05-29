@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import ColorPalette from "@/components/custom/ColorPalette";
-import FloatingToolbar, { Tool } from "@/components/custom/FloatingToolbar";
+import FloatingToolbar from "@/components/custom/FloatingToolbar";
 import { useWorlds } from "@/contexts/WorldContext";
+import { BlockModificationMode } from "@/module_bindings";
 
 export default function WorldViewPage() {
   const { worldId } = useParams<{ worldId: string }>();
@@ -14,7 +15,9 @@ export default function WorldViewPage() {
   const engineRef = useRef<VoxelEngine | null>(null);
   const [chunksLoading, setChunksLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentTool, setCurrentTool] = useState<Tool>("build");
+  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
+    tag: "Build",
+  });
   const { userWorlds } = useWorlds();
 
   useEffect(() => {
@@ -77,7 +80,7 @@ export default function WorldViewPage() {
     }
   }, [currentTool]);
 
-  const handleToolChange = (tool: Tool) => {
+  const handleToolChange = (tool: BlockModificationMode) => {
     setCurrentTool(tool);
   };
 
