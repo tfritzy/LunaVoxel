@@ -83,6 +83,17 @@ export class Builder {
           currentEnd.y,
           true
         );
+      } else if (this.currentTool === "paint") {
+        this.dbConn.reducers.paintBlock(
+          this.world,
+          currentStart.x,
+          currentStart.z,
+          currentStart.y,
+          currentEnd.x,
+          currentEnd.z,
+          currentEnd.y,
+          true
+        );
       }
 
       this.lastPreviewStart = currentStart.clone();
@@ -104,7 +115,8 @@ export class Builder {
         startPos.y,
         endPos.x,
         endPos.z,
-        endPos.y
+        endPos.y,
+        false
       );
     } else if (this.currentTool === "build") {
       this.dbConn.reducers.buildBlock(

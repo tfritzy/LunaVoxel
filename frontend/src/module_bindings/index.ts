@@ -267,19 +267,19 @@ export class RemoteReducers {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  paintBlock(world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
-    const __args = { world, x1, y1, z1, x2, y2, z2 };
+  paintBlock(world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
+    const __args = { world, x1, y1, z1, x2, y2, z2, isPreview };
     let __writer = new BinaryWriter(1024);
     PaintBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("PaintBlock", __argsBuffer, this.setCallReducerFlags.paintBlockFlags);
   }
 
-  onPaintBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+  onPaintBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
     this.connection.onReducer("PaintBlock", callback);
   }
 
-  removeOnPaintBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+  removeOnPaintBlock(callback: (ctx: ReducerEventContext, world: string, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
     this.connection.offReducer("PaintBlock", callback);
   }
 

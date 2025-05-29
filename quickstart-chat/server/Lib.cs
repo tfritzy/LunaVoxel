@@ -313,7 +313,7 @@ public static partial class Module
     }
 
     [Reducer]
-    public static void PaintBlock(ReducerContext ctx, string world, int x1, int y1, int z1, int x2, int y2, int z2)
+    public static void PaintBlock(ReducerContext ctx, string world, int x1, int y1, int z1, int x2, int y2, int z2, bool isPreview = false)
     {
         var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
             ?? throw new ArgumentException("You're not in this world.");
@@ -329,6 +329,9 @@ public static partial class Module
         int minZ = Math.Min(z1, z2);
         int maxZ = Math.Max(z1, z2);
 
+        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
+
+        // Get all affected chunks (shared for both preview and actual operation)
         var affectedChunkIds = new HashSet<string>();
         for (int x = minX; x <= maxX; x++)
         {
@@ -339,6 +342,76 @@ public static partial class Module
         }
 
         var chunks = new Dictionary<string, Chunk>();
+        foreach (var chunkId in affectedChunkIds)
+        {
+            var chunk = ctx.Db.Chunk.Id.Find(chunkId);
+            if (chunk != null)
+            {
+                chunks[chunkId] = chunk;
+            }
+        }
+
+        if (isPreview)
+        {
+            if (previewVoxels == null)
+            {
+                previewVoxels = new PreviewVoxels
+                {
+                    Id = IdGenerator.Generate("prvw"),
+                    Player = ctx.Sender,
+                    World = world,
+                    PreviewPositions = [],
+                    IsAddMode = true,
+                    BlockColor = color
+                };
+                ctx.Db.PreviewVoxels.Insert(previewVoxels);
+            }
+
+            var positions = new List<Vector3>();
+
+            // Only add positions that have existing non-empty blocks
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    var chunkId = $"{world}_{x}_{y}";
+                    if (chunks.ContainsKey(chunkId))
+                    {
+                        var chunk = chunks[chunkId];
+                        for (int z = minZ; z <= maxZ; z++)
+                        {
+                            var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
+                            if (existingBlock.Type != BlockType.Empty)
+                            {
+                                positions.Add(new Vector3(x, y, z));
+                            }
+                        }
+                    }
+                }
+            }
+
+            previewVoxels.PreviewPositions = positions.ToArray();
+            previewVoxels.BlockColor = color;
+            previewVoxels.IsAddMode = true;
+            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
+            return;
+        }
+
+        // Clear preview when doing actual paint
+        var existingPreview = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
+        if (existingPreview != null)
+        {
+            existingPreview.PreviewPositions = [];
+            ctx.Db.PreviewVoxels.Id.Update(existingPreview);
+        }
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int y = minY; y <= maxY; y++)
+            {
+                affectedChunkIds.Add($"{world}_{x}_{y}");
+            }
+        }
+
         foreach (var chunkId in affectedChunkIds)
         {
             var chunk = ctx.Db.Chunk.Id.Find(chunkId);

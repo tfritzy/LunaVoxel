@@ -39,6 +39,7 @@ export type PaintBlock = {
   x2: number,
   y2: number,
   z2: number,
+  isPreview: boolean,
 };
 
 /**
@@ -58,6 +59,7 @@ export namespace PaintBlock {
       new ProductTypeElement("x2", AlgebraicType.createI32Type()),
       new ProductTypeElement("y2", AlgebraicType.createI32Type()),
       new ProductTypeElement("z2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("isPreview", AlgebraicType.createBoolType()),
     ]);
   }
 
