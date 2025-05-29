@@ -4,7 +4,6 @@ import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
-import WorldListPage from "./pages/WorldListPage";
 import WorldViewPage from "./pages/WorldViewPage";
 import Layout from "./components/custom/Layout";
 import { WorldsProvider } from "./contexts/WorldContext";
@@ -60,7 +59,14 @@ function AppContent() {
       <WorldsProvider>
         <Layout>
           <Routes>
-            <Route path="/" element={<WorldListPage />} />
+            <Route
+              path="/"
+              element={
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Select File → New to create a world
+                </div>
+              }
+            />
             <Route
               path="/worlds/:worldId"
               element={
