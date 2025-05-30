@@ -17,7 +17,7 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
   if (!palette) return null;
 
   return (
-    <div className="w-43 p-1 h-full bg-card border-r border-border flex flex-col">
+    <div className="w-[161px] h-full bg-card border-r border-border flex flex-col">
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-wrap">
           {palette.colors.map((color, index) => (

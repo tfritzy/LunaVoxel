@@ -137,10 +137,9 @@ export class VoxelEngine {
   private setupPerformanceMonitoring(): void {
     const rendererStatsElement = document.createElement("div");
     rendererStatsElement.style.position = "fixed";
-    rendererStatsElement.style.left = "0";
+    rendererStatsElement.style.right = "0";
     rendererStatsElement.style.bottom = "0";
     rendererStatsElement.style.padding = "5px";
-    rendererStatsElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
     rendererStatsElement.style.color = "white";
     rendererStatsElement.style.fontFamily = "monospace";
     rendererStatsElement.style.fontSize = "12px";

@@ -115,7 +115,6 @@ export default function Navigation() {
                     {currentUser.photoURL ? (
                       <img
                         src={currentUser.photoURL}
-                        alt="Profile"
                         className="w-6 h-6 rounded-full"
                       />
                     ) : (
