@@ -43,7 +43,7 @@ export default function Navigation() {
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2 font-semibold">
               <Moon className="h-5 w-5" />
-              <span>Lunavox</span>
+              <span>LunaVoxel</span>
             </Link>
 
             <DropdownMenu>

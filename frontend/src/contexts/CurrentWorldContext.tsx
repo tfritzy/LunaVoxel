@@ -36,11 +36,17 @@ export function CurrentWorldProvider({
     const colorPaletteSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        setPalette(
-          connection.db.colorPalette.tableCache
-            .iter()
-            .find((p) => p.world === worldId)
-        );
+        const newPalette = connection.db.colorPalette.tableCache
+          .iter()
+          .find((p) => p.world === worldId);
+        setPalette(newPalette);
+
+        if (!newPalette) {
+          console.log(
+            "CurrentWorldContext: Missing palette, calling visitWorld reducer"
+          );
+          connection.reducers.visitWorld(worldId);
+        }
       })
       .onError((error) => {
         console.error("Color palette subscription error:", error);
@@ -50,11 +56,17 @@ export function CurrentWorldProvider({
     const playerSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        setPlayer(
-          connection.db.playerInWorld.tableCache
-            .iter()
-            .find((p) => p.world === worldId)
-        );
+        const newPlayer = connection.db.playerInWorld.tableCache
+          .iter()
+          .find((p) => p.world === worldId);
+        setPlayer(newPlayer);
+
+        if (!newPlayer) {
+          console.log(
+            "CurrentWorldContext: Missing player, calling visitWorld reducer"
+          );
+          connection.reducers.visitWorld(worldId);
+        }
       })
       .onError((error) => {
         console.error("Player subscription error:", error);

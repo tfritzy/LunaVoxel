@@ -4,69 +4,85 @@ import CreateWorldButton from "@/components/custom/CreateWorldButton";
 import CreateWorldDialog from "@/components/custom/CreateWorldDialog";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useWorlds } from "@/contexts/WorldContext";
+import { Button } from "@/components/ui/button";
+import { Moon, Earth } from "lucide-react";
+import { FloatingVoxelsBackground } from "@/components/custom/FloatingVoxelsBackground";
+import WorldList from "@/components/custom/WorldList";
 
 export default function WorldListPage() {
   const navigate = useNavigate();
   const { connection } = useDatabase();
   const { userWorlds } = useWorlds();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isWorldListDialogOpen, setIsWorldListDialogOpen] = useState(false);
 
   const visitWorld = (worldId: string) => {
     if (!connection?.isActive) return;
 
     try {
-      connection.reducers.visitWorld(worldId);
-      console.log("visiting world", worldId);
       navigate(`/worlds/${worldId}`);
     } catch (err) {
       console.error("Error selecting world:", err);
     }
   };
 
+  const handleOpenCreateNewDialogFromList = () => {
+    setIsCreateDialogOpen(true);
+  };
+
   return (
-    <div className="h-full p-4 max-w-7xl mx-auto overflow-y-auto">
-      <CreateWorldDialog
-        isOpen={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-      />
+    <>
+      <FloatingVoxelsBackground />
+      {/* This outer div centers the content block vertically and allows scrolling if content overflows */}
+      <div className="relative z-0 h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto">
+        {/* This div applies max-width and holds the actual page elements, now with adjusted frosted glass effect */}
+        <div className="w-full max-w-2xl flex flex-col items-center bg-background/80 backdrop-blur-lg rounded-xl p-6 sm:p-8 border border-white/10">
+          <CreateWorldDialog
+            isOpen={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          />
 
-      <div className="flex flex-row justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Your Worlds</h1>
-        <CreateWorldButton onClick={() => setIsCreateDialogOpen(true)} />
-      </div>
-
-      {userWorlds.length === 0 ? (
-        <div className="text-center p-8 border border-border rounded-lg bg-card/50">
-          <p className="mb-4 text-muted-foreground">
-            You don't have any worlds yet.
-          </p>
-          <CreateWorldButton
-            onClick={() => setIsCreateDialogOpen(true)}
-            variant="secondary"
-          >
-            Create your first world
-          </CreateWorldButton>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {userWorlds
-            .sort((w1, w2) => w1.name.localeCompare(w2.name))
-            .map((world) => (
-              <div
-                key={world.id}
-                className="bg-card border border-border rounded-lg p-6 cursor-pointer hover:bg-secondary/10 transition-colors shadow-sm"
-                onClick={() => visitWorld(world.id)}
+          {/* Hero Section */}
+          <div className="flex flex-col items-center justify-center text-center w-full">
+            <div className="p-1 mb-4">
+              <Moon className="h-16 w-16 md:h-24 md:w-24 text-primary" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-3 text-foreground">
+              LunaVoxel
+            </h1>
+            <p className="text-base md:text-lg text-foreground/80 mb-6 max-w-xl">
+              Build, explore, and share your voxel creations. Get started by
+              opening an existing world or creating a new one.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setIsWorldListDialogOpen(true)}
+                className="w-full sm:w-auto"
               >
-                <h2 className="text-xl text-foreground font-semibold mb-2">
-                  {world.name}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Last visited: {world.lastVisited.toDate().toLocaleString()}
-                </p>
-              </div>
-            ))}
+                <Earth className="h-5 w-5" />
+                Open World
+              </Button>
+              <CreateWorldButton
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="w-full sm:w-auto"
+              >
+                Create New
+              </CreateWorldButton>
+            </div>
+          </div>
+
+          {/* World List Modal (using the updated WorldList component) */}
+          <WorldList
+            isOpen={isWorldListDialogOpen}
+            onOpenChange={setIsWorldListDialogOpen}
+            worlds={userWorlds}
+            onWorldClick={visitWorld}
+            onCreateNew={handleOpenCreateNewDialogFromList}
+          />
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

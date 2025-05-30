@@ -8,6 +8,7 @@ import WorldViewPage from "./pages/WorldViewPage";
 import Layout from "./components/custom/Layout";
 import { WorldsProvider } from "./contexts/WorldContext";
 import { CurrentWorldProvider } from "./contexts/CurrentWorldContext";
+import WorldListPage from "./pages/WorldListPage";
 
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
@@ -59,14 +60,7 @@ function AppContent() {
       <WorldsProvider>
         <Layout>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Select File → New to create a world
-                </div>
-              }
-            />
+            <Route path="/" element={<WorldListPage />} />
             <Route
               path="/worlds/:worldId"
               element={

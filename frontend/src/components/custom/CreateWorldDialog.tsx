@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDatabase } from "@/contexts/DatabaseContext";
+import { useNavigate } from "react-router-dom";
 
 const MAX_DIMENSION = 512;
 
@@ -27,6 +28,7 @@ export default function CreateWorldDialog({
   const [yDim, setYDim] = useState(16);
   const [zDim, setZDim] = useState(16);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const validateInput = () => {
     if (!name.trim()) {
@@ -83,6 +85,11 @@ export default function CreateWorldDialog({
       setIsCreating(true);
 
       connection.reducers.createWorld(name, xDim, yDim, zDim);
+
+      // After creating the world, visit it
+      const worldId = `wrld_${name}`; // Assuming world ID is generated this way
+      connection.reducers.visitWorld(worldId);
+      navigate(`/worlds/${worldId}`);
 
       // Close modal and reset form
       onOpenChange(false);
