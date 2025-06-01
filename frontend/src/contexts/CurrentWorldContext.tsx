@@ -36,6 +36,7 @@ export function CurrentWorldProvider({
     const colorPaletteSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
+        console.log("subscribed to palette for ", worldId);
         const newPalette = connection.db.colorPalette.tableCache
           .iter()
           .find((p) => p.world === worldId);
@@ -56,6 +57,7 @@ export function CurrentWorldProvider({
     const playerSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
+        console.log("subscribed to playerinworld for ", worldId);
         const newPlayer = connection.db.playerInWorld.tableCache
           .iter()
           .find((p) => p.world === worldId);

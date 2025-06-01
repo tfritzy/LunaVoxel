@@ -32,6 +32,7 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 export type CreateWorld = {
+  id: string,
   name: string,
   xDim: number,
   yDim: number,
@@ -48,6 +49,7 @@ export namespace CreateWorld {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
+      new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("name", AlgebraicType.createStringType()),
       new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("yDim", AlgebraicType.createI32Type()),

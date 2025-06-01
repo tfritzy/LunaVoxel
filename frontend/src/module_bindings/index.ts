@@ -191,19 +191,19 @@ export class RemoteReducers {
     this.connection.offReducer("AddColorToPalette", callback);
   }
 
-  createWorld(name: string, xDim: number, yDim: number, zDim: number) {
-    const __args = { name, xDim, yDim, zDim };
+  createWorld(id: string, name: string, xDim: number, yDim: number, zDim: number) {
+    const __args = { id, name, xDim, yDim, zDim };
     let __writer = new BinaryWriter(1024);
     CreateWorld.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("CreateWorld", __argsBuffer, this.setCallReducerFlags.createWorldFlags);
   }
 
-  onCreateWorld(callback: (ctx: ReducerEventContext, name: string, xDim: number, yDim: number, zDim: number) => void) {
+  onCreateWorld(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
     this.connection.onReducer("CreateWorld", callback);
   }
 
-  removeOnCreateWorld(callback: (ctx: ReducerEventContext, name: string, xDim: number, yDim: number, zDim: number) => void) {
+  removeOnCreateWorld(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
     this.connection.offReducer("CreateWorld", callback);
   }
 

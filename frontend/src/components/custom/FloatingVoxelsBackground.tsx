@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-// Exact default palette from Lib.cs
 const FULL_VOXEL_PALETTE = [
   "#fcfbf3",
   "#fceba8",
@@ -19,25 +18,20 @@ const FULL_VOXEL_PALETTE = [
   "#4e9363",
 ];
 
-// Filtered palette for lighter colors
 const LIGHT_VOXEL_PALETTE = FULL_VOXEL_PALETTE.filter((hex) => {
-  // Basic heuristic: if the first character of R, G, B (after #) is high (e.g., > 7), it's likely light.
-  // This is a simplification. A proper check would convert to HSL and check Lightness.
   const r = parseInt(hex.substring(1, 3), 16);
   const g = parseInt(hex.substring(3, 5), 16);
   const b = parseInt(hex.substring(5, 7), 16);
-  // Average intensity, or check if any component is very low
+
   const average = (r + g + b) / 3;
-  return average > 100; // Keep colors with an average component value greater than 100 (out of 255)
+  return average > 100;
 });
 
-// Ensure there's at least one color if the filter is too aggressive
 const VOXEL_PALETTE_TO_USE =
   LIGHT_VOXEL_PALETTE.length > 0
     ? LIGHT_VOXEL_PALETTE
     : FULL_VOXEL_PALETTE.slice(0, 1);
 
-// Type for voxel userData
 interface VoxelUserData {
   rotationSpeed: THREE.Vector3;
   bobSpeed: number;
@@ -54,7 +48,6 @@ export const FloatingVoxelsBackground = () => {
 
     const currentMount = mountRef.current;
 
-    // Scene setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -69,30 +62,22 @@ export const FloatingVoxelsBackground = () => {
     renderer.setPixelRatio(window.devicePixelRatio);
     currentMount.appendChild(renderer.domElement);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Increased ambient light intensity
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
     scene.add(ambientLight);
-    // Hemisphere light for soft, even lighting (skyColor, groundColor, intensity)
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.7); // Increased hemisphere light intensity and ground color
-    scene.add(hemisphereLight);
-    // Removed DirectionalLight to rely on Hemisphere and Ambient for more even color
-    // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    // directionalLight.position.set(10, 15, 12);
-    // scene.add(directionalLight);
 
-    // Calculate visible dimensions at z=0 plane (where camera is looking towards)
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.2);
+    scene.add(hemisphereLight);
+
     const vFOV_rad = camera.fov * (Math.PI / 180);
-    // Distance from camera to z=0 plane is camera.position.z
+
     const heightAtZ0 = 2 * Math.tan(vFOV_rad / 2) * camera.position.z;
     const widthAtZ0 = heightAtZ0 * camera.aspect;
-    const spreadFactor = 1.2; // Make distribution area slightly larger than viewport
+    const spreadFactor = 1.2;
 
-    // Voxels
     const numVoxels = 50;
     const voxels: THREE.Mesh[] = [];
-    const geometry = new THREE.BoxGeometry(1, 1, 1); // Base size
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
 
-    // Helper to check if a new position is far enough from all previous voxels
     function isFarEnough(x: number, y: number, z: number, minDist: number) {
       return voxels.every((v) => {
         const dx = v.position.x - x;
@@ -102,7 +87,7 @@ export const FloatingVoxelsBackground = () => {
       });
     }
 
-    const minDistance = 5; // Minimum allowed distance between voxel centers
+    const minDistance = 5;
     const maxAttempts = 100;
     const yBands: { min: number; max: number }[] = [];
 
@@ -110,15 +95,14 @@ export const FloatingVoxelsBackground = () => {
       const colorHex = VOXEL_PALETTE_TO_USE[i % VOXEL_PALETTE_TO_USE.length];
       const material = new THREE.MeshStandardMaterial({
         color: new THREE.Color(colorHex),
-        roughness: 0.8, // Higher roughness for a more matte/diffuse look, less shiny
-        metalness: 0.0, // Non-metallic
+        roughness: 0.8,
+        metalness: 0.0,
       });
       const voxel = new THREE.Mesh(geometry, material);
 
-      const scale = Math.random() * 3 + 1; // Size 1 to 4
+      const scale = Math.random() * 3 + 1;
       voxel.scale.set(scale, scale, scale);
 
-      // Find a non-intersecting position
       let x = 0,
         y = 0,
         z = 0,
@@ -137,7 +121,6 @@ export const FloatingVoxelsBackground = () => {
         Math.random() * Math.PI * 2
       );
 
-      // Assign a non-overlapping Y band for bobbing
       let initialY = y;
       let bobAmplitude = Math.random() + 1;
       let bandFound = false;
@@ -154,14 +137,12 @@ export const FloatingVoxelsBackground = () => {
         }
       }
       if (!bandFound) {
-        // fallback: just use the last tried values
         yBands.push({
           min: initialY - bobAmplitude,
           max: initialY + bobAmplitude,
         });
       }
 
-      // Store random speeds for animation
       (voxel.userData as VoxelUserData) = {
         rotationSpeed: new THREE.Vector3(
           Math.random() * 0.001,
@@ -177,12 +158,11 @@ export const FloatingVoxelsBackground = () => {
       scene.add(voxel);
     }
 
-    // Animation loop
     let lastTimestamp = performance.now();
     let accumulatedTime = 0;
     const animate = (now: number) => {
       animationFrameId.current = requestAnimationFrame(animate);
-      const delta = (now - lastTimestamp) / 1000; // seconds
+      const delta = (now - lastTimestamp) / 1000;
       lastTimestamp = now;
       accumulatedTime += delta;
 
@@ -204,7 +184,6 @@ export const FloatingVoxelsBackground = () => {
     };
     animationFrameId.current = requestAnimationFrame(animate);
 
-    // Handle resize
     const handleResize = () => {
       if (currentMount) {
         camera.aspect = currentMount.clientWidth / currentMount.clientHeight;
@@ -214,7 +193,6 @@ export const FloatingVoxelsBackground = () => {
     };
     window.addEventListener("resize", handleResize);
 
-    // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
       if (animationFrameId.current) {
@@ -229,10 +207,10 @@ export const FloatingVoxelsBackground = () => {
           voxel.material.dispose();
         }
       });
-      geometry.dispose(); // Dispose shared geometry
+      geometry.dispose();
       ambientLight.dispose();
-      hemisphereLight.dispose(); // Dispose hemisphereLight
-      // directionalLight.dispose(); // Dispose directionalLight if it were still used
+      hemisphereLight.dispose();
+
       renderer.dispose();
       if (currentMount && renderer.domElement) {
         currentMount.removeChild(renderer.domElement);

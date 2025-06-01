@@ -36,17 +36,18 @@ export function WorldsProvider({ children }: { children: React.ReactNode }) {
       .subscribe([`SELECT * FROM World WHERE Owner='${myIdentityHex}'`]);
 
     const onWorldInsert = (ctx: EventContext, row: World) => {
-      const existingIndex = userWorlds.findIndex(
-        (existingWorld) => existingWorld.id === row.id
-      );
-
-      if (existingIndex !== -1) {
-        const updatedWorlds = [...userWorlds];
-        updatedWorlds[existingIndex] = row;
-        setUserWorlds(updatedWorlds);
-      }
-
-      setUserWorlds([...userWorlds, row]);
+      setUserWorlds((prev) => {
+        const existingIndex = prev.findIndex(
+          (existingWorld) => existingWorld.id === row.id
+        );
+        if (existingIndex !== -1) {
+          const updatedWorlds = [...prev];
+          updatedWorlds[existingIndex] = row;
+          return updatedWorlds;
+        } else {
+          return [...prev, row];
+        }
+      });
     };
 
     const onWorldUpdate = (
@@ -66,7 +67,7 @@ export function WorldsProvider({ children }: { children: React.ReactNode }) {
       connection.db.world.removeOnInsert(onWorldInsert);
       connection.db.world.removeOnUpdate(onWorldUpdate);
     };
-  }, [connection, userWorlds]);
+  }, [connection]);
 
   if (worldsLoading) return null;
 

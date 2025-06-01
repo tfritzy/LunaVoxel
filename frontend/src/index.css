@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 :root {
-  --background: hsl(210 12% 16%);
+  --background: hsl(210 12% 12%);
   --foreground: hsl(214 13% 90%);
   --muted: hsl(210 12% 20%);
   --muted-foreground: hsl(210 12% 70%);

@@ -10,19 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/firebase/AuthContext";
 import { useState } from "react";
-import CreateWorldDialog from "./CreateWorldDialog";
 import WorldList from "./WorldList";
 import FileDropdown from "./FileDropdown";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useWorlds } from "@/contexts/WorldContext";
 import { useNavigate } from "react-router-dom";
+import { createWorld } from "@/lib/createWorld";
 
 export default function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const { connection } = useDatabase();
   const { userWorlds } = useWorlds();
   const navigate = useNavigate();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isWorldListOpen, setIsWorldListOpen] = useState(false);
 
   const handleSignIn = async () => {
@@ -42,11 +41,16 @@ export default function Navigation() {
   };
 
   const handleNewWorld = () => {
-    setIsCreateDialogOpen(true);
+    if (!connection?.isActive) return;
+    createWorld(connection, navigate);
   };
 
   const handleOpenWorld = () => {
     setIsWorldListOpen(true);
+  };
+
+  const handleCloseWorld = () => {
+    setIsWorldListOpen(false);
   };
 
   const visitWorld = (worldId: string) => {
@@ -57,11 +61,6 @@ export default function Navigation() {
     } catch (err) {
       console.error("Error selecting world:", err);
     }
-  };
-
-  const handleCreateNewFromList = () => {
-    setIsWorldListOpen(false);
-    setIsCreateDialogOpen(true);
   };
 
   return (
@@ -154,17 +153,11 @@ export default function Navigation() {
         </div>
       </nav>
 
-      <CreateWorldDialog
-        isOpen={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-      />
-
       <WorldList
         isOpen={isWorldListOpen}
-        onOpenChange={setIsWorldListOpen}
+        onClose={handleCloseWorld}
         worlds={userWorlds}
         onWorldClick={visitWorld}
-        onCreateNew={handleCreateNewFromList}
       />
     </>
   );

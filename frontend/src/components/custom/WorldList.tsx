@@ -2,17 +2,19 @@ import { useState } from "react";
 import { World } from "@/module_bindings";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, X } from "lucide-react";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { useNavigate, useParams } from "react-router-dom";
+import { createWorld } from "@/lib/createWorld";
+import { Modal } from "../ui/modal";
 
 interface WorldListProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onClose: () => void;
   worlds: World[];
   onWorldClick: (worldId: string) => void;
-  onCreateNew: () => void;
 }
 
 const getGroupLabel = (lastVisitedTimestamp: Timestamp): string => {
@@ -48,12 +50,14 @@ const groupOrder = [
 
 const WorldList: React.FC<WorldListProps> = ({
   isOpen,
-  onOpenChange,
+  onClose,
   worlds,
   onWorldClick,
-  onCreateNew,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { connection } = useDatabase();
+  const navigate = useNavigate();
+  const { worldId } = useParams();
 
   const processedWorlds = React.useMemo(() => {
     if (worlds.length === 0) return {};
@@ -85,10 +89,15 @@ const WorldList: React.FC<WorldListProps> = ({
   }, [worlds, searchTerm]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1200px] max-h-[80vh] flex flex-col p-0">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="sm:max-w-[1200px] max-h-[80vh] flex flex-col p-0">
         <div className="px-6 pt-4">
-          <h2 className="text-xl font-semibold mb-6">Open a world</h2>
+          <div className="flex flex-row justify-between">
+            <h2 className="text-xl font-semibold mb-6">Open a world</h2>
+            <Button onClick={onClose} variant="ghost">
+              <X />
+            </Button>
+          </div>
 
           <div className="flex justify-between items-center mb-4 border-b border-border">
             <div className="flex items-center space-x-4">
@@ -99,7 +108,7 @@ const WorldList: React.FC<WorldListProps> = ({
           </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto pb-6 h-max">
+        <div className="flex-grow overflow-y-auto pb-6 h-screen">
           <Input
             type="text"
             placeholder="Search worlds..."
@@ -109,7 +118,7 @@ const WorldList: React.FC<WorldListProps> = ({
           />
 
           {worlds.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8 border border-dashed border-border px-6 bg-background">
+            <div className="flex flex-col items-center justify-center h-full text-center p-8 border border-dashed border-border px-6">
               <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="mb-2 text-lg font-medium text-foreground">
                 No Worlds Found
@@ -120,8 +129,8 @@ const WorldList: React.FC<WorldListProps> = ({
               <Button
                 variant="default"
                 onClick={() => {
-                  onOpenChange(false);
-                  onCreateNew();
+                  if (!connection?.isActive) return;
+                  createWorld(connection, navigate);
                 }}
               >
                 Create New World
@@ -140,14 +149,15 @@ const WorldList: React.FC<WorldListProps> = ({
                       {worldsInGroup.map((world) => (
                         <div
                           key={world.id}
-                          className="p-3 px-6 hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border flex justify-between items-center"
+                          className="p-3 px-6 hover:bg-black/20 hover:text-accent-foreground cursor-pointer border-b border-border flex justify-between items-center"
                           onClick={() => {
                             onWorldClick(world.id);
-                            onOpenChange(false);
+                            onClose();
                           }}
                         >
                           <p className="font-medium text-foreground">
-                            {world.name}
+                            {world.name}{" "}
+                            {world.id === worldId ? "(Current)" : ""}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {world.xWidth}x{world.yWidth}x{world.height}
@@ -171,8 +181,8 @@ const WorldList: React.FC<WorldListProps> = ({
               </p>
             )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 };
 

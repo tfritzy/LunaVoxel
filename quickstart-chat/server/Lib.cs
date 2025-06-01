@@ -17,11 +17,11 @@ public static partial class Module
         public Identity Owner;
         public Timestamp LastVisited;
 
-        public static World Build(string name, int xWidth, int yWidth, int height, Identity owner, Timestamp timestamp)
+        public static World Build(string id, string name, int xWidth, int yWidth, int height, Identity owner, Timestamp timestamp)
         {
             return new World
             {
-                Id = IdGenerator.Generate("wrld"),
+                Id = id,
                 Name = name,
                 XWidth = xWidth,
                 YWidth = yWidth,
@@ -148,7 +148,7 @@ public static partial class Module
                     World = world,
                     PreviewPositions = [],
                     IsAddMode = mode != BlockModificationMode.Erase,
-                    BlockColor = mode == BlockModificationMode.Erase ? "#FF0000" : color
+                    BlockColor = mode == BlockModificationMode.Erase ? "#Ffffff" : color
                 };
                 ctx.Db.PreviewVoxels.Insert(previewVoxels);
             }
@@ -211,7 +211,7 @@ public static partial class Module
             }
 
             previewVoxels.PreviewPositions = positions.ToArray();
-            previewVoxels.BlockColor = mode == BlockModificationMode.Erase ? "#FF0000" : color;
+            previewVoxels.BlockColor = mode == BlockModificationMode.Erase ? "#FFffff" : color;
             previewVoxels.IsAddMode = mode != BlockModificationMode.Erase;
             ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
             return;
@@ -281,9 +281,9 @@ public static partial class Module
     }
 
     [Reducer]
-    public static void CreateWorld(ReducerContext ctx, string name, int xDim, int yDim, int zDim)
+    public static void CreateWorld(ReducerContext ctx, string id, string name, int xDim, int yDim, int zDim)
     {
-        var world = World.Build(name, xDim, yDim, zDim, ctx.Sender, ctx.Timestamp);
+        var world = World.Build(id, name, xDim, yDim, zDim, ctx.Sender, ctx.Timestamp);
         ctx.Db.World.Insert(world);
 
         for (int x = -xDim / 2; x < xDim / 2; x++)
