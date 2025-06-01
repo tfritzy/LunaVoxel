@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { EarthIcon, FolderOpen, X } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 
 interface WorldListProps {
   isOpen: boolean;
@@ -99,7 +99,7 @@ const WorldList: React.FC<WorldListProps> = ({
           </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto pb-6 min-h-[700px]">
+        <div className="flex-grow overflow-y-auto pb-6 h-max">
           <Input
             type="text"
             placeholder="Search worlds..."

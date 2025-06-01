@@ -33,16 +33,13 @@ export default function WorldListPage() {
   return (
     <>
       <FloatingVoxelsBackground />
-      {/* This outer div centers the content block vertically and allows scrolling if content overflows */}
       <div className="relative z-0 h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto">
-        {/* This div applies max-width and holds the actual page elements, now with adjusted frosted glass effect */}
-        <div className="w-full max-w-2xl flex flex-col items-center bg-background/80 backdrop-blur-lg rounded-xl p-6 sm:p-8 border border-white/10">
+        <div className="w-full max-w-2xl flex flex-col items-center bg-background/80 backdrop-blur-md backdrop-brightness-75 rounded-xl p-6 sm:p-8 border border-border">
           <CreateWorldDialog
             isOpen={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}
           />
 
-          {/* Hero Section */}
           <div className="flex flex-col items-center justify-center text-center w-full">
             <div className="p-1 mb-4">
               <Moon className="h-16 w-16 md:h-24 md:w-24 text-primary" />
@@ -73,7 +70,6 @@ export default function WorldListPage() {
             </div>
           </div>
 
-          {/* World List Modal (using the updated WorldList component) */}
           <WorldList
             isOpen={isWorldListDialogOpen}
             onOpenChange={setIsWorldListDialogOpen}

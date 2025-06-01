@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Moon, User, LogOut, Plus } from "lucide-react";
+import { Moon, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,10 +11,19 @@ import {
 import { useAuth } from "@/firebase/AuthContext";
 import { useState } from "react";
 import CreateWorldDialog from "./CreateWorldDialog";
+import WorldList from "./WorldList";
+import FileDropdown from "./FileDropdown";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { useWorlds } from "@/contexts/WorldContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
+  const { connection } = useDatabase();
+  const { userWorlds } = useWorlds();
+  const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isWorldListOpen, setIsWorldListOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
@@ -36,9 +45,28 @@ export default function Navigation() {
     setIsCreateDialogOpen(true);
   };
 
+  const handleOpenWorld = () => {
+    setIsWorldListOpen(true);
+  };
+
+  const visitWorld = (worldId: string) => {
+    if (!connection?.isActive) return;
+
+    try {
+      navigate(`/worlds/${worldId}`);
+    } catch (err) {
+      console.error("Error selecting world:", err);
+    }
+  };
+
+  const handleCreateNewFromList = () => {
+    setIsWorldListOpen(false);
+    setIsCreateDialogOpen(true);
+  };
+
   return (
     <>
-      <nav className="h-10 w-full backdrop-brightness-75 backdrop-blur-sm border-b border-border relative z-10">
+      <nav className="h-10 w-full backdrop-brightness-75 backdrop-blur border-b border-border relative z-10">
         <div className="w-full h-full py-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2 font-semibold">
@@ -46,30 +74,10 @@ export default function Navigation() {
               <span>LunaVoxel</span>
             </Link>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2">
-                  File
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem onClick={handleNewWorld}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New World
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>
-                  <span className="text-muted-foreground">Open</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled>
-                  <span className="text-muted-foreground">Save</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>
-                  <span className="text-muted-foreground">Export</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <FileDropdown
+              onNewWorld={handleNewWorld}
+              onOpenWorld={handleOpenWorld}
+            />
           </div>
 
           <div className="flex items-center">
@@ -149,6 +157,14 @@ export default function Navigation() {
       <CreateWorldDialog
         isOpen={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      <WorldList
+        isOpen={isWorldListOpen}
+        onOpenChange={setIsWorldListOpen}
+        worlds={userWorlds}
+        onWorldClick={visitWorld}
+        onCreateNew={handleCreateNewFromList}
       />
     </>
   );

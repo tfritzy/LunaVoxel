@@ -37,6 +37,14 @@ const VOXEL_PALETTE_TO_USE =
     ? LIGHT_VOXEL_PALETTE
     : FULL_VOXEL_PALETTE.slice(0, 1);
 
+// Type for voxel userData
+interface VoxelUserData {
+  rotationSpeed: THREE.Vector3;
+  bobSpeed: number;
+  initialY: number;
+  bobAmplitude: number;
+}
+
 export const FloatingVoxelsBackground = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const animationFrameId = useRef<number | null>(null);
@@ -62,10 +70,10 @@ export const FloatingVoxelsBackground = () => {
     currentMount.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Increased ambient light intensity
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Increased ambient light intensity
     scene.add(ambientLight);
     // Hemisphere light for soft, even lighting (skyColor, groundColor, intensity)
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5); // Increased hemisphere light intensity and ground color
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.7); // Increased hemisphere light intensity and ground color
     scene.add(hemisphereLight);
     // Removed DirectionalLight to rely on Hemisphere and Ambient for more even color
     // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -84,6 +92,20 @@ export const FloatingVoxelsBackground = () => {
     const voxels: THREE.Mesh[] = [];
     const geometry = new THREE.BoxGeometry(1, 1, 1); // Base size
 
+    // Helper to check if a new position is far enough from all previous voxels
+    function isFarEnough(x: number, y: number, z: number, minDist: number) {
+      return voxels.every((v) => {
+        const dx = v.position.x - x;
+        const dy = v.position.y - y;
+        const dz = v.position.z - z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz) >= minDist;
+      });
+    }
+
+    const minDistance = 5; // Minimum allowed distance between voxel centers
+    const maxAttempts = 100;
+    const yBands: { min: number; max: number }[] = [];
+
     for (let i = 0; i < numVoxels; i++) {
       const colorHex = VOXEL_PALETTE_TO_USE[i % VOXEL_PALETTE_TO_USE.length];
       const material = new THREE.MeshStandardMaterial({
@@ -96,23 +118,59 @@ export const FloatingVoxelsBackground = () => {
       const scale = Math.random() * 3 + 1; // Size 1 to 4
       voxel.scale.set(scale, scale, scale);
 
-      voxel.position.set(
-        (Math.random() - 0.5) * widthAtZ0 * spreadFactor, // x spread based on view width
-        (Math.random() - 0.5) * heightAtZ0 * spreadFactor, // y spread based on view height
-        (Math.random() - 0.5) * 30 + 10 // z (closer/further) - relative to z=0 plane
-      );
+      // Find a non-intersecting position
+      let x = 0,
+        y = 0,
+        z = 0,
+        attempts = 0;
+      do {
+        x = (Math.random() - 0.5) * widthAtZ0 * spreadFactor;
+        y = (Math.random() - 0.5) * heightAtZ0 * spreadFactor;
+        z = (Math.random() - 0.5) * 30 + 10;
+        attempts++;
+      } while (!isFarEnough(x, y, z, minDistance) && attempts < maxAttempts);
+      voxel.position.set(x, y, z);
+
       voxel.rotation.set(
         Math.random() * Math.PI * 2,
         Math.random() * Math.PI * 2,
         Math.random() * Math.PI * 2
       );
 
+      // Assign a non-overlapping Y band for bobbing
+      let initialY = y;
+      let bobAmplitude = Math.random() + 1;
+      let bandFound = false;
+      for (let bandTry = 0; bandTry < 20 && !bandFound; bandTry++) {
+        initialY = (Math.random() - 0.5) * heightAtZ0 * spreadFactor;
+        bobAmplitude = Math.random() + 1;
+        const minY = initialY - bobAmplitude;
+        const maxY = initialY + bobAmplitude;
+        if (
+          !yBands.some((b) => Math.max(b.min, minY) < Math.min(b.max, maxY))
+        ) {
+          yBands.push({ min: minY, max: maxY });
+          bandFound = true;
+        }
+      }
+      if (!bandFound) {
+        // fallback: just use the last tried values
+        yBands.push({
+          min: initialY - bobAmplitude,
+          max: initialY + bobAmplitude,
+        });
+      }
+
       // Store random speeds for animation
-      (voxel as any).userData = {
-        rotationSpeed: new THREE.Vector3(),
-        bobSpeed: (Math.random() - 0.5) * 0.02,
-        initialY: voxel.position.y,
-        bobAmplitude: Math.random() * 5 + 2,
+      (voxel.userData as VoxelUserData) = {
+        rotationSpeed: new THREE.Vector3(
+          Math.random() * 0.001,
+          Math.random() * 0.001,
+          Math.random() * 0.001
+        ),
+        bobSpeed: (Math.random() - 0.5) * 0.01,
+        initialY,
+        bobAmplitude,
       };
 
       voxels.push(voxel);
@@ -120,26 +178,31 @@ export const FloatingVoxelsBackground = () => {
     }
 
     // Animation loop
-    let time = 0;
-    const animate = () => {
+    let lastTimestamp = performance.now();
+    let accumulatedTime = 0;
+    const animate = (now: number) => {
       animationFrameId.current = requestAnimationFrame(animate);
-      time += 0.01;
+      const delta = (now - lastTimestamp) / 1000; // seconds
+      lastTimestamp = now;
+      accumulatedTime += delta;
 
       voxels.forEach((voxel) => {
-        const userData = (voxel as any).userData;
-        voxel.rotation.x += userData.rotationSpeed.x;
-        voxel.rotation.y += userData.rotationSpeed.y;
-        voxel.rotation.z += userData.rotationSpeed.z;
+        const userData = voxel.userData as VoxelUserData;
+        voxel.rotation.x += userData.rotationSpeed.x * delta * 60;
+        voxel.rotation.y += userData.rotationSpeed.y * delta * 60;
+        voxel.rotation.z += userData.rotationSpeed.z * delta * 60;
 
         voxel.position.y =
           userData.initialY +
-          Math.sin(time * userData.bobSpeed * 50 + userData.initialY) *
+          Math.sin(
+            accumulatedTime * userData.bobSpeed * 50 + userData.initialY
+          ) *
             userData.bobAmplitude;
       });
 
       renderer.render(scene, camera);
     };
-    animate();
+    animationFrameId.current = requestAnimationFrame(animate);
 
     // Handle resize
     const handleResize = () => {

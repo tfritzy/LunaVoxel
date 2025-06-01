@@ -59,21 +59,17 @@ export default function CreateWorldDialog({
     setter: React.Dispatch<React.SetStateAction<number>>,
     value: string
   ) => {
-    // If the value is empty, set it to empty string in a temporary state
     if (value === "") {
-      // Set to 0 temporarily, but we'll handle display differently
       setter(0);
       return;
     }
 
-    // Only accept digits
     if (!/^\d*$/.test(value)) {
       return;
     }
 
     const parsed = parseInt(value, 10);
     if (!isNaN(parsed)) {
-      // Clamp between 1 and MAX_DIMENSION
       setter(Math.min(Math.max(parsed, 1), MAX_DIMENSION));
     }
   };
@@ -86,16 +82,12 @@ export default function CreateWorldDialog({
 
       connection.reducers.createWorld(name, xDim, yDim, zDim);
 
-      // After creating the world, visit it
-      const worldId = `wrld_${name}`; // Assuming world ID is generated this way
-      connection.reducers.visitWorld(worldId);
+      const worldId = `wrld_${name}`;
       navigate(`/worlds/${worldId}`);
 
-      // Close modal and reset form
       onOpenChange(false);
       setIsCreating(false);
 
-      // Reset form to defaults for next use
       setName(`World ${Date.now().toString().slice(-6)}`);
       setXDim(16);
       setYDim(16);
