@@ -37,7 +37,7 @@ export type PreviewVoxels = {
   player: Identity,
   world: string,
   previewPositions: __Vector3[],
-  blockColor: string,
+  blockColor: string | undefined,
   isAddMode: boolean,
 };
 
@@ -55,7 +55,7 @@ export namespace PreviewVoxels {
       new ProductTypeElement("player", AlgebraicType.createIdentityType()),
       new ProductTypeElement("world", AlgebraicType.createStringType()),
       new ProductTypeElement("previewPositions", AlgebraicType.createArrayType(__Vector3.getTypeScriptAlgebraicType())),
-      new ProductTypeElement("blockColor", AlgebraicType.createStringType()),
+      new ProductTypeElement("blockColor", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
       new ProductTypeElement("isAddMode", AlgebraicType.createBoolType()),
     ]);
   }

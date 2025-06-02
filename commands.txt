@@ -2,7 +2,7 @@ Generate Types
 spacetime generate --lang typescript --out-dir frontend/src/module_bindings --project-path quickstart-chat/server
 
 Query table
-spacetime sql quickstart-chat "SELECT * FROM PlayerInWorld"
+spacetime sql quickstart-chat "SELECT * FROM Chunk"
 
 Publish
 spacetime publish --project-path quickstart-chat/server quickstart-chat

@@ -9,7 +9,7 @@ namespace Test
         [TestMethod]
         public void SetBlock_InEmptyChunk_ShouldAddBlock()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Empty, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 5);
 
@@ -25,7 +25,7 @@ namespace Test
         [TestMethod]
         public void SetBlock_AtBeginning_ShouldAddBlock()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Empty, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 0);
 
@@ -39,7 +39,7 @@ namespace Test
         [TestMethod]
         public void SetBlock_AtEnd_ShouldAddBlock()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Empty, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 9);
 
@@ -53,7 +53,7 @@ namespace Test
         [TestMethod]
         public void SetBlock_SameTypeAsExisting_ShouldNotChange()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Block, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Block, 10) };
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 5);
 
@@ -65,10 +65,10 @@ namespace Test
         [TestMethod]
         public void SetBlock_WithMerging_ShouldMergeAdjacentSameTypes()
         {
-            Block[] blocks = new Block[] {
-                new Block(BlockType.Empty, 5),
-                new Block(BlockType.Block, 5),
-                new Block(BlockType.Empty, 5)
+            BlockRun[] blocks = new BlockRun[] {
+                new BlockRun(BlockType.Empty, 5),
+                new BlockRun(BlockType.Block, 5),
+                new BlockRun(BlockType.Empty, 5)
             };
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 4);
@@ -85,7 +85,7 @@ namespace Test
         [TestMethod]
         public void SetBlock_BeyondBlocksLength_ShouldDoNothing()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Empty, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
             int originalLength = blocks.Length;
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 20);
@@ -98,11 +98,11 @@ namespace Test
         [TestMethod]
         public void SetBlock_MultipleBlocksWithMerge_ShouldHandleComplexCase()
         {
-            Block[] blocks = new Block[] {
-                new Block(BlockType.Empty, 3),
-                new Block(BlockType.Block, 2),
-                new Block(BlockType.RoundBlock, 2),
-                new Block(BlockType.Empty, 3)
+            BlockRun[] blocks = new BlockRun[] {
+                new BlockRun(BlockType.Empty, 3),
+                new BlockRun(BlockType.Block, 2),
+                new BlockRun(BlockType.RoundBlock, 2),
+                new BlockRun(BlockType.Empty, 3)
             };
 
             BlockCompression.SetBlock(ref blocks, BlockType.RoundBlock, 4);
@@ -121,7 +121,7 @@ namespace Test
         [TestMethod]
         public void SetBlock_EmptyToNonEmptyAndBack_ShouldCompressCorrectly()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Empty, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
 
             BlockCompression.SetBlock(ref blocks, BlockType.Block, 5);
             BlockCompression.SetBlock(ref blocks, BlockType.Empty, 5);
@@ -134,7 +134,7 @@ namespace Test
         [TestMethod]
         public void GetBlock_BeyondEndOfSingleBlockChunk_ShouldReturnDefault()
         {
-            Block[] blocks = new Block[] { new Block(BlockType.Block, 10) };
+            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Block, 10) };
 
             var blockInfo = BlockCompression.GetBlock(blocks, 10);
 
@@ -144,7 +144,7 @@ namespace Test
         [TestMethod]
         public void GetBlock_FromEmptyArray_ShouldReturnDefault()
         {
-            Block[] blocks = new Block[0];
+            BlockRun[] blocks = new BlockRun[0];
 
             var blockInfo = BlockCompression.GetBlock(blocks, 5);
 

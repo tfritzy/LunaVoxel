@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { FolderOpen, X } from "lucide-react";
+import { FolderOpen, Search, X } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useNavigate, useParams } from "react-router-dom";
 import { createWorld } from "@/lib/createWorld";
@@ -90,8 +90,8 @@ const WorldList: React.FC<WorldListProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="sm:max-w-[1200px] max-h-[80vh] flex flex-col p-0">
-        <div className="px-6 pt-4">
+      <div className="sm:max-w-[1200px] min-h-[80vh] max-h-[90vh] flex flex-col p-0">
+        <div className="px-6 pt-4 flex-shrink-0">
           <div className="flex flex-row justify-between">
             <h2 className="text-xl font-semibold mb-6">Open a world</h2>
             <Button onClick={onClose} variant="ghost">
@@ -108,7 +108,7 @@ const WorldList: React.FC<WorldListProps> = ({
           </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto pb-6 h-screen">
+        <div className="flex flex-col flex-grow overflow-y-auto">
           <Input
             type="text"
             placeholder="Search worlds..."
@@ -117,69 +117,74 @@ const WorldList: React.FC<WorldListProps> = ({
             className="max-w-xs h-8 my-1 ml-6"
           />
 
-          {worlds.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8 border border-dashed border-border px-6">
-              <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
-              <p className="mb-2 text-lg font-medium text-foreground">
-                No Worlds Found
-              </p>
-              <p className="mb-4 text-sm text-muted-foreground">
-                You don't have any worlds yet. Create one to get started!
-              </p>
-              <Button
-                variant="default"
-                onClick={() => {
-                  if (!connection?.isActive) return;
-                  createWorld(connection, navigate);
-                }}
-              >
-                Create New World
-              </Button>
-            </div>
-          ) : (
-            groupOrder.map((groupName) => {
-              const worldsInGroup = processedWorlds[groupName];
-              if (worldsInGroup && worldsInGroup.length > 0) {
-                return (
-                  <div key={groupName}>
-                    <h2 className="text-sm px-6 font-semibold text-muted-foreground mb-2 mt-4">
-                      {groupName}
-                    </h2>
-                    <div className="border-t border-border">
-                      {worldsInGroup.map((world) => (
-                        <div
-                          key={world.id}
-                          className="p-3 px-6 hover:bg-black/20 hover:text-accent-foreground cursor-pointer border-b border-border flex justify-between items-center"
-                          onClick={() => {
-                            onWorldClick(world.id);
-                            onClose();
-                          }}
-                        >
-                          <p className="font-medium text-foreground">
-                            {world.name}{" "}
-                            {world.id === worldId ? "(Current)" : ""}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {world.xWidth}x{world.yWidth}x{world.height}
-                          </p>
-                        </div>
-                      ))}
+          <div className="flex-1 min-h-0 flex flex-col">
+            {worlds.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 px-6">
+                <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
+                <p className="mb-2 text-lg font-medium text-foreground">
+                  No Worlds Found
+                </p>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  You don't have any worlds yet. Create one to get started!
+                </p>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    if (!connection?.isActive) return;
+                    createWorld(connection, navigate);
+                  }}
+                >
+                  Create New World
+                </Button>
+              </div>
+            ) : (
+              groupOrder.map((groupName) => {
+                const worldsInGroup = processedWorlds[groupName];
+                if (worldsInGroup && worldsInGroup.length > 0) {
+                  return (
+                    <div key={groupName}>
+                      <h2 className="text-sm px-6 font-semibold text-muted-foreground mb-2 mt-4">
+                        {groupName}
+                      </h2>
+                      <div className="border-t border-border">
+                        {worldsInGroup.map((world) => (
+                          <div
+                            key={world.id}
+                            className="p-3 px-6 hover:bg-black/20 hover:text-accent-foreground cursor-pointer border-b border-border flex justify-between items-center"
+                            onClick={() => {
+                              onWorldClick(world.id);
+                              onClose();
+                            }}
+                          >
+                            <p className="font-medium text-foreground">
+                              {world.name}{" "}
+                              {world.id === worldId ? "(Current)" : ""}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {world.xWidth}x{world.yWidth}x{world.height}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              }
-              return null;
-            })
-          )}
-          {worlds.length > 0 &&
-            Object.values(processedWorlds).every(
-              (group) => group.length === 0
-            ) &&
-            searchTerm && (
-              <p className="text-center text-muted-foreground mt-4">
-                No worlds found matching your search.
-              </p>
+                  );
+                }
+                return null;
+              })
             )}
+            {worlds.length > 0 &&
+              Object.values(processedWorlds).every(
+                (group) => group.length === 0
+              ) &&
+              searchTerm && (
+                <div className="flex-1 flex flex-col items-center justify-center min-h-[200px]">
+                  <Search className="w-16 h-16 stroke-muted-foreground" />
+                  <p className="text-center text-muted-foreground mt-4">
+                    No worlds found matching your search.
+                  </p>
+                </div>
+              )}
+          </div>
         </div>
       </div>
     </Modal>

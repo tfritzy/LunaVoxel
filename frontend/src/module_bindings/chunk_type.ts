@@ -30,14 +30,15 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Block as __Block } from "./block_type";
+import { BlockRun as __BlockRun } from "./block_run_type";
 
 export type Chunk = {
   id: string,
   world: string,
-  x: number,
-  y: number,
-  blocks: __Block[],
+  xDim: number,
+  yDim: number,
+  layer: number,
+  blocks: __BlockRun[][][],
 };
 
 /**
@@ -52,9 +53,10 @@ export namespace Chunk {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("x", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y", AlgebraicType.createI32Type()),
-      new ProductTypeElement("blocks", AlgebraicType.createArrayType(__Block.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
+      new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
+      new ProductTypeElement("layer", AlgebraicType.createI32Type()),
+      new ProductTypeElement("blocks", AlgebraicType.createArrayType(AlgebraicType.createArrayType(AlgebraicType.createArrayType(__BlockRun.getTypeScriptAlgebraicType())))),
     ]);
   }
 

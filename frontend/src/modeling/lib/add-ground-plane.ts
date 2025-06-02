@@ -18,7 +18,7 @@ export function addGroundPlane(
   });
   const borderPlane = new THREE.Mesh(borderGeometry, borderMaterial);
   borderPlane.rotation.x = Math.PI / 2;
-  borderPlane.position.y = -0.01;
+  borderPlane.position.set(worldWidth / 2, -0.01, worldHeight / 2);
   borderPlane.receiveShadow = true;
   scene.add(borderPlane);
 
@@ -30,9 +30,10 @@ export function addGroundPlane(
   });
   const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
   groundPlane.rotation.x = Math.PI / 2;
-  groundPlane.position.y = 0.0001;
+  groundPlane.position.set(worldWidth / 2, 0.0001, worldHeight / 2);
   groundPlane.receiveShadow = true;
   scene.add(groundPlane);
+
   groundPlane.layers.set(layers.raycast);
 
   const batchedGridMesh = createBatchedGridLines(worldWidth, worldHeight);
@@ -64,26 +65,28 @@ function createBatchedGridLines(
     return lineWidths[0];
   }
 
-  for (let i = -worldWidth / 2; i <= worldWidth / 2; i++) {
+  // Vertical lines (running along Z-axis)
+  for (let i = 0; i <= worldWidth; i++) {
     const dynamicLineWidth = getLineWidthForGrid(i);
-    const hLineGeom = new THREE.BoxGeometry(
+    const vLineGeom = new THREE.BoxGeometry(
       dynamicLineWidth,
       lineThickness,
       worldHeight
     );
-    hLineGeom.translate(i, lineYPosition, 0);
-    geometries.push(hLineGeom);
+    vLineGeom.translate(i, lineYPosition, worldHeight / 2);
+    geometries.push(vLineGeom);
   }
 
-  for (let i = -worldHeight / 2; i <= worldHeight / 2; i++) {
+  // Horizontal lines (running along X-axis)
+  for (let i = 0; i <= worldHeight; i++) {
     const dynamicLineWidth = getLineWidthForGrid(i);
-    const vLineGeom = new THREE.BoxGeometry(
+    const hLineGeom = new THREE.BoxGeometry(
       worldWidth,
       lineThickness,
       dynamicLineWidth
     );
-    vLineGeom.translate(0, lineYPosition, i);
-    geometries.push(vLineGeom);
+    hLineGeom.translate(worldWidth / 2, lineYPosition, i);
+    geometries.push(hLineGeom);
   }
 
   if (geometries.length === 0) {

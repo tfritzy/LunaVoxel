@@ -10,7 +10,7 @@ import { ChunkMesh } from "./chunk-mesh";
 
 export class WorldManager {
   private scene: THREE.Scene;
-  private chunkMeshes: Map<string, ChunkMesh>;
+  private chunkMesh: ChunkMesh;
   private dbConn: DbConnection;
   private world: World;
   private currentPreview: PreviewVoxels | null = null;
@@ -19,7 +19,12 @@ export class WorldManager {
     this.dbConn = dbConn;
     this.scene = scene;
     this.world = world;
-    this.chunkMeshes = new Map();
+    this.chunkMesh = new ChunkMesh(
+      scene,
+      world.xWidth,
+      world.height,
+      world.yWidth
+    );
     this.setupEvents();
     this.setupChunks();
   }
@@ -36,65 +41,26 @@ export class WorldManager {
   ) => {
     if (previewVoxels.world === this.world.id) {
       this.currentPreview = previewVoxels;
-      this.updateAllChunksWithPreview();
+      this.chunkMesh.update(
+        this.dbConn.db.chunk.tableCache
+          .iter()
+          .find((c) => c.world === this.world.id),
+        this.currentPreview
+      );
     }
   };
 
   setupChunks() {
     this.dbConn.db.chunk.tableCache.iter().forEach((chunk) => {
       const c = chunk as Chunk;
-      if (!this.chunkMeshes.has(c.x + "_" + c.y)) {
-        const chunkManager = new ChunkMesh(this.scene, 1, 1, this.world.height);
-        chunkManager.update(c, this.currentPreview);
-        this.chunkMeshes.set(c.x + "_" + c.y, chunkManager);
-      }
+      if (c.world != this.world.id) return;
+      this.chunkMesh.update(c, this.currentPreview);
     });
   }
 
   onChunkUpdate = (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
-    const chunkKey = newRow.x + "_" + newRow.y;
-    const chunkMesh = this.chunkMeshes.get(chunkKey);
-    if (chunkMesh) {
-      chunkMesh.update(newRow, this.getPreviewForChunk(newRow.x, newRow.y));
-    }
+    this.chunkMesh.update(newRow, this.currentPreview);
   };
-
-  private updateAllChunksWithPreview() {
-    this.chunkMeshes.forEach((chunkMesh, chunkKey) => {
-      const [x, y] = chunkKey.split("_").map(Number);
-      const chunk = this.dbConn.db.chunk.tableCache
-        .iter()
-        .find((c) => c.x === x && c.y === y);
-      if (chunk) {
-        chunkMesh.update(chunk, this.getPreviewForChunk(x, y));
-      }
-    });
-  }
-
-  private getPreviewForChunk(
-    chunkX: number,
-    chunkY: number
-  ): PreviewVoxels | null {
-    if (
-      !this.currentPreview ||
-      this.currentPreview.previewPositions.length === 0
-    ) {
-      return null;
-    }
-
-    const chunkPositions = this.currentPreview.previewPositions.filter(
-      (pos) => pos.x === chunkX && pos.y === chunkY
-    );
-
-    if (chunkPositions.length === 0) {
-      return null;
-    }
-
-    return {
-      ...this.currentPreview,
-      previewPositions: chunkPositions,
-    };
-  }
 
   dispose() {}
 }

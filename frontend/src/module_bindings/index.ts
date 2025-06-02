@@ -60,10 +60,10 @@ import { WorldTableHandle } from "./world_table.ts";
 export { WorldTableHandle };
 
 // Import and reexport all types
-import { Block } from "./block_type.ts";
-export { Block };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
+import { BlockRun } from "./block_run_type.ts";
+export { BlockRun };
 import { BlockType } from "./block_type_type.ts";
 export { BlockType };
 import { Chunk } from "./chunk_type.ts";

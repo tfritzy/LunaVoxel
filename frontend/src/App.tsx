@@ -12,7 +12,6 @@ import WorldListPage from "./pages/WorldListPage";
 
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
-  const [identity, setIdentity] = useState<Identity | null>(null);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -21,7 +20,6 @@ function AppContent() {
       identity: Identity,
       token: string
     ) => {
-      setIdentity(identity);
       setConn(connection);
       localStorage.setItem("auth_token", token);
     };
@@ -29,7 +27,6 @@ function AppContent() {
     const onDisconnect = () => {
       console.log("Disconnected from SpacetimeDB");
       setConn(null);
-      setIdentity(null);
     };
 
     const onConnectError = (_ctx: ErrorContext, err: Error) => {

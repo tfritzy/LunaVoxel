@@ -32,16 +32,16 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 import { BlockType as __BlockType } from "./block_type_type";
 
-export type Block = {
+export type BlockRun = {
   type: __BlockType,
   count: number,
-  color: string,
+  color: string | undefined,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace Block {
+export namespace BlockRun {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -50,16 +50,16 @@ export namespace Block {
     return AlgebraicType.createProductType([
       new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("count", AlgebraicType.createI32Type()),
-      new ProductTypeElement("color", AlgebraicType.createStringType()),
+      new ProductTypeElement("color", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Block): void {
-    Block.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: BlockRun): void {
+    BlockRun.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Block {
-    return Block.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): BlockRun {
+    return BlockRun.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

@@ -52,7 +52,7 @@ public static partial class Module
         public Identity Player;
         public string World;
         public Vector3[] PreviewPositions = [];
-        public string BlockColor;
+        public string? BlockColor;
         public bool IsAddMode;
     }
 
@@ -65,13 +65,13 @@ public static partial class Module
     }
 
     [Type]
-    public partial struct Block
+    public partial struct BlockRun
     {
         public BlockType Type;
         public int Count;
-        public string Color;
+        public string? Color;
 
-        public Block(BlockType type, int count, string color = "#FFFFFF")
+        public BlockRun(BlockType type, int count, string? color = null)
         {
             this.Type = type;
             this.Count = count;
@@ -94,24 +94,36 @@ public static partial class Module
     public enum BlockModificationMode { Build, Erase, Paint }
 
     [Table(Name = "Chunk", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "chunk_world", Columns = new[] { nameof(World) })]
     public partial class Chunk
     {
         [PrimaryKey]
         public string Id;
         public string World;
-        public int X;
-        public int Y;
-        public Block[] Blocks = [];
+        public int xDim;
+        public int yDim;
+        public int Layer;
+        public BlockRun[][][] Blocks = [];
 
-        public static Chunk Build(string world, int x, int y, int z)
+        public static Chunk Build(string world, int xDim, int yDim, int zDim, int layer)
         {
+            BlockRun[][][] blocks = new BlockRun[xDim][][];
+            for (int i = 0; i < xDim; i++)
+            {
+                blocks[i] = new BlockRun[yDim][];
+                for (int j = 0; j < yDim; j++)
+                {
+                    blocks[i][j] = [new BlockRun() { Count = zDim, Type = BlockType.Empty }];
+                }
+            }
             return new Chunk
             {
-                Id = $"{world}_{x}_{y}",
-                X = x,
-                Y = y,
+                Id = $"{world}_{layer}",
                 World = world,
-                Blocks = [new Block(BlockType.Empty, z)]
+                xDim = xDim,
+                yDim = yDim,
+                Blocks = blocks,
+                Layer = layer
             };
         }
     }
@@ -121,10 +133,12 @@ public static partial class Module
     {
         var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
             ?? throw new ArgumentException("You're not in this world.");
-
         var palette = ctx.Db.ColorPalette.World.Find(world)
             ?? throw new ArgumentException("No color palette for world.");
         var color = palette.Colors[player.SelectedColorIndex];
+        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
+        var chunk = ctx.Db.Chunk.Id.Find($"{world}_0")
+            ?? throw new ArgumentException("No chunk for this world");
 
         int minX = Math.Min(x1, x2);
         int maxX = Math.Max(x1, x2);
@@ -132,10 +146,6 @@ public static partial class Module
         int maxY = Math.Max(y1, y2);
         int minZ = Math.Min(z1, z2);
         int maxZ = Math.Max(z1, z2);
-
-        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
-        HashSet<string> affectedChunkIds = [];
-        Dictionary<string, Chunk> chunks = new();
 
         if (isPreview)
         {
@@ -148,49 +158,24 @@ public static partial class Module
                     World = world,
                     PreviewPositions = [],
                     IsAddMode = mode != BlockModificationMode.Erase,
-                    BlockColor = mode == BlockModificationMode.Erase ? "#Ffffff" : color
+                    BlockColor = mode == BlockModificationMode.Erase ? null : color
                 };
                 ctx.Db.PreviewVoxels.Insert(previewVoxels);
             }
 
             var positions = new List<Vector3>();
-
-            if (mode == BlockModificationMode.Paint)
+            if (mode == BlockModificationMode.Paint || mode == BlockModificationMode.Erase)
             {
-                affectedChunkIds = new HashSet<string>();
                 for (int x = minX; x <= maxX; x++)
                 {
                     for (int y = minY; y <= maxY; y++)
                     {
-                        affectedChunkIds.Add($"{world}_{x}_{y}");
-                    }
-                }
-
-                chunks = new Dictionary<string, Chunk>();
-                foreach (var chunkId in affectedChunkIds)
-                {
-                    var chunk = ctx.Db.Chunk.Id.Find(chunkId);
-                    if (chunk != null)
-                    {
-                        chunks[chunkId] = chunk;
-                    }
-                }
-
-                for (int x = minX; x <= maxX; x++)
-                {
-                    for (int y = minY; y <= maxY; y++)
-                    {
-                        var chunkId = $"{world}_{x}_{y}";
-                        if (chunks.ContainsKey(chunkId))
+                        for (int z = minZ; z <= maxZ; z++)
                         {
-                            var chunk = chunks[chunkId];
-                            for (int z = minZ; z <= maxZ; z++)
+                            var existingBlock = BlockCompression.GetBlock(chunk.Blocks[x][y], z);
+                            if (existingBlock.Type != BlockType.Empty)
                             {
-                                var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
-                                if (existingBlock.Type != BlockType.Empty)
-                                {
-                                    positions.Add(new Vector3(x, y, z));
-                                }
+                                positions.Add(new Vector3(x, y, z));
                             }
                         }
                     }
@@ -217,67 +202,39 @@ public static partial class Module
             return;
         }
 
-        var existingPreview = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
-        if (existingPreview != null)
+        if (previewVoxels != null)
         {
-            existingPreview.PreviewPositions = [];
-            ctx.Db.PreviewVoxels.Id.Update(existingPreview);
-        }
-
-        affectedChunkIds = new HashSet<string>();
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                affectedChunkIds.Add($"{world}_{x}_{y}");
-            }
-        }
-
-        chunks = new Dictionary<string, Chunk>();
-        foreach (var chunkId in affectedChunkIds)
-        {
-            var chunk = ctx.Db.Chunk.Id.Find(chunkId);
-            if (chunk != null)
-            {
-                chunks[chunkId] = chunk;
-            }
+            previewVoxels.PreviewPositions = [];
+            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
         }
 
         for (int x = minX; x <= maxX; x++)
         {
             for (int y = minY; y <= maxY; y++)
             {
-                var chunkId = $"{world}_{x}_{y}";
-                if (chunks.ContainsKey(chunkId))
+                for (int z = minZ; z <= maxZ; z++)
                 {
-                    var chunk = chunks[chunkId];
-                    for (int z = minZ; z <= maxZ; z++)
+                    switch (mode)
                     {
-                        switch (mode)
-                        {
-                            case BlockModificationMode.Build:
-                                BlockCompression.SetBlock(ref chunk.Blocks, type, z, color);
-                                break;
-                            case BlockModificationMode.Erase:
-                                BlockCompression.SetBlock(ref chunk.Blocks, BlockType.Empty, z);
-                                break;
-                            case BlockModificationMode.Paint:
-                                var existingBlock = BlockCompression.GetBlock(chunk.Blocks, z);
-                                if (existingBlock.Type != BlockType.Empty)
-                                {
-                                    BlockCompression.SetBlock(ref chunk.Blocks, existingBlock.Type, z, color);
-                                }
-                                break;
-                        }
+                        case BlockModificationMode.Build:
+                            BlockCompression.SetBlock(ref chunk.Blocks[x][y], type, z, color);
+                            break;
+                        case BlockModificationMode.Erase:
+                            BlockCompression.SetBlock(ref chunk.Blocks[x][y], BlockType.Empty, z);
+                            break;
+                        case BlockModificationMode.Paint:
+                            var existingBlock = BlockCompression.GetBlock(chunk.Blocks[x][y], z);
+                            if (existingBlock.Type != BlockType.Empty)
+                            {
+                                BlockCompression.SetBlock(ref chunk.Blocks[x][y], existingBlock.Type, z, color);
+                            }
+                            break;
                     }
                 }
             }
         }
 
-        foreach (var chunk in chunks.Values)
-        {
-            ctx.Db.Chunk.Id.Update(chunk);
-        }
+        ctx.Db.Chunk.Id.Update(chunk);
     }
 
     [Reducer]
@@ -285,15 +242,7 @@ public static partial class Module
     {
         var world = World.Build(id, name, xDim, yDim, zDim, ctx.Sender, ctx.Timestamp);
         ctx.Db.World.Insert(world);
-
-        for (int x = -xDim / 2; x < xDim / 2; x++)
-        {
-            for (int y = -yDim / 2; y < yDim / 2; y++)
-            {
-                ctx.Db.Chunk.Insert(Chunk.Build(world.Id, x, y, zDim));
-            }
-        }
-
+        ctx.Db.Chunk.Insert(Chunk.Build(world.Id, xDim, yDim, zDim, 0));
         InitializePalette(ctx, world.Id);
     }
 

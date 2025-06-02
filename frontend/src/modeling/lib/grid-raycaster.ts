@@ -19,6 +19,7 @@ export class GridRaycaster {
   private currentTool: BlockModificationMode = { tag: "Build" };
   private boundMouseMove: (event: MouseEvent) => void;
   private boundMouseClick: (event: MouseEvent) => void;
+  private lastHoveredPosition: THREE.Vector3 | null = null;
 
   constructor(
     camera: THREE.Camera,
@@ -33,10 +34,8 @@ export class GridRaycaster {
     this.scene = scene;
     this.domElement = domElement;
     this.events = events;
-
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
-
     this.addEventListeners();
   }
 
@@ -58,6 +57,8 @@ export class GridRaycaster {
     this.updateMousePosition(event);
     const placementPosition = this.checkIntersection();
 
+    this.lastHoveredPosition = placementPosition || this.lastHoveredPosition;
+
     if (this.events.onHover) {
       this.events.onHover(placementPosition);
     }
@@ -67,25 +68,22 @@ export class GridRaycaster {
     if (event.button !== 0) {
       return;
     }
-
     this.updateMousePosition(event);
     const placementPosition = this.checkIntersection();
 
     if (this.events.onClick) {
-      this.events.onClick(placementPosition);
+      this.events.onClick(placementPosition || this.lastHoveredPosition);
     }
   }
 
   private updateMousePosition(event: MouseEvent): void {
     const rect = this.domElement.getBoundingClientRect();
-
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
   private checkIntersection(): THREE.Vector3 | null {
     this.raycaster.setFromCamera(this.mouse, this.camera);
-
     const intersects = this.raycaster.intersectObjects(
       this.scene.children,
       true
@@ -98,17 +96,17 @@ export class GridRaycaster {
       if (isGround) {
         const point = intersection.point;
         const gridPos = new THREE.Vector3(
-          Math.floor(point.x),
-          Math.floor(point.y),
-          Math.floor(point.z)
+          Math.max(Math.floor(point.x), 0),
+          Math.max(Math.floor(point.y), 0),
+          Math.max(Math.floor(point.z), 0)
         );
         return gridPos;
       } else {
         const point = intersection.object.position.clone();
         const gridPos = new THREE.Vector3(
-          Math.floor(point.x),
-          Math.floor(point.y),
-          Math.floor(point.z)
+          Math.max(Math.floor(point.x), 0),
+          Math.max(Math.floor(point.y), 0),
+          Math.max(Math.floor(point.z), 0)
         );
 
         if (
@@ -125,7 +123,6 @@ export class GridRaycaster {
         }
       }
     }
-
     return null;
   }
 
