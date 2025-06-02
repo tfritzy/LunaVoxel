@@ -1,4 +1,4 @@
-import { Plus, FolderOpen } from "lucide-react";
+import { Plus, FolderOpen, FileDown, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,12 +27,20 @@ export default function FileDropdown({
       <DropdownMenuContent align="start" className="w-48">
         <DropdownMenuItem onClick={onNewWorld}>
           <Plus className="mr-2 h-4 w-4" />
-          New World
+          New
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onOpenWorld}>
           <FolderOpen className="mr-2 h-4 w-4" />
           Open
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled onClick={onOpenWorld}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Export (WIP)
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled onClick={onOpenWorld}>
+          <FileUp className="mr-2 h-4 w-4" />
+          Import (WIP)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
