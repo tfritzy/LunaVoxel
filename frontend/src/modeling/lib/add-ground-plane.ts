@@ -4,49 +4,87 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 export function addGroundPlane(
   scene: THREE.Scene,
-  worldWidth: number,
-  worldHeight: number
+  worldXDim: number,
+  worldYDim: number,
+  worldZDim: number
 ) {
-  const borderExtension = 0.06;
-  const borderGeometry = new THREE.PlaneGeometry(
-    worldWidth + borderExtension * 2,
-    worldHeight + borderExtension * 2
+  const invisibleBoxGeometry = new THREE.BoxGeometry(
+    worldXDim,
+    worldZDim,
+    worldYDim
   );
-  const borderMaterial = new THREE.MeshBasicMaterial({
-    color: 0x444444,
-    side: THREE.DoubleSide,
-  });
-  const borderPlane = new THREE.Mesh(borderGeometry, borderMaterial);
-  borderPlane.rotation.x = Math.PI / 2;
-  borderPlane.position.set(worldWidth / 2, -0.01, worldHeight / 2);
-  borderPlane.receiveShadow = true;
-  scene.add(borderPlane);
 
-  const groundGeometry = new THREE.PlaneGeometry(worldWidth, worldHeight);
-  const groundMaterial = new THREE.MeshPhongMaterial({
-    color: 0x333333,
-    side: THREE.DoubleSide,
+  const index = invisibleBoxGeometry.index;
+  if (index) {
+    const indexArray = index.array;
+    for (let i = 0; i < indexArray.length; i += 3) {
+      const temp = indexArray[i + 1];
+      indexArray[i + 1] = indexArray[i + 2];
+      indexArray[i + 2] = temp;
+    }
+    index.needsUpdate = true;
+  }
+
+  const invisibleBoxMaterial = new THREE.MeshBasicMaterial({
     transparent: true,
+    opacity: 0,
+    side: THREE.FrontSide,
   });
-  const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
-  groundPlane.rotation.x = Math.PI / 2;
-  groundPlane.position.set(worldWidth / 2, 0.0001, worldHeight / 2);
-  groundPlane.receiveShadow = true;
-  scene.add(groundPlane);
 
-  groundPlane.layers.set(layers.raycast);
+  const invisibleBox = new THREE.Mesh(
+    invisibleBoxGeometry,
+    invisibleBoxMaterial
+  );
+  invisibleBox.position.set(worldXDim / 2, worldZDim / 2, worldYDim / 2);
+  invisibleBox.layers.set(layers.raycast);
+  invisibleBox.userData.isBoundaryBox = true;
+  scene.add(invisibleBox);
 
-  const batchedGridMesh = createBatchedGridLines(worldWidth, worldHeight);
+  const wireframeBox = createWireframeBox(worldXDim, worldYDim, worldZDim);
+  if (wireframeBox) {
+    scene.add(wireframeBox);
+  }
+
+  const batchedGridMesh = createBatchedGridLines(worldXDim, worldYDim);
   if (batchedGridMesh) {
     scene.add(batchedGridMesh);
   }
 
-  return { groundMaterial, groundGeometry, groundPlane };
+  return {
+    invisibleBox,
+    wireframeBox,
+  };
+}
+
+function createWireframeBox(
+  worldXDim: number,
+  worldYDim: number,
+  worldZDim: number
+): THREE.LineSegments | null {
+  const wireframeGeometry = new THREE.BoxGeometry(
+    worldXDim,
+    worldZDim,
+    worldYDim
+  );
+  const edges = new THREE.EdgesGeometry(wireframeGeometry);
+
+  const wireframeMaterial = new THREE.LineBasicMaterial({
+    color: 0x363636,
+    transparent: false,
+  });
+
+  const wireframeBox = new THREE.LineSegments(edges, wireframeMaterial);
+  wireframeBox.position.set(worldXDim / 2, worldZDim / 2, worldYDim / 2);
+  wireframeBox.layers.set(layers.ghost);
+
+  wireframeGeometry.dispose();
+
+  return wireframeBox;
 }
 
 function createBatchedGridLines(
-  worldWidth: number,
-  worldHeight: number
+  worldXDim: number,
+  worldYDim: number
 ): THREE.Mesh | null {
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: 0x444444,
@@ -65,27 +103,25 @@ function createBatchedGridLines(
     return lineWidths[0];
   }
 
-  // Vertical lines (running along Z-axis)
-  for (let i = 0; i <= worldWidth; i++) {
+  for (let i = 0; i <= worldXDim; i++) {
     const dynamicLineWidth = getLineWidthForGrid(i);
     const vLineGeom = new THREE.BoxGeometry(
       dynamicLineWidth,
       lineThickness,
-      worldHeight
+      worldYDim
     );
-    vLineGeom.translate(i, lineYPosition, worldHeight / 2);
+    vLineGeom.translate(i, lineYPosition, worldYDim / 2);
     geometries.push(vLineGeom);
   }
 
-  // Horizontal lines (running along X-axis)
-  for (let i = 0; i <= worldHeight; i++) {
+  for (let i = 0; i <= worldYDim; i++) {
     const dynamicLineWidth = getLineWidthForGrid(i);
     const hLineGeom = new THREE.BoxGeometry(
-      worldWidth,
+      worldXDim,
       lineThickness,
       dynamicLineWidth
     );
-    hLineGeom.translate(worldWidth / 2, lineYPosition, i);
+    hLineGeom.translate(worldXDim / 2, lineYPosition, i);
     geometries.push(hLineGeom);
   }
 

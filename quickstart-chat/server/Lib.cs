@@ -102,6 +102,7 @@ public static partial class Module
         public string World;
         public int xDim;
         public int yDim;
+        public int zDim;
         public int Layer;
         public BlockRun[][][] Blocks = [];
 
@@ -122,6 +123,7 @@ public static partial class Module
                 World = world,
                 xDim = xDim,
                 yDim = yDim,
+                zDim = zDim,
                 Blocks = blocks,
                 Layer = layer
             };
@@ -146,6 +148,13 @@ public static partial class Module
         int maxY = Math.Max(y1, y2);
         int minZ = Math.Min(z1, z2);
         int maxZ = Math.Max(z1, z2);
+
+        minX = Math.Max(0, Math.Min(minX, chunk.xDim - 1));
+        maxX = Math.Max(0, Math.Min(maxX, chunk.xDim - 1));
+        minY = Math.Max(0, Math.Min(minY, chunk.yDim - 1));
+        maxY = Math.Max(0, Math.Min(maxY, chunk.yDim - 1));
+        minZ = Math.Max(0, Math.Min(minZ, chunk.zDim - 1));
+        maxZ = Math.Max(0, Math.Min(maxZ, chunk.zDim - 1));
 
         if (isPreview)
         {

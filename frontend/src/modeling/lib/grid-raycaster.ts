@@ -91,22 +91,21 @@ export class GridRaycaster {
 
     if (intersects.length > 0) {
       const intersection = intersects[0];
-      const isGround = intersection.object.position.y < 0.1;
 
-      if (isGround) {
+      if (intersection.object.userData.isBoundaryBox) {
         const point = intersection.point;
         const gridPos = new THREE.Vector3(
-          Math.max(Math.floor(point.x), 0),
-          Math.max(Math.floor(point.y), 0),
-          Math.max(Math.floor(point.z), 0)
+          Math.floor(point.x),
+          Math.floor(point.y),
+          Math.floor(point.z)
         );
         return gridPos;
       } else {
         const point = intersection.object.position.clone();
         const gridPos = new THREE.Vector3(
-          Math.max(Math.floor(point.x), 0),
-          Math.max(Math.floor(point.y), 0),
-          Math.max(Math.floor(point.z), 0)
+          Math.floor(point.x),
+          Math.floor(point.y),
+          Math.floor(point.z)
         );
 
         if (

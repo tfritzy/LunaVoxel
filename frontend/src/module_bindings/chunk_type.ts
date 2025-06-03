@@ -37,6 +37,7 @@ export type Chunk = {
   world: string,
   xDim: number,
   yDim: number,
+  zDim: number,
   layer: number,
   blocks: __BlockRun[][][],
 };
@@ -55,6 +56,7 @@ export namespace Chunk {
       new ProductTypeElement("world", AlgebraicType.createStringType()),
       new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
+      new ProductTypeElement("zDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("layer", AlgebraicType.createI32Type()),
       new ProductTypeElement("blocks", AlgebraicType.createArrayType(AlgebraicType.createArrayType(AlgebraicType.createArrayType(__BlockRun.getTypeScriptAlgebraicType())))),
     ]);

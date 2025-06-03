@@ -57,7 +57,12 @@ export class VoxelEngine {
       this.renderer.domElement
     );
     this.setupLights();
-    addGroundPlane(this.scene, this.world.xWidth, this.world.yWidth);
+    addGroundPlane(
+      this.scene,
+      this.world.xWidth,
+      this.world.yWidth,
+      this.world.height
+    );
     this.worldManager = new WorldManager(this.scene, this.conn, this.world);
     this.setupRaycaster();
     this.builder = new Builder(
@@ -87,32 +92,24 @@ export class VoxelEngine {
       this.raycaster = null;
     }
 
-    const groundPlane = this.scene.children.find(
-      (child) =>
-        child instanceof THREE.Mesh &&
-        child.geometry instanceof THREE.PlaneGeometry
-    ) as THREE.Mesh;
-
-    if (groundPlane) {
-      this.raycaster = new GridRaycaster(
-        this.camera,
-        this.scene,
-        this.container,
-        {
-          onHover: (position) => {
-            if (position) {
-              this.builder.onMouseHover(position);
-            }
-          },
-          onClick: (position) => {
-            this.currentGridPosition = position;
-            if (position) {
-              this.builder.onMouseClick(position);
-            }
-          },
-        }
-      );
-    }
+    this.raycaster = new GridRaycaster(
+      this.camera,
+      this.scene,
+      this.container,
+      {
+        onHover: (position) => {
+          if (position) {
+            this.builder.onMouseHover(position);
+          }
+        },
+        onClick: (position) => {
+          this.currentGridPosition = position;
+          if (position) {
+            this.builder.onMouseClick(position);
+          }
+        },
+      }
+    );
   }
 
   private setupLights(): void {
