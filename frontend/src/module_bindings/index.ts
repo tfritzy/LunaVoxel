@@ -42,6 +42,8 @@ import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
+import { SelectColor } from "./select_color_reducer.ts";
+export { SelectColor };
 import { SelectColorIndex } from "./select_color_index_reducer.ts";
 export { SelectColorIndex };
 import { VisitWorld } from "./visit_world_reducer.ts";
@@ -128,6 +130,10 @@ const REMOTE_MODULE = {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
     },
+    SelectColor: {
+      reducerName: "SelectColor",
+      argsType: SelectColor.getTypeScriptAlgebraicType(),
+    },
     SelectColorIndex: {
       reducerName: "SelectColorIndex",
       argsType: SelectColorIndex.getTypeScriptAlgebraicType(),
@@ -168,6 +174,7 @@ export type Reducer = never
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
+| { name: "SelectColor", args: SelectColor }
 | { name: "SelectColorIndex", args: SelectColorIndex }
 | { name: "VisitWorld", args: VisitWorld }
 ;
@@ -255,6 +262,22 @@ export class RemoteReducers {
     this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 
+  selectColor(worldId: string, color: string) {
+    const __args = { worldId, color };
+    let __writer = new BinaryWriter(1024);
+    SelectColor.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("SelectColor", __argsBuffer, this.setCallReducerFlags.selectColorFlags);
+  }
+
+  onSelectColor(callback: (ctx: ReducerEventContext, worldId: string, color: string) => void) {
+    this.connection.onReducer("SelectColor", callback);
+  }
+
+  removeOnSelectColor(callback: (ctx: ReducerEventContext, worldId: string, color: string) => void) {
+    this.connection.offReducer("SelectColor", callback);
+  }
+
   selectColorIndex(worldId: string, colorIndex: number) {
     const __args = { worldId, colorIndex };
     let __writer = new BinaryWriter(1024);
@@ -313,6 +336,11 @@ export class SetReducerFlags {
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
   removeColorFromPalette(flags: CallReducerFlags) {
     this.removeColorFromPaletteFlags = flags;
+  }
+
+  selectColorFlags: CallReducerFlags = 'FullUpdate';
+  selectColor(flags: CallReducerFlags) {
+    this.selectColorFlags = flags;
   }
 
   selectColorIndexFlags: CallReducerFlags = 'FullUpdate';

@@ -4,6 +4,8 @@ using SpacetimeDB;
 
 public static partial class Module
 {
+    public const string COLOR_ID_PREFIX = "idx";
+
     [Table(Name = "World", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited", Columns = new[] { nameof(Owner), nameof(LastVisited) })]
     public partial class World
@@ -40,7 +42,7 @@ public static partial class Module
         public string Id;
         public Identity Player;
         public string World;
-        public int SelectedColorIndex = 0;
+        public string SelectedColor;
     }
 
     [Table(Name = "PreviewVoxels", Public = true)]
@@ -137,7 +139,7 @@ public static partial class Module
             ?? throw new ArgumentException("You're not in this world.");
         var palette = ctx.Db.ColorPalette.World.Find(world)
             ?? throw new ArgumentException("No color palette for world.");
-        var color = palette.Colors[player.SelectedColorIndex];
+        var color = GetPlayerColor(player.SelectedColor, palette);
         var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_0")
             ?? throw new ArgumentException("No chunk for this world");
@@ -271,7 +273,7 @@ public static partial class Module
                 Id = IdGenerator.Generate("plr_wrld"),
                 Player = ctx.Sender,
                 World = worldId,
-                SelectedColorIndex = 0
+                SelectedColor = COLOR_ID_PREFIX + "0"
             });
         }
 
@@ -400,7 +402,6 @@ public static partial class Module
         var playerId = $"{ctx.Sender}_{worldId}";
         var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, worldId)).FirstOrDefault()
             ?? throw new Exception($"Player is not in world {worldId}");
-
         var palette = ctx.Db.ColorPalette.World.Find(worldId)
             ?? throw new Exception($"Palette not found for world {worldId}");
 
@@ -409,8 +410,32 @@ public static partial class Module
             throw new Exception($"Color index {colorIndex} is out of range");
         }
 
-        player.SelectedColorIndex = colorIndex;
+        player.SelectedColor = COLOR_ID_PREFIX + colorIndex;
         ctx.Db.PlayerInWorld.Id.Update(player);
+    }
+
+    [Reducer]
+    public static void SelectColor(ReducerContext ctx, string worldId, string color)
+    {
+        var playerId = $"{ctx.Sender}_{worldId}";
+        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, worldId)).FirstOrDefault()
+            ?? throw new Exception($"Player is not in world {worldId}");
+
+        player.SelectedColor = color;
+        ctx.Db.PlayerInWorld.Id.Update(player);
+    }
+
+    public static string GetPlayerColor(string selectedColor, ColorPalette palette)
+    {
+        if (selectedColor.StartsWith(COLOR_ID_PREFIX))
+        {
+            int index = int.Parse(selectedColor.Split(COLOR_ID_PREFIX)[1]);
+            return palette.Colors[index % palette.Colors.Length];
+        }
+        else
+        {
+            return selectedColor;
+        }
     }
 
     private static bool IsValidHexColor(string color)

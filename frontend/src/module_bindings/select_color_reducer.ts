@@ -30,38 +30,34 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-export type PlayerInWorld = {
-  id: string,
-  player: Identity,
-  world: string,
-  selectedColor: string,
+
+export type SelectColor = {
+  worldId: string,
+  color: string,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace PlayerInWorld {
+export namespace SelectColor {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("player", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("selectedColor", AlgebraicType.createStringType()),
+      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("color", AlgebraicType.createStringType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PlayerInWorld): void {
-    PlayerInWorld.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: SelectColor): void {
+    SelectColor.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PlayerInWorld {
-    return PlayerInWorld.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): SelectColor {
+    return SelectColor.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
-
 
