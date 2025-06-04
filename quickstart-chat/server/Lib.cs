@@ -36,6 +36,7 @@ public static partial class Module
 
     [Table(Name = "PlayerInWorld", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "player_world", Columns = new[] { nameof(Player), nameof(World) })]
+    [SpacetimeDB.Index.BTree(Name = "world_color", Columns = new[] { nameof(World), nameof(SelectedColor) })]
     public partial class PlayerInWorld
     {
         [PrimaryKey]
@@ -376,24 +377,58 @@ public static partial class Module
         palette.Colors = newColors.ToArray();
 
         ctx.Db.ColorPalette.World.Update(palette);
+
+        int newColorIndex = palette.Colors.Length - 1;
+
+        var playersToUpdate = ctx.Db.PlayerInWorld.world_color.Filter((worldId, colorHex))
+            .ToList();
+        foreach (var player in playersToUpdate)
+        {
+            player.SelectedColor = COLOR_ID_PREFIX + newColorIndex;
+            ctx.Db.PlayerInWorld.Id.Update(player);
+        }
     }
 
+
     [Reducer]
-    public static void RemoveColorFromPalette(ReducerContext ctx, string worldId, string colorHex)
+    public static void RemoveColorFromPalette(ReducerContext ctx, string worldId, int colorIndex)
     {
         var world = ctx.Db.World.Id.Find(worldId)
             ?? throw new Exception($"World with ID {worldId} not found");
-
         var palette = ctx.Db.ColorPalette.World.Find(worldId);
-        if (palette == null || !palette.Colors.Contains(colorHex))
+        if (palette == null)
         {
             return;
         }
 
-        var newColors = palette.Colors.Where(c => c != colorHex).ToArray();
+        if (colorIndex < 0 || colorIndex >= palette.Colors.Length)
+        {
+            return;
+        }
 
-        palette.Colors = newColors;
+        var newColorsList = palette.Colors.ToList();
+        newColorsList.RemoveAt(colorIndex);
+        palette.Colors = newColorsList.ToArray();
+
         ctx.Db.ColorPalette.World.Update(palette);
+        int newColorsCount = palette.Colors.Length;
+
+        if (colorIndex < newColorsCount)
+        {
+            return;
+        }
+
+        var playersInWorld = ctx.Db.PlayerInWorld.world_color.Filter(
+            (worldId, COLOR_ID_PREFIX + colorIndex)
+        ).ToList();
+        foreach (var player in playersInWorld)
+        {
+            if (player.SelectedColor == COLOR_ID_PREFIX + colorIndex)
+            {
+                player.SelectedColor = newColorsCount > 0 ? COLOR_ID_PREFIX + (newColorsCount - 1) : "#FFFFFF";
+                ctx.Db.PlayerInWorld.Id.Update(player);
+            }
+        }
     }
 
     [Reducer]

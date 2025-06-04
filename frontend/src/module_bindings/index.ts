@@ -246,19 +246,19 @@ export class RemoteReducers {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  removeColorFromPalette(worldId: string, colorHex: string) {
-    const __args = { worldId, colorHex };
+  removeColorFromPalette(worldId: string, colorIndex: number) {
+    const __args = { worldId, colorIndex };
     let __writer = new BinaryWriter(1024);
     RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("RemoveColorFromPalette", __argsBuffer, this.setCallReducerFlags.removeColorFromPaletteFlags);
   }
 
-  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorIndex: number) => void) {
     this.connection.onReducer("RemoveColorFromPalette", callback);
   }
 
-  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorIndex: number) => void) {
     this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 

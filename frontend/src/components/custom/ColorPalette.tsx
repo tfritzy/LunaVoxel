@@ -10,14 +10,52 @@ interface ColorPaletteProps {
   worldId: string;
 }
 
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
+};
+
+const normalizeAndValidateHexColor = (hex: string): string | null => {
+  let normalized = hex.trim();
+  if (!normalized.startsWith("#")) {
+    normalized = `#${normalized}`;
+  }
+
+  if (/^#([0-9A-Fa-f]{3})$/i.test(normalized)) {
+    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
+  }
+  if (/^#([0-9A-Fa-f]{6})$/i.test(normalized)) {
+    return normalized.toLowerCase();
+  }
+  return null;
+};
+
 export default function ColorPalette({ worldId }: ColorPaletteProps) {
   const { connection } = useDatabase();
   const { palette, player } = useCurrentWorld();
+  const [inputValue, setInputValue] = React.useState<string>("");
 
-  const selectColor = (index: number) => {
-    if (!connection || !worldId) return;
-    connection.reducers.selectColorIndex(worldId, index);
-  };
+  const selectColor = React.useCallback(
+    (index: number) => {
+      if (!connection || !worldId) return;
+      connection.reducers.selectColorIndex(worldId, index);
+    },
+    [connection, worldId]
+  );
+
+  const addColorToPalette = React.useCallback(
+    (color: string) => {
+      if (!connection || !worldId) return;
+      connection.reducers.addColorToPalette(worldId, color);
+    },
+    [connection, worldId]
+  );
 
   const selectSpecificColor = React.useCallback(
     (color: string) => {
@@ -26,30 +64,70 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
     [connection?.reducers, worldId]
   );
 
-  const { selectedColor, selectedColorIndex } = React.useMemo(() => {
-    if (player.selectedColor.startsWith("idx")) {
-      const index = parseInt(player.selectedColor.split("idx")[1]);
+  const { selectedColor, selectedColorIndex, isColorDark } =
+    React.useMemo(() => {
+      let colorToTest: string;
+      let finalSelectedColorIndex: number | undefined;
+
+      if (player.selectedColor.startsWith("idx")) {
+        const index = parseInt(player.selectedColor.split("idx")[1]);
+        colorToTest = palette.colors[index];
+        finalSelectedColorIndex = index;
+      } else {
+        colorToTest = player.selectedColor;
+        finalSelectedColorIndex = undefined;
+      }
+
+      const rgb = hexToRgb(colorToTest);
+      let dark = false;
+      if (rgb) {
+        const luminance = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+        dark = luminance < 128;
+      }
+
       return {
-        selectedColor: palette.colors[index],
-        selectedColorIndex: index,
+        selectedColor: colorToTest,
+        selectedColorIndex: finalSelectedColorIndex,
+        isColorDark: dark,
       };
-    } else {
-      return {
-        selectedColor: player.selectedColor,
-        selectedColorIndex: undefined,
-      };
+    }, [palette.colors, player.selectedColor]);
+
+  React.useEffect(() => {
+    setInputValue(selectedColor);
+  }, [selectedColor]);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    setInputValue(currentValue);
+
+    const normalizedColor = normalizeAndValidateHexColor(currentValue);
+    if (normalizedColor && normalizedColor !== selectedColor) {
+      selectSpecificColor(normalizedColor);
     }
-  }, [palette.colors, player.selectedColor]);
+  };
+
+  const handleDeleteColor = React.useCallback(() => {
+    if (selectedColorIndex !== undefined && connection && worldId) {
+      connection.reducers.removeColorFromPalette(worldId, selectedColorIndex);
+    }
+  }, [connection, worldId, selectedColorIndex]);
 
   if (!palette) return null;
 
   return (
-    <div className="flex flex-col grow justify-between p-2 bg-card border-r border-border">
-      <div className="overflow-clip w-min">
+    <div
+      className="flex flex-col w-min justify-between p-2 bg-card border-r border-border"
+      onKeyDown={(e) => {
+        if (e.key === "Delete") {
+          handleDeleteColor();
+        }
+      }}
+    >
+      <div className="flex flex-row flex-wrap mb-4">
         {palette.colors.map((color, index) => (
           <button
             key={index}
-            className="relative w-8 h-8 border border-border hover:scale-105 hover:shadow-sm transition-all"
+            className="relative w-7 h-7 border border-border hover:scale-105 hover:shadow-sm transition-all"
             style={{ backgroundColor: color }}
             onClick={() => selectColor(index)}
             title={`Color ${index + 1}: ${color}`}
@@ -58,7 +136,6 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
               <div className="absolute inset-0 border-1 border-black shadow-md">
                 <div className="w-full h-full border-1 border-white shadow-md">
                   <div className="relative w-full h-full border-1 border-black shadow-md">
-                    {/* Dog ear in top-left using SVG */}
                     <svg
                       className="absolute top-0 left-0 w-4 h-4"
                       viewBox="0 0 12 12"
@@ -80,16 +157,30 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
 
       <div className="pb-10">
         <div>
-          Selected Color
+          <p className="text-primary-muted">Selected Color</p>
           <div className="flex flex-row space-x-1">
-            <div
-              className="rounded grow mb-2 text-center py-1"
-              style={{ backgroundColor: selectedColor }}
-            >
-              {selectedColor}
-            </div>
-            {selectedColorIndex && selectedColorIndex > 0 ? null : (
-              <Button variant="outline" className="w-min h-min">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              className={`w-full rounded shadow-inner text-center py-1 mb-2 border border-input bg-transparent ${
+                isColorDark ? "text-primary" : "text-muted"
+              }`}
+              style={{
+                backgroundColor: selectedColor,
+                caretColor: isColorDark ? "white" : "black",
+              }}
+              spellCheck="false"
+            />
+            {selectedColorIndex !== undefined &&
+            palette.colors[selectedColorIndex] === selectedColor ? null : (
+              <Button
+                aria-label="Add to palette"
+                title="Add to palette"
+                variant="outline"
+                className="h-full"
+                onClick={() => addColorToPalette(selectedColor)}
+              >
                 <FileUp />
               </Button>
             )}

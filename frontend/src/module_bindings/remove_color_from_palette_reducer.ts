@@ -33,7 +33,7 @@ import {
 
 export type RemoveColorFromPalette = {
   worldId: string,
-  colorHex: string,
+  colorIndex: number,
 };
 
 /**
@@ -47,7 +47,7 @@ export namespace RemoveColorFromPalette {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("worldId", AlgebraicType.createStringType()),
-      new ProductTypeElement("colorHex", AlgebraicType.createStringType()),
+      new ProductTypeElement("colorIndex", AlgebraicType.createI32Type()),
     ]);
   }
 
