@@ -6,7 +6,7 @@ import "../custom/color-picker.css";
 import { FileUp } from "lucide-react";
 import { Button } from "../ui/button";
 import PaletteDropdown from "./PaletteDropdown";
-import { ColorPalette as ColorPaletteType } from "@/lib/colorPalettes";
+import { ColorPalette as ColorPaletteType } from "./colorPalettes";
 
 interface ColorPaletteProps {
   worldId: string;
@@ -136,17 +136,17 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
       <div>
         <PaletteDropdown onPaletteSelect={replacePalette} />
 
-        <div className="flex flex-row flex-wrap mb-4">
+        <div className="flex flex-row space-x-1 space-y-1 flex-wrap mb-4">
           {palette.colors.map((color, index) => (
             <button
               key={index}
-              className="relative w-7 h-7 border border-border hover:scale-105 hover:shadow-sm transition-all"
+              className="border border-white/25 relative w-7 h-7 hover:shadow-sm transition-all"
               style={{ backgroundColor: color }}
               onClick={() => selectColor(index)}
               title={`Color ${index + 1}: ${color}`}
             >
               {selectedColorIndex === index && (
-                <div className="absolute inset-0 border-1 border-black shadow-md">
+                <div className="absolute -inset-0.5 border-1 border-black shadow-md">
                   <div className="w-full h-full border-1 border-white shadow-md">
                     <div className="relative w-full h-full border-1 border-black shadow-md">
                       <svg
@@ -171,7 +171,6 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
 
       <div className="pb-10">
         <div>
-          <p className="text-primary-muted">Selected Color</p>
           <div className="flex flex-row space-x-1">
             <input
               type="text"
