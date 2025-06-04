@@ -90,7 +90,7 @@ const WorldList: React.FC<WorldListProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="sm:max-w-[1200px] min-h-[80vh] max-h-[90vh] flex flex-col p-0">
+      <div className="sm:max-w-[1200px] min-h-[80vh] max-h-[90vh] w-[70vw] flex flex-col p-0">
         <div className="px-6 pt-4 flex-shrink-0">
           <div className="flex flex-row justify-between">
             <h2 className="text-xl font-semibold mb-6">Open a world</h2>

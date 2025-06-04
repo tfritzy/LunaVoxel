@@ -5,6 +5,8 @@ import React from "react";
 import "../custom/color-picker.css";
 import { FileUp } from "lucide-react";
 import { Button } from "../ui/button";
+import PaletteDropdown from "./PaletteDropdown";
+import { ColorPalette as ColorPaletteType } from "@/lib/colorPalettes";
 
 interface ColorPaletteProps {
   worldId: string;
@@ -62,6 +64,14 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
       connection?.reducers.selectColor(worldId, color);
     },
     [connection?.reducers, worldId]
+  );
+
+  const replacePalette = React.useCallback(
+    (newPalette: ColorPaletteType) => {
+      if (!connection || !worldId) return;
+      connection.reducers.replacePalette(worldId, newPalette.colors);
+    },
+    [connection, worldId]
   );
 
   const { selectedColor, selectedColorIndex, isColorDark } =
@@ -123,36 +133,40 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
         }
       }}
     >
-      <div className="flex flex-row flex-wrap mb-4">
-        {palette.colors.map((color, index) => (
-          <button
-            key={index}
-            className="relative w-7 h-7 border border-border hover:scale-105 hover:shadow-sm transition-all"
-            style={{ backgroundColor: color }}
-            onClick={() => selectColor(index)}
-            title={`Color ${index + 1}: ${color}`}
-          >
-            {selectedColorIndex === index && (
-              <div className="absolute inset-0 border-1 border-black shadow-md">
-                <div className="w-full h-full border-1 border-white shadow-md">
-                  <div className="relative w-full h-full border-1 border-black shadow-md">
-                    <svg
-                      className="absolute top-0 left-0 w-4 h-4"
-                      viewBox="0 0 12 12"
-                    >
-                      <polygon
-                        points="0,0 10,0 0,10"
-                        fill="white"
-                        stroke="black"
-                        strokeWidth=".4"
-                      />
-                    </svg>
+      <div>
+        <PaletteDropdown onPaletteSelect={replacePalette} />
+
+        <div className="flex flex-row flex-wrap mb-4">
+          {palette.colors.map((color, index) => (
+            <button
+              key={index}
+              className="relative w-7 h-7 border border-border hover:scale-105 hover:shadow-sm transition-all"
+              style={{ backgroundColor: color }}
+              onClick={() => selectColor(index)}
+              title={`Color ${index + 1}: ${color}`}
+            >
+              {selectedColorIndex === index && (
+                <div className="absolute inset-0 border-1 border-black shadow-md">
+                  <div className="w-full h-full border-1 border-white shadow-md">
+                    <div className="relative w-full h-full border-1 border-black shadow-md">
+                      <svg
+                        className="absolute top-0 left-0 w-4 h-4"
+                        viewBox="0 0 12 12"
+                      >
+                        <polygon
+                          points="0,0 10,0 0,10"
+                          fill="white"
+                          stroke="black"
+                          strokeWidth=".4"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </button>
-        ))}
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="pb-10">
