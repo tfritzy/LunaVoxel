@@ -30,12 +30,14 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { BlockType as __BlockType } from "./block_type_type";
+import { MeshType as __MeshType } from "./mesh_type_type";
+import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type BlockRun = {
-  type: __BlockType,
-  count: number,
+  type: __MeshType,
   color: string | undefined,
+  topLeft: __Vector3,
+  bottomRight: __Vector3,
 };
 
 /**
@@ -48,9 +50,10 @@ export namespace BlockRun {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("type", __BlockType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("count", AlgebraicType.createI32Type()),
+      new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("color", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+      new ProductTypeElement("topLeft", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("bottomRight", __Vector3.getTypeScriptAlgebraicType()),
     ]);
   }
 

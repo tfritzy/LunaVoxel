@@ -1,154 +1,144 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
+using System.Linq;
 using static Module;
 
 namespace Test
 {
     [TestClass]
-    public class BlockCompressionTests
+    public class CompressTests
     {
+        private static readonly Block BlueBlock = new(MeshType.Block, "blue");
+        private static readonly Block RedBlock = new(MeshType.RoundBlock, "red");
+
         [TestMethod]
-        public void SetBlock_InEmptyChunk_ShouldAddBlock()
+        public void Compress_SingleSolidVolume_ReturnsOneRun()
         {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
+            // ARRANGE: A 2x2x2 volume completely filled with blue blocks.
+            var blocks = new Block?[2, 2, 2];
+            for (int x = 0; x < 2; x++)
+                for (int y = 0; y < 2; y++)
+                    for (int z = 0; z < 2; z++)
+                    {
+                        blocks[x, y, z] = BlueBlock;
+                    }
 
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 5);
+            // ACT
+            var runs = BlockCompression.Compress(blocks);
 
-            Assert.AreEqual(3, blocks.Length);
-            Assert.AreEqual(BlockType.Empty, blocks[0].Type);
-            Assert.AreEqual(5, blocks[0].Count);
-            Assert.AreEqual(BlockType.Block, blocks[1].Type);
-            Assert.AreEqual(1, blocks[1].Count);
-            Assert.AreEqual(BlockType.Empty, blocks[2].Type);
-            Assert.AreEqual(4, blocks[2].Count);
+            // ASSERT
+            Assert.AreEqual(1, runs.Count, "Should find exactly one run for a solid volume.");
+
+            var run = runs[0];
+            Assert.AreEqual(new Vector3(0, 0, 0), run.TopLeft);
+            Assert.AreEqual(new Vector3(1, 1, 1), run.BottomRight);
+            Assert.AreEqual(BlueBlock.Type, run.Type);
+            Assert.AreEqual(BlueBlock.Color, run.Color);
         }
 
         [TestMethod]
-        public void SetBlock_AtBeginning_ShouldAddBlock()
+        public void Compress_TwoSeparateBlocks_ReturnsTwoRuns()
         {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
+            // ARRANGE: Two different blocks at opposite corners.
+            var blocks = new Block?[2, 2, 2];
+            blocks[0, 0, 0] = BlueBlock;
+            blocks[1, 1, 1] = RedBlock;
 
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 0);
+            // ACT
+            var runs = BlockCompression.Compress(blocks);
 
-            Assert.AreEqual(2, blocks.Length);
-            Assert.AreEqual(BlockType.Block, blocks[0].Type);
-            Assert.AreEqual(1, blocks[0].Count);
-            Assert.AreEqual(BlockType.Empty, blocks[1].Type);
-            Assert.AreEqual(9, blocks[1].Count);
+            // ASSERT
+            Assert.AreEqual(2, runs.Count, "Should find two separate runs.");
+
+            // Check that both expected runs exist (order isn't guaranteed)
+            bool foundBlue = runs.Any(r => r.TopLeft == new Vector3(0, 0, 0) && r.BottomRight == new Vector3(0, 0, 0) && r.Type == BlueBlock.Type);
+            bool foundRed = runs.Any(r => r.TopLeft == new Vector3(1, 1, 1) && r.BottomRight == new Vector3(1, 1, 1) && r.Type == RedBlock.Type);
+
+            Assert.IsTrue(foundBlue, "The blue block run was not found.");
+            Assert.IsTrue(foundRed, "The red block run was not found.");
         }
 
         [TestMethod]
-        public void SetBlock_AtEnd_ShouldAddBlock()
+        public void Compress_LShape_ReturnsTwoRunsDueToGreedyExpansion()
         {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
+            // ARRANGE: An "L" shape of blue blocks.
+            // Because the algorithm expands X then Y, it should create a long horizontal
+            // run and a shorter vertical run.
+            //  B B B
+            //  B
+            //  B
+            var blocks = new Block?[3, 3, 1];
+            blocks[0, 0, 0] = BlueBlock; // Start of the horizontal bar
+            blocks[1, 0, 0] = BlueBlock;
+            blocks[2, 0, 0] = BlueBlock;
+            blocks[0, 1, 0] = BlueBlock; // Start of the vertical bar
+            blocks[0, 2, 0] = BlueBlock;
 
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 9);
+            // ACT
+            var runs = BlockCompression.Compress(blocks);
 
-            Assert.AreEqual(2, blocks.Length);
-            Assert.AreEqual(BlockType.Empty, blocks[0].Type);
-            Assert.AreEqual(9, blocks[0].Count);
-            Assert.AreEqual(BlockType.Block, blocks[1].Type);
-            Assert.AreEqual(1, blocks[1].Count);
+            // ASSERT
+            Assert.AreEqual(2, runs.Count, "The L-shape should be broken into two runs.");
+
+            // The first run found (starting at 0,0,0) should be the horizontal bar
+            var expectedHorizontalRun = new BlockRun(BlueBlock.Type, new Vector3(0, 0, 0), new Vector3(2, 0, 0), BlueBlock.Color);
+            // The remaining blocks form the vertical run
+            var expectedVerticalRun = new BlockRun(BlueBlock.Type, new Vector3(0, 1, 0), new Vector3(0, 2, 0), BlueBlock.Color);
+
+            Assert.IsTrue(runs.Contains(expectedHorizontalRun), "The horizontal part of the L-shape was not found correctly.");
+            Assert.IsTrue(runs.Contains(expectedVerticalRun), "The vertical part of the L-shape was not found correctly.");
         }
 
         [TestMethod]
-        public void SetBlock_SameTypeAsExisting_ShouldNotChange()
+        public void Compress_WithNullsInVolume_CorrectlyIgnoresNulls()
         {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Block, 10) };
+            // ARRANGE: A 2x1x1 run with a null in the middle.
+            // B [null] B
+            var blocks = new Block?[3, 1, 1];
+            blocks[0, 0, 0] = BlueBlock;
+            blocks[2, 0, 0] = BlueBlock;
 
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 5);
+            // ACT
+            var runs = BlockCompression.Compress(blocks);
 
-            Assert.AreEqual(1, blocks.Length);
-            Assert.AreEqual(BlockType.Block, blocks[0].Type);
-            Assert.AreEqual(10, blocks[0].Count);
+            // ASSERT
+            Assert.AreEqual(2, runs.Count, "Should find two runs separated by the null.");
+
+            bool foundFirst = runs.Any(r => r.TopLeft == new Vector3(0, 0, 0) && r.BottomRight == new Vector3(0, 0, 0));
+            bool foundSecond = runs.Any(r => r.TopLeft == new Vector3(2, 0, 0) && r.BottomRight == new Vector3(2, 0, 0));
+
+            Assert.IsTrue(foundFirst, "Did not find the run before the null.");
+            Assert.IsTrue(foundSecond, "Did not find the run after the null.");
         }
 
         [TestMethod]
-        public void SetBlock_WithMerging_ShouldMergeAdjacentSameTypes()
+        public void Compress_VolumeConservation_TotalRunVolumeEqualsBlockCount()
         {
-            BlockRun[] blocks = new BlockRun[] {
-                new BlockRun(BlockType.Empty, 5),
-                new BlockRun(BlockType.Block, 5),
-                new BlockRun(BlockType.Empty, 5)
-            };
+            // ARRANGE: A complex scene with multiple runs and nulls
+            var blocks = new Block?[4, 4, 4];
+            blocks[0, 0, 0] = BlueBlock; // 1x1x1 run
+            blocks[0, 0, 1] = BlueBlock;
 
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 4);
+            blocks[1, 1, 1] = RedBlock; // 2x2x1 run
+            blocks[2, 1, 1] = RedBlock;
+            blocks[1, 2, 1] = RedBlock;
+            blocks[2, 2, 1] = RedBlock;
 
-            Assert.AreEqual(3, blocks.Length);
-            Assert.AreEqual(BlockType.Empty, blocks[0].Type);
-            Assert.AreEqual(4, blocks[0].Count);
-            Assert.AreEqual(BlockType.Block, blocks[1].Type);
-            Assert.AreEqual(6, blocks[1].Count);
-            Assert.AreEqual(BlockType.Empty, blocks[2].Type);
-            Assert.AreEqual(5, blocks[2].Count);
-        }
+            int expectedBlockCount = 6;
 
-        [TestMethod]
-        public void SetBlock_BeyondBlocksLength_ShouldDoNothing()
-        {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
-            int originalLength = blocks.Length;
+            // ACT
+            var runs = BlockCompression.Compress(blocks);
 
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 20);
+            // ASSERT: Calculate the total volume from the runs
+            int actualVolume = 0;
+            foreach (var run in runs)
+            {
+                actualVolume += (run.BottomRight.X - run.TopLeft.X + 1) *
+                                (run.BottomRight.Y - run.TopLeft.Y + 1) *
+                                (run.BottomRight.Z - run.TopLeft.Z + 1);
+            }
 
-            Assert.AreEqual(originalLength, blocks.Length);
-            Assert.AreEqual(BlockType.Empty, blocks[0].Type);
-            Assert.AreEqual(10, blocks[0].Count);
-        }
-
-        [TestMethod]
-        public void SetBlock_MultipleBlocksWithMerge_ShouldHandleComplexCase()
-        {
-            BlockRun[] blocks = new BlockRun[] {
-                new BlockRun(BlockType.Empty, 3),
-                new BlockRun(BlockType.Block, 2),
-                new BlockRun(BlockType.RoundBlock, 2),
-                new BlockRun(BlockType.Empty, 3)
-            };
-
-            BlockCompression.SetBlock(ref blocks, BlockType.RoundBlock, 4);
-
-            Assert.AreEqual(4, blocks.Length);
-            Assert.AreEqual(BlockType.Empty, blocks[0].Type);
-            Assert.AreEqual(3, blocks[0].Count);
-            Assert.AreEqual(BlockType.Block, blocks[1].Type);
-            Assert.AreEqual(1, blocks[1].Count);
-            Assert.AreEqual(BlockType.RoundBlock, blocks[2].Type);
-            Assert.AreEqual(3, blocks[2].Count);
-            Assert.AreEqual(BlockType.Empty, blocks[3].Type);
-            Assert.AreEqual(3, blocks[3].Count);
-        }
-
-        [TestMethod]
-        public void SetBlock_EmptyToNonEmptyAndBack_ShouldCompressCorrectly()
-        {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Empty, 10) };
-
-            BlockCompression.SetBlock(ref blocks, BlockType.Block, 5);
-            BlockCompression.SetBlock(ref blocks, BlockType.Empty, 5);
-
-            Assert.AreEqual(1, blocks.Length);
-            Assert.AreEqual(BlockType.Empty, blocks[0].Type);
-            Assert.AreEqual(10, blocks[0].Count);
-        }
-
-        [TestMethod]
-        public void GetBlock_BeyondEndOfSingleBlockChunk_ShouldReturnDefault()
-        {
-            BlockRun[] blocks = new BlockRun[] { new BlockRun(BlockType.Block, 10) };
-
-            var blockInfo = BlockCompression.GetBlock(blocks, 10);
-
-            Assert.AreEqual(default(BlockType), blockInfo.Type);
-        }
-
-        [TestMethod]
-        public void GetBlock_FromEmptyArray_ShouldReturnDefault()
-        {
-            BlockRun[] blocks = new BlockRun[0];
-
-            var blockInfo = BlockCompression.GetBlock(blocks, 5);
-
-            Assert.AreEqual(default(BlockType), blockInfo.Type);
+            Assert.AreEqual(expectedBlockCount, actualVolume, "The total volume of runs should equal the number of non-null blocks.");
         }
     }
 }

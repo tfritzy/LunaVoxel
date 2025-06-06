@@ -40,6 +40,8 @@ import { InitializePalette } from "./initialize_palette_reducer.ts";
 export { InitializePalette };
 import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
+import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
+export { ModifyBlockRect };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReplacePalette } from "./replace_palette_reducer.ts";
@@ -68,12 +70,12 @@ import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
 import { BlockRun } from "./block_run_type.ts";
 export { BlockRun };
-import { BlockType } from "./block_type_type.ts";
-export { BlockType };
 import { Chunk } from "./chunk_type.ts";
 export { Chunk };
 import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
+import { MeshType } from "./mesh_type_type.ts";
+export { MeshType };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
 import { PreviewVoxels } from "./preview_voxels_type.ts";
@@ -128,6 +130,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlock",
       argsType: ModifyBlock.getTypeScriptAlgebraicType(),
     },
+    ModifyBlockRect: {
+      reducerName: "ModifyBlockRect",
+      argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
+    },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
@@ -179,6 +185,7 @@ export type Reducer = never
 | { name: "CreateWorld", args: CreateWorld }
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "ModifyBlock", args: ModifyBlock }
+| { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SelectColor", args: SelectColor }
@@ -237,20 +244,36 @@ export class RemoteReducers {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  modifyBlock(world: string, mode: BlockModificationMode, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
-    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2, isPreview };
+  modifyBlock(world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], isPreview: boolean) {
+    const __args = { world, mode, type, positions, isPreview };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], isPreview: boolean) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: BlockType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], isPreview: boolean) => void) {
     this.connection.offReducer("ModifyBlock", callback);
+  }
+
+  modifyBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
+    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2, isPreview };
+    let __writer = new BinaryWriter(1024);
+    ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
+  }
+
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+    this.connection.onReducer("ModifyBlockRect", callback);
+  }
+
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+    this.connection.offReducer("ModifyBlockRect", callback);
   }
 
   removeColorFromPalette(worldId: string, colorIndex: number) {
@@ -354,6 +377,11 @@ export class SetReducerFlags {
   modifyBlockFlags: CallReducerFlags = 'FullUpdate';
   modifyBlock(flags: CallReducerFlags) {
     this.modifyBlockFlags = flags;
+  }
+
+  modifyBlockRectFlags: CallReducerFlags = 'FullUpdate';
+  modifyBlockRect(flags: CallReducerFlags) {
+    this.modifyBlockRectFlags = flags;
   }
 
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';

@@ -1,27 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "E:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj": {}
+    "C:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj": {}
   },
   "projects": {
-    "E:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj": {
+    "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj",
+        "projectUniqueName": "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj",
         "projectName": "StdbModule",
-        "projectPath": "E:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj",
-        "packagesPath": "C:\\Users\\tfrit\\.nuget\\packages\\",
-        "outputPath": "E:\\dev\\block-builder\\quickstart-chat\\server\\obj\\",
+        "projectPath": "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj",
+        "packagesPath": "C:\\Users\\tfritzy\\.nuget\\packages\\",
+        "outputPath": "C:\\dev\\block-builder\\quickstart-chat\\server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\tfrit\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\tfritzy\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -48,7 +46,7 @@
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[8.0.15, )",
+              "version": "[8.0.10, )",
               "autoReferenced": true
             },
             "SpacetimeDB.Runtime": {
@@ -72,7 +70,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.408/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403/PortableRuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {
@@ -81,32 +79,30 @@
         }
       }
     },
-    "E:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj": {
+    "C:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj",
+        "projectUniqueName": "C:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj",
         "projectName": "test",
-        "projectPath": "E:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj",
-        "packagesPath": "C:\\Users\\tfrit\\.nuget\\packages\\",
-        "outputPath": "E:\\dev\\block-builder\\quickstart-chat\\test\\obj\\",
+        "projectPath": "C:\\dev\\block-builder\\quickstart-chat\\test\\test.csproj",
+        "packagesPath": "C:\\Users\\tfritzy\\.nuget\\packages\\",
+        "outputPath": "C:\\dev\\block-builder\\quickstart-chat\\test\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\tfrit\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\tfritzy\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj": {
-                "projectPath": "E:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj"
+              "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj": {
+                "projectPath": "C:\\dev\\block-builder\\quickstart-chat\\server\\StdbModule.csproj"
               }
             }
           }
@@ -159,7 +155,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.408/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

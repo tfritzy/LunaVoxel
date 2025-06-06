@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { FolderOpen, Search, X } from "lucide-react";
+import { FileWarning, FolderOpen, Search, X } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useNavigate, useParams } from "react-router-dom";
 import { createWorld } from "@/lib/createWorld";
