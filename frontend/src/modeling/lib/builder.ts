@@ -48,7 +48,13 @@ export class Builder {
   ) {
     if (!this.dbConn.isActive) return;
 
-    this.dbConn.reducers.modifyBlock(
+    console.log(
+      `Modifying block from ${startPos.toArray()} to ${endPos.toArray()} with tool ${
+        tool.tag
+      }`
+    );
+
+    this.dbConn.reducers.modifyBlockRect(
       this.world,
       tool,
       { tag: "Block" },
