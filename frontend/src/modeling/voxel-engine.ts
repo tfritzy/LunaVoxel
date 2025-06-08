@@ -140,31 +140,99 @@ export class VoxelEngine {
   }
 
   private setupPerformanceMonitoring(): void {
-    const rendererStatsElement = document.createElement("div");
+    const rendererStatsElement: HTMLDivElement = document.createElement("div");
     rendererStatsElement.style.position = "fixed";
     rendererStatsElement.style.right = "0";
     rendererStatsElement.style.bottom = "0";
-    rendererStatsElement.style.padding = "5px";
+    rendererStatsElement.style.padding = "10px";
     rendererStatsElement.style.color = "white";
     rendererStatsElement.style.fontFamily = "monospace";
     rendererStatsElement.style.fontSize = "12px";
     rendererStatsElement.style.zIndex = "100";
+    rendererStatsElement.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+    rendererStatsElement.style.borderRadius = "4px";
     this.container.appendChild(rendererStatsElement);
 
-    const updateRendererStats = () => {
+    let frameCount: number = 0;
+    let lastFpsTime: number = performance.now();
+    let fps: number = 0;
+    let frameTime: number = 0;
+    let lastFrameStart: number = 0;
+    let minFrameTime: number = Infinity;
+    let maxFrameTime: number = 0;
+    let avgFrameTime: number = 0;
+    const frameTimeHistory: number[] = [];
+    const HISTORY_SIZE: number = 60;
+
+    const updateStats = (): void => {
+      const now: number = performance.now();
+
+      if (lastFrameStart > 0) {
+        frameTime = now - lastFrameStart;
+
+        minFrameTime = Math.min(minFrameTime, frameTime);
+        maxFrameTime = Math.max(maxFrameTime, frameTime);
+
+        frameTimeHistory.push(frameTime);
+        if (frameTimeHistory.length > HISTORY_SIZE) {
+          frameTimeHistory.shift();
+        }
+
+        avgFrameTime =
+          frameTimeHistory.reduce((a: number, b: number) => a + b, 0) /
+          frameTimeHistory.length;
+      }
+      lastFrameStart = now;
+
+      frameCount++;
+      if (now - lastFpsTime >= 1000) {
+        fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+        frameCount = 0;
+        lastFpsTime = now;
+
+        minFrameTime = Infinity;
+        maxFrameTime = 0;
+      }
+
+      const fpsColor: string =
+        fps < 50 ? "#ff4444" : fps < 55 ? "#ffaa44" : "#44ff44";
+
+      const memInfo = (performance as any).memory;
+      let memoryDisplay: string = "";
+      if (memInfo) {
+        const usedMB: string = (memInfo.usedJSHeapSize / 1024 / 1024).toFixed(
+          1
+        );
+        const totalMB: string = (memInfo.totalJSHeapSize / 1024 / 1024).toFixed(
+          1
+        );
+        memoryDisplay = `<div>Memory: ${usedMB}/${totalMB} MB</div>`;
+      }
+
       const info = this.renderer.info;
       rendererStatsElement.innerHTML = `
-      Draw calls: ${info.render.calls}<br>
-      Triangles: ${info.render.triangles.toLocaleString()}<br>
-      Geometries: ${info.memory.geometries}<br>
-      Textures: ${info.memory.textures}
+      <div style="color: ${fpsColor}; font-weight: bold;">
+        FPS: ${fps}
+      </div>
+      <div>Frame: ${frameTime.toFixed(2)}ms (avg: ${avgFrameTime.toFixed(
+        2
+      )}ms)</div>
+      <div>Min/Max: ${
+        minFrameTime === Infinity ? "0" : minFrameTime.toFixed(2)
+      }/${maxFrameTime.toFixed(2)}ms</div>
+      <hr style="margin: 4px 0; border-color: #444;">
+      <div>Draw calls: ${info.render.calls}</div>
+      <div>Triangles: ${info.render.triangles.toLocaleString()}</div>
+      <div>Geometries: ${info.memory.geometries}</div>
+      <div>Textures: ${info.memory.textures}</div>
+      ${memoryDisplay}
     `;
     };
 
     const originalAnimate = this.animate;
-    this.animate = (currentTime: number = 0) => {
-      originalAnimate(currentTime);
-      updateRendererStats();
+    this.animate = (currentTime: number = 0): void => {
+      originalAnimate.call(this, currentTime);
+      updateStats();
     };
   }
 
