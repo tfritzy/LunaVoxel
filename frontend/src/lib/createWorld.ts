@@ -8,6 +8,6 @@ export function createWorld(
   navigate: NavigateFunction
 ) {
   const id = generateId("world");
-  connection?.reducers.createWorld(id, generateWorldName(), 16, 16, 16);
+  connection?.reducers.createWorld(id, generateWorldName(), 4, 4, 4);
   navigate(`/worlds/${id}`);
 }

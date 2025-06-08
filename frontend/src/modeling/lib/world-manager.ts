@@ -19,12 +19,7 @@ export class WorldManager {
     this.dbConn = dbConn;
     this.scene = scene;
     this.world = world;
-    this.chunkMesh = new ChunkMesh(
-      scene,
-      world.xWidth,
-      world.height,
-      world.yWidth
-    );
+    this.chunkMesh = new ChunkMesh(scene);
     this.setupEvents();
     this.setupChunks();
   }

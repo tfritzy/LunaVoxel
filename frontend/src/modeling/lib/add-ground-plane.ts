@@ -13,7 +13,6 @@ export function addGroundPlane(
     worldZDim,
     worldYDim
   );
-
   const index = invisibleBoxGeometry.index;
   if (index) {
     const indexArray = index.array;
@@ -24,13 +23,11 @@ export function addGroundPlane(
     }
     index.needsUpdate = true;
   }
-
   const invisibleBoxMaterial = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0,
     side: THREE.FrontSide,
   });
-
   const invisibleBox = new THREE.Mesh(
     invisibleBoxGeometry,
     invisibleBoxMaterial
@@ -67,18 +64,14 @@ function createWireframeBox(
     worldYDim
   );
   const edges = new THREE.EdgesGeometry(wireframeGeometry);
-
   const wireframeMaterial = new THREE.LineBasicMaterial({
     color: 0x363636,
     transparent: false,
   });
-
   const wireframeBox = new THREE.LineSegments(edges, wireframeMaterial);
   wireframeBox.position.set(worldXDim / 2, worldZDim / 2, worldYDim / 2);
   wireframeBox.layers.set(layers.ghost);
-
   wireframeGeometry.dispose();
-
   return wireframeBox;
 }
 
@@ -94,7 +87,7 @@ function createBatchedGridLines(
   const lineWidths = [0.01, 0.02, 0.04, 0.06];
   const geometries: THREE.BufferGeometry[] = [];
   const lineThickness = 0.001;
-  const lineYPosition = 0.001;
+  const lineYPosition = 0.001; // Grid lines at Y = 0 + small offset
 
   function getLineWidthForGrid(index: number): number {
     if (index % 20 === 0) return lineWidths[3];
@@ -110,6 +103,7 @@ function createBatchedGridLines(
       lineThickness,
       worldYDim
     );
+    // Vertical grid lines from X=0 to X=worldXDim, positioned at Z center
     vLineGeom.translate(i, lineYPosition, worldYDim / 2);
     geometries.push(vLineGeom);
   }
@@ -121,6 +115,7 @@ function createBatchedGridLines(
       lineThickness,
       dynamicLineWidth
     );
+    // Grid lines from 0 to worldZDim, positioned at X center
     hLineGeom.translate(worldXDim / 2, lineYPosition, i);
     geometries.push(hLineGeom);
   }
@@ -138,6 +133,5 @@ function createBatchedGridLines(
 
   const batchedGridMesh = new THREE.Mesh(mergedGeometry, lineMaterial);
   batchedGridMesh.layers.set(layers.ghost);
-
   return batchedGridMesh;
 }

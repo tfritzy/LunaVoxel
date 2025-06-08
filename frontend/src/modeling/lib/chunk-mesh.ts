@@ -2,6 +2,84 @@ import * as THREE from "three";
 import { BlockRun, Chunk, PreviewVoxels } from "@/module_bindings";
 
 type VoxelDetails = { color: string | undefined; transparant: boolean };
+type VoxelFaces = {
+  color: string;
+  gridPos: THREE.Vector3;
+  faceIndexes: number[];
+};
+
+// Face definitions: [vertices, normal, direction offset]
+const faces = [
+  {
+    vertices: [
+      [0.5, -0.5, -0.5],
+      [0.5, -0.5, 0.5],
+      [0.5, 0.5, 0.5],
+      [0.5, 0.5, -0.5],
+    ],
+    normal: [1, 0, 0],
+    offset: [1, 0, 0],
+  }, // right (+x)
+  {
+    vertices: [
+      [-0.5, -0.5, -0.5],
+      [-0.5, 0.5, -0.5],
+      [-0.5, 0.5, 0.5],
+      [-0.5, -0.5, 0.5],
+    ],
+    normal: [-1, 0, 0],
+    offset: [-1, 0, 0],
+  }, // left (-x)
+  {
+    vertices: [
+      [-0.5, 0.5, -0.5],
+      [0.5, 0.5, -0.5],
+      [0.5, 0.5, 0.5],
+      [-0.5, 0.5, 0.5],
+    ],
+    normal: [0, 1, 0],
+    offset: [0, 1, 0],
+  }, // top (+y)
+  {
+    vertices: [
+      [-0.5, -0.5, -0.5],
+      [-0.5, -0.5, 0.5],
+      [0.5, -0.5, 0.5],
+      [0.5, -0.5, -0.5],
+    ],
+    normal: [0, -1, 0],
+    offset: [0, -1, 0],
+  }, // bottom (-y)
+  {
+    vertices: [
+      [-0.5, -0.5, 0.5],
+      [-0.5, 0.5, 0.5],
+      [0.5, 0.5, 0.5],
+      [0.5, -0.5, 0.5],
+    ],
+    normal: [0, 0, 1],
+    offset: [0, 0, 1],
+  }, // front (+z)
+  {
+    vertices: [
+      [-0.5, -0.5, -0.5],
+      [0.5, -0.5, -0.5],
+      [0.5, 0.5, -0.5],
+      [-0.5, 0.5, -0.5],
+    ],
+    normal: [0, 0, -1],
+    offset: [0, 0, -1],
+  }, // back (-z)
+];
+
+const directions = [
+  new THREE.Vector3(1, 0, 0),
+  new THREE.Vector3(-1, 0, 0),
+  new THREE.Vector3(0, 1, 0),
+  new THREE.Vector3(0, -1, 0),
+  new THREE.Vector3(0, 0, 1),
+  new THREE.Vector3(0, 0, -1),
+];
 
 export class ChunkMesh {
   private scene: THREE.Scene;
@@ -18,11 +96,11 @@ export class ChunkMesh {
       const { topLeft, bottomRight } = blockRun;
       for (let x = topLeft.x; x <= bottomRight.x; x++) {
         if (!decompressed[x]) decompressed[x] = [];
-        for (let y = topLeft.y; y <= bottomRight.y; y++) {
-          if (!decompressed[x][y]) decompressed[x][y] = [];
-          for (let z = topLeft.z; z <= bottomRight.z; z++) {
-            if (!decompressed[x][y][z]) {
-              decompressed[x][y][z] = blockRun;
+        for (let z = topLeft.z; z <= bottomRight.z; z++) {
+          if (!decompressed[x][z]) decompressed[x][z] = [];
+          for (let y = topLeft.y; y <= bottomRight.y; y++) {
+            if (!decompressed[x][z][y]) {
+              decompressed[x][z][y] = blockRun;
             }
           }
         }
@@ -33,98 +111,38 @@ export class ChunkMesh {
   }
 
   update(newChunk: Chunk, previewVoxels?: PreviewVoxels | null) {
-    const voxels = this.parseRuns(newChunk, previewVoxels);
-    this.computeHull(voxels);
-  }
-
-  parseRuns: (
-    chunk: Chunk,
-    previewVoxels?: PreviewVoxels | null
-  ) => (VoxelDetails | undefined)[][][] = (chunk, previewVoxels) => {
-    const voxels: (VoxelDetails | undefined)[][][] = [];
-
-    const targetBlocks = this.decompressBlocks(chunk.blocks);
+    const realBlocks = this.decompressBlocks(newChunk.blocks);
     const previewBlocks = previewVoxels
       ? this.decompressBlocks(previewVoxels.previewPositions)
       : null;
 
-    for (let x = 0; x < chunk.xDim; x++) {
-      if (!voxels[x]) voxels[x] = [];
-      for (let y = 0; y < chunk.yDim; y++) {
-        if (!voxels[x][y]) voxels[x][y] = [];
-        for (let z = 0; z < chunk.zDim; z++) {
-          const blockRun = targetBlocks[x]?.[y]?.[z];
-          const previewBlockRun = previewBlocks
-            ? previewBlocks[x]?.[y]?.[z]
-            : null;
-          if (previewBlockRun) {
-            if (previewVoxels?.isAddMode) {
-              voxels[x][y][z] = {
-                color: previewBlockRun.color,
-                transparant: false,
-              };
-            } else {
-              voxels[x][y][z] = {
-                color: blockRun ? blockRun.color : previewBlockRun.color,
-                transparant: true,
-              };
-            }
-          } else if (blockRun) {
-            voxels[x][y][z] = {
-              color: blockRun.color,
-              transparant: false,
-            };
-          }
-        }
-      }
-    }
+    const exteriorFaces = this.findExteriorFaces(realBlocks, previewBlocks);
+    this.createMesh(exteriorFaces);
+  }
 
-    return voxels;
-  };
-
-  computeHull: (voxels: (VoxelDetails | undefined)[][][]) => void = (
-    voxels
-  ) => {
-    const exteriorVoxels = this.findExteriorVoxels(voxels);
-    const color = "#FF0000";
-    const mesh = this.createMesh(exteriorVoxels, color);
-    if (this.mesh) {
-      this.scene.remove(this.mesh);
-    }
-    this.mesh = mesh;
-    this.scene.add(mesh);
-  };
-
-  findExteriorVoxels(
-    voxels: (VoxelDetails | undefined)[][][]
-  ): THREE.Vector3[] {
-    const exterior: THREE.Vector3[] = [];
+  findExteriorFaces(
+    realBlocks: (BlockRun | undefined)[][][],
+    previewBlocks: (BlockRun | undefined)[][][] | null
+  ): Map<string, VoxelFaces> {
+    const exteriorFaces: Map<string, VoxelFaces> = new Map();
     const visited: Set<string> = new Set();
     const queue: THREE.Vector3[] = [];
-    const directions = [
-      new THREE.Vector3(1, 0, 0),
-      new THREE.Vector3(-1, 0, 0),
-      new THREE.Vector3(0, 1, 0),
-      new THREE.Vector3(0, -1, 0),
-      new THREE.Vector3(0, 0, 1),
-      new THREE.Vector3(0, 0, -1),
-    ];
 
     const minX = -1;
-    const maxX = voxels.length;
+    const maxX = realBlocks.length;
     const minY = -1;
-    const maxY = voxels[0]?.length || 0;
+    const maxY = realBlocks[0]?.length || 0;
     const minZ = -1;
-    const maxZ = voxels[0]?.[0]?.length || 0;
+    const maxZ = realBlocks[0]?.[0]?.length || 0;
 
     const isInVoxelBounds = (x: number, y: number, z: number): boolean => {
       return (
         x >= 0 &&
-        x < voxels.length &&
+        x < realBlocks.length &&
         y >= 0 &&
-        y < voxels[x]?.length &&
+        y < realBlocks[x]?.length &&
         z >= 0 &&
-        z < voxels[x]?.[y]?.length
+        z < realBlocks[x]?.[y]?.length
       );
     };
 
@@ -144,7 +162,7 @@ export class ChunkMesh {
     };
 
     const isAir = (x: number, y: number, z: number): boolean => {
-      return !isInVoxelBounds(x, y, z) || !voxels[x][y][z];
+      return !isInVoxelBounds(x, y, z) || !realBlocks[x][y][z];
     };
 
     const startX = -1;
@@ -158,7 +176,8 @@ export class ChunkMesh {
       const current = queue.shift()!;
       const { x, y, z } = current;
 
-      for (const dir of directions) {
+      for (let dirIndex = 0; dirIndex < directions.length; dirIndex++) {
+        const dir = directions[dirIndex];
         const nx = x + dir.x;
         const ny = y + dir.y;
         const nz = z + dir.z;
@@ -172,228 +191,130 @@ export class ChunkMesh {
           visited.add(key);
           queue.push(new THREE.Vector3(nx, ny, nz));
         }
-      }
-    }
 
-    for (let x = 0; x < voxels.length; x++) {
-      for (let y = 0; y < voxels[x].length; y++) {
-        for (let z = 0; z < voxels[x][y].length; z++) {
-          if (voxels[x][y][z]) {
-            for (const dir of directions) {
-              const nx = x + dir.x;
-              const ny = y + dir.y;
-              const nz = z + dir.z;
-              const neighborKey = `${nx},${ny},${nz}`;
-
-              if (visited.has(neighborKey)) {
-                exterior.push(new THREE.Vector3(x, y, z));
-                break;
-              }
-            }
+        if (!isAir(nx, ny, nz)) {
+          if (!exteriorFaces.has(key)) {
+            exteriorFaces.set(key, {
+              color: "#ffffff",
+              faceIndexes: [],
+              gridPos: new THREE.Vector3(nx, ny, nz),
+            });
           }
+
+          const oppositeDirIndex =
+            dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
+          exteriorFaces.get(key)!.faceIndexes.push(oppositeDirIndex);
         }
       }
     }
 
-    return exterior;
+    return exteriorFaces;
   }
 
-  createMesh(exteriorVoxels: THREE.Vector3[], color: string): THREE.Mesh {
-    const geometry = new THREE.BufferGeometry();
-    const positions: number[] = [];
-    const normals: number[] = [];
+  createMesh(exteriorFaces: Map<string, VoxelFaces>): THREE.Mesh {
+    const vertices: number[] = [];
     const indices: number[] = [];
+    const normals: number[] = [];
+    const colors: number[] = [];
 
     let vertexIndex = 0;
 
-    // Convert exterior voxels to a Set for fast lookup
-    const voxelSet = new Set(exteriorVoxels.map((v) => `${v.x},${v.y},${v.z}`));
+    // Process each voxel's exterior faces
+    exteriorFaces.forEach((voxelFace, key) => {
+      const { color, gridPos, faceIndexes } = voxelFace;
 
-    // Face definitions: [vertices, normal, direction offset]
-    const faces = [
-      {
-        vertices: [
-          [-0.5, -0.5, -0.5],
-          [0.5, -0.5, -0.5],
-          [0.5, 0.5, -0.5],
-          [-0.5, 0.5, -0.5],
-        ],
-        normal: [0, 0, -1],
-        offset: [0, 0, -1],
-      }, // back
-      {
-        vertices: [
-          [-0.5, -0.5, 0.5],
-          [-0.5, 0.5, 0.5],
-          [0.5, 0.5, 0.5],
-          [0.5, -0.5, 0.5],
-        ],
-        normal: [0, 0, 1],
-        offset: [0, 0, 1],
-      }, // front
-      {
-        vertices: [
-          [-0.5, -0.5, -0.5],
-          [-0.5, -0.5, 0.5],
-          [0.5, -0.5, 0.5],
-          [0.5, -0.5, -0.5],
-        ],
-        normal: [0, -1, 0],
-        offset: [0, -1, 0],
-      }, // bottom
-      {
-        vertices: [
-          [-0.5, 0.5, -0.5],
-          [0.5, 0.5, -0.5],
-          [0.5, 0.5, 0.5],
-          [-0.5, 0.5, 0.5],
-        ],
-        normal: [0, 1, 0],
-        offset: [0, 1, 0],
-      }, // top
-      {
-        vertices: [
-          [-0.5, -0.5, -0.5],
-          [-0.5, 0.5, -0.5],
-          [-0.5, 0.5, 0.5],
-          [-0.5, -0.5, 0.5],
-        ],
-        normal: [-1, 0, 0],
-        offset: [-1, 0, 0],
-      }, // left
-      {
-        vertices: [
-          [0.5, -0.5, -0.5],
-          [0.5, -0.5, 0.5],
-          [0.5, 0.5, 0.5],
-          [0.5, 0.5, -0.5],
-        ],
-        normal: [1, 0, 0],
-        offset: [1, 0, 0],
-      }, // right
-    ];
+      // Convert color string to RGB values (0-1 range)
+      const colorObj = new THREE.Color(color);
+      const r = colorObj.r;
+      const g = colorObj.g;
+      const b = colorObj.b;
 
-    for (const voxel of exteriorVoxels) {
-      for (const face of faces) {
-        // Check if there's an adjacent voxel in this face's direction
-        const adjacentX = voxel.x + face.offset[0];
-        const adjacentY = voxel.y + face.offset[1];
-        const adjacentZ = voxel.z + face.offset[2];
-        const adjacentKey = `${adjacentX},${adjacentY},${adjacentZ}`;
+      // Process each face of this voxel that should be rendered
+      faceIndexes.forEach((faceIndex) => {
+        const face = faces[faceIndex];
+        const faceVertices = face.vertices;
+        const faceNormal = face.normal;
 
-        // Only render this face if there's no adjacent voxel (face is exposed)
-        if (!voxelSet.has(adjacentKey)) {
-          const startIndex = vertexIndex;
+        // Add the 4 vertices for this face (quad)
+        const startVertexIndex = vertexIndex;
 
-          // Add the 4 vertices for this face
-          for (const vertex of face.vertices) {
-            positions.push(
-              voxel.x + vertex[0],
-              voxel.y + vertex[1],
-              voxel.z + vertex[2]
-            );
-            normals.push(face.normal[0], face.normal[1], face.normal[2]);
-          }
-
-          // Add indices for the two triangles that make up this face
-          indices.push(
-            startIndex,
-            startIndex + 1,
-            startIndex + 2,
-            startIndex,
-            startIndex + 2,
-            startIndex + 3
+        faceVertices.forEach((vertex) => {
+          // Transform vertex from local voxel space to world space
+          vertices.push(
+            vertex[0] + gridPos.x,
+            vertex[1] + gridPos.y,
+            vertex[2] + gridPos.z
           );
 
-          vertexIndex += 4;
-        }
-      }
-    }
+          // Add normal for this vertex
+          normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
 
-    // Set geometry attributes
+          // Add color for this vertex
+          colors.push(r, g, b);
+
+          vertexIndex++;
+        });
+
+        // Create two triangles from the quad (face)
+        // Triangle 1: vertices 0, 1, 2
+        indices.push(
+          startVertexIndex,
+          startVertexIndex + 1,
+          startVertexIndex + 2
+        );
+
+        // Triangle 2: vertices 0, 2, 3
+        indices.push(
+          startVertexIndex,
+          startVertexIndex + 2,
+          startVertexIndex + 3
+        );
+      });
+    });
+
+    // Create Three.js geometry
+    const geometry = new THREE.BufferGeometry();
+
+    // Set attributes
     geometry.setAttribute(
       "position",
-      new THREE.Float32BufferAttribute(positions, 3)
+      new THREE.Float32BufferAttribute(vertices, 3)
     );
     geometry.setAttribute(
       "normal",
       new THREE.Float32BufferAttribute(normals, 3)
     );
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     geometry.setIndex(indices);
 
-    // Optional: compute bounding sphere/box for better culling
+    // Compute bounding sphere for frustum culling
     geometry.computeBoundingSphere();
 
-    // Create material with single color
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(color),
-      transparent: true,
-      opacity: 0.5,
+    // Create material that uses vertex colors
+    const material = new THREE.MeshLambertMaterial({
+      vertexColors: true,
+      side: THREE.FrontSide,
     });
 
-    return new THREE.Mesh(geometry, material);
-  }
+    // Create and return the mesh
+    const mesh = new THREE.Mesh(geometry, material);
 
-  // For even better performance, you might want to separate this into islands:
-  findVoxelIslands(
-    voxels: (VoxelDetails | undefined)[][][]
-  ): THREE.Vector3[][] {
-    const visited = new Set<string>();
-    const islands: THREE.Vector3[][] = [];
-
-    const directions = [
-      [1, 0, 0],
-      [-1, 0, 0],
-      [0, 1, 0],
-      [0, -1, 0],
-      [0, 0, 1],
-      [0, 0, -1],
-    ];
-
-    for (let x = 0; x < voxels.length; x++) {
-      for (let y = 0; y < voxels[x]?.length || 0; y++) {
-        for (let z = 0; z < voxels[x]?.[y]?.length || 0; z++) {
-          const key = `${x},${y},${z}`;
-          if (voxels[x]?.[y]?.[z] && !visited.has(key)) {
-            // Start a new island
-            const island: THREE.Vector3[] = [];
-            const queue: THREE.Vector3[] = [new THREE.Vector3(x, y, z)];
-            visited.add(key);
-
-            while (queue.length > 0) {
-              const current = queue.shift()!;
-              island.push(current);
-
-              // Check all 6 directions
-              for (const [dx, dy, dz] of directions) {
-                const nx = current.x + dx;
-                const ny = current.y + dy;
-                const nz = current.z + dz;
-                const neighborKey = `${nx},${ny},${nz}`;
-
-                if (
-                  nx >= 0 &&
-                  nx < voxels.length &&
-                  ny >= 0 &&
-                  ny < (voxels[nx]?.length || 0) &&
-                  nz >= 0 &&
-                  nz < (voxels[nx]?.[ny]?.length || 0) &&
-                  voxels[nx]?.[ny]?.[nz] &&
-                  !visited.has(neighborKey)
-                ) {
-                  visited.add(neighborKey);
-                  queue.push(new THREE.Vector3(nx, ny, nz));
-                }
-              }
-            }
-
-            islands.push(island);
-          }
-        }
+    // Remove old mesh if it exists
+    if (this.mesh) {
+      this.scene.remove(this.mesh);
+      this.mesh.geometry.dispose();
+      if (Array.isArray(this.mesh.material)) {
+        this.mesh.material.forEach((mat) => mat.dispose());
+      } else {
+        this.mesh.material.dispose();
       }
     }
 
-    return islands;
+    // Add new mesh to scene and store reference
+    this.scene.add(mesh);
+    this.mesh = mesh;
+
+    return mesh;
   }
 
   dispose() {}
