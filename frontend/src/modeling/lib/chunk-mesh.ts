@@ -96,17 +96,16 @@ export class ChunkMesh {
       const { topLeft, bottomRight } = blockRun;
       for (let x = topLeft.x; x <= bottomRight.x; x++) {
         if (!decompressed[x]) decompressed[x] = [];
-        for (let z = topLeft.z; z <= bottomRight.z; z++) {
-          if (!decompressed[x][z]) decompressed[x][z] = [];
-          for (let y = topLeft.y; y <= bottomRight.y; y++) {
-            if (!decompressed[x][z][y]) {
-              decompressed[x][z][y] = blockRun;
+        for (let y = topLeft.y; y <= bottomRight.y; y++) {
+          if (!decompressed[x][y]) decompressed[x][y] = [];
+          for (let z = topLeft.z; z <= bottomRight.z; z++) {
+            if (!decompressed[x][y][z]) {
+              decompressed[x][y][z] = blockRun;
             }
           }
         }
       }
     }
-
     return decompressed;
   }
 

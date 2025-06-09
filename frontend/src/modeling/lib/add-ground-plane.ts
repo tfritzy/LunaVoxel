@@ -47,9 +47,12 @@ export function addGroundPlane(
     scene.add(batchedGridMesh);
   }
 
+  const axisArrows = createAxisArrows(scene, worldXDim, worldYDim, worldZDim);
+
   return {
     invisibleBox,
     wireframeBox,
+    axisArrows,
   };
 }
 
@@ -83,7 +86,6 @@ function createBatchedGridLines(
     color: 0x444444,
     transparent: true,
   });
-
   const lineWidths = [0.01, 0.02, 0.04, 0.06];
   const geometries: THREE.BufferGeometry[] = [];
   const lineThickness = 0.001;
@@ -134,4 +136,87 @@ function createBatchedGridLines(
   const batchedGridMesh = new THREE.Mesh(mergedGeometry, lineMaterial);
   batchedGridMesh.layers.set(layers.ghost);
   return batchedGridMesh;
+}
+
+function createAxisArrows(
+  scene: THREE.Scene,
+  worldXDim: number,
+  worldYDim: number,
+  worldZDim: number
+): THREE.Group {
+  const arrowGroup = new THREE.Group();
+
+  // Scale arrow length based on world dimensions
+  const arrowLength = Math.min(worldXDim, worldYDim, worldZDim) * 0.5;
+
+  // Arrow parameters
+  const shaftRadius = arrowLength * 0.01;
+  const headRadius = arrowLength * 0.03;
+  const headLength = arrowLength * 0.15;
+  const shaftLength = arrowLength - headLength;
+
+  // Create geometries (reuse for efficiency)
+  const shaftGeometry = new THREE.CylinderGeometry(
+    shaftRadius,
+    shaftRadius,
+    shaftLength
+  );
+  const headGeometry = new THREE.ConeGeometry(headRadius, headLength);
+
+  // X-axis arrow (Red)
+  const xShaftMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  const xHeadMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+  const xShaft = new THREE.Mesh(shaftGeometry, xShaftMaterial);
+  const xHead = new THREE.Mesh(headGeometry, xHeadMaterial);
+
+  // Rotate and position for X-axis (pointing right)
+  xShaft.rotation.z = -Math.PI / 2;
+  xShaft.position.set(shaftLength / 2, 0, 0);
+  xHead.rotation.z = -Math.PI / 2;
+  xHead.position.set(arrowLength - headLength / 2, 0, 0);
+
+  arrowGroup.add(xShaft, xHead);
+
+  // Y-axis arrow (Green)
+  const yShaftMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  const yHeadMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
+  const yShaft = new THREE.Mesh(shaftGeometry, yShaftMaterial);
+  const yHead = new THREE.Mesh(headGeometry, yHeadMaterial);
+
+  // Position for Y-axis (pointing up)
+  yShaft.position.set(0, shaftLength / 2, 0);
+  yHead.position.set(0, arrowLength - headLength / 2, 0);
+
+  arrowGroup.add(yShaft, yHead);
+
+  // Z-axis arrow (Blue)
+  const zShaftMaterial = new THREE.MeshBasicMaterial({ color: 0x5555ff });
+  const zHeadMaterial = new THREE.MeshBasicMaterial({ color: 0x5555ff });
+
+  const zShaft = new THREE.Mesh(shaftGeometry, zShaftMaterial);
+  const zHead = new THREE.Mesh(headGeometry, zHeadMaterial);
+
+  // Rotate and position for Z-axis (pointing forward)
+  zShaft.rotation.x = Math.PI / 2;
+  zShaft.position.set(0, 0, shaftLength / 2);
+  zHead.rotation.x = Math.PI / 2;
+  zHead.position.set(0, 0, arrowLength - headLength / 2);
+
+  arrowGroup.add(zShaft, zHead);
+
+  // Set layer for the entire group
+  arrowGroup.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.layers.set(layers.ghost);
+    }
+  });
+
+  // Position the entire group at origin
+  arrowGroup.position.set(0, 0, 0);
+
+  scene.add(arrowGroup);
+
+  return arrowGroup;
 }

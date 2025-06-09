@@ -1,7 +1,7 @@
-using SpacetimeDB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SpacetimeDB;
 
 public static partial class Module
 {
@@ -68,7 +68,7 @@ public static partial class Module
             int x = position.X, y = position.Y, z = position.Z;
             if (x < 0 || x >= chunk.xDim || y < 0 || y >= chunk.yDim || z < 0 || z >= chunk.zDim)
             {
-                continue; // Skip out-of-bounds modifications
+                continue;
             }
             switch (mode)
             {
@@ -80,7 +80,7 @@ public static partial class Module
                     break;
                 case BlockModificationMode.Paint:
                     var existingBlock = decompressedBlocks[x, y, z];
-                    if (existingBlock != null && existingBlock.Type != MeshType.Block) // Assuming MeshType.Block is the "empty" or default non-paintable type
+                    if (existingBlock != null && existingBlock.Type != MeshType.Block)
                     {
                         decompressedBlocks[x, y, z] = new Block(existingBlock.Type, color);
                     }

@@ -11,12 +11,12 @@ public static partial class Module
         public string Id;
         public string Name;
         public int XWidth;
-        public int YWidth;
+        public int ZWidth;
         public int Height;
         public Identity Owner;
         public Timestamp LastVisited;
 
-        public static World Build(string id, string name, int xWidth, int yWidth, int height, Identity owner,
+        public static World Build(string id, string name, int xWidth, int zWidth, int height, Identity owner,
                                   Timestamp timestamp)
         {
             return new World
@@ -24,7 +24,7 @@ public static partial class Module
                 Id = id,
                 Name = name,
                 XWidth = xWidth,
-                YWidth = yWidth,
+                ZWidth = zWidth,
                 Height = height,
                 Owner = owner,
                 LastVisited = timestamp

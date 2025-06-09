@@ -59,11 +59,11 @@ export class Builder {
       tool,
       { tag: "Block" },
       startPos.x,
-      startPos.z,
       startPos.y,
+      startPos.z,
       endPos.x,
-      endPos.z,
       endPos.y,
+      endPos.z,
       isPreview
     );
   }
