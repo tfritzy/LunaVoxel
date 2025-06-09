@@ -92,29 +92,27 @@ export class GridRaycaster {
     if (intersects.length > 0) {
       const intersection = intersects[0];
 
+      const point = intersection.point;
+      const gridPos = new THREE.Vector3(
+        Math.floor(point.x),
+        Math.floor(point.y),
+        Math.floor(point.z)
+      );
+
       if (intersection.object.userData.isBoundaryBox) {
-        const point = intersection.point;
-        const gridPos = new THREE.Vector3(
-          Math.floor(point.x),
-          Math.floor(point.y),
-          Math.floor(point.z)
-        );
         return gridPos;
       } else {
-        const point = intersection.object.position.clone();
-        const gridPos = new THREE.Vector3(
-          Math.floor(point.x),
-          Math.floor(point.y),
-          Math.floor(point.z)
-        );
-
         if (
           this.currentTool.tag === "Erase" ||
           this.currentTool.tag === "Paint"
         ) {
+          const normal = intersection.face?.normal.multiplyScalar(-0.1);
+          if (normal) {
+            return gridPos.add(normal);
+          }
           return gridPos;
         } else {
-          const normal = intersection.face?.normal;
+          const normal = intersection.face?.normal.multiplyScalar(0.1);
           if (normal) {
             return gridPos.add(normal);
           }

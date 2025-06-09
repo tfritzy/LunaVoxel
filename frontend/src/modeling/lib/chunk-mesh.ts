@@ -8,68 +8,67 @@ type VoxelFaces = {
   faceIndexes: number[];
 };
 
-// Face definitions: [vertices, normal, direction offset]
 const faces = [
   {
     vertices: [
       [0.5, -0.5, -0.5],
-      [0.5, -0.5, 0.5],
-      [0.5, 0.5, 0.5],
       [0.5, 0.5, -0.5],
+      [0.5, 0.5, 0.5],
+      [0.5, -0.5, 0.5],
     ],
     normal: [1, 0, 0],
     offset: [1, 0, 0],
-  }, // right (+x)
+  },
   {
     vertices: [
       [-0.5, -0.5, -0.5],
-      [-0.5, 0.5, -0.5],
-      [-0.5, 0.5, 0.5],
       [-0.5, -0.5, 0.5],
+      [-0.5, 0.5, 0.5],
+      [-0.5, 0.5, -0.5],
     ],
     normal: [-1, 0, 0],
     offset: [-1, 0, 0],
-  }, // left (-x)
+  },
   {
     vertices: [
       [-0.5, 0.5, -0.5],
-      [0.5, 0.5, -0.5],
-      [0.5, 0.5, 0.5],
       [-0.5, 0.5, 0.5],
+      [0.5, 0.5, 0.5],
+      [0.5, 0.5, -0.5],
     ],
     normal: [0, 1, 0],
     offset: [0, 1, 0],
-  }, // top (+y)
+  },
   {
     vertices: [
       [-0.5, -0.5, -0.5],
-      [-0.5, -0.5, 0.5],
-      [0.5, -0.5, 0.5],
       [0.5, -0.5, -0.5],
+      [0.5, -0.5, 0.5],
+      [-0.5, -0.5, 0.5],
     ],
     normal: [0, -1, 0],
     offset: [0, -1, 0],
-  }, // bottom (-y)
+  },
   {
     vertices: [
       [-0.5, -0.5, 0.5],
-      [-0.5, 0.5, 0.5],
-      [0.5, 0.5, 0.5],
       [0.5, -0.5, 0.5],
+      [0.5, 0.5, 0.5],
+      [-0.5, 0.5, 0.5],
     ],
     normal: [0, 0, 1],
     offset: [0, 0, 1],
-  }, // front (+z)
+  },
   {
     vertices: [
       [-0.5, -0.5, -0.5],
-      [0.5, -0.5, -0.5],
-      [0.5, 0.5, -0.5],
       [-0.5, 0.5, -0.5],
+      [0.5, 0.5, -0.5],
+      [0.5, -0.5, -0.5],
     ],
     normal: [0, 0, -1],
     offset: [0, 0, -1],
-  }, // back (-z)
+  },
 ];
 
 const directions = [
@@ -115,33 +114,38 @@ export class ChunkMesh {
       ? this.decompressBlocks(previewVoxels.previewPositions)
       : null;
 
-    const exteriorFaces = this.findExteriorFaces(realBlocks, previewBlocks);
+    const exteriorFaces = this.findExteriorFaces(realBlocks, previewBlocks, {
+      xDim: newChunk.xDim,
+      yDim: newChunk.yDim,
+      zDim: newChunk.zDim,
+    });
     this.createMesh(exteriorFaces);
   }
 
   findExteriorFaces(
     realBlocks: (BlockRun | undefined)[][][],
-    previewBlocks: (BlockRun | undefined)[][][] | null
+    previewBlocks: (BlockRun | undefined)[][][] | null,
+    dimensions: { xDim: number; yDim: number; zDim: number }
   ): Map<string, VoxelFaces> {
     const exteriorFaces: Map<string, VoxelFaces> = new Map();
     const visited: Set<string> = new Set();
     const queue: THREE.Vector3[] = [];
 
     const minX = -1;
-    const maxX = realBlocks.length;
+    const maxX = dimensions.xDim;
     const minY = -1;
-    const maxY = realBlocks[0]?.length || 0;
+    const maxY = dimensions.yDim;
     const minZ = -1;
-    const maxZ = realBlocks[0]?.[0]?.length || 0;
+    const maxZ = dimensions.zDim;
 
     const isInVoxelBounds = (x: number, y: number, z: number): boolean => {
       return (
         x >= 0 &&
-        x < realBlocks.length &&
+        x < dimensions.xDim &&
         y >= 0 &&
-        y < realBlocks[x]?.length &&
+        y < dimensions.yDim &&
         z >= 0 &&
-        z < realBlocks[x]?.[y]?.length
+        z < dimensions.zDim
       );
     };
 
@@ -161,7 +165,7 @@ export class ChunkMesh {
     };
 
     const isAir = (x: number, y: number, z: number): boolean => {
-      return !isInVoxelBounds(x, y, z) || !realBlocks[x][y][z];
+      return !isInVoxelBounds(x, y, z) || !realBlocks[x]?.[y]?.[z];
     };
 
     const startX = -1;
@@ -218,51 +222,41 @@ export class ChunkMesh {
 
     let vertexIndex = 0;
 
-    // Process each voxel's exterior faces
     exteriorFaces.forEach((voxelFace, key) => {
       const { color, gridPos, faceIndexes } = voxelFace;
 
-      // Convert color string to RGB values (0-1 range)
       const colorObj = new THREE.Color(color);
       const r = colorObj.r;
       const g = colorObj.g;
       const b = colorObj.b;
 
-      // Process each face of this voxel that should be rendered
       faceIndexes.forEach((faceIndex) => {
         const face = faces[faceIndex];
         const faceVertices = face.vertices;
         const faceNormal = face.normal;
 
-        // Add the 4 vertices for this face (quad)
         const startVertexIndex = vertexIndex;
 
         faceVertices.forEach((vertex) => {
-          // Transform vertex from local voxel space to world space
           vertices.push(
-            vertex[0] + gridPos.x,
-            vertex[1] + gridPos.y,
-            vertex[2] + gridPos.z
+            vertex[0] + gridPos.x + 0.5,
+            vertex[1] + gridPos.y + 0.5,
+            vertex[2] + gridPos.z + 0.5
           );
 
-          // Add normal for this vertex
           normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
 
-          // Add color for this vertex
           colors.push(r, g, b);
 
           vertexIndex++;
         });
 
-        // Create two triangles from the quad (face)
-        // Triangle 1: vertices 0, 1, 2
         indices.push(
           startVertexIndex,
           startVertexIndex + 1,
           startVertexIndex + 2
         );
 
-        // Triangle 2: vertices 0, 2, 3
         indices.push(
           startVertexIndex,
           startVertexIndex + 2,
@@ -271,10 +265,8 @@ export class ChunkMesh {
       });
     });
 
-    // Create Three.js geometry
     const geometry = new THREE.BufferGeometry();
 
-    // Set attributes
     geometry.setAttribute(
       "position",
       new THREE.Float32BufferAttribute(vertices, 3)
@@ -286,19 +278,16 @@ export class ChunkMesh {
     geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     geometry.setIndex(indices);
 
-    // Compute bounding sphere for frustum culling
-    geometry.computeBoundingSphere();
-
-    // Create material that uses vertex colors
     const material = new THREE.MeshLambertMaterial({
       vertexColors: true,
       side: THREE.FrontSide,
     });
 
-    // Create and return the mesh
     const mesh = new THREE.Mesh(geometry, material);
 
-    // Remove old mesh if it exists
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
     if (this.mesh) {
       this.scene.remove(this.mesh);
       this.mesh.geometry.dispose();
@@ -309,7 +298,6 @@ export class ChunkMesh {
       }
     }
 
-    // Add new mesh to scene and store reference
     this.scene.add(mesh);
     this.mesh = mesh;
 
