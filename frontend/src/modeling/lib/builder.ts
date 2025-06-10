@@ -69,6 +69,7 @@ export class Builder {
   }
 
   public onMouseHover(position: THREE.Vector3) {
+    console.log(`Hovering at position: ${position.toArray()}`);
     if (!this.dbConn.isActive) return;
 
     if (this.isMouseDown) {
@@ -87,6 +88,9 @@ export class Builder {
         return;
       }
 
+      console.log(
+        `Previewing block from ${currentStart.toArray()} to ${currentEnd.toArray()}`
+      );
       this.modifyBlock(this.currentTool, currentStart, currentEnd, true);
 
       this.lastPreviewStart = currentStart.clone();

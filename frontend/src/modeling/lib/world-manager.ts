@@ -6,11 +6,11 @@ import {
   PreviewVoxels,
   World,
 } from "../../module_bindings";
-import { ChunkMesh } from "./chunk-mesh";
+import { CuboidChunkMesh } from "./cuboid-chunk-mesh";
 
 export class WorldManager {
   private scene: THREE.Scene;
-  private chunkMesh: ChunkMesh;
+  private chunkMesh: CuboidChunkMesh;
   private dbConn: DbConnection;
   private world: World;
   private currentPreview: PreviewVoxels | null = null;
@@ -19,7 +19,7 @@ export class WorldManager {
     this.dbConn = dbConn;
     this.scene = scene;
     this.world = world;
-    this.chunkMesh = new ChunkMesh(scene);
+    this.chunkMesh = new CuboidChunkMesh(scene);
     this.setupEvents();
     this.setupChunks();
   }

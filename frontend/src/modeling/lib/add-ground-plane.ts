@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 export function addGroundPlane(
   scene: THREE.Scene,
@@ -42,12 +41,17 @@ export function addGroundPlane(
     scene.add(wireframeBox);
   }
 
-  const batchedGridMesh = createBatchedGridLines(worldXDim, worldYDim);
-  if (batchedGridMesh) {
-    scene.add(batchedGridMesh);
+  const gridLines = createOptimizedGridLines(worldXDim, worldYDim);
+  if (gridLines) {
+    scene.add(gridLines);
   }
 
-  const axisArrows = createAxisArrows(scene, worldXDim, worldYDim, worldZDim);
+  const axisArrows = createOptimizedAxisArrows(
+    scene,
+    worldXDim,
+    worldYDim,
+    worldZDim
+  );
 
   return {
     invisibleBox,
@@ -78,67 +82,77 @@ function createWireframeBox(
   return wireframeBox;
 }
 
-function createBatchedGridLines(
+function createOptimizedGridLines(
   worldXDim: number,
   worldYDim: number
-): THREE.Mesh | null {
-  const lineMaterial = new THREE.MeshBasicMaterial({
-    color: 0x444444,
-    transparent: true,
-  });
-  const lineWidths = [0.01, 0.02, 0.04, 0.06];
-  const geometries: THREE.BufferGeometry[] = [];
-  const lineThickness = 0.001;
-  const lineYPosition = 0.001; // Grid lines at Y = 0 + small offset
+): THREE.LineSegments | null {
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const lineYPosition = 0.001;
 
-  function getLineWidthForGrid(index: number): number {
-    if (index % 20 === 0) return lineWidths[3];
-    if (index % 4 === 0) return lineWidths[2];
-    if (index % 2 === 0) return lineWidths[1];
-    return lineWidths[0];
+  // Color definitions for different line weights
+  const lightColor = new THREE.Color(0x333333);
+  const mediumColor = new THREE.Color(0x444444);
+  const heavyColor = new THREE.Color(0x555555);
+  const majorColor = new THREE.Color(0x666666);
+
+  function getLineColor(index: number): THREE.Color {
+    if (index % 20 === 0) return majorColor;
+    if (index % 4 === 0) return heavyColor;
+    if (index % 2 === 0) return mediumColor;
+    return lightColor;
   }
 
+  // Vertical grid lines (parallel to Z-axis)
   for (let i = 0; i <= worldXDim; i++) {
-    const dynamicLineWidth = getLineWidthForGrid(i);
-    const vLineGeom = new THREE.BoxGeometry(
-      dynamicLineWidth,
-      lineThickness,
-      worldYDim
-    );
-    // Vertical grid lines from X=0 to X=worldXDim, positioned at Z center
-    vLineGeom.translate(i, lineYPosition, worldYDim / 2);
-    geometries.push(vLineGeom);
+    const color = getLineColor(i);
+
+    // Start point
+    positions.push(i, lineYPosition, 0);
+    colors.push(color.r, color.g, color.b);
+
+    // End point
+    positions.push(i, lineYPosition, worldYDim);
+    colors.push(color.r, color.g, color.b);
   }
 
+  // Horizontal grid lines (parallel to X-axis)
   for (let i = 0; i <= worldYDim; i++) {
-    const dynamicLineWidth = getLineWidthForGrid(i);
-    const hLineGeom = new THREE.BoxGeometry(
-      worldXDim,
-      lineThickness,
-      dynamicLineWidth
-    );
-    // Grid lines from 0 to worldZDim, positioned at X center
-    hLineGeom.translate(worldXDim / 2, lineYPosition, i);
-    geometries.push(hLineGeom);
+    const color = getLineColor(i);
+
+    // Start point
+    positions.push(0, lineYPosition, i);
+    colors.push(color.r, color.g, color.b);
+
+    // End point
+    positions.push(worldXDim, lineYPosition, i);
+    colors.push(color.r, color.g, color.b);
   }
 
-  if (geometries.length === 0) {
+  if (positions.length === 0) {
     return null;
   }
 
-  const mergedGeometry = mergeGeometries(geometries);
-  geometries.forEach((geom) => geom.dispose());
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3)
+  );
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
 
-  if (!mergedGeometry) {
-    return null;
-  }
+  const material = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+  });
 
-  const batchedGridMesh = new THREE.Mesh(mergedGeometry, lineMaterial);
-  batchedGridMesh.layers.set(layers.ghost);
-  return batchedGridMesh;
+  const gridLines = new THREE.LineSegments(geometry, material);
+  gridLines.layers.set(layers.ghost);
+
+  return gridLines;
 }
 
-function createAxisArrows(
+function createOptimizedAxisArrows(
   scene: THREE.Scene,
   worldXDim: number,
   worldYDim: number,
@@ -155,22 +169,49 @@ function createAxisArrows(
   const headLength = arrowLength * 0.15;
   const shaftLength = arrowLength - headLength;
 
-  // Create geometries (reuse for efficiency)
+  // Create single shared geometries
   const shaftGeometry = new THREE.CylinderGeometry(
     shaftRadius,
     shaftRadius,
-    shaftLength
+    shaftLength,
+    8, // Reduced segments for performance
+    1
   );
-  const headGeometry = new THREE.ConeGeometry(headRadius, headLength);
+  const headGeometry = new THREE.ConeGeometry(headRadius, headLength, 8, 1);
+
+  // Create single shared material with vertex colors
+  const arrowMaterial = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: false,
+  });
+
+  // Helper function to create colored geometry
+  function createColoredGeometry(
+    geometry: THREE.BufferGeometry,
+    color: THREE.Color
+  ): THREE.BufferGeometry {
+    const coloredGeometry = geometry.clone();
+    const positions = coloredGeometry.attributes.position;
+    const colors = new Float32Array(positions.count * 3);
+
+    for (let i = 0; i < positions.count; i++) {
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+
+    coloredGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    return coloredGeometry;
+  }
 
   // X-axis arrow (Red)
-  const xShaftMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  const xHeadMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  const xColor = new THREE.Color(0xff0000);
+  const xShaftGeom = createColoredGeometry(shaftGeometry, xColor);
+  const xHeadGeom = createColoredGeometry(headGeometry, xColor);
 
-  const xShaft = new THREE.Mesh(shaftGeometry, xShaftMaterial);
-  const xHead = new THREE.Mesh(headGeometry, xHeadMaterial);
+  const xShaft = new THREE.Mesh(xShaftGeom, arrowMaterial);
+  const xHead = new THREE.Mesh(xHeadGeom, arrowMaterial);
 
-  // Rotate and position for X-axis (pointing right)
   xShaft.rotation.z = -Math.PI / 2;
   xShaft.position.set(shaftLength / 2, 0, 0);
   xHead.rotation.z = -Math.PI / 2;
@@ -179,26 +220,26 @@ function createAxisArrows(
   arrowGroup.add(xShaft, xHead);
 
   // Y-axis arrow (Green)
-  const yShaftMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  const yHeadMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  const yColor = new THREE.Color(0x00ff00);
+  const yShaftGeom = createColoredGeometry(shaftGeometry, yColor);
+  const yHeadGeom = createColoredGeometry(headGeometry, yColor);
 
-  const yShaft = new THREE.Mesh(shaftGeometry, yShaftMaterial);
-  const yHead = new THREE.Mesh(headGeometry, yHeadMaterial);
+  const yShaft = new THREE.Mesh(yShaftGeom, arrowMaterial);
+  const yHead = new THREE.Mesh(yHeadGeom, arrowMaterial);
 
-  // Position for Y-axis (pointing up)
   yShaft.position.set(0, shaftLength / 2, 0);
   yHead.position.set(0, arrowLength - headLength / 2, 0);
 
   arrowGroup.add(yShaft, yHead);
 
   // Z-axis arrow (Blue)
-  const zShaftMaterial = new THREE.MeshBasicMaterial({ color: 0x5555ff });
-  const zHeadMaterial = new THREE.MeshBasicMaterial({ color: 0x5555ff });
+  const zColor = new THREE.Color(0x5555ff);
+  const zShaftGeom = createColoredGeometry(shaftGeometry, zColor);
+  const zHeadGeom = createColoredGeometry(headGeometry, zColor);
 
-  const zShaft = new THREE.Mesh(shaftGeometry, zShaftMaterial);
-  const zHead = new THREE.Mesh(headGeometry, zHeadMaterial);
+  const zShaft = new THREE.Mesh(zShaftGeom, arrowMaterial);
+  const zHead = new THREE.Mesh(zHeadGeom, arrowMaterial);
 
-  // Rotate and position for Z-axis (pointing forward)
   zShaft.rotation.x = Math.PI / 2;
   zShaft.position.set(0, 0, shaftLength / 2);
   zHead.rotation.x = Math.PI / 2;
@@ -213,9 +254,7 @@ function createAxisArrows(
     }
   });
 
-  // Position the entire group at origin
   arrowGroup.position.set(0, 0, 0);
-
   scene.add(arrowGroup);
 
   return arrowGroup;

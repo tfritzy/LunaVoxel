@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { BlockRun, Chunk, PreviewVoxels } from "@/module_bindings";
 
-type VoxelDetails = { color: string | undefined; transparant: boolean };
 type VoxelFaces = {
   color: string;
   gridPos: THREE.Vector3;
@@ -83,10 +82,14 @@ const directions = [
 export class ChunkMesh {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
+  private geometry: THREE.BufferGeometry | null = null;
+  private material: THREE.MeshLambertMaterial | null = null;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.mesh = null;
+    this.geometry = null;
+    this.material = null;
   }
 
   decompressBlocks(blocks: BlockRun[]): (BlockRun | undefined)[][][] {
@@ -119,7 +122,7 @@ export class ChunkMesh {
       yDim: newChunk.yDim,
       zDim: newChunk.zDim,
     });
-    this.createMesh(exteriorFaces);
+    this.updateMesh(exteriorFaces);
   }
 
   findExteriorFaces(
@@ -168,6 +171,15 @@ export class ChunkMesh {
       return !isInVoxelBounds(x, y, z) || !realBlocks[x]?.[y]?.[z];
     };
 
+    const getBlock = (
+      x: number,
+      y: number,
+      z: number
+    ): BlockRun | undefined => {
+      if (!isInVoxelBounds(x, y, z)) return undefined;
+      return realBlocks[x]?.[y]?.[z];
+    };
+
     const startX = -1;
     const startY = 0;
     const startZ = 0;
@@ -196,9 +208,12 @@ export class ChunkMesh {
         }
 
         if (!isAir(nx, ny, nz)) {
+          const block = getBlock(nx, ny, nz);
+          const blockColor = block?.color ? block.color : "#ffffff";
+
           if (!exteriorFaces.has(key)) {
             exteriorFaces.set(key, {
-              color: "#ffffff",
+              color: blockColor,
               faceIndexes: [],
               gridPos: new THREE.Vector3(nx, ny, nz),
             });
@@ -214,7 +229,7 @@ export class ChunkMesh {
     return exteriorFaces;
   }
 
-  createMesh(exteriorFaces: Map<string, VoxelFaces>): THREE.Mesh {
+  private updateMesh(exteriorFaces: Map<string, VoxelFaces>): void {
     const vertices: number[] = [];
     const indices: number[] = [];
     const normals: number[] = [];
@@ -222,7 +237,7 @@ export class ChunkMesh {
 
     let vertexIndex = 0;
 
-    exteriorFaces.forEach((voxelFace, key) => {
+    exteriorFaces.forEach((voxelFace) => {
       const { color, gridPos, faceIndexes } = voxelFace;
 
       const colorObj = new THREE.Color(color);
@@ -245,9 +260,7 @@ export class ChunkMesh {
           );
 
           normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
-
           colors.push(r, g, b);
-
           vertexIndex++;
         });
 
@@ -265,44 +278,58 @@ export class ChunkMesh {
       });
     });
 
-    const geometry = new THREE.BufferGeometry();
+    if (!this.geometry) {
+      this.geometry = new THREE.BufferGeometry();
+      this.material = new THREE.MeshLambertMaterial({
+        vertexColors: true,
+        side: THREE.FrontSide,
+      });
+      this.mesh = new THREE.Mesh(this.geometry, this.material);
+      this.mesh.castShadow = true;
+      this.mesh.receiveShadow = true;
+      this.scene.add(this.mesh);
+    }
 
-    geometry.setAttribute(
+    this.geometry.setAttribute(
       "position",
       new THREE.Float32BufferAttribute(vertices, 3)
     );
-    geometry.setAttribute(
+    this.geometry.setAttribute(
       "normal",
       new THREE.Float32BufferAttribute(normals, 3)
     );
-    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-    geometry.setIndex(indices);
+    this.geometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(colors, 3)
+    );
+    this.geometry.setIndex(indices);
 
-    const material = new THREE.MeshLambertMaterial({
-      vertexColors: true,
-      side: THREE.FrontSide,
-    });
+    this.geometry.attributes.position.needsUpdate = true;
+    this.geometry.attributes.normal.needsUpdate = true;
+    this.geometry.attributes.color.needsUpdate = true;
 
-    const mesh = new THREE.Mesh(geometry, material);
-
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-
-    if (this.mesh) {
-      this.scene.remove(this.mesh);
-      this.mesh.geometry.dispose();
-      if (Array.isArray(this.mesh.material)) {
-        this.mesh.material.forEach((mat) => mat.dispose());
-      } else {
-        this.mesh.material.dispose();
-      }
+    if (this.geometry.index) {
+      this.geometry.index.needsUpdate = true;
     }
 
-    this.scene.add(mesh);
-    this.mesh = mesh;
-
-    return mesh;
+    this.geometry.computeBoundingSphere();
   }
 
-  dispose() {}
+  dispose() {
+    if (this.mesh) {
+      this.scene.remove(this.mesh);
+
+      if (this.geometry) {
+        this.geometry.dispose();
+        this.geometry = null;
+      }
+
+      if (this.material) {
+        this.material.dispose();
+        this.material = null;
+      }
+
+      this.mesh = null;
+    }
+  }
 }
