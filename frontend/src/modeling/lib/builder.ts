@@ -69,7 +69,6 @@ export class Builder {
   }
 
   public onMouseHover(position: THREE.Vector3) {
-    console.log(`Hovering at position: ${position.toArray()}`);
     if (!this.dbConn.isActive) return;
 
     if (this.isMouseDown) {

@@ -6,30 +6,60 @@ export class CuboidChunkMesh {
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.MeshLambertMaterial | null = null;
+  private currentUpdateId: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
   }
 
-  update(newChunk: Chunk, previewVoxels?: PreviewVoxels | null) {
-    // const allBlocks = [...newChunk.blocks];
+  async update(
+    newChunk: Chunk,
+    previewVoxels?: PreviewVoxels | null,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const updateId = ++this.currentUpdateId;
 
-    // if (previewVoxels?.previewPositions) {
-    //   allBlocks.push(...previewVoxels.previewPositions);
-    // }
+    if (signal?.aborted) {
+      return;
+    }
 
-    this.updateMesh(newChunk.blocks);
+    try {
+      await this.updateMesh(newChunk.blocks, signal, updateId);
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return;
+      }
+      throw error;
+    }
   }
 
-  private updateMesh(blocks: BlockRun[]): void {
+  private async updateMesh(
+    blocks: BlockRun[],
+    signal?: AbortSignal,
+    updateId?: number
+  ): Promise<void> {
+    if (signal?.aborted || (updateId && updateId !== this.currentUpdateId)) {
+      throw new DOMException("Operation aborted", "AbortError");
+    }
+
     const vertices: number[] = [];
     const indices: number[] = [];
     const normals: number[] = [];
     const colors: number[] = [];
 
     let vertexOffset = 0;
+    let processedBlocks = 0;
+    const checkInterval = 50;
 
-    blocks.forEach((blockRun) => {
+    for (const blockRun of blocks) {
+      if (signal?.aborted || (updateId && updateId !== this.currentUpdateId)) {
+        throw new DOMException("Operation aborted", "AbortError");
+      }
+
+      if (++processedBlocks % checkInterval === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+
       const { topLeft, bottomRight, color } = blockRun;
 
       const width = bottomRight.x - topLeft.x + 1;
@@ -67,7 +97,11 @@ export class CuboidChunkMesh {
       vertexOffset += boxVertices.length / 3;
 
       boxGeometry.dispose();
-    });
+    }
+
+    if (signal?.aborted || (updateId && updateId !== this.currentUpdateId)) {
+      throw new DOMException("Operation aborted", "AbortError");
+    }
 
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
@@ -107,6 +141,8 @@ export class CuboidChunkMesh {
   }
 
   dispose() {
+    this.currentUpdateId++;
+
     if (this.mesh) {
       this.scene.remove(this.mesh);
 
