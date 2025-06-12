@@ -55,6 +55,7 @@ public static partial class Module
         public Identity Player;
         public string World;
         public BlockRun[] PreviewPositions = System.Array.Empty<BlockRun>();
+        public Vector3 StartPos;
         public string? BlockColor;
         public bool IsAddMode;
     }

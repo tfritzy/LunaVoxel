@@ -40,11 +40,30 @@ export class Builder {
     this.currentTool = tool;
   }
 
+  private previewBlock(
+    tool: BlockModificationMode,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3
+  ) {
+    if (!this.dbConn.isActive) return;
+
+    this.dbConn.reducers.previewBlockRect(
+      this.world,
+      tool,
+      { tag: "Block" },
+      startPos.x,
+      startPos.y,
+      startPos.z,
+      endPos.x,
+      endPos.y,
+      endPos.z
+    );
+  }
+
   private modifyBlock(
     tool: BlockModificationMode,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3,
-    isPreview: boolean
+    endPos: THREE.Vector3
   ) {
     if (!this.dbConn.isActive) return;
 
@@ -63,8 +82,7 @@ export class Builder {
       startPos.z,
       endPos.x,
       endPos.y,
-      endPos.z,
-      isPreview
+      endPos.z
     );
   }
 
@@ -90,7 +108,7 @@ export class Builder {
       console.log(
         `Previewing block from ${currentStart.toArray()} to ${currentEnd.toArray()}`
       );
-      this.modifyBlock(this.currentTool, currentStart, currentEnd, true);
+      this.previewBlock(this.currentTool, currentStart, currentEnd);
 
       this.lastPreviewStart = currentStart.clone();
       this.lastPreviewEnd = currentEnd.clone();
@@ -103,7 +121,7 @@ export class Builder {
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    this.modifyBlock(this.currentTool, startPos, endPos, false);
+    this.modifyBlock(this.currentTool, startPos, endPos);
 
     this.isMouseDown = false;
     this.startPosition = null;

@@ -33,19 +33,23 @@ import {
 
 import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
 import { MeshType as __MeshType } from "./mesh_type_type";
-import { Vector3 as __Vector3 } from "./vector_3_type";
 
-export type ModifyBlock = {
+export type PreviewBlockRect = {
   world: string,
   mode: __BlockModificationMode,
   type: __MeshType,
-  positions: __Vector3[],
+  x1: number,
+  y1: number,
+  z1: number,
+  x2: number,
+  y2: number,
+  z2: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace ModifyBlock {
+export namespace PreviewBlockRect {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -55,16 +59,21 @@ export namespace ModifyBlock {
       new ProductTypeElement("world", AlgebraicType.createStringType()),
       new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
       new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("positions", AlgebraicType.createArrayType(__Vector3.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("x1", AlgebraicType.createI32Type()),
+      new ProductTypeElement("y1", AlgebraicType.createI32Type()),
+      new ProductTypeElement("z1", AlgebraicType.createI32Type()),
+      new ProductTypeElement("x2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("y2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("z2", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: ModifyBlock): void {
-    ModifyBlock.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: PreviewBlockRect): void {
+    PreviewBlockRect.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): ModifyBlock {
-    return ModifyBlock.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): PreviewBlockRect {
+    return PreviewBlockRect.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

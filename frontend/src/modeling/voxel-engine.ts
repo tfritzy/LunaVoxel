@@ -47,20 +47,20 @@ export class VoxelEngine {
     this.camera.position.set(
       5 + this.world.xWidth / 2,
       12,
-      5 + this.world.yWidth / 2
+      5 + this.world.zWidth / 2
     );
-    this.camera.lookAt(this.world.xWidth / 2, 0, this.world.yWidth / 2);
+    this.camera.lookAt(this.world.xWidth / 2, 0, this.world.zWidth / 2);
 
     this.controls = new CameraController(
       this.camera,
-      new THREE.Vector3(this.world.xWidth / 2, 0, this.world.yWidth / 2),
+      new THREE.Vector3(this.world.xWidth / 2, 0, this.world.zWidth / 2),
       this.renderer.domElement
     );
     this.setupLights();
     addGroundPlane(
       this.scene,
       this.world.xWidth,
-      this.world.yWidth,
+      this.world.zWidth,
       this.world.height
     );
     this.worldManager = new WorldManager(this.scene, this.conn, this.world);

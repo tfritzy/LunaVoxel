@@ -14,8 +14,7 @@ public static partial class Module
         int z1,
         int x2,
         int y2,
-        int z2,
-        bool isPreview = false)
+        int z2)
     {
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_0") ?? throw new ArgumentException("No chunk for this world");
         List<Vector3> positions = [];
@@ -35,6 +34,6 @@ public static partial class Module
                 }
             }
         }
-        ModifyBlock(ctx, world, mode, type, positions, isPreview);
+        ModifyBlock(ctx, world, mode, type, positions);
     }
 }

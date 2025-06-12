@@ -42,6 +42,8 @@ import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
+import { PreviewBlockRect } from "./preview_block_rect_reducer.ts";
+export { PreviewBlockRect };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReplacePalette } from "./replace_palette_reducer.ts";
@@ -134,6 +136,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
     },
+    PreviewBlockRect: {
+      reducerName: "PreviewBlockRect",
+      argsType: PreviewBlockRect.getTypeScriptAlgebraicType(),
+    },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
@@ -186,6 +192,7 @@ export type Reducer = never
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
+| { name: "PreviewBlockRect", args: PreviewBlockRect }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SelectColor", args: SelectColor }
@@ -244,36 +251,52 @@ export class RemoteReducers {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  modifyBlock(world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], isPreview: boolean) {
-    const __args = { world, mode, type, positions, isPreview };
+  modifyBlock(world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[]) {
+    const __args = { world, mode, type, positions };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], isPreview: boolean) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[]) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], isPreview: boolean) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[]) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) {
-    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2, isPreview };
+  modifyBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
+    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2 };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, isPreview: boolean) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
+  }
+
+  previewBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
+    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2 };
+    let __writer = new BinaryWriter(1024);
+    PreviewBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("PreviewBlockRect", __argsBuffer, this.setCallReducerFlags.previewBlockRectFlags);
+  }
+
+  onPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+    this.connection.onReducer("PreviewBlockRect", callback);
+  }
+
+  removeOnPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+    this.connection.offReducer("PreviewBlockRect", callback);
   }
 
   removeColorFromPalette(worldId: string, colorIndex: number) {
@@ -382,6 +405,11 @@ export class SetReducerFlags {
   modifyBlockRectFlags: CallReducerFlags = 'FullUpdate';
   modifyBlockRect(flags: CallReducerFlags) {
     this.modifyBlockRectFlags = flags;
+  }
+
+  previewBlockRectFlags: CallReducerFlags = 'FullUpdate';
+  previewBlockRect(flags: CallReducerFlags) {
+    this.previewBlockRectFlags = flags;
   }
 
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
