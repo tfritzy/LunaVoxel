@@ -57,7 +57,7 @@ public static partial class Module
         public BlockRun[] PreviewPositions = System.Array.Empty<BlockRun>();
         public Vector3 StartPos;
         public string? BlockColor;
-        public bool IsAddMode;
+        public BlockModificationMode Mode;
     }
 
     [Table(Name = "ColorPalette", Public = true)]

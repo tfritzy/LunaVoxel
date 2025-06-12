@@ -6,7 +6,7 @@ spacetime sql quickstart-chat "SELECT * FROM PreviewBlock"
 
 Publish
 spacetime publish --project-path quickstart-chat/server quickstart-chat
-spacetime publish -c --project-path quickstart-chat/server quickstart-chat
+spacetime publish -c --project-path quickstart-chat/server quickstart-chat -y
 
 Create world
 spacetime call quickstart-chat CreateWorld "Cool world 1" 16, 16, 16

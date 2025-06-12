@@ -283,19 +283,19 @@ export class RemoteReducers {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
-  previewBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
-    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2 };
+  previewBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: string | undefined) {
+    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2, color };
     let __writer = new BinaryWriter(1024);
     PreviewBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("PreviewBlockRect", __argsBuffer, this.setCallReducerFlags.previewBlockRectFlags);
   }
 
-  onPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+  onPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: string | undefined) => void) {
     this.connection.onReducer("PreviewBlockRect", callback);
   }
 
-  removeOnPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+  removeOnPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: string | undefined) => void) {
     this.connection.offReducer("PreviewBlockRect", callback);
   }
 

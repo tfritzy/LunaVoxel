@@ -30,6 +30,7 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
 import { Vector3 as __Vector3 } from "./vector_3_type";
 import { BlockRun as __BlockRun } from "./block_run_type";
 
@@ -40,7 +41,7 @@ export type PreviewVoxels = {
   previewPositions: __BlockRun[],
   startPos: __Vector3,
   blockColor: string | undefined,
-  isAddMode: boolean,
+  mode: __BlockModificationMode,
 };
 
 /**
@@ -59,7 +60,7 @@ export namespace PreviewVoxels {
       new ProductTypeElement("previewPositions", AlgebraicType.createArrayType(__BlockRun.getTypeScriptAlgebraicType())),
       new ProductTypeElement("startPos", __Vector3.getTypeScriptAlgebraicType()),
       new ProductTypeElement("blockColor", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
-      new ProductTypeElement("isAddMode", AlgebraicType.createBoolType()),
+      new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
     ]);
   }
 

@@ -31,6 +31,7 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 import { PreviewVoxels } from "./preview_voxels_type";
+import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
 import { Vector3 as __Vector3 } from "./vector_3_type";
 import { BlockRun as __BlockRun } from "./block_run_type";
 

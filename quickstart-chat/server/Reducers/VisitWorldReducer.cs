@@ -34,7 +34,7 @@ public static partial class Module
                 Player = ctx.Sender,
                 World = worldId,
                 BlockColor = "#FFFFFF",
-                IsAddMode = false,
+                Mode = BlockModificationMode.Build,
                 PreviewPositions = Array.Empty<BlockRun>()
             });
         }

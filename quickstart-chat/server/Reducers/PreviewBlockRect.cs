@@ -16,7 +16,9 @@ public static partial class Module
         int z1,
         int x2,
         int y2,
-        int z2)
+        int z2,
+        string? color
+        )
     {
         var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
 
@@ -28,28 +30,33 @@ public static partial class Module
                 Player = ctx.Sender,
                 World = world,
                 PreviewPositions = Array.Empty<BlockRun>(),
-                IsAddMode = mode != BlockModificationMode.Erase,
-                BlockColor = mode == BlockModificationMode.Erase ? null : "#ffffff",
+                Mode = mode,
+                BlockColor = (mode == BlockModificationMode.Erase ? null : (color ?? "#ffffff")),
                 StartPos = new Vector3(x1, y1, z1),
             };
             ctx.Db.PreviewVoxels.Insert(previewVoxels);
         }
-
-        Block[,,] blocks = new Block[x2 - x1, y2 - y1, z2 - z1];
-        for (int x = x1; x <= x2; x++)
+        else
         {
-            for (int y = y1; y <= y2; y++)
+            if (mode != BlockModificationMode.Erase && color != null)
             {
-                for (int z = z1; z <= z2; z++)
-                {
-                    blocks[x, y, z] = new Block(type);
-                }
+                previewVoxels.BlockColor = color;
             }
         }
 
-        previewVoxels.PreviewPositions = [.. BlockCompression.Compress(blocks)];
-        previewVoxels.BlockColor = mode == BlockModificationMode.Erase ? null : "#ffffff";
-        previewVoxels.IsAddMode = mode != BlockModificationMode.Erase;
+        int minX = Math.Min(x1, x2);
+        int minY = Math.Min(y1, y2);
+        int minZ = Math.Min(z1, z2);
+        int maxX = Math.Max(x1, x2);
+        int maxY = Math.Max(y1, y2);
+        int maxZ = Math.Max(z1, z2);
+
+        previewVoxels.PreviewPositions = new BlockRun[] {
+            new BlockRun(type, new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ), null)
+        };
+
+        previewVoxels.Mode = mode;
+
         ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
     }
 }

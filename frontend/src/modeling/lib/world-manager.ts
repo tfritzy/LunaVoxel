@@ -35,7 +35,6 @@ export class WorldManager {
     oldRow: PreviewVoxels,
     previewVoxels: PreviewVoxels
   ) => {
-    console.log("preview update");
     if (previewVoxels.world === this.world.id) {
       this.currentPreview = previewVoxels;
 
@@ -67,7 +66,6 @@ export class WorldManager {
   ): Promise<void> {
     const startTime = new Date();
     if (this.currentUpdateController) {
-      console.log("cancel update");
       this.currentUpdateController.abort();
     }
 

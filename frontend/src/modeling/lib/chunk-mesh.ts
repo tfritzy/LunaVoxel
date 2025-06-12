@@ -1,5 +1,10 @@
 import * as THREE from "three";
-import { BlockRun, Chunk, PreviewVoxels } from "@/module_bindings";
+import {
+  BlockModificationMode,
+  BlockRun,
+  Chunk,
+  PreviewVoxels,
+} from "@/module_bindings";
 
 type VoxelFaces = {
   color: string;
@@ -70,15 +75,6 @@ const faces = [
   },
 ];
 
-const directions = [
-  new THREE.Vector3(1, 0, 0),
-  new THREE.Vector3(-1, 0, 0),
-  new THREE.Vector3(0, 1, 0),
-  new THREE.Vector3(0, -1, 0),
-  new THREE.Vector3(0, 0, 1),
-  new THREE.Vector3(0, 0, -1),
-];
-
 export class ChunkMesh {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
@@ -87,7 +83,6 @@ export class ChunkMesh {
   private currentUpdateId: number = 0;
 
   constructor(scene: THREE.Scene) {
-    console.log("[ChunkMesh] Constructor called");
     this.scene = scene;
     this.mesh = null;
     this.geometry = null;
@@ -95,21 +90,9 @@ export class ChunkMesh {
   }
 
   decompressBlocks(blocks: BlockRun[]): (BlockRun | undefined)[][][] {
-    const startTime = performance.now();
-    console.log(
-      `[ChunkMesh] Starting block decompression with ${blocks.length} block runs`
-    );
-
     const decompressed: (BlockRun | undefined)[][][] = [];
-    let totalVoxels = 0;
-
     for (const blockRun of blocks) {
       const { topLeft, bottomRight } = blockRun;
-      const runSize =
-        (bottomRight.x - topLeft.x + 1) *
-        (bottomRight.y - topLeft.y + 1) *
-        (bottomRight.z - topLeft.z + 1);
-      totalVoxels += runSize;
 
       for (let x = topLeft.x; x <= bottomRight.x; x++) {
         if (!decompressed[x]) decompressed[x] = [];
@@ -124,14 +107,6 @@ export class ChunkMesh {
       }
     }
 
-    const endTime = performance.now();
-    console.log(
-      `[ChunkMesh] Block decompression completed in ${(
-        endTime - startTime
-      ).toFixed(2)}ms`
-    );
-    console.log(`[ChunkMesh] Total voxels processed: ${totalVoxels}`);
-
     return decompressed;
   }
 
@@ -140,65 +115,35 @@ export class ChunkMesh {
     previewVoxels?: PreviewVoxels | null,
     signal?: AbortSignal
   ): Promise<void> {
-    const updateStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
-    console.log(`[ChunkMesh] Starting update ${updateId}`);
-    console.log(
-      `[ChunkMesh] Chunk dimensions: ${newChunk.xDim}x${newChunk.yDim}x${newChunk.zDim}`
-    );
-    console.log(
-      `[ChunkMesh] Preview voxels: ${previewVoxels ? "present" : "none"}`
-    );
-
     if (signal?.aborted) {
-      console.log(`[ChunkMesh] Update ${updateId} aborted before starting`);
       return;
     }
 
     try {
       // Decompress real blocks
-      const realBlocksStart = performance.now();
       const realBlocks = this.decompressBlocks(newChunk.blocks);
-      const realBlocksEnd = performance.now();
-      console.log(
-        `[ChunkMesh] Real blocks decompression: ${(
-          realBlocksEnd - realBlocksStart
-        ).toFixed(2)}ms`
-      );
 
       if (signal?.aborted || updateId !== this.currentUpdateId) {
-        console.log(
-          `[ChunkMesh] Update ${updateId} aborted after real blocks decompression`
-        );
         return;
       }
 
       // Decompress preview blocks
       let previewBlocks = null;
       if (previewVoxels) {
-        const previewBlocksStart = performance.now();
         previewBlocks = this.decompressBlocks(previewVoxels.previewPositions);
-        const previewBlocksEnd = performance.now();
-        console.log(
-          `[ChunkMesh] Preview blocks decompression: ${(
-            previewBlocksEnd - previewBlocksStart
-          ).toFixed(2)}ms`
-        );
       }
 
       if (signal?.aborted || updateId !== this.currentUpdateId) {
-        console.log(
-          `[ChunkMesh] Update ${updateId} aborted after preview blocks decompression`
-        );
         return;
       }
 
       // Find exterior faces
-      const exteriorFacesStart = performance.now();
       const exteriorFaces = await this.findExteriorFaces(
         realBlocks,
         previewBlocks,
+        previewVoxels!.mode,
         {
           xDim: newChunk.xDim,
           yDim: newChunk.yDim,
@@ -206,39 +151,15 @@ export class ChunkMesh {
         },
         signal
       );
-      const exteriorFacesEnd = performance.now();
-      console.log(
-        `[ChunkMesh] Exterior faces calculation: ${(
-          exteriorFacesEnd - exteriorFacesStart
-        ).toFixed(2)}ms`
-      );
 
       if (signal?.aborted || updateId !== this.currentUpdateId) {
-        console.log(
-          `[ChunkMesh] Update ${updateId} aborted after exterior faces calculation`
-        );
         return;
       }
 
       // Update mesh
-      const meshUpdateStart = performance.now();
       await this.updateMesh(exteriorFaces, signal);
-      const meshUpdateEnd = performance.now();
-      console.log(
-        `[ChunkMesh] Mesh update: ${(meshUpdateEnd - meshUpdateStart).toFixed(
-          2
-        )}ms`
-      );
-
-      const updateEndTime = performance.now();
-      console.log(
-        `[ChunkMesh] Update ${updateId} completed in ${(
-          updateEndTime - updateStartTime
-        ).toFixed(2)}ms`
-      );
     } catch (error) {
       if (error.name === "AbortError") {
-        console.log(`[ChunkMesh] Update ${updateId} aborted via signal`);
         return;
       }
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
@@ -249,14 +170,10 @@ export class ChunkMesh {
   async findExteriorFaces(
     realBlocks: (BlockRun | undefined)[][][],
     previewBlocks: (BlockRun | undefined)[][][] | null,
+    previewMode: BlockModificationMode,
     dimensions: { xDim: number; yDim: number; zDim: number },
     signal?: AbortSignal
   ): Promise<Map<string, VoxelFaces>> {
-    const startTime = performance.now();
-    console.log(
-      `[ChunkMesh] Starting optimized exterior face detection for ${dimensions.xDim}x${dimensions.yDim}x${dimensions.zDim} chunk`
-    );
-
     const exteriorFaces: Map<string, VoxelFaces> = new Map();
 
     // Use typed arrays for better performance
@@ -307,7 +224,12 @@ export class ChunkMesh {
     };
 
     const isAir = (x: number, y: number, z: number): boolean => {
-      return !isInVoxelBounds(x, y, z) || !realBlocks[x]?.[y]?.[z];
+      return (
+        !isInVoxelBounds(x, y, z) ||
+        !realBlocks[x]?.[y]?.[z] ||
+        (!!previewBlocks?.[x]?.[y]?.[z] &&
+          previewMode != BlockModificationMode.Paint)
+      );
     };
 
     const getBlock = (
@@ -316,6 +238,7 @@ export class ChunkMesh {
       z: number
     ): BlockRun | undefined => {
       if (!isInVoxelBounds(x, y, z)) return undefined;
+      // TODO: Integrate previewBlocks logic here if needed for face culling
       return realBlocks[x]?.[y]?.[z];
     };
 
@@ -342,8 +265,9 @@ export class ChunkMesh {
     // Queue operations
     const enqueue = (x: number, y: number, z: number): void => {
       if (queueEnd >= queueCapacity) {
+        // Consider resizing or a more robust queue if this happens often
         console.warn(
-          `[ChunkMesh] Queue capacity exceeded, skipping (${x}, ${y}, ${z})`
+          `[ChunkMesh] Flood fill queue capacity exceeded, skipping (${x}, ${y}, ${z})`
         );
         return;
       }
@@ -377,9 +301,6 @@ export class ChunkMesh {
     ];
 
     // Initialize flood fill from multiple border points for faster coverage
-    const initializationStart = performance.now();
-
-    // Add border points more efficiently
     const borderSpacing = 4; // Sample every 4th border point
 
     // Add points along edges instead of just one corner
@@ -408,27 +329,11 @@ export class ChunkMesh {
       }
     }
 
-    const initializationTime = performance.now() - initializationStart;
-    console.log(
-      `[ChunkMesh] Initialization: ${initializationTime.toFixed(
-        2
-      )}ms, initial queue size: ${queueSize()}`
-    );
-
-    let processedNodes = 0;
-    let lastLogTime = performance.now();
-    const checkInterval = 5000; // Less frequent checks
-    const logInterval = 5000;
-
-    console.log(`[ChunkMesh] Starting optimized flood fill`);
-
-    const mainLoopStart = performance.now();
+    let operationsSinceLastYield = 0;
+    const yieldInterval = 5000; // Number of dequeued nodes before yielding
 
     while (queueSize() > 0) {
       if (signal?.aborted) {
-        console.log(
-          `[ChunkMesh] Flood fill aborted after processing ${processedNodes} nodes`
-        );
         throw new DOMException("Operation aborted", "AbortError");
       }
 
@@ -439,8 +344,8 @@ export class ChunkMesh {
         const current = dequeue();
         if (!current) break;
 
+        operationsSinceLastYield++;
         const { x, y, z } = current;
-        processedNodes++;
 
         // Check all 6 directions using static array
         for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
@@ -479,39 +384,12 @@ export class ChunkMesh {
         }
       }
 
-      // Periodic logging and yielding
-      if (processedNodes % checkInterval === 0) {
-        const currentTime = performance.now();
-        if (currentTime - lastLogTime > logInterval) {
-          console.log(
-            `[ChunkMesh] Flood fill progress: ${processedNodes} nodes processed, ${queueSize()} in queue, ${
-              exteriorFaces.size
-            } exterior faces found`
-          );
-          lastLogTime = currentTime;
-        }
+      // Periodic yielding
+      if (operationsSinceLastYield >= yieldInterval) {
         await new Promise((resolve) => setTimeout(resolve, 0));
+        operationsSinceLastYield = 0;
       }
     }
-
-    const mainLoopTime = performance.now() - mainLoopStart;
-    const endTime = performance.now();
-
-    console.log(`[ChunkMesh] Main loop: ${mainLoopTime.toFixed(2)}ms`);
-    console.log(
-      `[ChunkMesh] Optimized flood fill completed in ${(
-        endTime - startTime
-      ).toFixed(2)}ms`
-    );
-    console.log(
-      `[ChunkMesh] Final stats: ${processedNodes} nodes processed, ${exteriorFaces.size} exterior faces found`
-    );
-    console.log(
-      `[ChunkMesh] Performance: ${(
-        (processedNodes / (endTime - startTime)) *
-        1000
-      ).toFixed(0)} nodes/second`
-    );
 
     return exteriorFaces;
   }
@@ -520,13 +398,7 @@ export class ChunkMesh {
     exteriorFaces: Map<string, VoxelFaces>,
     signal?: AbortSignal
   ): Promise<void> {
-    const startTime = performance.now();
-    console.log(
-      `[ChunkMesh] Starting mesh update with ${exteriorFaces.size} exterior faces`
-    );
-
     if (signal?.aborted) {
-      console.log(`[ChunkMesh] Mesh update aborted before starting`);
       throw new DOMException("Operation aborted", "AbortError");
     }
 
@@ -535,9 +407,6 @@ export class ChunkMesh {
     for (const voxelFace of exteriorFaces.values()) {
       totalFaceCount += voxelFace.faceIndexes.length;
     }
-    console.log(
-      `[ChunkMesh] Total individual faces to process: ${totalFaceCount}`
-    );
 
     // Pre-allocate arrays with exact sizes for better performance
     const totalVertices = totalFaceCount * 4;
@@ -551,37 +420,22 @@ export class ChunkMesh {
     let vertexOffset = 0;
     let indexOffset = 0;
     let vertexIndex = 0;
-    let processedFaces = 0;
-    let lastLogTime = startTime;
-    const checkInterval = 1000;
-    const logInterval = 2000; // Log progress every 2 seconds
+
+    let itemsProcessedSinceLastYield = 0;
+    const yieldInterval = 1000; // Yield every 1000 voxel faces processed
 
     // Cache for color objects to avoid repeated parsing
     const colorCache = new Map<string, { r: number; g: number; b: number }>();
 
-    const processingStartTime = performance.now();
-
     for (const voxelFace of exteriorFaces.values()) {
       if (signal?.aborted) {
-        console.log(
-          `[ChunkMesh] Mesh update aborted after processing ${processedFaces} voxel faces`
-        );
         throw new DOMException("Operation aborted", "AbortError");
       }
 
-      if (++processedFaces % checkInterval === 0) {
-        const currentTime = performance.now();
-        if (currentTime - lastLogTime > logInterval) {
-          const progress = (
-            (processedFaces / exteriorFaces.size) *
-            100
-          ).toFixed(1);
-          console.log(
-            `[ChunkMesh] Progress: ${processedFaces}/${exteriorFaces.size} voxel faces (${progress}%)`
-          );
-          lastLogTime = currentTime;
-        }
+      itemsProcessedSinceLastYield++;
+      if (itemsProcessedSinceLastYield >= yieldInterval) {
         await new Promise((resolve) => setTimeout(resolve, 0));
+        itemsProcessedSinceLastYield = 0;
       }
 
       const { color, gridPos, faceIndexes } = voxelFace;
@@ -647,31 +501,11 @@ export class ChunkMesh {
       }
     }
 
-    const processingEndTime = performance.now();
-    console.log(
-      `[ChunkMesh] Face processing completed in ${(
-        processingEndTime - processingStartTime
-      ).toFixed(2)}ms`
-    );
-    console.log(
-      `[ChunkMesh] Color cache size: ${colorCache.size} unique colors`
-    );
-
-    console.log(
-      `[ChunkMesh] Creating geometry with ${totalVertices} vertices, ${
-        totalIndices / 3
-      } triangles`
-    );
-
     if (signal?.aborted) {
-      console.log(`[ChunkMesh] Mesh update aborted before geometry creation`);
       throw new DOMException("Operation aborted", "AbortError");
     }
 
-    const geometryStartTime = performance.now();
-
     if (!this.geometry) {
-      console.log(`[ChunkMesh] Creating new geometry and mesh`);
       this.geometry = new THREE.BufferGeometry();
       this.material = new THREE.MeshLambertMaterial({
         vertexColors: true,
@@ -681,8 +515,6 @@ export class ChunkMesh {
       this.mesh.castShadow = true;
       this.mesh.receiveShadow = true;
       this.scene.add(this.mesh);
-    } else {
-      console.log(`[ChunkMesh] Updating existing geometry`);
     }
 
     // Set attributes using pre-allocated typed arrays
@@ -703,37 +535,12 @@ export class ChunkMesh {
     }
 
     this.geometry.computeBoundingSphere();
-
-    const geometryEndTime = performance.now();
-
-    const endTime = performance.now();
-    console.log(
-      `[ChunkMesh] Geometry operations: ${(
-        geometryEndTime - geometryStartTime
-      ).toFixed(2)}ms`
-    );
-    console.log(
-      `[ChunkMesh] Total mesh update completed in ${(
-        endTime - startTime
-      ).toFixed(2)}ms`
-    );
-    console.log(
-      `[ChunkMesh] Final mesh stats: ${totalVertices} vertices, ${
-        totalIndices / 3
-      } triangles`
-    );
   }
 
   dispose() {
-    console.log(
-      `[ChunkMesh] Disposing mesh, cancelling update ${this.currentUpdateId}`
-    );
     this.currentUpdateId++;
 
     if (this.mesh) {
-      console.log(
-        `[ChunkMesh] Removing mesh from scene and disposing resources`
-      );
       this.scene.remove(this.mesh);
 
       if (this.geometry) {
@@ -746,9 +553,6 @@ export class ChunkMesh {
         this.material = null;
       }
       this.mesh = null;
-      console.log(`[ChunkMesh] Disposal complete`);
-    } else {
-      console.log(`[ChunkMesh] No mesh to dispose`);
     }
   }
 }

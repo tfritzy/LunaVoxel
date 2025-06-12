@@ -44,6 +44,7 @@ export type PreviewBlockRect = {
   x2: number,
   y2: number,
   z2: number,
+  color: string | undefined,
 };
 
 /**
@@ -65,6 +66,7 @@ export namespace PreviewBlockRect {
       new ProductTypeElement("x2", AlgebraicType.createI32Type()),
       new ProductTypeElement("y2", AlgebraicType.createI32Type()),
       new ProductTypeElement("z2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("color", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
     ]);
   }
 
