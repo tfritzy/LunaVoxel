@@ -1,91 +1,113 @@
 import * as THREE from "three";
 import {
+  BlockModificationMode,
   Chunk,
   DbConnection,
   EventContext,
-  PreviewVoxels,
   World,
 } from "../../module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
+import { GridRaycaster } from "./grid-raycaster";
+import { Builder } from "./builder";
 
 export class WorldManager {
   private scene: THREE.Scene;
   private chunkMesh: ChunkMesh;
   private dbConn: DbConnection;
   private world: World;
-  private currentPreview: PreviewVoxels | null = null;
   private currentUpdateController: AbortController | null = null;
+  private raycaster: GridRaycaster | null = null;
+  private builder: Builder;
+  private currentChunk: Chunk | null = null;
 
-  constructor(scene: THREE.Scene, dbConn: DbConnection, world: World) {
+  constructor(
+    scene: THREE.Scene,
+    dbConn: DbConnection,
+    world: World,
+    camera: THREE.Camera,
+    container: HTMLElement
+  ) {
     this.dbConn = dbConn;
     this.scene = scene;
     this.world = world;
     this.chunkMesh = new ChunkMesh(scene);
     this.setupEvents();
+    this.builder = new Builder(
+      this.dbConn,
+      this.world.id,
+      world.dimensions,
+      container,
+      this.onPreviewUpdate
+    );
+    this.setupRaycaster(camera, container);
     this.setupChunks();
   }
 
   setupEvents = () => {
     this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
-    this.dbConn.db.previewVoxels.onUpdate(this.onPreviewUpdate);
-  };
-
-  onPreviewUpdate = async (
-    ctx: EventContext,
-    oldRow: PreviewVoxels,
-    previewVoxels: PreviewVoxels
-  ) => {
-    if (previewVoxels.world === this.world.id) {
-      this.currentPreview = previewVoxels;
-
-      const chunk = this.dbConn.db.chunk.tableCache
-        .iter()
-        .find((c) => c.world === this.world.id);
-
-      if (chunk) {
-        await this.updateChunkMesh(chunk, this.currentPreview);
-      }
-    }
   };
 
   setupChunks = async () => {
     for (const chunk of this.dbConn.db.chunk.tableCache.iter()) {
       const c = chunk as Chunk;
       if (c.world !== this.world.id) continue;
-      await this.updateChunkMesh(c, this.currentPreview);
+      this.currentChunk = c;
+      await this.updateChunkMesh();
     }
   };
+
+  onPreviewUpdate = () => {
+    this.updateChunkMesh();
+  };
+
+  private setupRaycaster(camera: THREE.Camera, container: HTMLElement): void {
+    if (this.raycaster) {
+      this.raycaster.dispose();
+      this.raycaster = null;
+    }
+
+    this.raycaster = new GridRaycaster(camera, this.scene, container, {
+      onHover: (position) => {
+        if (position) {
+          this.builder.onMouseHover(position);
+        }
+      },
+      onClick: (position) => {
+        if (position) {
+          this.builder.onMouseClick(position);
+        }
+      },
+    });
+  }
 
   onChunkUpdate = async (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
-    await this.updateChunkMesh(newRow, this.currentPreview);
+    this.currentChunk = newRow;
+    await this.updateChunkMesh();
   };
 
-  private async updateChunkMesh(
-    chunk: Chunk,
-    preview: PreviewVoxels | null
-  ): Promise<void> {
-    const startTime = new Date();
-    if (this.currentUpdateController) {
-      this.currentUpdateController.abort();
-    }
+  private async updateChunkMesh(): Promise<void> {
+    if (!this.currentChunk) return;
 
     this.currentUpdateController = new AbortController();
 
     try {
       await this.chunkMesh.update(
-        chunk,
-        preview,
+        this.currentChunk,
+        this.builder.previewBlocks,
+        this.builder.getTool(),
         this.currentUpdateController.signal
-      );
-      console.log(
-        "update took",
-        (new Date().getUTCMilliseconds() - startTime.getUTCMilliseconds()) /
-          1000
       );
     } catch (error) {
       if (error.name !== "AbortError") {
         console.error("Chunk mesh update error:", error);
       }
+    }
+  }
+
+  public setTool(tool: BlockModificationMode): void {
+    this.builder.setTool(tool);
+    if (this.raycaster) {
+      this.raycaster.setTool(tool);
     }
   }
 
@@ -95,8 +117,8 @@ export class WorldManager {
       this.currentUpdateController = null;
     }
 
+    this.raycaster?.dispose();
     this.chunkMesh.dispose();
     this.dbConn.db.chunk.removeOnUpdate(this.onChunkUpdate);
-    this.dbConn.db.previewVoxels.removeOnUpdate(this.onPreviewUpdate);
   }
 }

@@ -42,8 +42,6 @@ import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
-import { PreviewBlockRect } from "./preview_block_rect_reducer.ts";
-export { PreviewBlockRect };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReplacePalette } from "./replace_palette_reducer.ts";
@@ -62,8 +60,6 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { PlayerInWorldTableHandle } from "./player_in_world_table.ts";
 export { PlayerInWorldTableHandle };
-import { PreviewVoxelsTableHandle } from "./preview_voxels_table.ts";
-export { PreviewVoxelsTableHandle };
 import { WorldTableHandle } from "./world_table.ts";
 export { WorldTableHandle };
 
@@ -80,8 +76,6 @@ import { MeshType } from "./mesh_type_type.ts";
 export { MeshType };
 import { PlayerInWorld } from "./player_in_world_type.ts";
 export { PlayerInWorld };
-import { PreviewVoxels } from "./preview_voxels_type.ts";
-export { PreviewVoxels };
 import { Vector3 } from "./vector_3_type.ts";
 export { Vector3 };
 import { World } from "./world_type.ts";
@@ -102,11 +96,6 @@ const REMOTE_MODULE = {
     PlayerInWorld: {
       tableName: "PlayerInWorld",
       rowType: PlayerInWorld.getTypeScriptAlgebraicType(),
-      primaryKey: "id",
-    },
-    PreviewVoxels: {
-      tableName: "PreviewVoxels",
-      rowType: PreviewVoxels.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
     World: {
@@ -135,10 +124,6 @@ const REMOTE_MODULE = {
     ModifyBlockRect: {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
-    },
-    PreviewBlockRect: {
-      reducerName: "PreviewBlockRect",
-      argsType: PreviewBlockRect.getTypeScriptAlgebraicType(),
     },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
@@ -192,7 +177,6 @@ export type Reducer = never
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
-| { name: "PreviewBlockRect", args: PreviewBlockRect }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SelectColor", args: SelectColor }
@@ -281,22 +265,6 @@ export class RemoteReducers {
 
   removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
-  }
-
-  previewBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: string | undefined) {
-    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2, color };
-    let __writer = new BinaryWriter(1024);
-    PreviewBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("PreviewBlockRect", __argsBuffer, this.setCallReducerFlags.previewBlockRectFlags);
-  }
-
-  onPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: string | undefined) => void) {
-    this.connection.onReducer("PreviewBlockRect", callback);
-  }
-
-  removeOnPreviewBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: string | undefined) => void) {
-    this.connection.offReducer("PreviewBlockRect", callback);
   }
 
   removeColorFromPalette(worldId: string, colorIndex: number) {
@@ -407,11 +375,6 @@ export class SetReducerFlags {
     this.modifyBlockRectFlags = flags;
   }
 
-  previewBlockRectFlags: CallReducerFlags = 'FullUpdate';
-  previewBlockRect(flags: CallReducerFlags) {
-    this.previewBlockRectFlags = flags;
-  }
-
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
   removeColorFromPalette(flags: CallReducerFlags) {
     this.removeColorFromPaletteFlags = flags;
@@ -452,10 +415,6 @@ export class RemoteTables {
 
   get playerInWorld(): PlayerInWorldTableHandle {
     return new PlayerInWorldTableHandle(this.connection.clientCache.getOrCreateTable<PlayerInWorld>(REMOTE_MODULE.tables.PlayerInWorld));
-  }
-
-  get previewVoxels(): PreviewVoxelsTableHandle {
-    return new PreviewVoxelsTableHandle(this.connection.clientCache.getOrCreateTable<PreviewVoxels>(REMOTE_MODULE.tables.PreviewVoxels));
   }
 
   get world(): WorldTableHandle {

@@ -92,15 +92,10 @@ export class GridRaycaster {
     if (intersects.length > 0) {
       const intersection = intersects[0];
 
-      const point = intersection.point;
-      const gridPos = new THREE.Vector3(
-        Math.floor(point.x),
-        Math.floor(point.y),
-        Math.floor(point.z)
-      );
+      const point = this.floorVector3(intersection.point);
 
       if (intersection.object.userData.isBoundaryBox) {
-        return gridPos;
+        return point;
       } else {
         if (
           this.currentTool.tag === "Erase" ||
@@ -108,19 +103,26 @@ export class GridRaycaster {
         ) {
           const normal = intersection.face?.normal.multiplyScalar(-0.1);
           if (normal) {
-            return gridPos.add(normal);
+            return this.floorVector3(point.add(normal));
           }
-          return gridPos;
+          return point;
         } else {
           const normal = intersection.face?.normal.multiplyScalar(0.1);
           if (normal) {
-            return gridPos.add(normal);
+            return this.floorVector3(point.add(normal));
           }
-          return gridPos;
+          return point;
         }
       }
     }
     return null;
+  }
+
+  private floorVector3(vector3: THREE.Vector3) {
+    vector3.x = Math.floor(vector3.x);
+    vector3.y = Math.floor(vector3.y);
+    vector3.z = Math.floor(vector3.z);
+    return vector3;
   }
 
   public updateCamera(camera: THREE.Camera): void {

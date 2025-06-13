@@ -1,10 +1,8 @@
 import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
-import { GridRaycaster } from "./lib/grid-raycaster";
-import { Builder } from "./lib/builder";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { BlockModificationMode, DbConnection, World } from "../module_bindings";
+import { DbConnection, World } from "../module_bindings";
 import { WorldManager } from "./lib/world-manager";
 
 export interface VoxelEngineOptions {
@@ -20,10 +18,7 @@ export class VoxelEngine {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private controls: CameraController;
-  private raycaster: GridRaycaster | null = null;
-  private builder: Builder;
   private animationFrameId: number | null = null;
-  private currentGridPosition: THREE.Vector3 | null = null;
   private conn: DbConnection;
   private worldManager: WorldManager;
   private world: World;
@@ -45,30 +40,38 @@ export class VoxelEngine {
     );
     this.camera.layers.enable(layers.ghost);
     this.camera.position.set(
-      5 + this.world.xWidth / 2,
+      5 + this.world.dimensions.x / 2,
       12,
-      5 + this.world.zWidth / 2
+      5 + this.world.dimensions.z / 2
     );
-    this.camera.lookAt(this.world.xWidth / 2, 0, this.world.zWidth / 2);
+    this.camera.lookAt(
+      this.world.dimensions.x / 2,
+      0,
+      this.world.dimensions.z / 2
+    );
 
     this.controls = new CameraController(
       this.camera,
-      new THREE.Vector3(this.world.xWidth / 2, 0, this.world.zWidth / 2),
+      new THREE.Vector3(
+        this.world.dimensions.x / 2,
+        0,
+        this.world.dimensions.z / 2
+      ),
       this.renderer.domElement
     );
     this.setupLights();
     addGroundPlane(
       this.scene,
-      this.world.xWidth,
-      this.world.zWidth,
-      this.world.height
+      this.world.dimensions.x,
+      this.world.dimensions.y,
+      this.world.dimensions.z
     );
-    this.worldManager = new WorldManager(this.scene, this.conn, this.world);
-    this.setupRaycaster();
-    this.builder = new Builder(
+    this.worldManager = new WorldManager(
+      this.scene,
       this.conn,
-      this.renderer.domElement,
-      this.world.id
+      this.world,
+      this.camera,
+      this.container
     );
 
     window.addEventListener("resize", this.handleResize);
@@ -84,32 +87,6 @@ export class VoxelEngine {
     renderer.shadowMap.enabled = true;
     container.appendChild(renderer.domElement);
     return renderer;
-  }
-
-  private setupRaycaster(): void {
-    if (this.raycaster) {
-      this.raycaster.dispose();
-      this.raycaster = null;
-    }
-
-    this.raycaster = new GridRaycaster(
-      this.camera,
-      this.scene,
-      this.container,
-      {
-        onHover: (position) => {
-          if (position) {
-            this.builder.onMouseHover(position);
-          }
-        },
-        onClick: (position) => {
-          this.currentGridPosition = position;
-          if (position) {
-            this.builder.onMouseClick(position);
-          }
-        },
-      }
-    );
   }
 
   private setupLights(): void {
@@ -255,25 +232,12 @@ export class VoxelEngine {
     this.renderer.render(this.scene, this.camera);
   };
 
-  public getCurrentGridPosition(): THREE.Vector3 | null {
-    return this.currentGridPosition;
-  }
-
-  public setTool(tool: BlockModificationMode): void {
-    this.builder.setTool(tool);
-    if (this.raycaster) {
-      this.raycaster.setTool(tool);
-    }
-  }
-
   public dispose(): void {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
 
-    this.builder.dispose();
     window.removeEventListener("resize", this.handleResize);
-    this.raycaster?.dispose();
     this.renderer.dispose();
     this.worldManager.dispose();
     if (this.container.contains(this.renderer.domElement)) {

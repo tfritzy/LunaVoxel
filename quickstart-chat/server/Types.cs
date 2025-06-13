@@ -10,22 +10,18 @@ public static partial class Module
         [PrimaryKey]
         public string Id;
         public string Name;
-        public int XWidth;
-        public int ZWidth;
-        public int Height;
+        public Vector3 Dimensions;
         public Identity Owner;
         public Timestamp LastVisited;
 
-        public static World Build(string id, string name, int xWidth, int zWidth, int height, Identity owner,
+        public static World Build(string id, string name, int xDim, int yDim, int zDim, Identity owner,
                                   Timestamp timestamp)
         {
             return new World
             {
                 Id = id,
                 Name = name,
-                XWidth = xWidth,
-                ZWidth = zWidth,
-                Height = height,
+                Dimensions = new Vector3(xDim, yDim, zDim),
                 Owner = owner,
                 LastVisited = timestamp
             };
@@ -43,21 +39,6 @@ public static partial class Module
         public Identity Player;
         public string World;
         public string SelectedColor;
-    }
-
-    [Table(Name = "PreviewVoxels", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "player_world",
-                             Columns = new[] { nameof(Player), nameof(World) })]
-    public partial class PreviewVoxels
-    {
-        [PrimaryKey]
-        public string Id;
-        public Identity Player;
-        public string World;
-        public BlockRun[] PreviewPositions = System.Array.Empty<BlockRun>();
-        public Vector3 StartPos;
-        public string? BlockColor;
-        public BlockModificationMode Mode;
     }
 
     [Table(Name = "ColorPalette", Public = true)]

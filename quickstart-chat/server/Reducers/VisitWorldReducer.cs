@@ -1,6 +1,6 @@
-using SpacetimeDB;
 using System;
 using System.Linq;
+using SpacetimeDB;
 
 public static partial class Module
 {
@@ -25,19 +25,6 @@ public static partial class Module
             });
         }
 
-        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, worldId)).FirstOrDefault();
-        if (previewVoxels == null)
-        {
-            ctx.Db.PreviewVoxels.Insert(new PreviewVoxels
-            {
-                Id = IdGenerator.Generate("prvw"),
-                Player = ctx.Sender,
-                World = worldId,
-                BlockColor = "#FFFFFF",
-                Mode = BlockModificationMode.Build,
-                PreviewPositions = Array.Empty<BlockRun>()
-            });
-        }
         Log.Info($"User {ctx.Sender} visited world {worldId} at {ctx.Timestamp}");
     }
 }

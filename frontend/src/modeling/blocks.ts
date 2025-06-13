@@ -1,9 +1,9 @@
+import { MeshType } from "@/module_bindings";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { BlockType } from "../module_bindings";
 
 export type Block = {
-  type: BlockType;
+  type: MeshType;
   name: string;
   dimensions: THREE.Vector3;
   validRotations: number[];

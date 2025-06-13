@@ -30,12 +30,12 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { Vector3 as __Vector3 } from "./vector_3_type";
+
 export type World = {
   id: string,
   name: string,
-  xWidth: number,
-  zWidth: number,
-  height: number,
+  dimensions: __Vector3,
   owner: Identity,
   lastVisited: Timestamp,
 };
@@ -52,9 +52,7 @@ export namespace World {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("name", AlgebraicType.createStringType()),
-      new ProductTypeElement("xWidth", AlgebraicType.createI32Type()),
-      new ProductTypeElement("zWidth", AlgebraicType.createI32Type()),
-      new ProductTypeElement("height", AlgebraicType.createI32Type()),
+      new ProductTypeElement("dimensions", __Vector3.getTypeScriptAlgebraicType()),
       new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
       new ProductTypeElement("lastVisited", AlgebraicType.createTimestampType()),
     ]);

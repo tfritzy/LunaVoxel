@@ -36,10 +36,7 @@ export default function WorldViewPage() {
         setError(`Error loading chunks: ${err}`);
         setChunksLoading(false);
       })
-      .subscribe([
-        `SELECT * FROM Chunk WHERE World='${worldId}'`,
-        `SELECT * FROM PreviewVoxels WHERE World='${worldId}'`,
-      ]);
+      .subscribe([`SELECT * FROM Chunk WHERE World='${worldId}'`]);
 
     return () => {
       sub.unsubscribe();

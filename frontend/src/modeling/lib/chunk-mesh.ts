@@ -3,7 +3,7 @@ import {
   BlockModificationMode,
   BlockRun,
   Chunk,
-  PreviewVoxels,
+  MeshType,
 } from "@/module_bindings";
 
 type VoxelFaces = {
@@ -112,7 +112,8 @@ export class ChunkMesh {
 
   async update(
     newChunk: Chunk,
-    previewVoxels?: PreviewVoxels | null,
+    previewBlocks: (MeshType | undefined)[][][],
+    buildMode: BlockModificationMode,
     signal?: AbortSignal
   ): Promise<void> {
     const updateId = ++this.currentUpdateId;
@@ -129,12 +130,6 @@ export class ChunkMesh {
         return;
       }
 
-      // Decompress preview blocks
-      let previewBlocks = null;
-      if (previewVoxels) {
-        previewBlocks = this.decompressBlocks(previewVoxels.previewPositions);
-      }
-
       if (signal?.aborted || updateId !== this.currentUpdateId) {
         return;
       }
@@ -143,7 +138,7 @@ export class ChunkMesh {
       const exteriorFaces = await this.findExteriorFaces(
         realBlocks,
         previewBlocks,
-        previewVoxels!.mode,
+        buildMode,
         {
           xDim: newChunk.xDim,
           yDim: newChunk.yDim,
@@ -169,7 +164,7 @@ export class ChunkMesh {
 
   async findExteriorFaces(
     realBlocks: (BlockRun | undefined)[][][],
-    previewBlocks: (BlockRun | undefined)[][][] | null,
+    previewBlocks: (MeshType | undefined)[][][],
     previewMode: BlockModificationMode,
     dimensions: { xDim: number; yDim: number; zDim: number },
     signal?: AbortSignal

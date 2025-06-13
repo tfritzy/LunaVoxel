@@ -19,14 +19,7 @@ public static partial class Module
         var palette =
             ctx.Db.ColorPalette.World.Find(world) ?? throw new ArgumentException("No color palette for world.");
         var color = GetPlayerColor(player.SelectedColor, palette);
-        var previewVoxels = ctx.Db.PreviewVoxels.player_world.Filter((ctx.Sender, world)).FirstOrDefault();
         var chunk = ctx.Db.Chunk.Id.Find($"{world}_0") ?? throw new ArgumentException("No chunk for this world");
-
-        if (previewVoxels != null)
-        {
-            previewVoxels.PreviewPositions = Array.Empty<BlockRun>();
-            ctx.Db.PreviewVoxels.Id.Update(previewVoxels);
-        }
 
         var decompressedBlocks = BlockCompression.Decompress(chunk.Blocks, chunk.xDim, chunk.yDim, chunk.zDim);
 
