@@ -110,32 +110,23 @@ export class ChunkMesh {
     return decompressed;
   }
 
-  async update(
+  update(
     newChunk: Chunk,
     previewBlocks: (MeshType | undefined)[][][],
-    buildMode: BlockModificationMode,
-    signal?: AbortSignal
-  ): Promise<void> {
+    buildMode: BlockModificationMode
+  ): void {
     const updateId = ++this.currentUpdateId;
-
-    if (signal?.aborted) {
-      return;
-    }
 
     try {
       // Decompress real blocks
       const realBlocks = this.decompressBlocks(newChunk.blocks);
 
-      if (signal?.aborted || updateId !== this.currentUpdateId) {
-        return;
-      }
-
-      if (signal?.aborted || updateId !== this.currentUpdateId) {
+      if (updateId !== this.currentUpdateId) {
         return;
       }
 
       // Find exterior faces
-      const exteriorFaces = await this.findExteriorFaces(
+      const exteriorFaces = this.findExteriorFaces(
         realBlocks,
         previewBlocks,
         buildMode,
@@ -143,32 +134,27 @@ export class ChunkMesh {
           xDim: newChunk.xDim,
           yDim: newChunk.yDim,
           zDim: newChunk.zDim,
-        },
-        signal
+        }
       );
 
-      if (signal?.aborted || updateId !== this.currentUpdateId) {
+      if (updateId !== this.currentUpdateId) {
         return;
       }
 
       // Update mesh
-      await this.updateMesh(exteriorFaces, signal);
+      this.updateMesh(exteriorFaces);
     } catch (error) {
-      if (error.name === "AbortError") {
-        return;
-      }
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
     }
   }
 
-  async findExteriorFaces(
+  findExteriorFaces(
     realBlocks: (BlockRun | undefined)[][][],
     previewBlocks: (MeshType | undefined)[][][],
     previewMode: BlockModificationMode,
-    dimensions: { xDim: number; yDim: number; zDim: number },
-    signal?: AbortSignal
-  ): Promise<Map<string, VoxelFaces>> {
+    dimensions: { xDim: number; yDim: number; zDim: number }
+  ): Map<string, VoxelFaces> {
     const exteriorFaces: Map<string, VoxelFaces> = new Map();
 
     // Use typed arrays for better performance
@@ -260,7 +246,6 @@ export class ChunkMesh {
     // Queue operations
     const enqueue = (x: number, y: number, z: number): void => {
       if (queueEnd >= queueCapacity) {
-        // Consider resizing or a more robust queue if this happens often
         console.warn(
           `[ChunkMesh] Flood fill queue capacity exceeded, skipping (${x}, ${y}, ${z})`
         );
@@ -324,79 +309,53 @@ export class ChunkMesh {
       }
     }
 
-    let operationsSinceLastYield = 0;
-    const yieldInterval = 5000; // Number of dequeued nodes before yielding
-
     while (queueSize() > 0) {
-      if (signal?.aborted) {
-        throw new DOMException("Operation aborted", "AbortError");
-      }
+      const current = dequeue();
+      if (!current) break;
 
-      // Process in batches for better performance
-      const batchSize = Math.min(1000, queueSize());
+      const { x, y, z } = current;
 
-      for (let batch = 0; batch < batchSize; batch++) {
-        const current = dequeue();
-        if (!current) break;
+      // Check all 6 directions using static array
+      for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
+        const dir = directions[dirIndex];
+        const nx = x + dir[0];
+        const ny = y + dir[1];
+        const nz = z + dir[2];
 
-        operationsSinceLastYield++;
-        const { x, y, z } = current;
-
-        // Check all 6 directions using static array
-        for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
-          const dir = directions[dirIndex];
-          const nx = x + dir[0];
-          const ny = y + dir[1];
-          const nz = z + dir[2];
-
-          if (
-            isInExplorationBounds(nx, ny, nz) &&
-            isAir(nx, ny, nz) &&
-            !isVisited(nx, ny, nz)
-          ) {
-            setVisited(nx, ny, nz);
-            enqueue(nx, ny, nz);
-          }
-
-          // Check for solid blocks to create exterior faces
-          if (!isAir(nx, ny, nz)) {
-            const key = `${nx},${ny},${nz}`;
-            const block = getBlock(nx, ny, nz);
-            const blockColor = block?.color ? block.color : "#ffffff";
-
-            if (!exteriorFaces.has(key)) {
-              exteriorFaces.set(key, {
-                color: blockColor,
-                faceIndexes: [],
-                gridPos: new THREE.Vector3(nx, ny, nz),
-              });
-            }
-
-            const oppositeDirIndex =
-              dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
-            exteriorFaces.get(key)!.faceIndexes.push(oppositeDirIndex);
-          }
+        if (
+          isInExplorationBounds(nx, ny, nz) &&
+          isAir(nx, ny, nz) &&
+          !isVisited(nx, ny, nz)
+        ) {
+          setVisited(nx, ny, nz);
+          enqueue(nx, ny, nz);
         }
-      }
 
-      // Periodic yielding
-      if (operationsSinceLastYield >= yieldInterval) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        operationsSinceLastYield = 0;
+        // Check for solid blocks to create exterior faces
+        if (!isAir(nx, ny, nz)) {
+          const key = `${nx},${ny},${nz}`;
+          const block = getBlock(nx, ny, nz);
+          const blockColor = block?.color ? block.color : "#ffffff";
+
+          if (!exteriorFaces.has(key)) {
+            exteriorFaces.set(key, {
+              color: blockColor,
+              faceIndexes: [],
+              gridPos: new THREE.Vector3(nx, ny, nz),
+            });
+          }
+
+          const oppositeDirIndex =
+            dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
+          exteriorFaces.get(key)!.faceIndexes.push(oppositeDirIndex);
+        }
       }
     }
 
     return exteriorFaces;
   }
 
-  private async updateMesh(
-    exteriorFaces: Map<string, VoxelFaces>,
-    signal?: AbortSignal
-  ): Promise<void> {
-    if (signal?.aborted) {
-      throw new DOMException("Operation aborted", "AbortError");
-    }
-
+  private updateMesh(exteriorFaces: Map<string, VoxelFaces>): void {
     // Pre-calculate total face count
     let totalFaceCount = 0;
     for (const voxelFace of exteriorFaces.values()) {
@@ -416,23 +375,10 @@ export class ChunkMesh {
     let indexOffset = 0;
     let vertexIndex = 0;
 
-    let itemsProcessedSinceLastYield = 0;
-    const yieldInterval = 1000; // Yield every 1000 voxel faces processed
-
     // Cache for color objects to avoid repeated parsing
     const colorCache = new Map<string, { r: number; g: number; b: number }>();
 
     for (const voxelFace of exteriorFaces.values()) {
-      if (signal?.aborted) {
-        throw new DOMException("Operation aborted", "AbortError");
-      }
-
-      itemsProcessedSinceLastYield++;
-      if (itemsProcessedSinceLastYield >= yieldInterval) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        itemsProcessedSinceLastYield = 0;
-      }
-
       const { color, gridPos, faceIndexes } = voxelFace;
 
       // Get cached color or create new one
@@ -494,10 +440,6 @@ export class ChunkMesh {
 
         indexOffset += 6;
       }
-    }
-
-    if (signal?.aborted) {
-      throw new DOMException("Operation aborted", "AbortError");
     }
 
     if (!this.geometry) {
