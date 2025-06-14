@@ -90,22 +90,22 @@ export class VoxelEngine {
   }
 
   private setupLights(): void {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2);
     this.scene.add(ambientLight);
 
-    // const directionalLight = new THREE.DirectionalLight(0xffffff, 1.6);
-    // directionalLight.position.set(10, 40, 15);
-    // directionalLight.castShadow = true;
-    // directionalLight.shadow.mapSize.width = 8192;
-    // directionalLight.shadow.mapSize.height = 8192;
-    // directionalLight.shadow.camera.near = 0.5;
-    // directionalLight.shadow.camera.far = 100;
-    // directionalLight.shadow.camera.left = -25;
-    // directionalLight.shadow.camera.right = 25;
-    // directionalLight.shadow.camera.top = 25;
-    // directionalLight.shadow.camera.bottom = -25;
-    // directionalLight.shadow.bias = -0.0001;
-    // this.scene.add(directionalLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(15, 30, 15);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 8192;
+    directionalLight.shadow.mapSize.height = 8192;
+    directionalLight.shadow.camera.near = 10;
+    directionalLight.shadow.camera.far = 60;
+    directionalLight.shadow.camera.left = -40;
+    directionalLight.shadow.camera.right = 40;
+    directionalLight.shadow.camera.top = 40;
+    directionalLight.shadow.camera.bottom = -40;
+    directionalLight.shadow.bias = -0.00000001;
+    this.scene.add(directionalLight);
 
     // const fillLight = new THREE.DirectionalLight(0xffffeb, 0.4);
     // fillLight.position.set(-15, 10, -10);

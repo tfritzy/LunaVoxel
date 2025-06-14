@@ -46,17 +46,17 @@ export function addGroundPlane(
     scene.add(gridLines);
   }
 
-  const axisArrows = createOptimizedAxisArrows(
-    scene,
-    worldXDim,
-    worldYDim,
-    worldZDim
-  );
+  // const axisArrows = createOptimizedAxisArrows(
+  //   scene,
+  //   worldXDim,
+  //   worldYDim,
+  //   worldZDim
+  // );
 
   return {
     invisibleBox,
     wireframeBox,
-    axisArrows,
+    axisArrows: undefined,
   };
 }
 
