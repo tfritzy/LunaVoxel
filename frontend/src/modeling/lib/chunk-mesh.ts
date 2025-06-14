@@ -75,12 +75,160 @@ const faces = [
   },
 ];
 
+// Pre-computed AO lookup tables for each face direction
+// Each face has 4 vertices, each vertex checks 3 neighbor positions: [side1, side2, corner]
+// The corner is the diagonal neighbor that connects the two sides
+const AO_LOOKUP = {
+  // +X face (face index 0) - vertices: [0.5,-0.5,-0.5], [0.5,0.5,-0.5], [0.5,0.5,0.5], [0.5,-0.5,0.5]
+  0: [
+    [
+      [1, -1, 0],
+      [1, 0, -1],
+      [1, -1, -1],
+    ], // vertex 0: bottom-back
+    [
+      [1, 1, 0],
+      [1, 0, -1],
+      [1, 1, -1],
+    ], // vertex 1: top-back
+    [
+      [1, 1, 0],
+      [1, 0, 1],
+      [1, 1, 1],
+    ], // vertex 2: top-front
+    [
+      [1, -1, 0],
+      [1, 0, 1],
+      [1, -1, 1],
+    ], // vertex 3: bottom-front
+  ],
+  // -X face (face index 1) - vertices: [-0.5,-0.5,-0.5], [-0.5,-0.5,0.5], [-0.5,0.5,0.5], [-0.5,0.5,-0.5]
+  1: [
+    [
+      [-1, -1, 0],
+      [-1, 0, -1],
+      [-1, -1, -1],
+    ], // vertex 0: bottom-back
+    [
+      [-1, -1, 0],
+      [-1, 0, 1],
+      [-1, -1, 1],
+    ], // vertex 1: bottom-front
+    [
+      [-1, 1, 0],
+      [-1, 0, 1],
+      [-1, 1, 1],
+    ], // vertex 2: top-front
+    [
+      [-1, 1, 0],
+      [-1, 0, -1],
+      [-1, 1, -1],
+    ], // vertex 3: top-back
+  ],
+  // +Y face (face index 2) - vertices: [-0.5,0.5,-0.5], [-0.5,0.5,0.5], [0.5,0.5,0.5], [0.5,0.5,-0.5]
+  2: [
+    [
+      [-1, 1, 0],
+      [0, 1, -1],
+      [-1, 1, -1],
+    ], // vertex 0: left-back
+    [
+      [-1, 1, 0],
+      [0, 1, 1],
+      [-1, 1, 1],
+    ], // vertex 1: left-front
+    [
+      [1, 1, 0],
+      [0, 1, 1],
+      [1, 1, 1],
+    ], // vertex 2: right-front
+    [
+      [1, 1, 0],
+      [0, 1, -1],
+      [1, 1, -1],
+    ], // vertex 3: right-back
+  ],
+  // -Y face (face index 3) - vertices: [-0.5,-0.5,-0.5], [0.5,-0.5,-0.5], [0.5,-0.5,0.5], [-0.5,-0.5,0.5]
+  3: [
+    [
+      [-1, -1, 0],
+      [0, -1, -1],
+      [-1, -1, -1],
+    ], // vertex 0: left-back
+    [
+      [1, -1, 0],
+      [0, -1, -1],
+      [1, -1, -1],
+    ], // vertex 1: right-back
+    [
+      [1, -1, 0],
+      [0, -1, 1],
+      [1, -1, 1],
+    ], // vertex 2: right-front
+    [
+      [-1, -1, 0],
+      [0, -1, 1],
+      [-1, -1, 1],
+    ], // vertex 3: left-front
+  ],
+  // +Z face (face index 4) - vertices: [-0.5,-0.5,0.5], [0.5,-0.5,0.5], [0.5,0.5,0.5], [-0.5,0.5,0.5]
+  4: [
+    [
+      [-1, 0, 1],
+      [0, -1, 1],
+      [-1, -1, 1],
+    ], // vertex 0: left-bottom
+    [
+      [1, 0, 1],
+      [0, -1, 1],
+      [1, -1, 1],
+    ], // vertex 1: right-bottom
+    [
+      [1, 0, 1],
+      [0, 1, 1],
+      [1, 1, 1],
+    ], // vertex 2: right-top
+    [
+      [-1, 0, 1],
+      [0, 1, 1],
+      [-1, 1, 1],
+    ], // vertex 3: left-top
+  ],
+  // -Z face (face index 5) - vertices: [-0.5,-0.5,-0.5], [-0.5,0.5,-0.5], [0.5,0.5,-0.5], [0.5,-0.5,-0.5]
+  5: [
+    [
+      [-1, 0, -1],
+      [0, -1, -1],
+      [-1, -1, -1],
+    ], // vertex 0: left-bottom
+    [
+      [-1, 0, -1],
+      [0, 1, -1],
+      [-1, 1, -1],
+    ], // vertex 1: left-top
+    [
+      [1, 0, -1],
+      [0, 1, -1],
+      [1, 1, -1],
+    ], // vertex 2: right-top
+    [
+      [1, 0, -1],
+      [0, -1, -1],
+      [1, -1, -1],
+    ], // vertex 3: right-bottom
+  ],
+};
+
 export class ChunkMesh {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.MeshLambertMaterial | null = null;
   private currentUpdateId: number = 0;
+
+  // Cached solid block lookup for performance
+  private solidBlockCache: Map<string, boolean> = new Map();
+  private cacheVersion: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -125,6 +273,10 @@ export class ChunkMesh {
         return;
       }
 
+      // Clear cache for new update
+      this.solidBlockCache.clear();
+      this.cacheVersion++;
+
       // Find exterior faces
       const exteriorFaces = this.findExteriorFaces(
         realBlocks,
@@ -141,8 +293,8 @@ export class ChunkMesh {
         return;
       }
 
-      // Update mesh
-      this.updateMesh(exteriorFaces);
+      // Update mesh with ambient occlusion
+      this.updateMesh(exteriorFaces, realBlocks, previewBlocks, buildMode);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -355,7 +507,102 @@ export class ChunkMesh {
     return exteriorFaces;
   }
 
-  private updateMesh(exteriorFaces: Map<string, VoxelFaces>): void {
+  // Fast cached solid block check
+  private isSolidCached(
+    x: number,
+    y: number,
+    z: number,
+    realBlocks: (BlockRun | undefined)[][][],
+    previewBlocks: (MeshType | undefined)[][][],
+    previewMode: BlockModificationMode
+  ): boolean {
+    const key = `${x},${y},${z}`;
+    let result = this.solidBlockCache.get(key);
+
+    if (result === undefined) {
+      // Check bounds
+      if (!realBlocks[x]?.[y]?.[z]) {
+        result = false;
+      } else {
+        // Check if there's a real block
+        const hasRealBlock = !!realBlocks[x][y][z];
+
+        // Check preview blocks
+        const hasPreviewBlock = !!previewBlocks?.[x]?.[y]?.[z];
+        const previewAffectsSolidity =
+          hasPreviewBlock && previewMode !== BlockModificationMode.Paint;
+
+        result = hasRealBlock && !previewAffectsSolidity;
+      }
+
+      this.solidBlockCache.set(key, result);
+    }
+
+    return result;
+  }
+
+  // Ultra-fast AO calculation using pre-computed lookup table
+  private calculateVertexAOFast(
+    blockX: number,
+    blockY: number,
+    blockZ: number,
+    faceIndex: number,
+    vertexIndex: number,
+    realBlocks: (BlockRun | undefined)[][][],
+    previewBlocks: (MeshType | undefined)[][][],
+    previewMode: BlockModificationMode
+  ): number {
+    const checkPositions = AO_LOOKUP[faceIndex][vertexIndex];
+
+    let side1 = false,
+      side2 = false,
+      corner = false;
+
+    // Check the 3 neighbors: side1, side2, corner
+    side1 = this.isSolidCached(
+      blockX + checkPositions[0][0],
+      blockY + checkPositions[0][1],
+      blockZ + checkPositions[0][2],
+      realBlocks,
+      previewBlocks,
+      previewMode
+    );
+
+    side2 = this.isSolidCached(
+      blockX + checkPositions[1][0],
+      blockY + checkPositions[1][1],
+      blockZ + checkPositions[1][2],
+      realBlocks,
+      previewBlocks,
+      previewMode
+    );
+
+    corner = this.isSolidCached(
+      blockX + checkPositions[2][0],
+      blockY + checkPositions[2][1],
+      blockZ + checkPositions[2][2],
+      realBlocks,
+      previewBlocks,
+      previewMode
+    );
+
+    // Standard AO calculation: if both sides are blocked, fully occlude
+    // If one side blocked + corner, partial occlusion
+    // Otherwise, no occlusion
+    if (side1 && side2) {
+      return 0.25; // Both sides blocked = maximum occlusion
+    }
+
+    const blockedCount = (side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0);
+    return 1.0 - blockedCount * 0.2; // Smooth falloff
+  }
+
+  private updateMesh(
+    exteriorFaces: Map<string, VoxelFaces>,
+    realBlocks: (BlockRun | undefined)[][][],
+    previewBlocks: (MeshType | undefined)[][][],
+    previewMode: BlockModificationMode
+  ): void {
     // Pre-calculate total face count
     let totalFaceCount = 0;
     for (const voxelFace of exteriorFaces.values()) {
@@ -393,6 +640,9 @@ export class ChunkMesh {
       const posX = gridPos.x + 0.5;
       const posY = gridPos.y + 0.5;
       const posZ = gridPos.z + 0.5;
+      const blockX = gridPos.x;
+      const blockY = gridPos.y;
+      const blockZ = gridPos.z;
 
       // Process each face of this voxel
       for (let i = 0; i < faceIndexes.length; i++) {
@@ -410,6 +660,18 @@ export class ChunkMesh {
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
 
+          // Calculate ambient occlusion for this vertex using lookup table
+          const aoFactor = this.calculateVertexAOFast(
+            blockX,
+            blockY,
+            blockZ,
+            faceIndex,
+            j,
+            realBlocks,
+            previewBlocks,
+            previewMode
+          );
+
           // Position
           vertices[vertexOffset] = vertex[0] + posX;
           vertices[vertexOffset + 1] = vertex[1] + posY;
@@ -420,10 +682,10 @@ export class ChunkMesh {
           normals[vertexOffset + 1] = normalY;
           normals[vertexOffset + 2] = normalZ;
 
-          // Color
-          colors[vertexOffset] = r;
-          colors[vertexOffset + 1] = g;
-          colors[vertexOffset + 2] = b;
+          // Color with ambient occlusion applied
+          colors[vertexOffset] = r * aoFactor;
+          colors[vertexOffset + 1] = g * aoFactor;
+          colors[vertexOffset + 2] = b * aoFactor;
 
           vertexOffset += 3;
           vertexIndex++;
@@ -491,5 +753,8 @@ export class ChunkMesh {
       }
       this.mesh = null;
     }
+
+    // Clear caches
+    this.solidBlockCache.clear();
   }
 }
