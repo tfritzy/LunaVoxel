@@ -290,12 +290,6 @@ export class ChunkMesh {
     previewFaces: Map<string, VoxelFaces>,
     buildMode: BlockModificationMode
   ): void {
-    console.log(previewFaces);
-    if (previewFaces.size === 0 && this.previewMesh) {
-      this.scene.remove(this.previewMesh);
-      this.previewMesh = null;
-    }
-
     let totalFaceCount = 0;
     for (const voxelFace of previewFaces.values()) {
       totalFaceCount += voxelFace.faceIndexes.length;
@@ -357,14 +351,12 @@ export class ChunkMesh {
       }
     }
 
-    if (!this.previewMesh?.geometry) {
+    if (!this.previewMesh) {
       const geometry = new THREE.BufferGeometry();
       const material = new THREE.MeshLambertMaterial({
         side: THREE.DoubleSide,
       });
       this.previewMesh = new THREE.Mesh(geometry, material);
-      this.previewMesh.castShadow = false; // Preview blocks don't cast shadows
-      this.previewMesh.receiveShadow = false;
       this.scene.add(this.previewMesh);
     }
 
@@ -378,9 +370,12 @@ export class ChunkMesh {
     );
     this.previewMesh?.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
-    this.previewMesh!.visible = buildMode === BlockModificationMode.Build;
+    this.previewMesh!.visible =
+      buildMode.tag === BlockModificationMode.Build.tag;
     this.previewMesh!.layers.set(
-      buildMode === BlockModificationMode.Erase ? layers.raycast : layers.ghost
+      buildMode.tag === BlockModificationMode.Erase.tag
+        ? layers.raycast
+        : layers.ghost
     );
     this.previewMesh!.geometry.attributes.position.needsUpdate = true;
     this.previewMesh!.geometry.attributes.normal.needsUpdate = true;

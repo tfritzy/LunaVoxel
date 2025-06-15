@@ -187,7 +187,7 @@ function isSolid(
 
     const hasPreviewBlock = !!previewBlocks?.[x]?.[y]?.[z];
     const previewAffectsSolidity =
-      hasPreviewBlock && previewMode !== BlockModificationMode.Paint;
+      hasPreviewBlock && previewMode.tag !== BlockModificationMode.Paint.tag;
 
     return hasRealBlock && !previewAffectsSolidity;
   }

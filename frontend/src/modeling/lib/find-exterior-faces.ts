@@ -18,7 +18,11 @@ export function findExteriorFaces(
     (dimensions.xDim + 2) * (dimensions.yDim + 2) * (dimensions.zDim + 2);
   const visited = new Uint8Array(visitedSize);
 
-  const queueCapacity = Math.min(visitedSize, 100000);
+  // Add a "queued" bit array to prevent duplicate enqueuing
+  const queued = new Uint8Array(visitedSize);
+
+  const expandedVolume = visitedSize;
+  const queueCapacity = Math.min(expandedVolume, 1000000); // Reasonable upper limit
   const queueX = new Int16Array(queueCapacity);
   const queueY = new Int16Array(queueCapacity);
   const queueZ = new Int16Array(queueCapacity);
@@ -51,7 +55,6 @@ export function findExteriorFaces(
 
   const isSolid = (x: number, y: number, z: number): boolean => {
     if (!isInVoxelBounds(x, y, z)) return false;
-
     return !!realBlocks[x]?.[y]?.[z];
   };
 
@@ -92,6 +95,14 @@ export function findExteriorFaces(
     visited[getVisitedIndex(x, y, z)] = 1;
   };
 
+  const isQueued = (x: number, y: number, z: number): boolean => {
+    return queued[getVisitedIndex(x, y, z)] === 1;
+  };
+
+  const setQueued = (x: number, y: number, z: number): void => {
+    queued[getVisitedIndex(x, y, z)] = 1;
+  };
+
   const queueViaPreview = new Uint8Array(queueCapacity);
 
   const enqueue = (
@@ -100,16 +111,20 @@ export function findExteriorFaces(
     z: number,
     viaPreview: boolean = false
   ): void => {
+    if (isQueued(x, y, z)) return;
+
     if (queueEnd >= queueCapacity) {
       console.warn(
         `[ChunkMesh] Flood fill queue capacity exceeded, skipping (${x}, ${y}, ${z})`
       );
       return;
     }
+
     queueX[queueEnd] = x;
     queueY[queueEnd] = y;
     queueZ[queueEnd] = z;
     queueViaPreview[queueEnd] = viaPreview ? 1 : 0;
+    setQueued(x, y, z);
     queueEnd++;
   };
 
@@ -154,13 +169,8 @@ export function findExteriorFaces(
           z === minZ ||
           z === maxZ
         ) {
-          if (
-            isInExplorationBounds(x, y, z) &&
-            isAir(x, y, z) &&
-            !isVisited(x, y, z)
-          ) {
+          if (isInExplorationBounds(x, y, z) && isAir(x, y, z)) {
             enqueue(x, y, z);
-            setVisited(x, y, z);
           }
         }
       }
@@ -171,7 +181,9 @@ export function findExteriorFaces(
     const current = dequeue();
     if (!current) break;
 
-    const { x, y, z, viaPreview } = current;
+    const { x, y, z } = current;
+    if (isVisited(x, y, z)) continue;
+    setVisited(x, y, z);
 
     for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
       const dir = directions[dirIndex];
@@ -186,14 +198,17 @@ export function findExteriorFaces(
       if (
         isInExplorationBounds(nx, ny, nz) &&
         (isAir(nx, ny, nz) || hasPreview) &&
-        !isVisited(nx, ny, nz)
+        !isVisited(nx, ny, nz) &&
+        !isQueued(nx, ny, nz)
       ) {
-        setVisited(nx, ny, nz);
-        enqueue(nx, ny, nz, viaPreview || hasPreview);
+        enqueue(nx, ny, nz);
       }
 
       const key = `${nx},${ny},${nz}`;
-      if (hasReal && !hasPreview) {
+      if (
+        hasReal &&
+        (previewMode.tag === BlockModificationMode.Build.tag || !hasPreview)
+      ) {
         const blockColor = block?.color ? block.color : "#ffffff";
 
         if (!exteriorFaces.has(key)) {
@@ -210,17 +225,9 @@ export function findExteriorFaces(
       }
 
       if (hasPreview) {
-        let previewColor: string = "#ffffff";
-
-        if (previewMode === BlockModificationMode.Build) {
-          previewColor = "#00ff00";
-        } else if (previewMode === BlockModificationMode.Erase) {
-          previewColor = "";
-        }
-
         if (!previewFaces.has(key)) {
           previewFaces.set(key, {
-            color: previewColor,
+            color: "",
             faceIndexes: [],
             gridPos: new THREE.Vector3(nx, ny, nz),
           });
