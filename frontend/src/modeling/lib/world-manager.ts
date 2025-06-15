@@ -57,6 +57,7 @@ export class WorldManager {
   };
 
   onPreviewUpdate = () => {
+    console.log("update chunk mesh from preview.");
     this.updateChunkMesh();
   };
 
@@ -80,28 +81,21 @@ export class WorldManager {
     });
   }
 
-  onChunkUpdate = async (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
+  onChunkUpdate = (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
     this.currentChunk = newRow;
-    await this.updateChunkMesh();
+    this.updateChunkMesh();
   };
 
-  private async updateChunkMesh(): Promise<void> {
+  private updateChunkMesh() {
     if (!this.currentChunk) return;
 
     this.currentUpdateController = new AbortController();
 
-    try {
-      await this.chunkMesh.update(
-        this.currentChunk,
-        this.builder.previewBlocks,
-        this.builder.getTool(),
-        this.currentUpdateController.signal
-      );
-    } catch (error) {
-      if (error.name !== "AbortError") {
-        console.error("Chunk mesh update error:", error);
-      }
-    }
+    this.chunkMesh.update(
+      this.currentChunk,
+      this.builder.previewBlocks,
+      this.builder.getTool()
+    );
   }
 
   public setTool(tool: BlockModificationMode): void {

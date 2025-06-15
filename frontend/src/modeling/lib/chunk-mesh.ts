@@ -5,8 +5,9 @@ import {
   Chunk,
   MeshType,
 } from "@/module_bindings";
-import { calculateVertexAOFast } from "./ambient-occlusion";
+import { calculateVertexAOFast as calculateVertexAO } from "./ambient-occlusion";
 import { findExteriorFaces } from "./find-exterior-faces";
+import { layers } from "./layers";
 
 export type VoxelFaces = {
   color: string;
@@ -82,8 +83,11 @@ export class ChunkMesh {
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.MeshLambertMaterial | null = null;
-  private currentUpdateId: number = 0;
 
+  // Preview mesh properties
+  private previewMesh: THREE.Mesh | null = null;
+
+  private currentUpdateId: number = 0;
   private cacheVersion: number = 0;
 
   constructor(scene: THREE.Scene) {
@@ -91,6 +95,7 @@ export class ChunkMesh {
     this.mesh = null;
     this.geometry = null;
     this.material = null;
+    this.previewMesh = null;
   }
 
   decompressBlocks(blocks: BlockRun[]): (BlockRun | undefined)[][][] {
@@ -130,7 +135,7 @@ export class ChunkMesh {
 
       this.cacheVersion++;
 
-      const exteriorFaces = findExteriorFaces(
+      const { meshFaces, previewFaces } = findExteriorFaces(
         realBlocks,
         previewBlocks,
         buildMode,
@@ -145,7 +150,9 @@ export class ChunkMesh {
         return;
       }
 
-      this.updateMesh(exteriorFaces, realBlocks, previewBlocks, buildMode);
+      // Update both main mesh and preview mesh
+      this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode);
+      this.updatePreviewMesh(previewFaces, buildMode);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -209,7 +216,7 @@ export class ChunkMesh {
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
 
-          const aoFactor = calculateVertexAOFast(
+          const aoFactor = calculateVertexAO(
             blockX,
             blockY,
             blockZ,
@@ -279,6 +286,111 @@ export class ChunkMesh {
     this.geometry.computeBoundingSphere();
   }
 
+  private updatePreviewMesh(
+    previewFaces: Map<string, VoxelFaces>,
+    buildMode: BlockModificationMode
+  ): void {
+    console.log(previewFaces);
+    if (previewFaces.size === 0 && this.previewMesh) {
+      this.scene.remove(this.previewMesh);
+      this.previewMesh = null;
+    }
+
+    let totalFaceCount = 0;
+    for (const voxelFace of previewFaces.values()) {
+      totalFaceCount += voxelFace.faceIndexes.length;
+    }
+
+    const totalVertices = totalFaceCount * 4;
+    const totalIndices = totalFaceCount * 6;
+
+    const vertices = new Float32Array(totalVertices * 3);
+    const indices = new Uint32Array(totalIndices);
+    const normals = new Float32Array(totalVertices * 3);
+
+    let vertexOffset = 0;
+    let indexOffset = 0;
+    let vertexIndex = 0;
+
+    for (const voxelFace of previewFaces.values()) {
+      const { gridPos, faceIndexes } = voxelFace;
+
+      const posX = gridPos.x + 0.5;
+      const posY = gridPos.y + 0.5;
+      const posZ = gridPos.z + 0.5;
+
+      for (let i = 0; i < faceIndexes.length; i++) {
+        const faceIndex = faceIndexes[i];
+        const face = faces[faceIndex];
+        const faceVertices = face.vertices;
+        const faceNormal = face.normal;
+        const normalX = faceNormal[0];
+        const normalY = faceNormal[1];
+        const normalZ = faceNormal[2];
+
+        const startVertexIndex = vertexIndex;
+
+        for (let j = 0; j < 4; j++) {
+          const vertex = faceVertices[j];
+
+          vertices[vertexOffset] = vertex[0] + posX;
+          vertices[vertexOffset + 1] = vertex[1] + posY;
+          vertices[vertexOffset + 2] = vertex[2] + posZ;
+
+          normals[vertexOffset] = normalX;
+          normals[vertexOffset + 1] = normalY;
+          normals[vertexOffset + 2] = normalZ;
+
+          vertexOffset += 3;
+          vertexIndex++;
+        }
+
+        indices[indexOffset] = startVertexIndex;
+        indices[indexOffset + 1] = startVertexIndex + 1;
+        indices[indexOffset + 2] = startVertexIndex + 2;
+
+        indices[indexOffset + 3] = startVertexIndex;
+        indices[indexOffset + 4] = startVertexIndex + 2;
+        indices[indexOffset + 5] = startVertexIndex + 3;
+
+        indexOffset += 6;
+      }
+    }
+
+    if (!this.previewMesh?.geometry) {
+      const geometry = new THREE.BufferGeometry();
+      const material = new THREE.MeshLambertMaterial({
+        side: THREE.DoubleSide,
+      });
+      this.previewMesh = new THREE.Mesh(geometry, material);
+      this.previewMesh.castShadow = false; // Preview blocks don't cast shadows
+      this.previewMesh.receiveShadow = false;
+      this.scene.add(this.previewMesh);
+    }
+
+    this.previewMesh?.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(vertices, 3)
+    );
+    this.previewMesh?.geometry.setAttribute(
+      "normal",
+      new THREE.BufferAttribute(normals, 3)
+    );
+    this.previewMesh?.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+    this.previewMesh!.visible = buildMode === BlockModificationMode.Build;
+    this.previewMesh!.layers.set(
+      buildMode === BlockModificationMode.Erase ? layers.raycast : layers.ghost
+    );
+    this.previewMesh!.geometry.attributes.position.needsUpdate = true;
+    this.previewMesh!.geometry.attributes.normal.needsUpdate = true;
+    if (this.previewMesh!.geometry.index) {
+      this.previewMesh!.geometry.index.needsUpdate = true;
+    }
+
+    this.previewMesh?.geometry.computeBoundingSphere();
+  }
+
   dispose() {
     this.currentUpdateId++;
 
@@ -295,6 +407,11 @@ export class ChunkMesh {
         this.material = null;
       }
       this.mesh = null;
+    }
+
+    if (this.previewMesh) {
+      this.scene.remove(this.previewMesh);
+      this.previewMesh = null;
     }
   }
 }

@@ -80,7 +80,7 @@ export default function WorldViewPage() {
 
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.setTool(currentTool);
+      engineRef.current.worldManager.setTool(currentTool);
     }
   }, [currentTool]);
 

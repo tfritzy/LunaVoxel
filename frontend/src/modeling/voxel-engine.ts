@@ -13,6 +13,7 @@ export interface VoxelEngineOptions {
 }
 
 export class VoxelEngine {
+  public worldManager: WorldManager;
   private container: HTMLElement;
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
@@ -20,7 +21,6 @@ export class VoxelEngine {
   private controls: CameraController;
   private animationFrameId: number | null = null;
   private conn: DbConnection;
-  private worldManager: WorldManager;
   private world: World;
 
   constructor(options: VoxelEngineOptions) {
