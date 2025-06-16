@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useWorlds } from "@/contexts/WorldContext";
 import { Button } from "@/components/ui/button";
-import { Moon, Earth, PlusCircle } from "lucide-react";
+import { Earth, PlusCircle } from "lucide-react";
 import { FloatingVoxelsBackground } from "@/components/custom/FloatingVoxelsBackground";
 import WorldList from "@/components/custom/WorldList";
 import { createWorld } from "@/lib/createWorld";
@@ -38,9 +38,7 @@ export default function WorldListPage() {
         {!isWorldListDialogOpen && (
           <div className="w-full max-w-2xl flex flex-col items-center backdrop-blur-lg backdrop-brightness-70 rounded-xl p-6 sm:p-8 border border-border">
             <div className="flex flex-col items-center justify-center text-center w-full">
-              <div className="p-1 mb-4">
-                <Moon className="h-16 w-16 md:h-24 md:w-24 text-primary" />
-              </div>
+              <div className="p-1 mb-4 text-4xl">🌙</div>
               <h1 className="text-3xl md:text-4xl font-bold mb-3 text-foreground">
                 LunaVoxel
               </h1>

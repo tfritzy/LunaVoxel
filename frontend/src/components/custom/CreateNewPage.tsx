@@ -40,7 +40,7 @@ export default function CreateNewPage() {
         <FloatingVoxelsBackground />
         <div className="relative z-0 h-full flex flex-col items-center justify-center p-4">
           <div className="w-full max-w-md flex flex-col items-center backdrop-blur-lg backdrop-brightness-70 rounded-xl p-8 border border-border text-center">
-            <Moon className="h-16 w-16 text-destructive mb-4" />
+            <div className="p-1 mb-4 text-4xl animate-pulse">🌙</div>
             <h1 className="text-2xl font-bold mb-4 text-foreground">
               Creation Failed
             </h1>
@@ -62,7 +62,7 @@ export default function CreateNewPage() {
       <FloatingVoxelsBackground />
       <div className="relative z-0 h-full flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md flex flex-col items-center backdrop-blur-lg backdrop-brightness-70 rounded-xl p-8 border border-border text-center">
-          <Moon className="h-16 w-16 text-primary mb-4 animate-pulse" />
+          <div className="p-1 mb-4 text-4xl animate-pulse">🌙</div>
           <h1 className="text-2xl font-bold mb-4 text-foreground">
             Creating World
           </h1>

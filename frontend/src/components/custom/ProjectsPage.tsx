@@ -6,7 +6,6 @@ import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Moon,
   Search,
   PlusCircle,
   FolderOpen,
@@ -170,7 +169,9 @@ export default function ProjectsPage() {
           <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
             <div className="container mx-auto px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <Moon className="h-8 w-8 text-primary" />
+                <div className="text-2xl " role="img" aria-label="moon">
+                  🌙
+                </div>
                 <h1 className="text-xl font-semibold">LunaVoxel</h1>
               </div>
               <Button onClick={handleSignIn} variant="outline" size="sm">
@@ -193,7 +194,9 @@ export default function ProjectsPage() {
         <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
           <div className="container mx-auto px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <Moon className="h-8 w-8 text-primary" />
+              <div className="text-2xl " role="img" aria-label="moon">
+                🌙
+              </div>
               <h1 className="text-xl font-semibold">LunaVoxel</h1>
             </div>
 
@@ -286,8 +289,8 @@ export default function ProjectsPage() {
                           className="group cursor-pointer bg-card border border-border rounded-lg p-4 hover:border-primary/50 hover:bg-accent/50 transition-all duration-200"
                         >
                           <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
-                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                              <Moon className="w-8 h-8 text-primary/60" />
+                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl">
+                              🌙
                             </div>
                           </div>
                           <div className="space-y-1">

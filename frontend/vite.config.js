@@ -3,8 +3,31 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+function spaFallbackPlugin() {
+  return {
+    name: "spa-fallback",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || "";
+
+        if (url === "/" || url === "/index.html") {
+          req.url = "/index.html";
+        } else if (
+          url.startsWith("/projects") ||
+          url.startsWith("/worlds") ||
+          url.startsWith("/create-new")
+        ) {
+          req.url = "/app.html";
+        }
+
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), spaFallbackPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -14,17 +37,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "app.html"),
+        index: path.resolve(__dirname, "index.html"),
       },
     },
   },
   publicDir: "public",
+  appType: "spa",
   server: {
-    historyApiFallback: {
-      rewrites: [
-        { from: /^\/projects/, to: "/app.html" },
-        { from: /^\/worlds/, to: "/app.html" },
-        { from: /^\/$/, to: "/index.html" },
-      ],
-    },
+    open: "/",
   },
 });

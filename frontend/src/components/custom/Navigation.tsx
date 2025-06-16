@@ -72,9 +72,9 @@ export default function Navigation() {
           <div className="flex items-center gap-4">
             <Link
               to="/projects"
-              className="flex items-center gap-2 font-semibold"
+              className="flex items-center gap-2 font-semibold text-4xl"
             >
-              <Moon className="h-10 w-10" />
+              🌙
             </Link>
 
             <div>
