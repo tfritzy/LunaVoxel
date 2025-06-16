@@ -103,14 +103,7 @@ export function findExteriorFaces(
     queued[getVisitedIndex(x, y, z)] = 1;
   };
 
-  const queueViaPreview = new Uint8Array(queueCapacity);
-
-  const enqueue = (
-    x: number,
-    y: number,
-    z: number,
-    viaPreview: boolean = false
-  ): void => {
+  const enqueue = (x: number, y: number, z: number): void => {
     if (isQueued(x, y, z)) return;
 
     if (queueEnd >= queueCapacity) {
@@ -123,7 +116,6 @@ export function findExteriorFaces(
     queueX[queueEnd] = x;
     queueY[queueEnd] = y;
     queueZ[queueEnd] = z;
-    queueViaPreview[queueEnd] = viaPreview ? 1 : 0;
     setQueued(x, y, z);
     queueEnd++;
   };
@@ -132,14 +124,12 @@ export function findExteriorFaces(
     x: number;
     y: number;
     z: number;
-    viaPreview: boolean;
   } | null => {
     if (queueStart >= queueEnd) return null;
     const result = {
       x: queueX[queueStart],
       y: queueY[queueStart],
       z: queueZ[queueStart],
-      viaPreview: queueViaPreview[queueStart] === 1,
     };
     queueStart++;
     return result;
@@ -185,6 +175,8 @@ export function findExteriorFaces(
     if (isVisited(x, y, z)) continue;
     setVisited(x, y, z);
 
+    const sourceIsPreview = !!getPreviewBlock(x, y, z);
+
     for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
       const dir = directions[dirIndex];
       const nx = x + dir[0];
@@ -224,7 +216,7 @@ export function findExteriorFaces(
         exteriorFaces.get(key)!.faceIndexes.push(oppositeDirIndex);
       }
 
-      if (hasPreview) {
+      if (hasPreview && !sourceIsPreview) {
         if (!previewFaces.has(key)) {
           previewFaces.set(key, {
             color: "",

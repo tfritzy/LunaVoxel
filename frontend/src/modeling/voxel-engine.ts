@@ -94,12 +94,12 @@ export class VoxelEngine {
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(15, 30, 15);
+    directionalLight.position.set(50, 100, 50);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 8192;
     directionalLight.shadow.mapSize.height = 8192;
     directionalLight.shadow.camera.near = 10;
-    directionalLight.shadow.camera.far = 60;
+    directionalLight.shadow.camera.far = 120;
     directionalLight.shadow.camera.left = -40;
     directionalLight.shadow.camera.right = 40;
     directionalLight.shadow.camera.top = 40;
@@ -188,16 +188,6 @@ export class VoxelEngine {
 
       const info = this.renderer.info;
       rendererStatsElement.innerHTML = `
-      <div style="color: ${fpsColor}; font-weight: bold;">
-        FPS: ${fps}
-      </div>
-      <div>Frame: ${frameTime.toFixed(2)}ms (avg: ${avgFrameTime.toFixed(
-        2
-      )}ms)</div>
-      <div>Min/Max: ${
-        minFrameTime === Infinity ? "0" : minFrameTime.toFixed(2)
-      }/${maxFrameTime.toFixed(2)}ms</div>
-      <hr style="margin: 4px 0; border-color: #444;">
       <div>Draw calls: ${info.render.calls}</div>
       <div>Triangles: ${info.render.triangles.toLocaleString()}</div>
       <div>Geometries: ${info.memory.geometries}</div>

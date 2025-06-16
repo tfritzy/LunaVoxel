@@ -122,7 +122,8 @@ export class ChunkMesh {
   update(
     newChunk: Chunk,
     previewBlocks: (MeshType | undefined)[][][],
-    buildMode: BlockModificationMode
+    buildMode: BlockModificationMode,
+    selectedColor: number
   ): void {
     const updateId = ++this.currentUpdateId;
 
@@ -152,7 +153,7 @@ export class ChunkMesh {
 
       // Update both main mesh and preview mesh
       this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode);
-      this.updatePreviewMesh(previewFaces, buildMode);
+      this.updatePreviewMesh(previewFaces, buildMode, selectedColor);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -288,7 +289,8 @@ export class ChunkMesh {
 
   private updatePreviewMesh(
     previewFaces: Map<string, VoxelFaces>,
-    buildMode: BlockModificationMode
+    buildMode: BlockModificationMode,
+    selectedColor: number
   ): void {
     let totalFaceCount = 0;
     for (const voxelFace of previewFaces.values()) {
@@ -354,7 +356,9 @@ export class ChunkMesh {
     if (!this.previewMesh) {
       const geometry = new THREE.BufferGeometry();
       const material = new THREE.MeshLambertMaterial({
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
+        opacity: 0.3,
+        transparent: true,
       });
       this.previewMesh = new THREE.Mesh(geometry, material);
       this.scene.add(this.previewMesh);
@@ -372,6 +376,9 @@ export class ChunkMesh {
 
     this.previewMesh!.visible =
       buildMode.tag === BlockModificationMode.Build.tag;
+    (this.previewMesh.material as THREE.MeshLambertMaterial).color.set(
+      0x5577ff
+    );
     this.previewMesh!.layers.set(
       buildMode.tag === BlockModificationMode.Erase.tag
         ? layers.raycast
