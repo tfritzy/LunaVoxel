@@ -5,8 +5,13 @@ export class CameraController {
   private domElement: HTMLElement;
   private target: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private panSpeed: number = 0.02;
-  private zoomSpeed: number = 5;
+  private zoomSpeed: number = 2;
   private rotationSpeed: number = 0.003;
+
+  // Zoom scaling parameters
+  private zoomScaleMultiplier: number = 0.1; // Controls how much distance affects zoom speed
+  private minZoomSpeed: number = 0.5; // Minimum zoom speed at close distances
+  private maxZoomSpeed: number = 10; // Maximum zoom speed at far distances
 
   private rotateMouseDown: boolean = false;
   private panMouseDown: boolean = false;
@@ -27,7 +32,6 @@ export class CameraController {
   private boundMouseMove: (event: MouseEvent) => void;
   private boundWheel: (event: WheelEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
-  private boundKeyDown: (event: KeyboardEvent) => void;
 
   constructor(
     camera: THREE.PerspectiveCamera,
@@ -56,9 +60,19 @@ export class CameraController {
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundWheel = this.onWheel.bind(this);
     this.boundContextMenu = this.onContextMenu.bind(this);
-    this.boundKeyDown = this.onKeyDown.bind(this);
 
     this.addEventListeners();
+  }
+
+  // Method to configure zoom scaling behavior
+  setZoomScaling(
+    multiplier: number = 0.1,
+    minSpeed: number = 0.5,
+    maxSpeed: number = 10
+  ): void {
+    this.zoomScaleMultiplier = multiplier;
+    this.minZoomSpeed = minSpeed;
+    this.maxZoomSpeed = maxSpeed;
   }
 
   private addEventListeners(): void {
@@ -67,12 +81,7 @@ export class CameraController {
     window.addEventListener("mouseup", this.boundMouseUp);
     window.addEventListener("mousemove", this.boundMouseMove);
     this.domElement.addEventListener("wheel", this.boundWheel);
-
-    this.domElement.addEventListener("contextmenu", this.boundContextMenu, {
-      capture: true,
-      passive: false,
-    });
-    window.addEventListener("keydown", this.boundKeyDown);
+    this.domElement.addEventListener("contextmenu", this.boundContextMenu);
   }
 
   private removeEventListeners(): void {
@@ -81,48 +90,32 @@ export class CameraController {
     window.removeEventListener("mouseup", this.boundMouseUp);
     window.removeEventListener("mousemove", this.boundMouseMove);
     this.domElement.removeEventListener("wheel", this.boundWheel);
-    this.domElement.removeEventListener("contextmenu", this.boundContextMenu, {
-      capture: true,
-    });
-    window.removeEventListener("keydown", this.boundKeyDown);
+    this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
   }
 
   private onMouseDown(event: MouseEvent): void {
-    if (event.button === 2) {
+    if (event.button === 0 && event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation();
-
-      if (event.shiftKey) {
-        document.addEventListener("contextmenu", this.tempContextMenuHandler, {
-          capture: true,
-          once: true,
-        });
-        this.panMouseDown = true;
-        this.isPanning = false;
-        this.domElement.style.cursor = "move";
-      } else {
-        this.rotateMouseDown = true;
-        this.isDragging = false;
-        this.domElement.style.cursor = "grabbing";
-      }
+      this.panMouseDown = true;
+      this.isPanning = false;
+      this.domElement.style.cursor = "move";
+    } else if (event.button === 2) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.rotateMouseDown = true;
+      this.isDragging = false;
+      this.domElement.style.cursor = "grabbing";
     }
 
     this.lastMouseX = event.clientX;
     this.lastMouseY = event.clientY;
   }
 
-  private tempContextMenuHandler = (event: MouseEvent): void => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-  };
-
   private onMouseUp(event: MouseEvent): void {
-    if (event.button === 2) {
+    if (event.button === 2 || (event.button === 0 && this.panMouseDown)) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation();
 
       this.rotateMouseDown = false;
       this.panMouseDown = false;
@@ -169,14 +162,6 @@ export class CameraController {
 
   private onContextMenu(event: MouseEvent): void {
     event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-  }
-
-  private onKeyDown(event: KeyboardEvent): void {
-    if (event.shiftKey && event.key === "Shift") {
-      event.preventDefault();
-    }
   }
 
   private getDistanceToTarget(): number {
@@ -207,7 +192,7 @@ export class CameraController {
     right.normalize();
     up.normalize();
 
-    const distanceScale = this.distance * 0.03;
+    const distanceScale = this.distance * 0.05;
     const scaledPanSpeed = this.panSpeed * distanceScale;
 
     const panX = -deltaX * scaledPanSpeed;
@@ -221,7 +206,14 @@ export class CameraController {
   }
 
   private zoomCamera(delta: number): void {
-    const zoomAmount = delta * this.zoomSpeed;
+    // Calculate adaptive zoom speed based on current distance
+    const distanceBasedSpeed = this.distance * this.zoomScaleMultiplier;
+    const adaptiveZoomSpeed = Math.max(
+      this.minZoomSpeed,
+      Math.min(this.maxZoomSpeed, this.zoomSpeed + distanceBasedSpeed)
+    );
+
+    const zoomAmount = delta * adaptiveZoomSpeed;
 
     this.distance = Math.max(1, this.distance + zoomAmount);
 
