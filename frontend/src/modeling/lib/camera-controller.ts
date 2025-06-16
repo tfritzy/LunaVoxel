@@ -5,11 +5,11 @@ export class CameraController {
   private domElement: HTMLElement;
   private target: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private panSpeed: number = 0.02;
-  private zoomSpeed: number = 2;
+  private zoomSpeed: number = 5;
   private rotationSpeed: number = 0.003;
-  private keys: { [key: string]: boolean } = {};
 
   private rotateMouseDown: boolean = false;
+  private panMouseDown: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
   private currentRotationAngle: number = 0;
@@ -20,14 +20,14 @@ export class CameraController {
   private phi: number = Math.PI / 4;
   private theta: number = Math.PI / 4;
   private isDragging: boolean = false;
+  private isPanning: boolean = false;
 
-  private boundKeyDown: (event: KeyboardEvent) => void;
-  private boundKeyUp: (event: KeyboardEvent) => void;
   private boundMouseDown: (event: MouseEvent) => void;
   private boundMouseUp: (event: MouseEvent) => void;
   private boundMouseMove: (event: MouseEvent) => void;
   private boundWheel: (event: WheelEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
+  private boundKeyDown: (event: KeyboardEvent) => void;
 
   constructor(
     camera: THREE.PerspectiveCamera,
@@ -51,72 +51,83 @@ export class CameraController {
     const deltaY = this.camera.position.y - this.target.y;
     this.phi = Math.atan2(horizontalDistance, deltaY);
 
-    this.boundKeyDown = this.onKeyDown.bind(this);
-    this.boundKeyUp = this.onKeyUp.bind(this);
     this.boundMouseDown = this.onMouseDown.bind(this);
     this.boundMouseUp = this.onMouseUp.bind(this);
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundWheel = this.onWheel.bind(this);
     this.boundContextMenu = this.onContextMenu.bind(this);
+    this.boundKeyDown = this.onKeyDown.bind(this);
 
     this.addEventListeners();
   }
 
   private addEventListeners(): void {
-    window.addEventListener("keydown", this.boundKeyDown);
-    window.addEventListener("keyup", this.boundKeyUp);
     this.domElement.addEventListener("mousedown", this.boundMouseDown);
+    this.domElement.addEventListener("mouseup", this.boundMouseUp);
     window.addEventListener("mouseup", this.boundMouseUp);
     window.addEventListener("mousemove", this.boundMouseMove);
     this.domElement.addEventListener("wheel", this.boundWheel);
-    this.domElement.addEventListener("contextmenu", this.boundContextMenu);
+
+    this.domElement.addEventListener("contextmenu", this.boundContextMenu, {
+      capture: true,
+      passive: false,
+    });
+    window.addEventListener("keydown", this.boundKeyDown);
   }
 
   private removeEventListeners(): void {
-    window.removeEventListener("keydown", this.boundKeyDown);
-    window.removeEventListener("keyup", this.boundKeyUp);
     this.domElement.removeEventListener("mousedown", this.boundMouseDown);
+    this.domElement.removeEventListener("mouseup", this.boundMouseUp);
     window.removeEventListener("mouseup", this.boundMouseUp);
     window.removeEventListener("mousemove", this.boundMouseMove);
     this.domElement.removeEventListener("wheel", this.boundWheel);
-    this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
-  }
-
-  private onKeyDown(event: KeyboardEvent): void {
-    const key = event.key.toLowerCase();
-
-    if (!this.keys[key]) {
-      this.keys[key] = true;
-
-      if (key === "q") {
-        this.targetRotationAngle = this.currentRotationAngle - Math.PI / 4;
-        this.isRotating = true;
-      } else if (key === "e") {
-        this.targetRotationAngle = this.currentRotationAngle + Math.PI / 4;
-        this.isRotating = true;
-      }
-    }
-  }
-
-  private onKeyUp(event: KeyboardEvent): void {
-    this.keys[event.key.toLowerCase()] = false;
+    this.domElement.removeEventListener("contextmenu", this.boundContextMenu, {
+      capture: true,
+    });
+    window.removeEventListener("keydown", this.boundKeyDown);
   }
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 2) {
-      this.rotateMouseDown = true;
-      this.isDragging = false;
-      this.domElement.style.cursor = "grabbing";
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      if (event.shiftKey) {
+        document.addEventListener("contextmenu", this.tempContextMenuHandler, {
+          capture: true,
+          once: true,
+        });
+        this.panMouseDown = true;
+        this.isPanning = false;
+        this.domElement.style.cursor = "move";
+      } else {
+        this.rotateMouseDown = true;
+        this.isDragging = false;
+        this.domElement.style.cursor = "grabbing";
+      }
     }
 
     this.lastMouseX = event.clientX;
     this.lastMouseY = event.clientY;
   }
 
+  private tempContextMenuHandler = (event: MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  };
+
   private onMouseUp(event: MouseEvent): void {
     if (event.button === 2) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
       this.rotateMouseDown = false;
+      this.panMouseDown = false;
       this.isDragging = false;
+      this.isPanning = false;
       this.domElement.style.cursor = "auto";
     }
   }
@@ -127,7 +138,15 @@ export class CameraController {
 
     const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-    if (this.rotateMouseDown) {
+    if (this.panMouseDown) {
+      if (!this.isPanning && moveDistance > 3) {
+        this.isPanning = true;
+      }
+
+      if (this.isPanning) {
+        this.panCamera(deltaX, deltaY);
+      }
+    } else if (this.rotateMouseDown) {
       if (!this.isDragging && moveDistance > 3) {
         this.isDragging = true;
       }
@@ -150,6 +169,14 @@ export class CameraController {
 
   private onContextMenu(event: MouseEvent): void {
     event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    if (event.shiftKey && event.key === "Shift") {
+      event.preventDefault();
+    }
   }
 
   private getDistanceToTarget(): number {
@@ -168,21 +195,29 @@ export class CameraController {
   }
 
   private panCamera(deltaX: number, deltaY: number): void {
-    const forward = new THREE.Vector3(0, 0, 1);
-    forward.applyQuaternion(this.camera.quaternion);
-    forward.y = 0;
-    forward.normalize();
+    const cameraMatrix = new THREE.Matrix4();
+    cameraMatrix.copy(this.camera.matrixWorld);
 
-    const right = new THREE.Vector3(1, 0, 0);
-    right.applyQuaternion(this.camera.quaternion);
-    right.y = 0;
+    const right = new THREE.Vector3();
+    const up = new THREE.Vector3();
+
+    right.setFromMatrixColumn(cameraMatrix, 0);
+    up.setFromMatrixColumn(cameraMatrix, 1);
+
     right.normalize();
+    up.normalize();
 
-    const moveX = right.clone().multiplyScalar(deltaX);
-    const moveZ = forward.clone().multiplyScalar(deltaY);
+    const distanceScale = this.distance * 0.03;
+    const scaledPanSpeed = this.panSpeed * distanceScale;
 
-    this.target.add(moveX).add(moveZ);
-    this.camera.position.add(moveX).add(moveZ);
+    const panX = -deltaX * scaledPanSpeed;
+    const panY = deltaY * scaledPanSpeed;
+
+    const moveX = right.clone().multiplyScalar(panX);
+    const moveY = up.clone().multiplyScalar(panY);
+
+    this.target.add(moveX).add(moveY);
+    this.camera.position.add(moveX).add(moveY);
   }
 
   private zoomCamera(delta: number): void {
@@ -237,25 +272,6 @@ export class CameraController {
         this.updateCameraPosition();
         this.isRotating = false;
       }
-    }
-
-    const movementSpeed = this.panSpeed * 5;
-
-    if (this.keys["w"] || this.keys["arrowup"]) {
-      this.panCamera(0, -movementSpeed);
-      hasUpdated = true;
-    }
-    if (this.keys["s"] || this.keys["arrowdown"]) {
-      this.panCamera(0, movementSpeed);
-      hasUpdated = true;
-    }
-    if (this.keys["a"] || this.keys["arrowleft"]) {
-      this.panCamera(-movementSpeed, 0);
-      hasUpdated = true;
-    }
-    if (this.keys["d"] || this.keys["arrowright"]) {
-      this.panCamera(movementSpeed, 0);
-      hasUpdated = true;
     }
 
     if (hasUpdated) {

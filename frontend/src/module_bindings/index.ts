@@ -50,6 +50,8 @@ import { SelectColor } from "./select_color_reducer.ts";
 export { SelectColor };
 import { SelectColorIndex } from "./select_color_index_reducer.ts";
 export { SelectColorIndex };
+import { UpdateWorldName } from "./update_world_name_reducer.ts";
+export { UpdateWorldName };
 import { VisitWorld } from "./visit_world_reducer.ts";
 export { VisitWorld };
 
@@ -141,6 +143,10 @@ const REMOTE_MODULE = {
       reducerName: "SelectColorIndex",
       argsType: SelectColorIndex.getTypeScriptAlgebraicType(),
     },
+    UpdateWorldName: {
+      reducerName: "UpdateWorldName",
+      argsType: UpdateWorldName.getTypeScriptAlgebraicType(),
+    },
     VisitWorld: {
       reducerName: "VisitWorld",
       argsType: VisitWorld.getTypeScriptAlgebraicType(),
@@ -181,6 +187,7 @@ export type Reducer = never
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SelectColor", args: SelectColor }
 | { name: "SelectColorIndex", args: SelectColorIndex }
+| { name: "UpdateWorldName", args: UpdateWorldName }
 | { name: "VisitWorld", args: VisitWorld }
 ;
 
@@ -331,6 +338,22 @@ export class RemoteReducers {
     this.connection.offReducer("SelectColorIndex", callback);
   }
 
+  updateWorldName(worldId: string, name: string) {
+    const __args = { worldId, name };
+    let __writer = new BinaryWriter(1024);
+    UpdateWorldName.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("UpdateWorldName", __argsBuffer, this.setCallReducerFlags.updateWorldNameFlags);
+  }
+
+  onUpdateWorldName(callback: (ctx: ReducerEventContext, worldId: string, name: string) => void) {
+    this.connection.onReducer("UpdateWorldName", callback);
+  }
+
+  removeOnUpdateWorldName(callback: (ctx: ReducerEventContext, worldId: string, name: string) => void) {
+    this.connection.offReducer("UpdateWorldName", callback);
+  }
+
   visitWorld(worldId: string) {
     const __args = { worldId };
     let __writer = new BinaryWriter(1024);
@@ -393,6 +416,11 @@ export class SetReducerFlags {
   selectColorIndexFlags: CallReducerFlags = 'FullUpdate';
   selectColorIndex(flags: CallReducerFlags) {
     this.selectColorIndexFlags = flags;
+  }
+
+  updateWorldNameFlags: CallReducerFlags = 'FullUpdate';
+  updateWorldName(flags: CallReducerFlags) {
+    this.updateWorldNameFlags = flags;
   }
 
   visitWorldFlags: CallReducerFlags = 'FullUpdate';

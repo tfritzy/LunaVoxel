@@ -16,6 +16,7 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { useWorlds } from "@/contexts/WorldContext";
 import { useNavigate } from "react-router-dom";
 import { createWorld } from "@/lib/createWorld";
+import { WorldNameInput } from "./WorldNameInput";
 
 export default function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
@@ -65,21 +66,24 @@ export default function Navigation() {
 
   return (
     <>
-      <nav className="h-10 w-full backdrop-brightness-75 backdrop-blur border-b border-border relative z-10">
+      <nav className="h-16 w-full backdrop-brightness-75 backdrop-blur border-b border-border relative z-10">
         <div className="w-full h-full py-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2 font-semibold">
-              <Moon className="h-5 w-5" />
-              <span className="flex flex-row items-center space-x-2 align-middle text-lg font-semibold">
-                <span>LunaVoxel</span>
-                <div className="text-xs">(Early Alpha)</div>
-              </span>
+              <Moon className="h-10 w-10" />
             </Link>
 
-            <FileDropdown
-              onNewWorld={handleNewWorld}
-              onOpenWorld={handleOpenWorld}
-            />
+            <div>
+              <div className="flex flex-row">
+                <WorldNameInput />
+              </div>
+              <div className="flex flex-row">
+                <FileDropdown
+                  onNewWorld={handleNewWorld}
+                  onOpenWorld={handleOpenWorld}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center">

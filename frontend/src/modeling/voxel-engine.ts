@@ -32,23 +32,7 @@ export class VoxelEngine {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x222222);
 
-    this.camera = new THREE.PerspectiveCamera(
-      75,
-      this.container.clientWidth / this.container.clientHeight,
-      0.1,
-      1000
-    );
-    this.camera.layers.enable(layers.ghost);
-    this.camera.position.set(
-      5 + this.world.dimensions.x / 2,
-      12,
-      5 + this.world.dimensions.z / 2
-    );
-    this.camera.lookAt(
-      this.world.dimensions.x / 2,
-      0,
-      this.world.dimensions.z / 2
-    );
+    this.camera = this.setupCamera();
 
     this.controls = new CameraController(
       this.camera,
@@ -106,14 +90,46 @@ export class VoxelEngine {
     directionalLight.shadow.camera.bottom = -40;
     directionalLight.shadow.bias = -0.00000001;
     this.scene.add(directionalLight);
+  }
 
-    // const fillLight = new THREE.DirectionalLight(0xffffeb, 0.4);
-    // fillLight.position.set(-15, 10, -10);
-    // this.scene.add(fillLight);
+  private setupCamera(): THREE.PerspectiveCamera {
+    const floorCenter = new THREE.Vector3(
+      this.world.dimensions.x / 2,
+      0,
+      this.world.dimensions.z / 2
+    );
 
-    // const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    // rimLight.position.set(5, 5, -20);
-    // this.scene.add(rimLight);
+    const maxHorizontalDimension = Math.max(
+      this.world.dimensions.x,
+      this.world.dimensions.z
+    );
+
+    const fov = 75;
+    const fovRadians = (fov * Math.PI) / 180;
+    const horizontalDistance =
+      maxHorizontalDimension / 2 / Math.tan(fovRadians / 2);
+
+    const paddedDistance = horizontalDistance * 3;
+
+    const cameraHeight = paddedDistance;
+    const cameraPosition = new THREE.Vector3(
+      floorCenter.x,
+      cameraHeight,
+      floorCenter.z + paddedDistance
+    );
+
+    const camera = new THREE.PerspectiveCamera(
+      fov,
+      this.container.clientWidth / this.container.clientHeight,
+      0.1,
+      paddedDistance * 4
+    );
+
+    camera.layers.enable(layers.ghost);
+    camera.position.copy(cameraPosition);
+    camera.lookAt(floorCenter);
+
+    return camera;
   }
 
   private setupPerformanceMonitoring(): void {

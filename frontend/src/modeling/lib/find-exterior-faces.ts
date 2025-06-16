@@ -176,6 +176,7 @@ export function findExteriorFaces(
     setVisited(x, y, z);
 
     const sourceIsPreview = !!getPreviewBlock(x, y, z);
+    const sourceIsAir = isAir(x, y, z);
 
     for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
       const dir = directions[dirIndex];
@@ -189,7 +190,9 @@ export function findExteriorFaces(
 
       if (
         isInExplorationBounds(nx, ny, nz) &&
-        (isAir(nx, ny, nz) || hasPreview) &&
+        (isAir(nx, ny, nz) ||
+          (previewMode.tag === BlockModificationMode.Erase.tag &&
+            hasPreview)) &&
         !isVisited(nx, ny, nz) &&
         !isQueued(nx, ny, nz)
       ) {

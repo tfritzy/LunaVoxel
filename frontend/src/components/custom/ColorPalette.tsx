@@ -136,7 +136,7 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
       <div>
         <PaletteDropdown onPaletteSelect={replacePalette} />
 
-        <div className="flex flex-row space-x-1 space-y-1 flex-wrap mb-4">
+        <div className="flex flex-row flex-wrap mb-4">
           {palette.colors.map((color, index) => (
             <button
               key={index}

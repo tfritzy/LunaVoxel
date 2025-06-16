@@ -20,7 +20,7 @@ export default function FileDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 px-2">
+        <Button variant="ghost" size="sm" className="h-6 text-muted-foreground">
           File
         </Button>
       </DropdownMenuTrigger>

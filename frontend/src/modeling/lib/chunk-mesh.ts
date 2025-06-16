@@ -122,8 +122,7 @@ export class ChunkMesh {
   update(
     newChunk: Chunk,
     previewBlocks: (MeshType | undefined)[][][],
-    buildMode: BlockModificationMode,
-    selectedColor: number
+    buildMode: BlockModificationMode
   ): void {
     const updateId = ++this.currentUpdateId;
 
@@ -153,7 +152,7 @@ export class ChunkMesh {
 
       // Update both main mesh and preview mesh
       this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode);
-      this.updatePreviewMesh(previewFaces, buildMode, selectedColor);
+      this.updatePreviewMesh(previewFaces, buildMode);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -289,8 +288,7 @@ export class ChunkMesh {
 
   private updatePreviewMesh(
     previewFaces: Map<string, VoxelFaces>,
-    buildMode: BlockModificationMode,
-    selectedColor: number
+    buildMode: BlockModificationMode
   ): void {
     let totalFaceCount = 0;
     for (const voxelFace of previewFaces.values()) {
