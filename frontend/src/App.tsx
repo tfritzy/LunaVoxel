@@ -8,7 +8,8 @@ import WorldViewPage from "./pages/WorldViewPage";
 import Layout from "./components/custom/Layout";
 import { WorldsProvider } from "./contexts/WorldContext";
 import { CurrentWorldProvider } from "./contexts/CurrentWorldContext";
-import WorldListPage from "./pages/WorldListPage";
+import ProjectsPage from "./components/custom/ProjectsPage";
+import CreateNewPage from "./components/custom/CreateNewPage";
 
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
@@ -57,7 +58,8 @@ function AppContent() {
       <WorldsProvider>
         <Layout>
           <Routes>
-            <Route path="/" element={<WorldListPage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/create-new" element={<CreateNewPage />} />
             <Route
               path="/worlds/:worldId"
               element={
@@ -66,7 +68,7 @@ function AppContent() {
                 </CurrentWorldProvider>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/projects" replace />} />
           </Routes>
         </Layout>
       </WorldsProvider>

@@ -36,7 +36,7 @@ export default function Navigation() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate("/");
+      navigate("/projects");
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -70,7 +70,10 @@ export default function Navigation() {
       <nav className="h-16 w-full backdrop-brightness-75 backdrop-blur border-b border-border relative z-10">
         <div className="w-full h-full py-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2 font-semibold">
+            <Link
+              to="/projects"
+              className="flex items-center gap-2 font-semibold"
+            >
               <Moon className="h-10 w-10" />
             </Link>
 
@@ -130,25 +133,23 @@ export default function Navigation() {
                     {currentUser.photoURL ? (
                       <img
                         src={currentUser.photoURL}
-                        className="w-8 h-8 rounded-full"
+                        alt="Profile"
+                        className="w-6 h-6 rounded-full"
                       />
                     ) : (
-                      <User className="h-5 w-5" />
+                      <User className="w-4 h-4" />
                     )}
+                    {currentUser.displayName?.split(" ")[0] || "User"}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <div className="px-2 py-1.5 text-sm">
-                    <div className="font-medium">
-                      {currentUser.displayName || "User"}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {currentUser.email}
-                    </div>
-                  </div>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
