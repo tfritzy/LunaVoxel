@@ -36,6 +36,7 @@ export default function Navigation() {
   const handleSignOut = async () => {
     try {
       await signOut();
+      navigate("/");
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -124,19 +125,16 @@ export default function Navigation() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 py-2"
                   >
                     {currentUser.photoURL ? (
                       <img
                         src={currentUser.photoURL}
-                        className="w-6 h-6 rounded-full"
+                        className="w-8 h-8 rounded-full"
                       />
                     ) : (
                       <User className="h-5 w-5" />
                     )}
-                    <span className="text-sm font-medium hidden md:inline">
-                      {currentUser.displayName || "User"}
-                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
