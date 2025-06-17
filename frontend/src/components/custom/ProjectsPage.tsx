@@ -169,10 +169,7 @@ export default function ProjectsPage() {
           <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
             <div className="container mx-auto px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="text-2xl " role="img" aria-label="moon">
-                  🌙
-                </div>
-                <h1 className="text-xl font-semibold">LunaVoxel</h1>
+                <h1 className="text-xl font-semibold">🌙 LunaVoxel</h1>
               </div>
               <Button onClick={handleSignIn} variant="outline" size="sm">
                 Sign In
@@ -194,10 +191,7 @@ export default function ProjectsPage() {
         <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
           <div className="container mx-auto px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="text-2xl " role="img" aria-label="moon">
-                🌙
-              </div>
-              <h1 className="text-xl font-semibold">LunaVoxel</h1>
+              <h1 className="text-xl font-semibold">🌙 LunaVoxel</h1>
             </div>
 
             <div className="flex items-center gap-4">
@@ -290,7 +284,7 @@ export default function ProjectsPage() {
                         >
                           <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
                             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl">
-                              🌙
+                              🌒
                             </div>
                           </div>
                           <div className="space-y-1">

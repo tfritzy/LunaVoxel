@@ -78,8 +78,7 @@ export class VoxelEngine {
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(50, 100, 50);
-    directionalLight.castShadow = true;
+    directionalLight.position.set(25, 75, 50);
     directionalLight.shadow.mapSize.width = 8192;
     directionalLight.shadow.mapSize.height = 8192;
     directionalLight.shadow.camera.near = 10;
