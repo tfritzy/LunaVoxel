@@ -40,7 +40,7 @@ export function ProjectViewPage() {
         setError(`Error loading chunks: ${err}`);
         setChunksLoading(false);
       })
-      .subscribe([`SELECT * FROM Chunk WHERE Project='${projectId}'`]);
+      .subscribe([`SELECT * FROM chunk WHERE ProjectId='${projectId}'`]);
 
     return () => {
       sub.unsubscribe();

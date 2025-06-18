@@ -19,7 +19,6 @@ export function ProjectNameInput() {
       .onApplied(() => {
         const projectData = connection.db.projects.id.find(projectId);
         if (projectData) {
-          console.log("apply");
           setProject(projectData);
           setLocalName(projectData.name || "");
         }
@@ -27,7 +26,7 @@ export function ProjectNameInput() {
       .onError((error) => {
         console.error("Project subscription error:", error);
       })
-      .subscribe([`SELECT * FROM project WHERE Id='${projectId}'`]);
+      .subscribe([`SELECT * FROM projects WHERE Id='${projectId}'`]);
 
     const onProjectUpdate = (
       ctx: EventContext,

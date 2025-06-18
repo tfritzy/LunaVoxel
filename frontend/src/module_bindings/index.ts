@@ -50,14 +50,14 @@ import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
 // Import and reexport all table handle types
+import { UserProjectTableHandle } from "./user_project_table.ts";
+export { UserProjectTableHandle };
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
 import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
 export { ProjectsTableHandle };
-import { UserProjectsTableHandle } from "./user_projects_table.ts";
-export { UserProjectsTableHandle };
 
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
@@ -81,6 +81,10 @@ export { Vector3 };
 
 const REMOTE_MODULE = {
   tables: {
+    UserProject: {
+      tableName: "UserProject",
+      rowType: UserProject.getTypeScriptAlgebraicType(),
+    },
     chunk: {
       tableName: "chunk",
       rowType: Chunk.getTypeScriptAlgebraicType(),
@@ -95,10 +99,6 @@ const REMOTE_MODULE = {
       tableName: "projects",
       rowType: Project.getTypeScriptAlgebraicType(),
       primaryKey: "id",
-    },
-    user_projects: {
-      tableName: "user_projects",
-      rowType: UserProject.getTypeScriptAlgebraicType(),
     },
   },
   reducers: {
@@ -350,6 +350,10 @@ export class SetReducerFlags {
 export class RemoteTables {
   constructor(private connection: DbConnectionImpl) {}
 
+  get userProject(): UserProjectTableHandle {
+    return new UserProjectTableHandle(this.connection.clientCache.getOrCreateTable<UserProject>(REMOTE_MODULE.tables.UserProject));
+  }
+
   get chunk(): ChunkTableHandle {
     return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.chunk));
   }
@@ -360,10 +364,6 @@ export class RemoteTables {
 
   get projects(): ProjectsTableHandle {
     return new ProjectsTableHandle(this.connection.clientCache.getOrCreateTable<Project>(REMOTE_MODULE.tables.projects));
-  }
-
-  get userProjects(): UserProjectsTableHandle {
-    return new UserProjectsTableHandle(this.connection.clientCache.getOrCreateTable<UserProject>(REMOTE_MODULE.tables.user_projects));
   }
 }
 

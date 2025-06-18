@@ -35,9 +35,11 @@ public static partial class Module
         }
     }
 
-    [Table(Name = "user_projects")]
+    [Table(Name = "user_projects", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_user_project",
                              Columns = new[] { nameof(User), nameof(ProjectId) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_project_id_only",
+                             Columns = new[] { nameof(ProjectId) })]
     public partial class UserProject
     {
         public Identity User;

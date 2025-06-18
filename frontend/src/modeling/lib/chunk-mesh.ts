@@ -187,9 +187,9 @@ export class ChunkMesh {
     for (const voxelFace of exteriorFaces.values()) {
       const { color, gridPos, faceIndexes } = voxelFace;
 
-      const colorObj = colorCache.get(color);
+      let colorObj = colorCache.get(color);
       if (!colorObj) {
-        const colorObj = new THREE.Color(color);
+        colorObj = new THREE.Color(color);
         colorCache.set(color, colorObj);
       }
 

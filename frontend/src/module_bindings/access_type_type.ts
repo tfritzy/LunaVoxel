@@ -6,9 +6,29 @@
 // @ts-nocheck
 import {
   AlgebraicType,
+  AlgebraicValue,
   BinaryReader,
   BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
   SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 // A namespace for generated variants and helper functions.
 export namespace AccessType {
@@ -38,16 +58,17 @@ export namespace AccessType {
   }
 
   export function serialize(writer: BinaryWriter, value: AccessType): void {
-    AccessType.getTypeScriptAlgebraicType().serialize(writer, value);
+      AccessType.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
   export function deserialize(reader: BinaryReader): AccessType {
-    return AccessType.getTypeScriptAlgebraicType().deserialize(reader);
+      return AccessType.getTypeScriptAlgebraicType().deserialize(reader);
   }
+
 }
 
 // The tagged union or sum type for the algebraic type `AccessType`.
-export type AccessType =
-  | AccessType.None
-  | AccessType.Read
-  | AccessType.ReadWrite;
+export type AccessType = AccessType.None | AccessType.Read | AccessType.ReadWrite;
+
+export default AccessType;
+

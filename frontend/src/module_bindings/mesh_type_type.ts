@@ -6,9 +6,29 @@
 // @ts-nocheck
 import {
   AlgebraicType,
+  AlgebraicValue,
   BinaryReader,
   BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
   SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 // A namespace for generated variants and helper functions.
 export namespace MeshType {
@@ -35,15 +55,17 @@ export namespace MeshType {
   }
 
   export function serialize(writer: BinaryWriter, value: MeshType): void {
-    MeshType.getTypeScriptAlgebraicType().serialize(writer, value);
+      MeshType.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
   export function deserialize(reader: BinaryReader): MeshType {
-    return MeshType.getTypeScriptAlgebraicType().deserialize(reader);
+      return MeshType.getTypeScriptAlgebraicType().deserialize(reader);
   }
+
 }
 
 // The tagged union or sum type for the algebraic type `MeshType`.
 export type MeshType = MeshType.Block | MeshType.RoundBlock;
 
 export default MeshType;
+

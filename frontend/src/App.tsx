@@ -76,7 +76,7 @@ function AppContent() {
   );
 }
 
-export function App() {
+export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>

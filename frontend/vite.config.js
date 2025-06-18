@@ -13,8 +13,8 @@ function spaFallbackPlugin() {
         if (url === "/" || url === "/index.html") {
           req.url = "/index.html";
         } else if (
-          url.startsWith("/projects") ||
-          url.startsWith("/worlds") ||
+          url.startsWith("/project") ||
+          url.startsWith("/project") ||
           url.startsWith("/create-new")
         ) {
           req.url = "/app.html";

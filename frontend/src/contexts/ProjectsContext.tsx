@@ -25,8 +25,6 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!connection?.identity) throw "Connection has no identity";
-    const myIdentityHex = connection.identity.toHexString();
-
     connection
       .subscriptionBuilder()
       .onApplied(() => {
@@ -35,7 +33,7 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
       .onError((error) => {
         console.error("Project subscription error:", error);
       })
-      .subscribe([`SELECT * FROM projects WHERE Owner='${myIdentityHex}'`]);
+      .subscribe([`SELECT * FROM projects`]);
 
     const onProjectInsert = (ctx: EventContext, row: Project) => {
       setUserProjects((prev) => {
