@@ -31,30 +31,32 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type VisitWorld = {
-  worldId: string,
+export type UpdateProjectName = {
+  projectId: string,
+  name: string,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace VisitWorld {
+export namespace UpdateProjectName {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("name", AlgebraicType.createStringType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: VisitWorld): void {
-    VisitWorld.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: UpdateProjectName): void {
+    UpdateProjectName.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): VisitWorld {
-    return VisitWorld.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): UpdateProjectName {
+    return UpdateProjectName.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

@@ -31,8 +31,8 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 export type ColorPalette = {
-  world: string,
-  colors: string[],
+  projectId: string,
+  colors: number[],
 };
 
 /**
@@ -45,8 +45,8 @@ export namespace ColorPalette {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
-      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createStringType())),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
     ]);
   }
 

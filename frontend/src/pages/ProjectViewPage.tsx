@@ -2,14 +2,15 @@ import { useRef, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import ColorPalette from "@/components/custom/ColorPalette";
-import FloatingToolbar from "@/components/custom/FloatingToolbar";
-import { useWorlds } from "@/contexts/WorldContext";
+import { ColorPalette } from "@/components/custom/ColorPalette";
+import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { BlockModificationMode } from "@/module_bindings";
-import Navigation from "@/components/custom/Navigation";
+import { Navigation } from "@/components/custom/Navigation";
+import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 
-export default function WorldViewPage() {
-  const { worldId } = useParams<{ worldId: string }>();
+export function ProjectViewPage() {
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { connection } = useDatabase();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,10 +20,13 @@ export default function WorldViewPage() {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const { userWorlds } = useWorlds();
+  const { userProjects } = useProjects();
+  const { selectedColor } = useCurrentProject();
+
+  useEffect(() => {}, [selectedColor]);
 
   useEffect(() => {
-    if (!worldId || !connection) return;
+    if (!projectId || !connection) return;
 
     setChunksLoading(true);
 
@@ -36,7 +40,7 @@ export default function WorldViewPage() {
         setError(`Error loading chunks: ${err}`);
         setChunksLoading(false);
       })
-      .subscribe([`SELECT * FROM Chunk WHERE World='${worldId}'`]);
+      .subscribe([`SELECT * FROM Chunk WHERE Project='${projectId}'`]);
 
     return () => {
       sub.unsubscribe();
@@ -47,7 +51,7 @@ export default function WorldViewPage() {
         engineRef.current = null;
       }
     };
-  }, [worldId, connection, navigate]);
+  }, [projectId, connection, navigate]);
 
   useEffect(() => {
     if (chunksLoading || !connection) return;
@@ -57,17 +61,17 @@ export default function WorldViewPage() {
       engineRef.current = null;
     }
 
-    const world = userWorlds.find((w) => w.id === worldId);
+    const project = userProjects.find((p) => p.id === projectId);
 
-    if (!world) {
-      setError("Unable to find world " + worldId);
+    if (!project) {
+      setError("Unable to find project " + projectId);
       return;
     }
 
     engineRef.current = new VoxelEngine({
       container: containerRef.current!,
       connection,
-      world,
+      project,
     });
 
     return () => {
@@ -76,11 +80,11 @@ export default function WorldViewPage() {
         engineRef.current = null;
       }
     };
-  }, [chunksLoading, connection, userWorlds, worldId]);
+  }, [chunksLoading, connection, userProjects, projectId]);
 
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.worldManager.setTool(currentTool);
+      engineRef.current.projectManager.setTool(currentTool);
     }
   }, [currentTool]);
 
@@ -92,8 +96,8 @@ export default function WorldViewPage() {
     <div>
       <Navigation />
       <div className="h-full flex">
-        {!chunksLoading && !error && worldId && (
-          <ColorPalette worldId={worldId} />
+        {!chunksLoading && !error && projectId && (
+          <ColorPalette projectId={projectId} />
         )}
 
         <div className="flex-1 relative">
@@ -118,7 +122,7 @@ export default function WorldViewPage() {
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
-                <p className="text-lg font-medium">Loading world...</p>
+                <p className="text-lg font-medium">Loading project...</p>
               </div>
             </div>
           )}
@@ -130,7 +134,7 @@ export default function WorldViewPage() {
                   {error}
                 </p>
                 <p className="text-muted-foreground">
-                  Returning to world list...
+                  Returning to project list...
                 </p>
               </div>
             </div>

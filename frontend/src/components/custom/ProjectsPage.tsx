@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useWorlds } from "@/contexts/WorldContext";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { FloatingVoxelsBackground } from "@/components/custom/FloatingVoxelsBackground";
-import { createWorld } from "@/lib/createWorld";
-import { World } from "@/module_bindings";
+import { createProject } from "@/lib/createProject";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import {
   DropdownMenu,
@@ -24,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Project } from "@/module_bindings";
 
 const getGroupLabel = (lastVisitedTimestamp: Timestamp): string => {
   const lastVisitedDate = lastVisitedTimestamp.toDate();
@@ -56,10 +56,10 @@ const groupOrder = [
   "Older",
 ];
 
-export default function ProjectsPage() {
+export function ProjectsPage() {
   const navigate = useNavigate();
   const { connection } = useDatabase();
-  const { userWorlds } = useWorlds();
+  const { userProjects } = useProjects();
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -80,32 +80,32 @@ export default function ProjectsPage() {
     }
   };
 
-  const visitWorld = (worldId: string) => {
+  const visitProject = (projectId: string) => {
     if (!connection?.isActive) return;
     try {
-      navigate(`/worlds/${worldId}`);
+      navigate(`/project/${projectId}`);
     } catch (err) {
-      console.error("Error selecting world:", err);
+      console.error("Error selecting project:", err);
     }
   };
 
   const handleCreateNew = () => {
     if (!connection?.isActive) return;
-    createWorld(connection, navigate);
+    createProject(connection, navigate);
   };
 
-  const filteredWorlds = userWorlds.filter((world) =>
-    world.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProjects = userProjects.filter((project) =>
+    project.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const groupedWorlds = filteredWorlds.reduce((groups, world) => {
-    const group = getGroupLabel(world.lastVisited as Timestamp);
+  const groupedProjects = filteredProjects.reduce((groups, project) => {
+    const group = getGroupLabel(project.lastVisited as Timestamp);
     if (!groups[group]) {
       groups[group] = [];
     }
-    groups[group].push(world);
+    groups[group].push(project);
     return groups;
-  }, {} as Record<string, World[]>);
+  }, {} as Record<string, Project[]>);
 
   const SignInPrompt = () => (
     <div className="flex flex-col items-center justify-center text-center p-12">
@@ -253,21 +253,22 @@ export default function ProjectsPage() {
           <div className="mb-8">
             <h2 className="text-3xl font-bold mb-2">Your Projects</h2>
             <p className="text-muted-foreground">
-              {filteredWorlds.length === 0
+              {filteredProjects.length === 0
                 ? "No projects found"
-                : `${filteredWorlds.length} project${
-                    filteredWorlds.length === 1 ? "" : "s"
+                : `${filteredProjects.length} project${
+                    filteredProjects.length === 1 ? "" : "s"
                   }`}
             </p>
           </div>
 
-          {filteredWorlds.length === 0 ? (
+          {filteredProjects.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="space-y-8">
               {groupOrder.map((groupName) => {
-                const worldsInGroup = groupedWorlds[groupName];
-                if (!worldsInGroup || worldsInGroup.length === 0) return null;
+                const projectsInGroup = groupedProjects[groupName];
+                if (!projectsInGroup || projectsInGroup.length === 0)
+                  return null;
 
                 return (
                   <div key={groupName} className="space-y-4">
@@ -276,10 +277,10 @@ export default function ProjectsPage() {
                       {groupName}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                      {worldsInGroup.map((world) => (
+                      {projectsInGroup.map((project) => (
                         <div
-                          key={world.id}
-                          onClick={() => visitWorld(world.id)}
+                          key={project.id}
+                          onClick={() => visitProject(project.id)}
                           className="group cursor-pointer bg-card border border-border rounded-lg p-4 hover:border-primary/50 hover:bg-accent/50 transition-all duration-200"
                         >
                           <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
@@ -289,10 +290,10 @@ export default function ProjectsPage() {
                           </div>
                           <div className="space-y-1">
                             <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                              {world.name}
+                              {project.name}
                             </h4>
                             <p className="text-xs text-muted-foreground">
-                              {(world.lastVisited as Timestamp)
+                              {(project.lastVisited as Timestamp)
                                 .toDate()
                                 .toLocaleDateString()}
                             </p>

@@ -36,7 +36,7 @@ import { BlockRun as __BlockRun } from "./block_run_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `Chunk`.
+ * Table handle for the table `chunk`.
  *
  * Obtain a handle from the [`chunk`] property on [`RemoteTables`],
  * like `ctx.db.chunk`.
@@ -60,7 +60,7 @@ export class ChunkTableHandle {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `id` unique index on the table `Chunk`,
+   * Access to the `id` unique index on the table `chunk`,
    * which allows point queries on the field of the same name
    * via the [`ChunkIdUnique.find`] method.
    *
@@ -68,7 +68,7 @@ export class ChunkTableHandle {
    * but to directly chain method calls,
    * like `ctx.db.chunk.id().find(...)`.
    *
-   * Get a handle on the `id` unique index on the table `Chunk`.
+   * Get a handle on the `id` unique index on the table `chunk`.
    */
   id = {
     // Find the subscribed row whose `id` column value is equal to `col_val`,

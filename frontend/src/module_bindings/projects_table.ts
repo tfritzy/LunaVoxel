@@ -30,23 +30,25 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { PlayerInWorld } from "./player_in_world_type";
+import { Project } from "./project_type";
+import { Vector3 as __Vector3 } from "./vector_3_type";
+
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `PlayerInWorld`.
+ * Table handle for the table `projects`.
  *
- * Obtain a handle from the [`playerInWorld`] property on [`RemoteTables`],
- * like `ctx.db.playerInWorld`.
+ * Obtain a handle from the [`projects`] property on [`RemoteTables`],
+ * like `ctx.db.projects`.
  *
  * Users are encouraged not to explicitly reference this type,
  * but to directly chain method calls,
- * like `ctx.db.playerInWorld.on_insert(...)`.
+ * like `ctx.db.projects.on_insert(...)`.
  */
-export class PlayerInWorldTableHandle {
-  tableCache: TableCache<PlayerInWorld>;
+export class ProjectsTableHandle {
+  tableCache: TableCache<Project>;
 
-  constructor(tableCache: TableCache<PlayerInWorld>) {
+  constructor(tableCache: TableCache<Project>) {
     this.tableCache = tableCache;
   }
 
@@ -54,24 +56,24 @@ export class PlayerInWorldTableHandle {
     return this.tableCache.count();
   }
 
-  iter(): Iterable<PlayerInWorld> {
+  iter(): Iterable<Project> {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `id` unique index on the table `PlayerInWorld`,
+   * Access to the `id` unique index on the table `projects`,
    * which allows point queries on the field of the same name
-   * via the [`PlayerInWorldIdUnique.find`] method.
+   * via the [`ProjectsIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.playerInWorld.id().find(...)`.
+   * like `ctx.db.projects.id().find(...)`.
    *
-   * Get a handle on the `id` unique index on the table `PlayerInWorld`.
+   * Get a handle on the `id` unique index on the table `projects`.
    */
   id = {
     // Find the subscribed row whose `id` column value is equal to `col_val`,
     // if such a row is present in the client cache.
-    find: (col_val: string): PlayerInWorld | undefined => {
+    find: (col_val: string): Project | undefined => {
       for (let row of this.tableCache.iter()) {
         if (deepEqual(row.id, col_val)) {
           return row;
@@ -80,27 +82,27 @@ export class PlayerInWorldTableHandle {
     },
   };
 
-  onInsert = (cb: (ctx: EventContext, row: PlayerInWorld) => void) => {
+  onInsert = (cb: (ctx: EventContext, row: Project) => void) => {
     return this.tableCache.onInsert(cb);
   }
 
-  removeOnInsert = (cb: (ctx: EventContext, row: PlayerInWorld) => void) => {
+  removeOnInsert = (cb: (ctx: EventContext, row: Project) => void) => {
     return this.tableCache.removeOnInsert(cb);
   }
 
-  onDelete = (cb: (ctx: EventContext, row: PlayerInWorld) => void) => {
+  onDelete = (cb: (ctx: EventContext, row: Project) => void) => {
     return this.tableCache.onDelete(cb);
   }
 
-  removeOnDelete = (cb: (ctx: EventContext, row: PlayerInWorld) => void) => {
+  removeOnDelete = (cb: (ctx: EventContext, row: Project) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
 
   // Updates are only defined for tables with primary keys.
-  onUpdate = (cb: (ctx: EventContext, oldRow: PlayerInWorld, newRow: PlayerInWorld) => void) => {
+  onUpdate = (cb: (ctx: EventContext, oldRow: Project, newRow: Project) => void) => {
     return this.tableCache.onUpdate(cb);
   }
 
-  removeOnUpdate = (cb: (ctx: EventContext, onRow: PlayerInWorld, newRow: PlayerInWorld) => void) => {
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: Project, newRow: Project) => void) => {
     return this.tableCache.removeOnUpdate(cb);
   }}

@@ -32,8 +32,8 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 export type AddColorToPalette = {
-  worldId: string,
-  colorHex: string,
+  projectId: string,
+  color: number,
 };
 
 /**
@@ -46,8 +46,8 @@ export namespace AddColorToPalette {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
-      new ProductTypeElement("colorHex", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("color", AlgebraicType.createI32Type()),
     ]);
   }
 

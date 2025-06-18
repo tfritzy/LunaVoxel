@@ -34,8 +34,8 @@ import {
 // Import and reexport all reducer arg types
 import { AddColorToPalette } from "./add_color_to_palette_reducer.ts";
 export { AddColorToPalette };
-import { CreateWorld } from "./create_world_reducer.ts";
-export { CreateWorld };
+import { CreateProject } from "./create_project_reducer.ts";
+export { CreateProject };
 import { InitializePalette } from "./initialize_palette_reducer.ts";
 export { InitializePalette };
 import { ModifyBlock } from "./modify_block_reducer.ts";
@@ -46,26 +46,22 @@ import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReplacePalette } from "./replace_palette_reducer.ts";
 export { ReplacePalette };
-import { SelectColor } from "./select_color_reducer.ts";
-export { SelectColor };
-import { SelectColorIndex } from "./select_color_index_reducer.ts";
-export { SelectColorIndex };
-import { UpdateWorldName } from "./update_world_name_reducer.ts";
-export { UpdateWorldName };
-import { VisitWorld } from "./visit_world_reducer.ts";
-export { VisitWorld };
+import { UpdateProjectName } from "./update_project_name_reducer.ts";
+export { UpdateProjectName };
 
 // Import and reexport all table handle types
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
 import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
-import { PlayerInWorldTableHandle } from "./player_in_world_table.ts";
-export { PlayerInWorldTableHandle };
-import { WorldTableHandle } from "./world_table.ts";
-export { WorldTableHandle };
+import { ProjectsTableHandle } from "./projects_table.ts";
+export { ProjectsTableHandle };
+import { UserProjectsTableHandle } from "./user_projects_table.ts";
+export { UserProjectsTableHandle };
 
 // Import and reexport all types
+import { AccessType } from "./access_type_type.ts";
+export { AccessType };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
 import { BlockRun } from "./block_run_type.ts";
@@ -76,34 +72,33 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { MeshType } from "./mesh_type_type.ts";
 export { MeshType };
-import { PlayerInWorld } from "./player_in_world_type.ts";
-export { PlayerInWorld };
+import { Project } from "./project_type.ts";
+export { Project };
+import { UserProject } from "./user_project_type.ts";
+export { UserProject };
 import { Vector3 } from "./vector_3_type.ts";
 export { Vector3 };
-import { World } from "./world_type.ts";
-export { World };
 
 const REMOTE_MODULE = {
   tables: {
-    Chunk: {
-      tableName: "Chunk",
+    chunk: {
+      tableName: "chunk",
       rowType: Chunk.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
-    ColorPalette: {
-      tableName: "ColorPalette",
+    color_palette: {
+      tableName: "color_palette",
       rowType: ColorPalette.getTypeScriptAlgebraicType(),
-      primaryKey: "world",
+      primaryKey: "projectId",
     },
-    PlayerInWorld: {
-      tableName: "PlayerInWorld",
-      rowType: PlayerInWorld.getTypeScriptAlgebraicType(),
+    projects: {
+      tableName: "projects",
+      rowType: Project.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
-    World: {
-      tableName: "World",
-      rowType: World.getTypeScriptAlgebraicType(),
-      primaryKey: "id",
+    user_projects: {
+      tableName: "user_projects",
+      rowType: UserProject.getTypeScriptAlgebraicType(),
     },
   },
   reducers: {
@@ -111,9 +106,9 @@ const REMOTE_MODULE = {
       reducerName: "AddColorToPalette",
       argsType: AddColorToPalette.getTypeScriptAlgebraicType(),
     },
-    CreateWorld: {
-      reducerName: "CreateWorld",
-      argsType: CreateWorld.getTypeScriptAlgebraicType(),
+    CreateProject: {
+      reducerName: "CreateProject",
+      argsType: CreateProject.getTypeScriptAlgebraicType(),
     },
     InitializePalette: {
       reducerName: "InitializePalette",
@@ -135,21 +130,9 @@ const REMOTE_MODULE = {
       reducerName: "ReplacePalette",
       argsType: ReplacePalette.getTypeScriptAlgebraicType(),
     },
-    SelectColor: {
-      reducerName: "SelectColor",
-      argsType: SelectColor.getTypeScriptAlgebraicType(),
-    },
-    SelectColorIndex: {
-      reducerName: "SelectColorIndex",
-      argsType: SelectColorIndex.getTypeScriptAlgebraicType(),
-    },
-    UpdateWorldName: {
-      reducerName: "UpdateWorldName",
-      argsType: UpdateWorldName.getTypeScriptAlgebraicType(),
-    },
-    VisitWorld: {
-      reducerName: "VisitWorld",
-      argsType: VisitWorld.getTypeScriptAlgebraicType(),
+    UpdateProjectName: {
+      reducerName: "UpdateProjectName",
+      argsType: UpdateProjectName.getTypeScriptAlgebraicType(),
     },
   },
   // Constructors which are used by the DbConnectionImpl to
@@ -179,195 +162,144 @@ const REMOTE_MODULE = {
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
 | { name: "AddColorToPalette", args: AddColorToPalette }
-| { name: "CreateWorld", args: CreateWorld }
+| { name: "CreateProject", args: CreateProject }
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
-| { name: "SelectColor", args: SelectColor }
-| { name: "SelectColorIndex", args: SelectColorIndex }
-| { name: "UpdateWorldName", args: UpdateWorldName }
-| { name: "VisitWorld", args: VisitWorld }
+| { name: "UpdateProjectName", args: UpdateProjectName }
 ;
 
 export class RemoteReducers {
   constructor(private connection: DbConnectionImpl, private setCallReducerFlags: SetReducerFlags) {}
 
-  addColorToPalette(worldId: string, colorHex: string) {
-    const __args = { worldId, colorHex };
+  addColorToPalette(projectId: string, color: number) {
+    const __args = { projectId, color };
     let __writer = new BinaryWriter(1024);
     AddColorToPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("AddColorToPalette", __argsBuffer, this.setCallReducerFlags.addColorToPaletteFlags);
   }
 
-  onAddColorToPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+  onAddColorToPalette(callback: (ctx: ReducerEventContext, projectId: string, color: number) => void) {
     this.connection.onReducer("AddColorToPalette", callback);
   }
 
-  removeOnAddColorToPalette(callback: (ctx: ReducerEventContext, worldId: string, colorHex: string) => void) {
+  removeOnAddColorToPalette(callback: (ctx: ReducerEventContext, projectId: string, color: number) => void) {
     this.connection.offReducer("AddColorToPalette", callback);
   }
 
-  createWorld(id: string, name: string, xDim: number, yDim: number, zDim: number) {
+  createProject(id: string, name: string, xDim: number, yDim: number, zDim: number) {
     const __args = { id, name, xDim, yDim, zDim };
     let __writer = new BinaryWriter(1024);
-    CreateWorld.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    CreateProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("CreateWorld", __argsBuffer, this.setCallReducerFlags.createWorldFlags);
+    this.connection.callReducer("CreateProject", __argsBuffer, this.setCallReducerFlags.createProjectFlags);
   }
 
-  onCreateWorld(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
-    this.connection.onReducer("CreateWorld", callback);
+  onCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
+    this.connection.onReducer("CreateProject", callback);
   }
 
-  removeOnCreateWorld(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
-    this.connection.offReducer("CreateWorld", callback);
+  removeOnCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
+    this.connection.offReducer("CreateProject", callback);
   }
 
-  initializePalette(worldId: string) {
-    const __args = { worldId };
+  initializePalette(projectId: string) {
+    const __args = { projectId };
     let __writer = new BinaryWriter(1024);
     InitializePalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("InitializePalette", __argsBuffer, this.setCallReducerFlags.initializePaletteFlags);
   }
 
-  onInitializePalette(callback: (ctx: ReducerEventContext, worldId: string) => void) {
+  onInitializePalette(callback: (ctx: ReducerEventContext, projectId: string) => void) {
     this.connection.onReducer("InitializePalette", callback);
   }
 
-  removeOnInitializePalette(callback: (ctx: ReducerEventContext, worldId: string) => void) {
+  removeOnInitializePalette(callback: (ctx: ReducerEventContext, projectId: string) => void) {
     this.connection.offReducer("InitializePalette", callback);
   }
 
-  modifyBlock(world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[]) {
-    const __args = { world, mode, type, positions };
+  modifyBlock(projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) {
+    const __args = { projectId, mode, type, positions, color };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[]) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[]) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
-    const __args = { world, mode, type, x1, y1, z1, x2, y2, z2 };
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number) {
+    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, color };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, world: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
-  removeColorFromPalette(worldId: string, colorIndex: number) {
-    const __args = { worldId, colorIndex };
+  removeColorFromPalette(projectId: string, colorIndex: number) {
+    const __args = { projectId, colorIndex };
     let __writer = new BinaryWriter(1024);
     RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("RemoveColorFromPalette", __argsBuffer, this.setCallReducerFlags.removeColorFromPaletteFlags);
   }
 
-  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorIndex: number) => void) {
+  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, projectId: string, colorIndex: number) => void) {
     this.connection.onReducer("RemoveColorFromPalette", callback);
   }
 
-  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, worldId: string, colorIndex: number) => void) {
+  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, projectId: string, colorIndex: number) => void) {
     this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 
-  replacePalette(worldId: string, colors: string[]) {
-    const __args = { worldId, colors };
+  replacePalette(projectId: string, colors: number[]) {
+    const __args = { projectId, colors };
     let __writer = new BinaryWriter(1024);
     ReplacePalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ReplacePalette", __argsBuffer, this.setCallReducerFlags.replacePaletteFlags);
   }
 
-  onReplacePalette(callback: (ctx: ReducerEventContext, worldId: string, colors: string[]) => void) {
+  onReplacePalette(callback: (ctx: ReducerEventContext, projectId: string, colors: number[]) => void) {
     this.connection.onReducer("ReplacePalette", callback);
   }
 
-  removeOnReplacePalette(callback: (ctx: ReducerEventContext, worldId: string, colors: string[]) => void) {
+  removeOnReplacePalette(callback: (ctx: ReducerEventContext, projectId: string, colors: number[]) => void) {
     this.connection.offReducer("ReplacePalette", callback);
   }
 
-  selectColor(worldId: string, color: string) {
-    const __args = { worldId, color };
+  updateProjectName(projectId: string, name: string) {
+    const __args = { projectId, name };
     let __writer = new BinaryWriter(1024);
-    SelectColor.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    UpdateProjectName.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("SelectColor", __argsBuffer, this.setCallReducerFlags.selectColorFlags);
+    this.connection.callReducer("UpdateProjectName", __argsBuffer, this.setCallReducerFlags.updateProjectNameFlags);
   }
 
-  onSelectColor(callback: (ctx: ReducerEventContext, worldId: string, color: string) => void) {
-    this.connection.onReducer("SelectColor", callback);
+  onUpdateProjectName(callback: (ctx: ReducerEventContext, projectId: string, name: string) => void) {
+    this.connection.onReducer("UpdateProjectName", callback);
   }
 
-  removeOnSelectColor(callback: (ctx: ReducerEventContext, worldId: string, color: string) => void) {
-    this.connection.offReducer("SelectColor", callback);
-  }
-
-  selectColorIndex(worldId: string, colorIndex: number) {
-    const __args = { worldId, colorIndex };
-    let __writer = new BinaryWriter(1024);
-    SelectColorIndex.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("SelectColorIndex", __argsBuffer, this.setCallReducerFlags.selectColorIndexFlags);
-  }
-
-  onSelectColorIndex(callback: (ctx: ReducerEventContext, worldId: string, colorIndex: number) => void) {
-    this.connection.onReducer("SelectColorIndex", callback);
-  }
-
-  removeOnSelectColorIndex(callback: (ctx: ReducerEventContext, worldId: string, colorIndex: number) => void) {
-    this.connection.offReducer("SelectColorIndex", callback);
-  }
-
-  updateWorldName(worldId: string, name: string) {
-    const __args = { worldId, name };
-    let __writer = new BinaryWriter(1024);
-    UpdateWorldName.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("UpdateWorldName", __argsBuffer, this.setCallReducerFlags.updateWorldNameFlags);
-  }
-
-  onUpdateWorldName(callback: (ctx: ReducerEventContext, worldId: string, name: string) => void) {
-    this.connection.onReducer("UpdateWorldName", callback);
-  }
-
-  removeOnUpdateWorldName(callback: (ctx: ReducerEventContext, worldId: string, name: string) => void) {
-    this.connection.offReducer("UpdateWorldName", callback);
-  }
-
-  visitWorld(worldId: string) {
-    const __args = { worldId };
-    let __writer = new BinaryWriter(1024);
-    VisitWorld.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("VisitWorld", __argsBuffer, this.setCallReducerFlags.visitWorldFlags);
-  }
-
-  onVisitWorld(callback: (ctx: ReducerEventContext, worldId: string) => void) {
-    this.connection.onReducer("VisitWorld", callback);
-  }
-
-  removeOnVisitWorld(callback: (ctx: ReducerEventContext, worldId: string) => void) {
-    this.connection.offReducer("VisitWorld", callback);
+  removeOnUpdateProjectName(callback: (ctx: ReducerEventContext, projectId: string, name: string) => void) {
+    this.connection.offReducer("UpdateProjectName", callback);
   }
 
 }
@@ -378,9 +310,9 @@ export class SetReducerFlags {
     this.addColorToPaletteFlags = flags;
   }
 
-  createWorldFlags: CallReducerFlags = 'FullUpdate';
-  createWorld(flags: CallReducerFlags) {
-    this.createWorldFlags = flags;
+  createProjectFlags: CallReducerFlags = 'FullUpdate';
+  createProject(flags: CallReducerFlags) {
+    this.createProjectFlags = flags;
   }
 
   initializePaletteFlags: CallReducerFlags = 'FullUpdate';
@@ -408,24 +340,9 @@ export class SetReducerFlags {
     this.replacePaletteFlags = flags;
   }
 
-  selectColorFlags: CallReducerFlags = 'FullUpdate';
-  selectColor(flags: CallReducerFlags) {
-    this.selectColorFlags = flags;
-  }
-
-  selectColorIndexFlags: CallReducerFlags = 'FullUpdate';
-  selectColorIndex(flags: CallReducerFlags) {
-    this.selectColorIndexFlags = flags;
-  }
-
-  updateWorldNameFlags: CallReducerFlags = 'FullUpdate';
-  updateWorldName(flags: CallReducerFlags) {
-    this.updateWorldNameFlags = flags;
-  }
-
-  visitWorldFlags: CallReducerFlags = 'FullUpdate';
-  visitWorld(flags: CallReducerFlags) {
-    this.visitWorldFlags = flags;
+  updateProjectNameFlags: CallReducerFlags = 'FullUpdate';
+  updateProjectName(flags: CallReducerFlags) {
+    this.updateProjectNameFlags = flags;
   }
 
 }
@@ -434,19 +351,19 @@ export class RemoteTables {
   constructor(private connection: DbConnectionImpl) {}
 
   get chunk(): ChunkTableHandle {
-    return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.Chunk));
+    return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.chunk));
   }
 
   get colorPalette(): ColorPaletteTableHandle {
-    return new ColorPaletteTableHandle(this.connection.clientCache.getOrCreateTable<ColorPalette>(REMOTE_MODULE.tables.ColorPalette));
+    return new ColorPaletteTableHandle(this.connection.clientCache.getOrCreateTable<ColorPalette>(REMOTE_MODULE.tables.color_palette));
   }
 
-  get playerInWorld(): PlayerInWorldTableHandle {
-    return new PlayerInWorldTableHandle(this.connection.clientCache.getOrCreateTable<PlayerInWorld>(REMOTE_MODULE.tables.PlayerInWorld));
+  get projects(): ProjectsTableHandle {
+    return new ProjectsTableHandle(this.connection.clientCache.getOrCreateTable<Project>(REMOTE_MODULE.tables.projects));
   }
 
-  get world(): WorldTableHandle {
-    return new WorldTableHandle(this.connection.clientCache.getOrCreateTable<World>(REMOTE_MODULE.tables.World));
+  get userProjects(): UserProjectsTableHandle {
+    return new UserProjectsTableHandle(this.connection.clientCache.getOrCreateTable<UserProject>(REMOTE_MODULE.tables.user_projects));
   }
 }
 

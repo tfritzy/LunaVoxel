@@ -10,7 +10,7 @@ import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
 
 export type VoxelFaces = {
-  color: string;
+  color: number;
   gridPos: THREE.Vector3;
   faceIndexes: number[];
 };
@@ -182,19 +182,17 @@ export class ChunkMesh {
     let indexOffset = 0;
     let vertexIndex = 0;
 
-    const colorCache = new Map<string, { r: number; g: number; b: number }>();
+    const colorCache = new Map<number, THREE.Color>();
 
     for (const voxelFace of exteriorFaces.values()) {
       const { color, gridPos, faceIndexes } = voxelFace;
 
-      let colorRGB = colorCache.get(color);
-      if (!colorRGB) {
+      const colorObj = colorCache.get(color);
+      if (!colorObj) {
         const colorObj = new THREE.Color(color);
-        colorRGB = { r: colorObj.r, g: colorObj.g, b: colorObj.b };
-        colorCache.set(color, colorRGB);
+        colorCache.set(color, colorObj);
       }
 
-      const { r, g, b } = colorRGB;
       const posX = gridPos.x + 0.5;
       const posY = gridPos.y + 0.5;
       const posZ = gridPos.z + 0.5;
@@ -235,9 +233,9 @@ export class ChunkMesh {
           normals[vertexOffset + 1] = normalY;
           normals[vertexOffset + 2] = normalZ;
 
-          colors[vertexOffset] = r * aoFactor;
-          colors[vertexOffset + 1] = g * aoFactor;
-          colors[vertexOffset + 2] = b * aoFactor;
+          colors[vertexOffset] = colorObj!.r * aoFactor;
+          colors[vertexOffset + 1] = colorObj!.g * aoFactor;
+          colors[vertexOffset + 2] = colorObj!.b * aoFactor;
 
           vertexOffset += 3;
           vertexIndex++;

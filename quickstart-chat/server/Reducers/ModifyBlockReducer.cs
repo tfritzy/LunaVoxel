@@ -9,18 +9,13 @@ public static partial class Module
     public static void
     ModifyBlock(
         ReducerContext ctx,
-        string world,
+        string projectId,
         BlockModificationMode mode,
         MeshType type,
-        List<Vector3> positions)
+        List<Vector3> positions,
+        int color)
     {
-        var player = ctx.Db.PlayerInWorld.player_world.Filter((ctx.Sender, world)).FirstOrDefault()
-            ?? throw new ArgumentException("You're not in this world.");
-        var palette =
-            ctx.Db.ColorPalette.World.Find(world) ?? throw new ArgumentException("No color palette for world.");
-        var color = GetPlayerColor(player.SelectedColor, palette);
-        var chunk = ctx.Db.Chunk.Id.Find($"{world}_0") ?? throw new ArgumentException("No chunk for this world");
-
+        var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
         var decompressedBlocks = BlockCompression.Decompress(chunk.Blocks, chunk.xDim, chunk.yDim, chunk.zDim);
 
         foreach (var position in positions)
@@ -48,6 +43,6 @@ public static partial class Module
             }
         }
         chunk.Blocks = BlockCompression.Compress(decompressedBlocks).ToArray();
-        ctx.Db.Chunk.Id.Update(chunk);
+        ctx.Db.chunk.Id.Update(chunk);
     }
 }

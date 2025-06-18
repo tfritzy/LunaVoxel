@@ -1,109 +1,98 @@
-import { useCurrentWorld } from "@/contexts/CurrentWorldContext";
+import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { HexColorPicker } from "react-colorful";
 import React from "react";
 import "../custom/color-picker.css";
 import { FileUp } from "lucide-react";
 import { Button } from "../ui/button";
-import PaletteDropdown from "./PaletteDropdown";
+import { PaletteDropdown } from "./PaletteDropdown";
 import { ColorPalette as ColorPaletteType } from "./colorPalettes";
+import { hexToString } from "@/lib/hexToString";
 
 interface ColorPaletteProps {
-  worldId: string;
+  projectId: string;
 }
 
-const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null;
+const hexToRgb = (hex: number): { r: number; g: number; b: number } | null => {
+  if (hex < 0 || hex > 0xffffff) {
+    return null;
+  }
+
+  // Extract RGB components using bitwise operations
+  const r = (hex >> 16) & 0xff; // Right shift 16 bits, mask with 0xFF
+  const g = (hex >> 8) & 0xff; // Right shift 8 bits, mask with 0xFF
+  const b = hex & 0xff; // Mask with 0xFF
+
+  return { r, g, b };
 };
 
-const normalizeAndValidateHexColor = (hex: string): string | null => {
+const normalizeAndValidateHexColor = (hex: string): number | null => {
   let normalized = hex.trim();
   if (!normalized.startsWith("#")) {
     normalized = `#${normalized}`;
   }
 
+  let hexValue: string;
+
   if (/^#([0-9A-Fa-f]{3})$/i.test(normalized)) {
-    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
+    hexValue = `${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`;
+  } else if (/^#([0-9A-Fa-f]{6})$/i.test(normalized)) {
+    hexValue = normalized.slice(1);
+  } else {
+    return null;
   }
-  if (/^#([0-9A-Fa-f]{6})$/i.test(normalized)) {
-    return normalized.toLowerCase();
-  }
-  return null;
+
+  return parseInt(hexValue, 16);
 };
 
-export default function ColorPalette({ worldId }: ColorPaletteProps) {
+export function ColorPalette({ projectId }: ColorPaletteProps) {
   const { connection } = useDatabase();
-  const { palette, player } = useCurrentWorld();
+  const { palette, selectedColor, setSelectedColor } = useCurrentProject();
   const [inputValue, setInputValue] = React.useState<string>("");
 
   const selectColor = React.useCallback(
-    (index: number) => {
-      if (!connection || !worldId) return;
-      connection.reducers.selectColorIndex(worldId, index);
+    (color: number) => {
+      setSelectedColor(color);
     },
-    [connection, worldId]
+    [setSelectedColor]
+  );
+
+  const selectColorString = React.useCallback(
+    (color: string) => {
+      selectColor(parseInt(color));
+    },
+    [selectColor]
   );
 
   const addColorToPalette = React.useCallback(
-    (color: string) => {
-      if (!connection || !worldId) return;
-      connection.reducers.addColorToPalette(worldId, color);
+    (color: number) => {
+      if (!connection || !projectId) return;
+      connection.reducers.addColorToPalette(projectId, color);
     },
-    [connection, worldId]
-  );
-
-  const selectSpecificColor = React.useCallback(
-    (color: string) => {
-      connection?.reducers.selectColor(worldId, color);
-    },
-    [connection?.reducers, worldId]
+    [connection, projectId]
   );
 
   const replacePalette = React.useCallback(
     (newPalette: ColorPaletteType) => {
-      if (!connection || !worldId) return;
-      connection.reducers.replacePalette(worldId, newPalette.colors);
+      if (!connection || !projectId) return;
+      connection.reducers.replacePalette(projectId, newPalette.colors);
     },
-    [connection, worldId]
+    [connection, projectId]
   );
 
-  const { selectedColor, selectedColorIndex, isColorDark } =
-    React.useMemo(() => {
-      let colorToTest: string;
-      let finalSelectedColorIndex: number | undefined;
+  const isColorDark = React.useMemo(() => {
+    const rgb = hexToRgb(selectedColor);
+    let dark = false;
+    if (rgb) {
+      const luminance = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+      dark = luminance < 128;
+    }
 
-      if (player.selectedColor.startsWith("idx")) {
-        const index = parseInt(player.selectedColor.split("idx")[1]);
-        colorToTest = palette.colors[index];
-        finalSelectedColorIndex = index;
-      } else {
-        colorToTest = player.selectedColor;
-        finalSelectedColorIndex = undefined;
-      }
-
-      const rgb = hexToRgb(colorToTest);
-      let dark = false;
-      if (rgb) {
-        const luminance = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
-        dark = luminance < 128;
-      }
-
-      return {
-        selectedColor: colorToTest,
-        selectedColorIndex: finalSelectedColorIndex,
-        isColorDark: dark,
-      };
-    }, [palette.colors, player.selectedColor]);
+    return dark;
+  }, [selectedColor]);
 
   React.useEffect(() => {
-    setInputValue(selectedColor);
+    setInputValue(selectedColor.toString(16));
   }, [selectedColor]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,27 +101,14 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
 
     const normalizedColor = normalizeAndValidateHexColor(currentValue);
     if (normalizedColor && normalizedColor !== selectedColor) {
-      selectSpecificColor(normalizedColor);
+      selectColor(normalizedColor);
     }
   };
-
-  const handleDeleteColor = React.useCallback(() => {
-    if (selectedColorIndex !== undefined && connection && worldId) {
-      connection.reducers.removeColorFromPalette(worldId, selectedColorIndex);
-    }
-  }, [connection, worldId, selectedColorIndex]);
 
   if (!palette) return null;
 
   return (
-    <div
-      className="flex flex-col w-min justify-between p-2 bg-card border-r border-border"
-      onKeyDown={(e) => {
-        if (e.key === "Delete") {
-          handleDeleteColor();
-        }
-      }}
-    >
+    <div className="flex flex-col w-min justify-between p-2 bg-card border-r border-border">
       <div>
         <PaletteDropdown onPaletteSelect={replacePalette} />
 
@@ -141,11 +117,11 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
             <button
               key={index}
               className="border border-white/25 relative w-7 h-7 hover:shadow-sm transition-all"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: hexToString(color) }}
               onClick={() => selectColor(index)}
               title={`Color ${index + 1}: ${color}`}
             >
-              {selectedColorIndex === index && (
+              {selectedColor === color && (
                 <div className="absolute -inset-0.5 border-1 border-black shadow-md">
                   <div className="w-full h-full border-1 border-white shadow-md">
                     <div className="relative w-full h-full border-1 border-black shadow-md">
@@ -180,13 +156,13 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
                 isColorDark ? "text-primary" : "text-muted"
               }`}
               style={{
-                backgroundColor: selectedColor,
+                backgroundColor: hexToString(selectedColor),
                 caretColor: isColorDark ? "white" : "black",
               }}
               spellCheck="false"
             />
-            {selectedColorIndex !== undefined &&
-            palette.colors[selectedColorIndex] === selectedColor ? null : (
+            {selectedColor !== undefined &&
+            palette.colors.includes(selectedColor) ? null : (
               <Button
                 aria-label="Add to palette"
                 title="Add to palette"
@@ -199,7 +175,10 @@ export default function ColorPalette({ worldId }: ColorPaletteProps) {
             )}
           </div>
         </div>
-        <HexColorPicker color={selectedColor} onChange={selectSpecificColor} />
+        <HexColorPicker
+          color={hexToString(selectedColor)}
+          onChange={selectColorString}
+        />
       </div>
     </div>
   );

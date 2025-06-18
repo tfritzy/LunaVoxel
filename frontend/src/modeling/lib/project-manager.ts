@@ -4,17 +4,17 @@ import {
   Chunk,
   DbConnection,
   EventContext,
-  World,
+  Project,
 } from "../../module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import { GridRaycaster } from "./grid-raycaster";
 import { Builder } from "./builder";
 
-export class WorldManager {
+export class ProjectManager {
   private scene: THREE.Scene;
   private chunkMesh: ChunkMesh;
   private dbConn: DbConnection;
-  private world: World;
+  private project: Project;
   private currentUpdateController: AbortController | null = null;
   private raycaster: GridRaycaster | null = null;
   private builder: Builder;
@@ -23,24 +23,28 @@ export class WorldManager {
   constructor(
     scene: THREE.Scene,
     dbConn: DbConnection,
-    world: World,
+    project: Project,
     camera: THREE.Camera,
     container: HTMLElement
   ) {
     this.dbConn = dbConn;
     this.scene = scene;
-    this.world = world;
+    this.project = project;
     this.chunkMesh = new ChunkMesh(scene);
     this.setupEvents();
     this.builder = new Builder(
       this.dbConn,
-      this.world.id,
-      world.dimensions,
+      this.project.id,
+      project.dimensions,
       container,
       this.onPreviewUpdate
     );
     this.setupRaycaster(camera, container);
     this.setupChunks();
+  }
+
+  public setSelectedColor(color: number) {
+    this.builder.setSelectedColor(color);
   }
 
   setupEvents = () => {
@@ -50,7 +54,7 @@ export class WorldManager {
   setupChunks = async () => {
     for (const chunk of this.dbConn.db.chunk.tableCache.iter()) {
       const c = chunk as Chunk;
-      if (c.world !== this.world.id) continue;
+      if (c.projectId !== this.project.id) continue;
       this.currentChunk = c;
       await this.updateChunkMesh();
     }

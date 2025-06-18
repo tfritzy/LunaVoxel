@@ -34,7 +34,7 @@ import { ColorPalette } from "./color_palette_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `ColorPalette`.
+ * Table handle for the table `color_palette`.
  *
  * Obtain a handle from the [`colorPalette`] property on [`RemoteTables`],
  * like `ctx.db.colorPalette`.
@@ -58,22 +58,22 @@ export class ColorPaletteTableHandle {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `world` unique index on the table `ColorPalette`,
+   * Access to the `project_id` unique index on the table `color_palette`,
    * which allows point queries on the field of the same name
-   * via the [`ColorPaletteWorldUnique.find`] method.
+   * via the [`ColorPaletteProjectIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.colorPalette.world().find(...)`.
+   * like `ctx.db.colorPalette.project_id().find(...)`.
    *
-   * Get a handle on the `world` unique index on the table `ColorPalette`.
+   * Get a handle on the `project_id` unique index on the table `color_palette`.
    */
-  world = {
-    // Find the subscribed row whose `world` column value is equal to `col_val`,
+  project_id = {
+    // Find the subscribed row whose `project_id` column value is equal to `col_val`,
     // if such a row is present in the client cache.
     find: (col_val: string): ColorPalette | undefined => {
       for (let row of this.tableCache.iter()) {
-        if (deepEqual(row.world, col_val)) {
+        if (deepEqual(row.project_id, col_val)) {
           return row;
         }
       }

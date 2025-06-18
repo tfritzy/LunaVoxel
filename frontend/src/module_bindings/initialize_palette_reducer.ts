@@ -32,7 +32,7 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 export type InitializePalette = {
-  worldId: string,
+  projectId: string,
 };
 
 /**
@@ -45,7 +45,7 @@ export namespace InitializePalette {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
     ]);
   }
 

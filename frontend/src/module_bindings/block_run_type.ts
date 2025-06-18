@@ -35,7 +35,7 @@ import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type BlockRun = {
   type: __MeshType,
-  color: string | undefined,
+  color: number | undefined,
   topLeft: __Vector3,
   bottomRight: __Vector3,
 };
@@ -51,7 +51,7 @@ export namespace BlockRun {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("color", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+      new ProductTypeElement("color", AlgebraicType.createOptionType(AlgebraicType.createI32Type())),
       new ProductTypeElement("topLeft", __Vector3.getTypeScriptAlgebraicType()),
       new ProductTypeElement("bottomRight", __Vector3.getTypeScriptAlgebraicType()),
     ]);

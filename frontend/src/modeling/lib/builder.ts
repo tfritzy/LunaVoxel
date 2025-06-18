@@ -17,6 +17,7 @@ export class Builder {
   private lastPreviewStart: THREE.Vector3 | null = null;
   private lastPreviewEnd: THREE.Vector3 | null = null;
   private onPreviewUpdate: () => void;
+  private selectedColor: number;
 
   private boundMouseDown: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
@@ -31,6 +32,7 @@ export class Builder {
     this.dbConn = dbConn;
     this.world = world;
     this.onPreviewUpdate = onPreviewUpdate;
+    this.selectedColor = 0xffffff;
 
     this.boundMouseDown = this.onMouseDown.bind(this);
     this.boundContextMenu = this.onContextMenu.bind(this);
@@ -40,6 +42,10 @@ export class Builder {
 
     container.addEventListener("mousedown", this.boundMouseDown);
     container.addEventListener("contextmenu", this.boundContextMenu);
+  }
+
+  public setSelectedColor(color: number) {
+    this.selectedColor = color;
   }
 
   private initializePreviewBlocks(): (MeshType | undefined)[][][] {
@@ -120,7 +126,8 @@ export class Builder {
   private modifyBlock(
     tool: BlockModificationMode,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    endPos: THREE.Vector3,
+    color: number
   ) {
     if (!this.dbConn.isActive) return;
 
@@ -133,7 +140,8 @@ export class Builder {
       startPos.z,
       endPos.x,
       endPos.y,
-      endPos.z
+      endPos.z,
+      color
     );
   }
 
@@ -170,7 +178,7 @@ export class Builder {
     const startPos = this.startPosition || position;
 
     this.clearPreviewBlocks();
-    this.modifyBlock(this.currentTool, startPos, endPos);
+    this.modifyBlock(this.currentTool, startPos, endPos, this.selectedColor);
 
     this.isMouseDown = false;
     this.startPosition = null;

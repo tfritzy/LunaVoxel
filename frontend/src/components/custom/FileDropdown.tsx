@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface FileDropdownProps {
-  onNewWorld: () => void;
-  onOpenWorld: () => void;
+  onNewProject: () => void;
+  onOpenProject: () => void;
 }
 
-export default function FileDropdown({
-  onNewWorld,
-  onOpenWorld,
+export function FileDropdown({
+  onNewProject,
+  onOpenProject,
 }: FileDropdownProps) {
   return (
     <DropdownMenu>
@@ -25,20 +25,20 @@ export default function FileDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={onNewWorld}>
+        <DropdownMenuItem onClick={onNewProject}>
           <Plus className="mr-2 h-4 w-4" />
           New
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenWorld}>
+        <DropdownMenuItem onClick={onOpenProject}>
           <FolderOpen className="mr-2 h-4 w-4" />
           Open
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled onClick={onOpenWorld}>
+        <DropdownMenuItem disabled onClick={onOpenProject}>
           <FileDown className="mr-2 h-4 w-4" />
           Export (WIP)
         </DropdownMenuItem>
-        <DropdownMenuItem disabled onClick={onOpenWorld}>
+        <DropdownMenuItem disabled onClick={onOpenProject}>
           <FileUp className="mr-2 h-4 w-4" />
           Import (WIP)
         </DropdownMenuItem>

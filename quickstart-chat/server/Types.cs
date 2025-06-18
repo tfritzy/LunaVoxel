@@ -2,10 +2,17 @@ using SpacetimeDB;
 
 public static partial class Module
 {
-    [Table(Name = "World", Public = true)]
+#pragma warning disable STDB_UNSTABLE
+
+    [SpacetimeDB.ClientVisibilityFilter]
+    public static readonly Filter PROJECT_FILTER = new Filter.Sql(
+        "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender"
+    );
+
+    [Table(Name = "projects", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited",
                              Columns = new[] { nameof(Owner), nameof(LastVisited) })]
-    public partial class World
+    public partial class Project
     {
         [PrimaryKey]
         public string Id;
@@ -14,10 +21,10 @@ public static partial class Module
         public Identity Owner;
         public Timestamp LastVisited;
 
-        public static World Build(string id, string name, int xDim, int yDim, int zDim, Identity owner,
+        public static Project Build(string id, string name, int xDim, int yDim, int zDim, Identity owner,
                                   Timestamp timestamp)
         {
-            return new World
+            return new Project
             {
                 Id = id,
                 Name = name,
@@ -28,36 +35,72 @@ public static partial class Module
         }
     }
 
-    [Table(Name = "PlayerInWorld", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "player_world", Columns = new[] { nameof(Player), nameof(World) })]
-    [SpacetimeDB.Index.BTree(Name = "world_color",
-                             Columns = new[] { nameof(World), nameof(SelectedColor) })]
-    public partial class PlayerInWorld
+    [Table(Name = "user_projects")]
+    [SpacetimeDB.Index.BTree(Name = "idx_user_project",
+                             Columns = new[] { nameof(User), nameof(ProjectId) })]
+    public partial class UserProject
     {
-        [PrimaryKey]
-        public string Id;
-        public Identity Player;
-        public string World;
-        public string SelectedColor;
+        public Identity User;
+        public string ProjectId;
+        public AccessType AccessType;
+
+        public static UserProject Build(Identity user, string projectId, AccessType accessType)
+        {
+            return new UserProject
+            {
+                User = user,
+                ProjectId = projectId,
+                AccessType = accessType,
+            };
+        }
     }
 
-    [Table(Name = "ColorPalette", Public = true)]
+    [Table(Name = "color_palette", Public = true)]
     public partial class ColorPalette
     {
         [PrimaryKey]
-        public string World;
-        public string[] Colors;
+        public string ProjectId;
+        public int[] Colors = [];
+    }
+
+
+    [Table(Name = "chunk", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "chunk_project", Columns = new[] { nameof(ProjectId) })]
+    public partial class Chunk
+    {
+        [PrimaryKey]
+        public string Id;
+        public string ProjectId;
+        public int xDim;
+        public int yDim;
+        public int zDim;
+        public int Layer;
+        public BlockRun[] Blocks = System.Array.Empty<BlockRun>();
+
+        public static Chunk Build(string projectId, int xDim, int yDim, int zDim, int layer)
+        {
+            return new Chunk
+            {
+                Id = $"{projectId}_{layer}",
+                ProjectId = projectId,
+                xDim = xDim,
+                yDim = yDim,
+                zDim = zDim,
+                Blocks = System.Array.Empty<BlockRun>(),
+                Layer = layer
+            };
+        }
     }
 
     [Type]
     public partial struct BlockRun
     {
         public MeshType Type;
-        public string? Color;
+        public int? Color;
         public Vector3 TopLeft;
         public Vector3 BottomRight;
 
-        public BlockRun(MeshType type, Vector3 topLeft, Vector3 bottomRight, string? color = null)
+        public BlockRun(MeshType type, Vector3 topLeft, Vector3 bottomRight, int? color = null)
         {
             this.Type = type;
             this.Color = color;
@@ -69,9 +112,9 @@ public static partial class Module
     public class Block
     {
         public MeshType Type;
-        public string? Color;
+        public int? Color;
 
-        public Block(MeshType type, string? color = null)
+        public Block(MeshType type, int? color = null)
         {
             this.Type = type;
             this.Color = color;
@@ -102,31 +145,11 @@ public static partial class Module
         Paint
     }
 
-    [Table(Name = "Chunk", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "chunk_world", Columns = new[] { nameof(World) })]
-    public partial class Chunk
+    [Type]
+    public enum AccessType
     {
-        [PrimaryKey]
-        public string Id;
-        public string World;
-        public int xDim;
-        public int yDim;
-        public int zDim;
-        public int Layer;
-        public BlockRun[] Blocks = System.Array.Empty<BlockRun>();
-
-        public static Chunk Build(string world, int xDim, int yDim, int zDim, int layer)
-        {
-            return new Chunk
-            {
-                Id = $"{world}_{layer}",
-                World = world,
-                xDim = xDim,
-                yDim = yDim,
-                zDim = zDim,
-                Blocks = System.Array.Empty<BlockRun>(),
-                Layer = layer
-            };
-        }
+        None,
+        Read,
+        ReadWrite
     }
 }

@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { World } from "@/module_bindings";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { FileWarning, FolderOpen, PlusCircle, Search, X } from "lucide-react";
+import { FolderOpen, PlusCircle, Search, X } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useNavigate, useParams } from "react-router-dom";
-import { createWorld } from "@/lib/createWorld";
+import { createProject } from "@/lib/createProject";
 import { Modal } from "../ui/modal";
 import { useAuth } from "@/firebase/AuthContext";
+import { Project } from "@/module_bindings";
 
-interface WorldListProps {
+interface ProjectListProps {
   isOpen: boolean;
   onClose: () => void;
-  worlds: World[];
-  onWorldClick: (worldId: string) => void;
+  projects: Project[];
+  onProjectClick: (projectId: string) => void;
 }
 
 const getGroupLabel = (lastVisitedTimestamp: Timestamp): string => {
@@ -64,10 +64,10 @@ const SignInPrompt: React.FC = () => {
     <div className="flex flex-col items-center justify-center text-center p-8">
       <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
       <h2 className="text-xl font-semibold mb-3 text-foreground">
-        Sign in to view your worlds
+        Sign in to view your projects
       </h2>
       <p className="mb-6 text-sm text-muted-foreground max-w-md">
-        Sign in with Google to access your saved worlds and create new ones.
+        Sign in with Google to access your saved projects and create new ones.
       </p>
       <Button onClick={handleSignIn} className="flex items-center gap-2">
         <svg
@@ -98,34 +98,34 @@ const SignInPrompt: React.FC = () => {
   );
 };
 
-const WorldList: React.FC<WorldListProps> = ({
+export const ProjectList: React.FC<ProjectListProps> = ({
   isOpen,
   onClose,
-  worlds,
-  onWorldClick,
+  projects,
+  onProjectClick,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { connection } = useDatabase();
   const navigate = useNavigate();
-  const { worldId } = useParams();
+  const { projectId } = useParams();
   const { currentUser } = useAuth();
 
-  const processedWorlds = React.useMemo(() => {
-    if (worlds.length === 0) return {};
-    const filtered = worlds.filter((world) =>
-      world.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const processedProjects = React.useMemo(() => {
+    if (projects.length === 0) return {};
+    const filtered = projects.filter((project) =>
+      project.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const groups: Record<string, World[]> = Object.fromEntries(
+    const groups: Record<string, Project[]> = Object.fromEntries(
       groupOrder.map((group) => [group, []])
     );
 
-    filtered.forEach((world) => {
-      const groupName = getGroupLabel(world.lastVisited as Timestamp);
+    filtered.forEach((project) => {
+      const groupName = getGroupLabel(project.lastVisited as Timestamp);
       if (groups[groupName]) {
-        groups[groupName].push(world);
+        groups[groupName].push(project);
       } else {
-        groups["Older"].push(world);
+        groups["Older"].push(project);
       }
     });
 
@@ -137,7 +137,7 @@ const WorldList: React.FC<WorldListProps> = ({
       );
     }
     return groups;
-  }, [worlds, searchTerm]);
+  }, [projects, searchTerm]);
 
   if (currentUser?.isAnonymous) {
     return (
@@ -145,7 +145,7 @@ const WorldList: React.FC<WorldListProps> = ({
         <div className="sm:max-w-[600px] min-h-[400px] w-[70vw] flex flex-col p-0">
           <div className="px-6 pt-4 flex-shrink-0">
             <div className="flex flex-row justify-between">
-              <h2 className="text-xl font-semibold mb-6">Open a world</h2>
+              <h2 className="text-xl font-semibold mb-6">Open a project</h2>
               <Button onClick={onClose} variant="ghost">
                 <X />
               </Button>
@@ -164,7 +164,7 @@ const WorldList: React.FC<WorldListProps> = ({
       <div className="sm:max-w-[1200px] min-h-[80vh] max-h-[90vh] w-[70vw] flex flex-col p-0">
         <div className="px-6 pt-4 flex-shrink-0">
           <div className="flex flex-row justify-between">
-            <h2 className="text-xl font-semibold mb-6">Open a world</h2>
+            <h2 className="text-xl font-semibold mb-6">Open a project</h2>
             <Button onClick={onClose} variant="ghost">
               <X />
             </Button>
@@ -183,7 +183,7 @@ const WorldList: React.FC<WorldListProps> = ({
           <div className="flex flex-row items-center justify-between px-6 py-4">
             <Input
               type="text"
-              placeholder="Search worlds..."
+              placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-xs h-8 my-1"
@@ -192,7 +192,7 @@ const WorldList: React.FC<WorldListProps> = ({
             <Button
               onClick={() => {
                 if (!connection?.isActive) return;
-                createWorld(connection, navigate);
+                createProject(connection, navigate);
                 onClose();
               }}
               className="h-8"
@@ -203,45 +203,45 @@ const WorldList: React.FC<WorldListProps> = ({
           </div>
 
           <div className="flex-1 min-h-0 flex flex-col">
-            {worlds.length === 0 ? (
+            {projects.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 px-6">
                 <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
                 <p className="mb-2 text-lg font-medium text-foreground">
-                  No Worlds Found
+                  No Projects Found
                 </p>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  You don't have any worlds yet. Create one to get started!
+                  You don't have any projects yet. Create one to get started!
                 </p>
                 <Button
                   onClick={() => {
                     if (!connection?.isActive) return;
-                    createWorld(connection, navigate);
+                    createProject(connection, navigate);
                     onClose();
                   }}
                   className="w-full sm:w-auto"
                 >
-                  Create New World
+                  Create New Project
                 </Button>
               </div>
             ) : (
               <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
-                {Object.entries(processedWorlds).map(
-                  ([groupName, groupWorlds]) =>
-                    groupWorlds.length > 0 && (
+                {Object.entries(processedProjects).map(
+                  ([groupName, groupProjects]) =>
+                    groupProjects.length > 0 && (
                       <div key={groupName} className="mb-6">
                         <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
                           {groupName}
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                          {groupWorlds.map((world) => (
+                          {groupProjects.map((project) => (
                             <div
-                              key={world.id}
+                              key={project.id}
                               onClick={() => {
-                                onWorldClick(world.id);
+                                onProjectClick(project.id);
                                 onClose();
                               }}
                               className={`cursor-pointer group relative bg-card hover:bg-accent border border-border rounded-lg p-3 transition-all duration-200 hover:shadow-md ${
-                                worldId === world.id
+                                projectId === project.id
                                   ? "ring-2 ring-primary bg-accent"
                                   : ""
                               }`}
@@ -251,10 +251,10 @@ const WorldList: React.FC<WorldListProps> = ({
                               </div>
                               <div className="space-y-1">
                                 <h4 className="font-medium text-sm truncate">
-                                  {world.name}
+                                  {project.name}
                                 </h4>
                                 <p className="text-xs text-muted-foreground">
-                                  {(world.lastVisited as Timestamp)
+                                  {(project.lastVisited as Timestamp)
                                     .toDate()
                                     .toLocaleDateString()}
                                 </p>
@@ -273,5 +273,3 @@ const WorldList: React.FC<WorldListProps> = ({
     </Modal>
   );
 };
-
-export default WorldList;

@@ -30,34 +30,42 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { Vector3 as __Vector3 } from "./vector_3_type";
 
-export type UpdateWorldName = {
-  worldId: string,
+export type Project = {
+  id: string,
   name: string,
+  dimensions: __Vector3,
+  owner: Identity,
+  lastVisited: Timestamp,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace UpdateWorldName {
+export namespace Project {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("name", AlgebraicType.createStringType()),
+      new ProductTypeElement("dimensions", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
+      new ProductTypeElement("lastVisited", AlgebraicType.createTimestampType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: UpdateWorldName): void {
-    UpdateWorldName.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Project): void {
+    Project.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): UpdateWorldName {
-    return UpdateWorldName.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Project {
+    return Project.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
+
 

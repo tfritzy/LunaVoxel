@@ -8,7 +8,7 @@ interface SpinnerProps {
   label?: string;
 }
 
-export default function Spinner({
+export function Spinner({
   size = "md",
   color = "primary",
   className,

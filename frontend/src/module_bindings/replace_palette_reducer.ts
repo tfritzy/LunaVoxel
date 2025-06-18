@@ -32,8 +32,8 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 export type ReplacePalette = {
-  worldId: string,
-  colors: string[],
+  projectId: string,
+  colors: number[],
 };
 
 /**
@@ -46,8 +46,8 @@ export namespace ReplacePalette {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
-      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createStringType())),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
     ]);
   }
 

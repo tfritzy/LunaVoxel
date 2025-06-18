@@ -176,7 +176,6 @@ export function findExteriorFaces(
     setVisited(x, y, z);
 
     const sourceIsPreview = !!getPreviewBlock(x, y, z);
-    const sourceIsAir = isAir(x, y, z);
 
     for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
       const dir = directions[dirIndex];
@@ -204,7 +203,7 @@ export function findExteriorFaces(
         hasReal &&
         (previewMode.tag === BlockModificationMode.Build.tag || !hasPreview)
       ) {
-        const blockColor = block?.color ? block.color : "#ffffff";
+        const blockColor = block?.color ? block.color : 0xffffff;
 
         if (!exteriorFaces.has(key)) {
           exteriorFaces.set(key, {
@@ -222,7 +221,7 @@ export function findExteriorFaces(
       if (hasPreview && !sourceIsPreview) {
         if (!previewFaces.has(key)) {
           previewFaces.set(key, {
-            color: "",
+            color: 0xffffff,
             faceIndexes: [],
             gridPos: new THREE.Vector3(nx, ny, nz),
           });

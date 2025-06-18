@@ -4,22 +4,22 @@ public static partial class Module
 {
     [Reducer]
     public static void
-    InitializePalette(ReducerContext ctx, string worldId)
+    InitializePalette(ReducerContext ctx, string projectId)
     {
-        var existingPalette = ctx.Db.ColorPalette.World.Find(worldId);
+        var existingPalette = ctx.Db.color_palette.ProjectId.Find(projectId);
         if (existingPalette != null)
         {
             return;
         }
 
-        var defaultColors = new string[]{
-            "#2e2e43", "#4a4b5b", "#707b89", "#a9bcbf", "#e6eeed", "#fcfbf3", "#fceba8", "#f5c47c",
-            "#e39764", "#c06852", "#9d4343", "#813645", "#542240", "#2a152d", "#4f2d4d", "#5b3a56",
-            "#794e6d", "#3e4c7e", "#495f94", "#5a78b2", "#7396d5", "#7fbbdc", "#aaeeea", "#d5f893",
-            "#96dc7f", "#6ec077", "#4e9363", "#3c6c54", "#2c5049", "#34404f", "#405967", "#5c8995",
+        var defaultColors = new int[]{
+            0x2e2e43, 0x4a4b5b, 0x707b89, 0xa9bcbf, 0xe6eeed, 0xfcfbf3, 0xfceba8, 0xf5c47c,
+            0xe39764, 0xc06852, 0x9d4343, 0x813645, 0x542240, 0x2a152d, 0x4f2d4d, 0x5b3a56,
+            0x794e6d, 0x3e4c7e, 0x495f94, 0x5a78b2, 0x7396d5, 0x7fbbdc, 0xaaeeea, 0xd5f893,
+            0x96dc7f, 0x6ec077, 0x4e9363, 0x3c6c54, 0x2c5049, 0x34404f, 0x405967, 0x5c8995,
         };
 
-        ctx.Db.ColorPalette.Insert(new ColorPalette { World = worldId, Colors = defaultColors });
-        Log.Info($"Initialized color palette for world {worldId}");
+        ctx.Db.color_palette.Insert(new ColorPalette { ProjectId = projectId, Colors = defaultColors });
+        Log.Info($"Initialized color palette for project '{projectId}'");
     }
 }

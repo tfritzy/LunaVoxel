@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Moon, User, LogOut } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,20 +10,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/firebase/AuthContext";
 import { useState } from "react";
-import WorldList from "./WorldList";
-import FileDropdown from "./FileDropdown";
+import { FileDropdown } from "./FileDropdown";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useWorlds } from "@/contexts/WorldContext";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { useNavigate } from "react-router-dom";
-import { createWorld } from "@/lib/createWorld";
-import { WorldNameInput } from "./WorldNameInput";
+import { createProject } from "@/lib/createProject";
+import { ProjectList } from "./ProjectList";
+import { ProjectNameInput } from "./ProjectNameInput";
 
-export default function Navigation() {
+export function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const { connection } = useDatabase();
-  const { userWorlds } = useWorlds();
+  const { userProjects } = useProjects();
   const navigate = useNavigate();
-  const [isWorldListOpen, setIsWorldListOpen] = useState(false);
+  const [isProjectListOpen, setIsProjectListOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
@@ -42,26 +42,26 @@ export default function Navigation() {
     }
   };
 
-  const handleNewWorld = () => {
+  const handleNewProject = () => {
     if (!connection?.isActive) return;
-    createWorld(connection, navigate);
+    createProject(connection, navigate);
   };
 
-  const handleOpenWorld = () => {
-    setIsWorldListOpen(true);
+  const handleOpenProject = () => {
+    setIsProjectListOpen(true);
   };
 
-  const handleCloseWorld = () => {
-    setIsWorldListOpen(false);
+  const handleCloseProject = () => {
+    setIsProjectListOpen(false);
   };
 
-  const visitWorld = (worldId: string) => {
+  const visitProject = (projectId: string) => {
     if (!connection?.isActive) return;
 
     try {
-      navigate(`/worlds/${worldId}`);
+      navigate(`/project/${projectId}`);
     } catch (err) {
-      console.error("Error selecting world:", err);
+      console.error("Error selecting project:", err);
     }
   };
 
@@ -79,12 +79,12 @@ export default function Navigation() {
 
             <div>
               <div className="flex flex-row">
-                <WorldNameInput />
+                <ProjectNameInput />
               </div>
               <div className="flex flex-row">
                 <FileDropdown
-                  onNewWorld={handleNewWorld}
-                  onOpenWorld={handleOpenWorld}
+                  onNewProject={handleNewProject}
+                  onOpenProject={handleOpenProject}
                 />
               </div>
             </div>
@@ -159,11 +159,11 @@ export default function Navigation() {
         </div>
       </nav>
 
-      <WorldList
-        isOpen={isWorldListOpen}
-        onClose={handleCloseWorld}
-        worlds={userWorlds}
-        onWorldClick={visitWorld}
+      <ProjectList
+        isOpen={isProjectListOpen}
+        onClose={handleCloseProject}
+        projects={userProjects}
+        onProjectClick={visitProject}
       />
     </>
   );

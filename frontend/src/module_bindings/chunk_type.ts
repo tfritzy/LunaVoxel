@@ -34,7 +34,7 @@ import { BlockRun as __BlockRun } from "./block_run_type";
 
 export type Chunk = {
   id: string,
-  world: string,
+  projectId: string,
   xDim: number,
   yDim: number,
   zDim: number,
@@ -53,7 +53,7 @@ export namespace Chunk {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("zDim", AlgebraicType.createI32Type()),

@@ -1,48 +1,35 @@
-using SpacetimeDB;
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using SpacetimeDB;
 
 public static partial class Module
 {
     [Reducer]
     public static void
-    AddColorToPalette(ReducerContext ctx, string worldId, string colorHex)
+    AddColorToPalette(ReducerContext ctx, string projectId, int color)
     {
-        var world = ctx.Db.World.Id.Find(worldId) ?? throw new Exception($"World with ID {worldId} not found");
-
-        if (!IsValidHexColor(colorHex))
+        if (!IsValidHexColor(color))
         {
             throw new Exception("Invalid color format. Use #RRGGBB format.");
         }
 
-        var palette = ctx.Db.ColorPalette.World.Find(worldId);
+        var palette = ctx.Db.color_palette.ProjectId.Find(projectId);
         if (palette == null)
         {
-            InitializePalette(ctx, worldId);
-            palette = ctx.Db.ColorPalette.World.Find(worldId)!;
+            InitializePalette(ctx, projectId);
+            palette = ctx.Db.color_palette.ProjectId.Find(projectId)!;
         }
 
-        if (palette.Colors.Contains(colorHex))
+        if (palette.Colors.Contains(color))
         {
             return;
         }
 
         var newColors = palette.Colors.ToList();
-        newColors.Add(colorHex);
+        newColors.Add(color);
         palette.Colors = newColors.ToArray();
 
-        ctx.Db.ColorPalette.World.Update(palette);
-
-        int newColorIndex = palette.Colors.Length - 1;
-
-        // The following filter was in the original code and might be logically flawed
-        // as it filters by `colorHex` in `SelectedColor` which is unlikely for indexed colors.
-        var playersToUpdate = ctx.Db.PlayerInWorld.world_color.Filter((worldId, colorHex)).ToList();
-        foreach (var player in playersToUpdate)
-        {
-            player.SelectedColor = COLOR_ID_PREFIX + newColorIndex;
-            ctx.Db.PlayerInWorld.Id.Update(player);
-        }
+        ctx.Db.color_palette.ProjectId.Update(palette);
     }
 }

@@ -6,7 +6,7 @@ public static partial class Module
     [Reducer]
     public static void ModifyBlockRect(
         ReducerContext ctx,
-        string world,
+        string projectId,
         BlockModificationMode mode,
         MeshType type,
         int x1,
@@ -14,9 +14,10 @@ public static partial class Module
         int z1,
         int x2,
         int y2,
-        int z2)
+        int z2,
+        int color)
     {
-        var chunk = ctx.Db.Chunk.Id.Find($"{world}_0") ?? throw new ArgumentException("No chunk for this world");
+        var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
         List<Vector3> positions = [];
         int startX = Math.Max(0, Math.Min(Math.Min(x1, x2), chunk.xDim - 1));
         int endX = Math.Min(chunk.xDim - 1, Math.Max(Math.Max(x1, x2), 0));
@@ -34,6 +35,6 @@ public static partial class Module
                 }
             }
         }
-        ModifyBlock(ctx, world, mode, type, positions);
+        ModifyBlock(ctx, projectId, mode, type, positions, color);
     }
 }

@@ -4,12 +4,12 @@ import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
-import WorldViewPage from "./pages/WorldViewPage";
-import Layout from "./components/custom/Layout";
-import { WorldsProvider } from "./contexts/WorldContext";
-import { CurrentWorldProvider } from "./contexts/CurrentWorldContext";
-import ProjectsPage from "./components/custom/ProjectsPage";
-import CreateNewPage from "./components/custom/CreateNewPage";
+import { Layout } from "./components/custom/Layout";
+import { ProjectsProvider } from "./contexts/ProjectsContext";
+import { CurrentProjectProvider } from "./contexts/CurrentProjectContext";
+import { ProjectsPage } from "./components/custom/ProjectsPage";
+import { CreateNewPage } from "./components/custom/CreateNewPage";
+import { ProjectViewPage } from "./pages/ProjectViewPage";
 
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
@@ -55,28 +55,28 @@ function AppContent() {
 
   return (
     <DatabaseProvider connection={conn}>
-      <WorldsProvider>
+      <ProjectsProvider>
         <Layout>
           <Routes>
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/create-new" element={<CreateNewPage />} />
             <Route
-              path="/worlds/:worldId"
+              path="/project/:projectId"
               element={
-                <CurrentWorldProvider>
-                  <WorldViewPage />
-                </CurrentWorldProvider>
+                <CurrentProjectProvider>
+                  <ProjectViewPage />
+                </CurrentProjectProvider>
               }
             />
             <Route path="*" element={<Navigate to="/projects" replace />} />
           </Routes>
         </Layout>
-      </WorldsProvider>
+      </ProjectsProvider>
     </DatabaseProvider>
   );
 }
 
-function App() {
+export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -85,5 +85,3 @@ function App() {
     </AuthProvider>
   );
 }
-
-export default App;

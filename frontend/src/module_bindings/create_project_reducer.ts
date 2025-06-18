@@ -31,32 +31,38 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type SelectColor = {
-  worldId: string,
-  color: string,
+export type CreateProject = {
+  id: string,
+  name: string,
+  xDim: number,
+  yDim: number,
+  zDim: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace SelectColor {
+export namespace CreateProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
-      new ProductTypeElement("color", AlgebraicType.createStringType()),
+      new ProductTypeElement("id", AlgebraicType.createStringType()),
+      new ProductTypeElement("name", AlgebraicType.createStringType()),
+      new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
+      new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
+      new ProductTypeElement("zDim", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: SelectColor): void {
-    SelectColor.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: CreateProject): void {
+    CreateProject.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): SelectColor {
-    return SelectColor.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): CreateProject {
+    return CreateProject.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

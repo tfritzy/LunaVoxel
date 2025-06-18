@@ -36,10 +36,11 @@ import { MeshType as __MeshType } from "./mesh_type_type";
 import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type ModifyBlock = {
-  world: string,
+  projectId: string,
   mode: __BlockModificationMode,
   type: __MeshType,
   positions: __Vector3[],
+  color: number,
 };
 
 /**
@@ -52,10 +53,11 @@ export namespace ModifyBlock {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
       new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("positions", AlgebraicType.createArrayType(__Vector3.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("color", AlgebraicType.createI32Type()),
     ]);
   }
 

@@ -32,7 +32,7 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 export type RemoveColorFromPalette = {
-  worldId: string,
+  projectId: string,
   colorIndex: number,
 };
 
@@ -46,7 +46,7 @@ export namespace RemoveColorFromPalette {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("colorIndex", AlgebraicType.createI32Type()),
     ]);
   }

@@ -35,7 +35,7 @@ import { BlockModificationMode as __BlockModificationMode } from "./block_modifi
 import { MeshType as __MeshType } from "./mesh_type_type";
 
 export type ModifyBlockRect = {
-  world: string,
+  projectId: string,
   mode: __BlockModificationMode,
   type: __MeshType,
   x1: number,
@@ -44,6 +44,7 @@ export type ModifyBlockRect = {
   x2: number,
   y2: number,
   z2: number,
+  color: number,
 };
 
 /**
@@ -56,7 +57,7 @@ export namespace ModifyBlockRect {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("world", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
       new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
       new ProductTypeElement("x1", AlgebraicType.createI32Type()),
@@ -65,6 +66,7 @@ export namespace ModifyBlockRect {
       new ProductTypeElement("x2", AlgebraicType.createI32Type()),
       new ProductTypeElement("y2", AlgebraicType.createI32Type()),
       new ProductTypeElement("z2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("color", AlgebraicType.createI32Type()),
     ]);
   }
 

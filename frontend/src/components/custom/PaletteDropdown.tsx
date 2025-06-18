@@ -9,13 +9,14 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { ChevronDown, Palette } from "lucide-react";
 import { ColorPalette, colorPalettes } from "./colorPalettes";
+import { hexToString } from "@/lib/hexToString";
 
 interface PaletteDropdownProps {
   onPaletteSelect: (palette: ColorPalette) => void;
 }
 
 interface ColorPreviewProps {
-  colors: string[];
+  colors: number[];
   maxColors?: number;
 }
 
@@ -33,7 +34,7 @@ const ColorPreview: React.FC<ColorPreviewProps> = ({
             <div
               key={index}
               className="w-3 h-3 border border-border/50"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: hexToString(color) }}
             />
           ))}
           {colors.length > maxColors && (
@@ -81,9 +82,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   );
 };
 
-export default function PaletteDropdown({
-  onPaletteSelect,
-}: PaletteDropdownProps) {
+export function PaletteDropdown({ onPaletteSelect }: PaletteDropdownProps) {
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette | null>(
     null
   );

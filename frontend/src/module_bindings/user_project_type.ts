@@ -30,34 +30,38 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { AccessType as __AccessType } from "./access_type_type";
 
-export type SelectColorIndex = {
-  worldId: string,
-  colorIndex: number,
+export type UserProject = {
+  user: Identity,
+  projectId: string,
+  accessType: __AccessType,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace SelectColorIndex {
+export namespace UserProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("worldId", AlgebraicType.createStringType()),
-      new ProductTypeElement("colorIndex", AlgebraicType.createI32Type()),
+      new ProductTypeElement("user", AlgebraicType.createIdentityType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("accessType", __AccessType.getTypeScriptAlgebraicType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: SelectColorIndex): void {
-    SelectColorIndex.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: UserProject): void {
+    UserProject.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): SelectColorIndex {
-    return SelectColorIndex.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): UserProject {
+    return UserProject.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
+
 

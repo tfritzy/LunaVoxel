@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { Moon } from "lucide-react";
 import { FloatingVoxelsBackground } from "@/components/custom/FloatingVoxelsBackground";
-import { generateWorldName } from "@/lib/nameGenerator";
-import { generateId } from "@/lib/idGenerator";
+import { createProject } from "@/lib/createProject";
 
-export default function CreateNewPage() {
+export function CreateNewPage() {
   const navigate = useNavigate();
   const { connection } = useDatabase();
   const [error, setError] = useState<string | null>(null);
@@ -19,15 +17,10 @@ export default function CreateNewPage() {
       }
 
       try {
-        const id = generateId("world");
-        const name = generateWorldName();
-
-        connection.reducers.createWorld(id, name, 32, 32, 32);
-
-        navigate(`/worlds/${id}`, { replace: true });
+        createProject(connection, navigate);
       } catch (err) {
-        console.error("Error creating world:", err);
-        setError("Failed to create world. Please try again.");
+        console.error("Error creating project:", err);
+        setError("Failed to create project. Please try again.");
       }
     };
 
@@ -64,10 +57,10 @@ export default function CreateNewPage() {
         <div className="w-full max-w-md flex flex-col items-center backdrop-blur-lg backdrop-brightness-70 rounded-xl p-8 border border-border text-center">
           <div className="p-1 mb-4 text-4xl animate-pulse">🌙</div>
           <h1 className="text-2xl font-bold mb-4 text-foreground">
-            Creating World
+            Creating Project
           </h1>
           <p className="text-muted-foreground mb-6">
-            Generating your new voxel world...
+            Generating your new voxel project...
           </p>
           <div className="w-8 h-8 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
         </div>

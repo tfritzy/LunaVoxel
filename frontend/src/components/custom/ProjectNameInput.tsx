@@ -1,63 +1,63 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { World, EventContext } from "@/module_bindings";
+import { EventContext, Project } from "@/module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
 
-export function WorldNameInput() {
-  const { worldId } = useParams<{ worldId: string }>();
+export function ProjectNameInput() {
+  const { projectId } = useParams<{ projectId: string }>();
   const { connection } = useDatabase();
   const [localName, setLocalName] = useState("");
-  const [world, setWorld] = useState<World | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!worldId || !connection) return;
+    if (!projectId || !connection) return;
 
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        const worldData = connection.db.world.id.find(worldId);
-        if (worldData) {
+        const projectData = connection.db.projects.id.find(projectId);
+        if (projectData) {
           console.log("apply");
-          setWorld(worldData);
-          setLocalName(worldData.name || "");
+          setProject(projectData);
+          setLocalName(projectData.name || "");
         }
       })
       .onError((error) => {
-        console.error("World subscription error:", error);
+        console.error("Project subscription error:", error);
       })
-      .subscribe([`SELECT * FROM World WHERE Id='${worldId}'`]);
+      .subscribe([`SELECT * FROM project WHERE Id='${projectId}'`]);
 
-    const onWorldUpdate = (
+    const onProjectUpdate = (
       ctx: EventContext,
-      oldWorld: World,
-      newWorld: World
+      oldProject: Project,
+      newProject: Project
     ) => {
-      if (newWorld.id === worldId) {
-        setWorld(newWorld);
-        setLocalName(newWorld.name);
+      if (newProject.id === projectId) {
+        setProject(newProject);
+        setLocalName(newProject.name);
       }
     };
 
-    connection.db.world.onUpdate(onWorldUpdate);
+    connection.db.projects.onUpdate(onProjectUpdate);
 
     return () => {
-      connection.db.world.removeOnUpdate(onWorldUpdate);
+      connection.db.projects.removeOnUpdate(onProjectUpdate);
       subscription.unsubscribe();
     };
-  }, [worldId, connection]);
+  }, [projectId, connection]);
 
   useEffect(() => {
-    if (!world || localName === world.name) return;
+    if (!project || localName === project.name) return;
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
     debounceRef.current = setTimeout(() => {
-      if (localName.trim() && localName !== world.name) {
-        connection?.reducers.updateWorldName(worldId!, localName.trim());
+      if (localName.trim() && localName !== project.name) {
+        connection?.reducers.updateProjectName(projectId!, localName.trim());
       }
     }, 500);
 
@@ -66,7 +66,7 @@ export function WorldNameInput() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [localName, world, worldId, connection]);
+  }, [localName, project, projectId, connection]);
 
   const handleFocus = () => {
     if (inputRef.current) {
@@ -78,7 +78,7 @@ export function WorldNameInput() {
     if (e.key === "Enter") {
       inputRef.current?.blur();
     } else if (e.key === "Escape") {
-      setLocalName(world?.name || "");
+      setLocalName(project?.name || "");
       inputRef.current?.blur();
     }
   };
@@ -88,7 +88,7 @@ export function WorldNameInput() {
     setLocalName(e.target.value);
   };
 
-  if (!world) {
+  if (!project) {
     return <div />;
   }
 
@@ -100,7 +100,7 @@ export function WorldNameInput() {
       onFocus={handleFocus}
       onKeyDown={handleKeyDown}
       className="bg-transparent border-none outline-none text-lg font-medium px-3 rounded focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all"
-      placeholder="Untitled World"
+      placeholder="Untitled Project"
     />
   );
 }

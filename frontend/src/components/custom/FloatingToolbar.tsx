@@ -7,7 +7,7 @@ interface FloatingToolbarProps {
   onToolChange: (tool: BlockModificationMode) => void;
 }
 
-export default function FloatingToolbar({
+export function FloatingToolbar({
   currentTool,
   onToolChange,
 }: FloatingToolbarProps) {

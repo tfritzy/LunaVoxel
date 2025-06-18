@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "./AuthContext";
 
-const FirebaseAuth: React.FC = () => {
+export const FirebaseAuth: React.FC = () => {
   const { currentUser, signInWithGoogle } = useAuth();
 
   const handleGoogleSignIn = async () => {
@@ -54,5 +54,3 @@ const FirebaseAuth: React.FC = () => {
     </div>
   );
 };
-
-export default FirebaseAuth;

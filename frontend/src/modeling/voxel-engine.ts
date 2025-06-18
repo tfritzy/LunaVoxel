@@ -2,18 +2,18 @@ import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
 import { CameraController } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { DbConnection, World } from "../module_bindings";
-import { WorldManager } from "./lib/world-manager";
+import { DbConnection, Project } from "../module_bindings";
+import { ProjectManager } from "./lib/project-manager";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
   connection: DbConnection;
-  world: World;
+  project: Project;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
 }
 
 export class VoxelEngine {
-  public worldManager: WorldManager;
+  public projectManager: ProjectManager;
   private container: HTMLElement;
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
@@ -21,12 +21,12 @@ export class VoxelEngine {
   private controls: CameraController;
   private animationFrameId: number | null = null;
   private conn: DbConnection;
-  private world: World;
+  private project: Project;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
     this.conn = options.connection;
-    this.world = options.world;
+    this.project = options.project;
 
     this.renderer = this.setupRenderer(this.container);
     this.scene = new THREE.Scene();
@@ -37,23 +37,23 @@ export class VoxelEngine {
     this.controls = new CameraController(
       this.camera,
       new THREE.Vector3(
-        this.world.dimensions.x / 2,
+        this.project.dimensions.x / 2,
         0,
-        this.world.dimensions.z / 2
+        this.project.dimensions.z / 2
       ),
       this.renderer.domElement
     );
     this.setupLights();
     addGroundPlane(
       this.scene,
-      this.world.dimensions.x,
-      this.world.dimensions.y,
-      this.world.dimensions.z
+      this.project.dimensions.x,
+      this.project.dimensions.y,
+      this.project.dimensions.z
     );
-    this.worldManager = new WorldManager(
+    this.projectManager = new ProjectManager(
       this.scene,
       this.conn,
-      this.world,
+      this.project,
       this.camera,
       this.container
     );
@@ -62,6 +62,10 @@ export class VoxelEngine {
 
     this.animate();
     this.setupPerformanceMonitoring();
+  }
+
+  public onColorSelected(color: number) {
+    this.projectManager.setSelectedColor(color);
   }
 
   private setupRenderer(container: HTMLElement): THREE.WebGLRenderer {
@@ -93,14 +97,14 @@ export class VoxelEngine {
 
   private setupCamera(): THREE.PerspectiveCamera {
     const floorCenter = new THREE.Vector3(
-      this.world.dimensions.x / 2,
+      this.project.dimensions.x / 2,
       0,
-      this.world.dimensions.z / 2
+      this.project.dimensions.z / 2
     );
 
     const maxHorizontalDimension = Math.max(
-      this.world.dimensions.x,
-      this.world.dimensions.z
+      this.project.dimensions.x,
+      this.project.dimensions.z
     );
 
     const fov = 75;
@@ -145,14 +149,14 @@ export class VoxelEngine {
     rendererStatsElement.style.borderRadius = "4px";
     this.container.appendChild(rendererStatsElement);
 
-    let frameCount: number = 0;
-    let lastFpsTime: number = performance.now();
-    let fps: number = 0;
+    // let frameCount: number = 0;
+    // let lastFpsTime: number = performance.now();
+    // let fps: number = 0;
     let frameTime: number = 0;
     let lastFrameStart: number = 0;
     let minFrameTime: number = Infinity;
     let maxFrameTime: number = 0;
-    let avgFrameTime: number = 0;
+    // let avgFrameTime: number = 0;
     const frameTimeHistory: number[] = [];
     const HISTORY_SIZE: number = 60;
 
@@ -170,36 +174,21 @@ export class VoxelEngine {
           frameTimeHistory.shift();
         }
 
-        avgFrameTime =
-          frameTimeHistory.reduce((a: number, b: number) => a + b, 0) /
-          frameTimeHistory.length;
+        // avgFrameTime =
+        //   frameTimeHistory.reduce((a: number, b: number) => a + b, 0) /
+        //   frameTimeHistory.length;
       }
       lastFrameStart = now;
 
-      frameCount++;
-      if (now - lastFpsTime >= 1000) {
-        fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
-        frameCount = 0;
-        lastFpsTime = now;
+      // frameCount++;
+      // if (now - lastFpsTime >= 1000) {
+      //   // fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+      //   frameCount = 0;
+      //   lastFpsTime = now;
 
-        minFrameTime = Infinity;
-        maxFrameTime = 0;
-      }
-
-      const fpsColor: string =
-        fps < 50 ? "#ff4444" : fps < 55 ? "#ffaa44" : "#44ff44";
-
-      const memInfo = (performance as any).memory;
-      let memoryDisplay: string = "";
-      if (memInfo) {
-        const usedMB: string = (memInfo.usedJSHeapSize / 1024 / 1024).toFixed(
-          1
-        );
-        const totalMB: string = (memInfo.totalJSHeapSize / 1024 / 1024).toFixed(
-          1
-        );
-        memoryDisplay = `<div>Memory: ${usedMB}/${totalMB} MB</div>`;
-      }
+      //   minFrameTime = Infinity;
+      //   maxFrameTime = 0;
+      // }
 
       const info = this.renderer.info;
       rendererStatsElement.innerHTML = `
@@ -207,7 +196,7 @@ export class VoxelEngine {
       <div>Triangles: ${info.render.triangles.toLocaleString()}</div>
       <div>Geometries: ${info.memory.geometries}</div>
       <div>Textures: ${info.memory.textures}</div>
-      ${memoryDisplay}
+      }
     `;
     };
 
@@ -244,7 +233,7 @@ export class VoxelEngine {
 
     window.removeEventListener("resize", this.handleResize);
     this.renderer.dispose();
-    this.worldManager.dispose();
+    this.projectManager.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }
