@@ -25,7 +25,10 @@ export const Modal = (props: ModalProps) => {
     <div
       onClick={props.onClose}
       className="fixed left-0 top-0 w-full h-full bg-[#00000022] z-50"
-      style={{ pointerEvents: props.isOpen ? "all" : "none" }}
+      style={{
+        pointerEvents: props.isOpen ? "all" : "none",
+        opacity: props.isOpen ? 1 : 0,
+      }}
     >
       <div onClick={(event) => event.stopPropagation()}>
         <DesktopModal {...props} />

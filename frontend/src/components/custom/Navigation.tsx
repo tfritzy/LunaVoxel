@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { ProjectList } from "./ProjectList";
 import { ProjectNameInput } from "./ProjectNameInput";
+import { Logo } from "./Logo";
 
 export function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
@@ -74,7 +75,7 @@ export function Navigation() {
               to="/projects"
               className="flex items-center gap-2 font-semibold text-4xl"
             >
-              🌙
+              <Logo />
             </Link>
 
             <div>

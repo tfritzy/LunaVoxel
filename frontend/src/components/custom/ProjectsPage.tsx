@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Project } from "@/module_bindings";
+import { Logo } from "./Logo";
 
 const getGroupLabel = (lastVisitedTimestamp: Timestamp): string => {
   const lastVisitedDate = lastVisitedTimestamp.toDate();
@@ -169,7 +170,9 @@ export function ProjectsPage() {
           <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
             <div className="container mx-auto px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-semibold">🌙 LunaVoxel</h1>
+                <h1 className="text-xl font-semibold">
+                  <Logo /> LunaVoxel
+                </h1>
               </div>
               <Button onClick={handleSignIn} variant="outline" size="sm">
                 Sign In
@@ -191,7 +194,9 @@ export function ProjectsPage() {
         <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
           <div className="container mx-auto px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold">🌙 LunaVoxel</h1>
+              <h1 className="text-xl font-semibold flex flex-row items-center space-x-2">
+                <Logo /> <div>LunaVoxel</div>
+              </h1>
             </div>
 
             <div className="flex items-center gap-4">
@@ -285,7 +290,7 @@ export function ProjectsPage() {
                         >
                           <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
                             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl">
-                              🌒
+                              <Logo />
                             </div>
                           </div>
                           <div className="space-y-1">
