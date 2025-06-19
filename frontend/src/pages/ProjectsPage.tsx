@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { User, LogOut, FolderOpen, Users, Search, Plus } from "lucide-react";
+import { User, LogOut, FolderOpen, Users, Plus } from "lucide-react";
 import { createProject } from "@/lib/createProject";
 import {
   DropdownMenu,
@@ -20,9 +18,8 @@ import { Logo } from "@/components/custom/Logo";
 export function ProjectsPage() {
   const navigate = useNavigate();
   const { connection } = useDatabase();
-  const { userProjects } = useProjects();
   const { currentUser, signOut } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"my" | "shared">("my");
 
   const handleSignOut = async () => {
     try {
@@ -41,10 +38,6 @@ export function ProjectsPage() {
       console.error("Error selecting project:", err);
     }
   };
-
-  const filteredProjects = userProjects.filter((project) =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95">
@@ -108,21 +101,29 @@ export function ProjectsPage() {
                 New project
               </Button>
 
-              <Button
-                variant="ghost"
-                className="w-full flex items-center gap-3 justify-start h-10 text-foreground bg-accent/50"
+              <div
+                onClick={() => setViewMode("my")}
+                className={`w-full flex items-center gap-3 justify-start h-10 px-3 rounded-md cursor-pointer transition-colors ${
+                  viewMode === "my"
+                    ? "text-foreground bg-accent/50"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/25"
+                }`}
               >
                 <FolderOpen className="w-4 h-4" />
                 My Projects
-              </Button>
+              </div>
 
-              <Button
-                variant="ghost"
-                className="w-full flex items-center gap-3 justify-start h-10 text-muted-foreground hover:text-foreground"
+              <div
+                onClick={() => setViewMode("shared")}
+                className={`w-full flex items-center gap-3 justify-start h-10 px-3 rounded-md cursor-pointer transition-colors ${
+                  viewMode === "shared"
+                    ? "text-foreground bg-accent/50"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/25"
+                }`}
               >
                 <Users className="w-4 h-4" />
                 Shared with me
-              </Button>
+              </div>
             </div>
           </div>
 
@@ -130,26 +131,15 @@ export function ProjectsPage() {
             <div className="flex-1 min-h-0">
               <div className="flex flex-row items-center justify-between">
                 <h1 className="text-4xl font-bold ml-6 mb-2 mt-6">
-                  My Projects
+                  {viewMode === "my" ? "My Projects" : "Shared with me"}
                 </h1>
               </div>
               <div className="h-full rounded-xl overflow-hidden pt-6">
-                <div className="relative w-full max-w-md ml-6">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                  <Input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 h-12 text-base bg-background/80 border-border/50 focus:border-primary/50 focus:ring-primary/20"
-                  />
-                </div>
-
                 <ProjectGrid
-                  projects={filteredProjects}
                   onProjectClick={visitProject}
                   showCreateButton={false}
-                  showSearch={false}
+                  showSearch={true}
+                  viewMode={viewMode}
                 />
               </div>
             </div>

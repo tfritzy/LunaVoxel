@@ -2,11 +2,11 @@ Generate Types
 spacetime generate --lang typescript --out-dir frontend/src/module_bindings --project-path quickstart-chat/server
 
 Query table
-spacetime sql quickstart-chat "SELECT * FROM UserProject"
+spacetime sql quickstart-chat "SELECT * FROM project"
 
 Publish
 spacetime publish --project-path quickstart-chat/server quickstart-chat
 spacetime publish -c --project-path quickstart-chat/server quickstart-chat -y
 
 Create world
-spacetime call quickstart-chat CreateWorld "Cool world 1" 16, 16, 16
+spacetime call quickstart-chat CreateWorld "Cool world 1" 16, 16, 16    

@@ -3,19 +3,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { FolderOpen, PlusCircle, Search, User } from "lucide-react";
+import { FolderOpen, PlusCircle, Search } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { useAuth } from "@/firebase/AuthContext";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { Project } from "@/module_bindings";
 
 interface ProjectGridProps {
-  projects: Project[];
   onProjectClick: (projectId: string) => void;
   onCreateProject?: () => void;
   showCreateButton?: boolean;
   showSearch?: boolean;
+  viewMode: "my" | "shared";
 }
 
 const getGroupLabel = (lastVisitedTimestamp: Timestamp): string => {
@@ -98,18 +99,21 @@ const SignInPrompt: React.FC = () => {
   );
 };
 
-const EmptyState: React.FC<{ onCreateProject?: () => void }> = ({
-  onCreateProject,
-}) => (
+const EmptyState: React.FC<{
+  onCreateProject?: () => void;
+  viewMode: "my" | "shared";
+}> = ({ onCreateProject, viewMode }) => (
   <div className="flex flex-col items-center justify-center text-center p-12">
     <FolderOpen className="w-20 h-20 text-muted-foreground mb-6" />
     <h2 className="text-2xl font-semibold mb-4 text-foreground">
-      No projects found
+      {viewMode === "shared" ? "No shared projects found" : "No projects found"}
     </h2>
     <p className="mb-8 text-muted-foreground max-w-md">
-      You don't have any projects yet. Create one to get started!
+      {viewMode === "shared"
+        ? "No one has shared any projects with you yet."
+        : "You don't have any projects yet. Create one to get started!"}
     </p>
-    {onCreateProject && (
+    {onCreateProject && viewMode === "my" && (
       <Button onClick={onCreateProject} className="flex items-center gap-2">
         <PlusCircle className="w-4 h-4" />
         Create New Project
@@ -119,15 +123,16 @@ const EmptyState: React.FC<{ onCreateProject?: () => void }> = ({
 );
 
 export function ProjectGrid({
-  projects,
   onProjectClick,
   onCreateProject,
   showCreateButton = true,
   showSearch = true,
+  viewMode,
 }: ProjectGridProps) {
   const { connection } = useDatabase();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { userProjects, sharedProjects } = useProjects();
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleCreateNew = () => {
@@ -136,7 +141,8 @@ export function ProjectGrid({
     onCreateProject?.();
   };
 
-  const filteredProjects = projects.filter((project) =>
+  const currentProjects = viewMode === "my" ? userProjects : sharedProjects;
+  const filteredProjects = currentProjects.filter((project) =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -163,21 +169,26 @@ export function ProjectGrid({
 
   return (
     <div className="flex flex-col h-full">
-      {(showSearch || showCreateButton) && (
-        <div className="flex flex-row items-center justify-between px-6 py-4 border-b border-border">
+      {(showSearch || (showCreateButton && viewMode === "my")) && (
+        <div className="flex flex-row items-center justify-between px-6 pt-4">
           {showSearch && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 type="text"
-                placeholder="Search projects..."
+                placeholder={
+                  viewMode === "shared"
+                    ? "Search shared projects..."
+                    : "Search projects..."
+                }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 max-w-xs h-9"
+                size={125}
               />
             </div>
           )}
-          {showCreateButton && (
+          {showCreateButton && viewMode === "my" && (
             <Button
               onClick={handleCreateNew}
               className="flex items-center gap-2"
@@ -192,44 +203,44 @@ export function ProjectGrid({
       <div className="flex-1 overflow-y-auto">
         {filteredProjects.length === 0 ? (
           <EmptyState
-            onCreateProject={showCreateButton ? handleCreateNew : undefined}
+            onCreateProject={
+              showCreateButton && viewMode === "my"
+                ? handleCreateNew
+                : undefined
+            }
+            viewMode={viewMode}
           />
         ) : (
           <div className="p-6">
             {groupOrder.map((groupName) => {
-              const groupProjects = groupedProjects[groupName];
-              if (!groupProjects || groupProjects.length === 0) return null;
+              const projectsInGroup = groupedProjects[groupName];
+              if (!projectsInGroup || projectsInGroup.length === 0) return null;
 
               return (
                 <div key={groupName} className="mb-8">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     {groupName}
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                    {groupProjects.map((project) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {projectsInGroup.map((project) => (
                       <div
                         key={project.id}
                         onClick={() => onProjectClick(project.id)}
-                        className="cursor-pointer group relative bg-card hover:bg-accent border border-border rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:border-accent-foreground/20"
+                        className="bg-card border border-border rounded-lg p-6 hover:bg-accent/50 cursor-pointer transition-colors group"
                       >
-                        <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden">
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                            <Search className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <FolderOpen className="w-5 h-5 text-primary" />
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <h4 className="font-medium text-sm truncate group-hover:text-foreground transition-colors">
-                            {project.name}
-                          </h4>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <User className="w-3 h-3" />
-                            <span>
-                              {(project.lastVisited as Timestamp)
-                                .toDate()
-                                .toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
+                        <h4 className="font-medium text-foreground mb-2 truncate">
+                          {project.name}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {viewMode === "shared"
+                            ? "Shared project"
+                            : "Your project"}
+                        </p>
                       </div>
                     ))}
                   </div>

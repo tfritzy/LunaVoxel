@@ -4,6 +4,7 @@ import { useDatabase } from "./DatabaseContext";
 
 interface ProjectsContextType {
   userProjects: Project[];
+  sharedProjects: Project[];
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(
@@ -21,10 +22,12 @@ export function useProjects() {
 export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const [projectsLoading, setProjectsLoading] = useState<boolean>(true);
   const [userProjects, setUserProjects] = useState<Project[]>([]);
+  const [sharedProjects, setSharedProjects] = useState<Project[]>([]);
   const { connection } = useDatabase();
 
   useEffect(() => {
     if (!connection?.identity) throw "Connection has no identity";
+
     connection
       .subscriptionBuilder()
       .onApplied(() => {
@@ -36,18 +39,36 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
       .subscribe([`SELECT * FROM projects`]);
 
     const onProjectInsert = (ctx: EventContext, row: Project) => {
-      setUserProjects((prev) => {
-        const existingIndex = prev.findIndex(
-          (existing) => existing.id === row.id
-        );
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = row;
-          return updated;
-        } else {
-          return [...prev, row];
-        }
-      });
+      const isUserProject =
+        connection.identity && row.owner.isEqual(connection.identity);
+
+      if (isUserProject) {
+        setUserProjects((prev) => {
+          const existingIndex = prev.findIndex(
+            (existing) => existing.id === row.id
+          );
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = row;
+            return updated;
+          } else {
+            return [...prev, row];
+          }
+        });
+      } else {
+        setSharedProjects((prev) => {
+          const existingIndex = prev.findIndex(
+            (existing) => existing.id === row.id
+          );
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = row;
+            return updated;
+          } else {
+            return [...prev, row];
+          }
+        });
+      }
     };
 
     const onProjectUpdate = (
@@ -55,9 +76,20 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
       oldRow: Project,
       newRow: Project
     ) => {
-      setUserProjects((prev) =>
-        prev.map((p) => (p.id === newRow.id ? newRow : p))
-      );
+      const isUserProject =
+        connection.identity && newRow.owner.isEqual(connection.identity);
+
+      if (isUserProject) {
+        setUserProjects((prev) =>
+          prev.map((p) => (p.id === newRow.id ? newRow : p))
+        );
+        setSharedProjects((prev) => prev.filter((p) => p.id !== newRow.id));
+      } else {
+        setSharedProjects((prev) =>
+          prev.map((p) => (p.id === newRow.id ? newRow : p))
+        );
+        setUserProjects((prev) => prev.filter((p) => p.id !== newRow.id));
+      }
     };
 
     connection.db.projects.onInsert(onProjectInsert);
@@ -72,7 +104,7 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   if (projectsLoading) return null;
 
   return (
-    <ProjectsContext.Provider value={{ userProjects: userProjects }}>
+    <ProjectsContext.Provider value={{ userProjects, sharedProjects }}>
       {children}
     </ProjectsContext.Provider>
   );
