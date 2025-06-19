@@ -1,23 +1,16 @@
-import { Link } from "react-router-dom";
-import { User, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/firebase/AuthContext";
+import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { FileDropdown } from "./FileDropdown";
+import { UserDropdown } from "./UserDropdown";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useProjects } from "@/contexts/ProjectsContext";
+import { useAuth } from "@/firebase/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { ProjectModal } from "./ProjectModal";
+import { ShareModal } from "./ShareModal";
 
 export function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
@@ -25,6 +18,7 @@ export function Navigation() {
   const { userProjects, sharedProjects } = useProjects();
   const navigate = useNavigate();
   const [isProjectListOpen, setIsProjectListOpen] = useState(false);
+  const { projectId } = useParams();
 
   const handleSignIn = async () => {
     try {
@@ -92,55 +86,22 @@ export function Navigation() {
           </div>
 
           <div className="flex items-center">
-            {currentUser?.isAnonymous ? (
-              <Button
-                onClick={handleSignIn}
-                variant="ghost"
-                className="flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Sign In
-              </Button>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-2 hover:bg-accent/50"
-                  >
-                    {currentUser?.photoURL ? (
-                      <img
-                        src={currentUser.photoURL}
-                        alt="Profile"
-                        className="w-6 h-6 rounded-full"
-                      />
-                    ) : (
-                      <User className="w-4 h-4" />
-                    )}
-                    <span className="hidden sm:inline">
-                      {currentUser?.displayName || "User"}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <UserDropdown
+              currentUser={currentUser}
+              onSignIn={handleSignIn}
+              onSignOut={handleSignOut}
+            />
           </div>
         </div>
       </nav>
+
+      <ShareModal
+        projectId={projectId!}
+        isOpen={true}
+        onClose={function (): void {
+          throw new Error("Function not implemented.");
+        }}
+      />
 
       <ProjectModal
         isOpen={isProjectListOpen}

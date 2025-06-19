@@ -36,16 +36,16 @@ import { AccessType as __AccessType } from "./access_type_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `UserProject`.
+ * Table handle for the table `user_projects`.
  *
- * Obtain a handle from the [`userProject`] property on [`RemoteTables`],
- * like `ctx.db.userProject`.
+ * Obtain a handle from the [`userProjects`] property on [`RemoteTables`],
+ * like `ctx.db.userProjects`.
  *
  * Users are encouraged not to explicitly reference this type,
  * but to directly chain method calls,
- * like `ctx.db.userProject.on_insert(...)`.
+ * like `ctx.db.userProjects.on_insert(...)`.
  */
-export class UserProjectTableHandle {
+export class UserProjectsTableHandle {
   tableCache: TableCache<UserProject>;
 
   constructor(tableCache: TableCache<UserProject>) {

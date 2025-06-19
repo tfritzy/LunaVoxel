@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
-import { FolderOpen, PlusCircle, Search } from "lucide-react";
+import { FolderOpen, Plus, Search } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
@@ -115,8 +115,8 @@ const EmptyState: React.FC<{
     </p>
     {onCreateProject && viewMode === "my" && (
       <Button onClick={onCreateProject} className="flex items-center gap-2">
-        <PlusCircle className="w-4 h-4" />
-        Create New Project
+        <Plus className="w-4 h-4" />
+        Create new
       </Button>
     )}
   </div>
@@ -193,8 +193,8 @@ export function ProjectGrid({
               onClick={handleCreateNew}
               className="flex items-center gap-2"
             >
-              <PlusCircle className="w-4 h-4" />
-              Create New Project
+              <Plus className="w-4 h-4" />
+              Create new
             </Button>
           )}
         </div>

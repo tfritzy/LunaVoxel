@@ -3,23 +3,25 @@ import { useNavigate } from "react-router-dom";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, FolderOpen, Users, Plus } from "lucide-react";
+import { FolderOpen, Users, Plus } from "lucide-react";
 import { createProject } from "@/lib/createProject";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ProjectGrid } from "@/components/custom/ProjectsGrid";
 import { Logo } from "@/components/custom/Logo";
+import { UserDropdown } from "@/components/custom/UserDropdown";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
   const { connection } = useDatabase();
-  const { currentUser, signOut } = useAuth();
+  const { currentUser, signInWithGoogle, signOut } = useAuth();
   const [viewMode, setViewMode] = useState<"my" | "shared">("my");
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -47,38 +49,11 @@ export function ProjectsPage() {
             <div className="flex justify-between items-center h-16">
               <Logo />
               <div className="flex items-center gap-4">
-                {currentUser && !currentUser.isAnonymous && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="flex items-center gap-2 hover:bg-accent/50"
-                      >
-                        {currentUser.photoURL ? (
-                          <img
-                            src={currentUser.photoURL}
-                            alt="Profile"
-                            className="w-6 h-6 rounded-full ring-2 ring-border"
-                          />
-                        ) : (
-                          <User className="w-4 h-4" />
-                        )}
-                        {currentUser.displayName?.split(" ")[0] || "User"}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem>
-                        <User className="w-4 h-4 mr-2" />
-                        Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut}>
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                <UserDropdown
+                  currentUser={currentUser}
+                  onSignIn={handleSignIn}
+                  onSignOut={handleSignOut}
+                />
               </div>
             </div>
           </div>
@@ -86,7 +61,7 @@ export function ProjectsPage() {
 
         <main className="flex h-[calc(100vh-4rem)] mx-auto container">
           <div className="w-64 border-r border-border/50 flex-shrink-0">
-            <div className="px-6 pt-8 space-y-1">
+            <div className="px-6 pt-4 space-y-1">
               <Button
                 onClick={() => {
                   if (!connection?.isActive) return;
@@ -127,22 +102,13 @@ export function ProjectsPage() {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 min-h-0">
-              <div className="flex flex-row items-center justify-between">
-                <h1 className="text-4xl font-bold ml-6 mb-2 mt-6">
-                  {viewMode === "my" ? "My Projects" : "Shared with me"}
-                </h1>
-              </div>
-              <div className="h-full rounded-xl overflow-hidden pt-6">
-                <ProjectGrid
-                  onProjectClick={visitProject}
-                  showCreateButton={false}
-                  showSearch={true}
-                  viewMode={viewMode}
-                />
-              </div>
-            </div>
+          <div className="flex-1 overflow-hidden">
+            <h1 className="text-2xl font-semibold ml-6 mt-4">My projects</h1>
+            <ProjectGrid
+              viewMode={viewMode}
+              onProjectClick={visitProject}
+              showCreateButton={false}
+            />
           </div>
         </main>
       </div>
