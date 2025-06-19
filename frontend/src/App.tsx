@@ -7,7 +7,7 @@ import { DatabaseProvider } from "./contexts/DatabaseContext";
 import { Layout } from "./components/custom/Layout";
 import { ProjectsProvider } from "./contexts/ProjectsContext";
 import { CurrentProjectProvider } from "./contexts/CurrentProjectContext";
-import { ProjectsPage } from "./components/custom/ProjectsPage";
+import { ProjectsPage } from "./pages/ProjectsPage";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 

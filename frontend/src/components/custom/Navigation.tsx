@@ -15,9 +15,9 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
-import { ProjectList } from "./ProjectList";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
+import { ProjectModal } from "./ProjectModal";
 
 export function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
@@ -160,7 +160,7 @@ export function Navigation() {
         </div>
       </nav>
 
-      <ProjectList
+      <ProjectModal
         isOpen={isProjectListOpen}
         onClose={handleCloseProject}
         projects={userProjects}
