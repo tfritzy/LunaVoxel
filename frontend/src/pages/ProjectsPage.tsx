@@ -5,14 +5,7 @@ import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  User,
-  LogOut,
-  PlusCircle,
-  FolderOpen,
-  Users,
-  Search,
-} from "lucide-react";
+import { User, LogOut, FolderOpen, Users, Search, Plus } from "lucide-react";
 import { createProject } from "@/lib/createProject";
 import {
   DropdownMenu,
@@ -100,7 +93,21 @@ export function ProjectsPage() {
 
         <main className="flex h-[calc(100vh-4rem)] mx-auto container">
           <div className="w-64 border-r border-border/50 flex-shrink-0">
-            <div className="p-6 space-y-1">
+            <div className="px-6 pt-8 space-y-1">
+              <Button
+                onClick={() => {
+                  if (!connection?.isActive) return;
+                  const navigate_local = navigate;
+                  createProject(connection, navigate_local);
+                }}
+                className="w-min font-semibold flex items-center gap-3 justify-start h-11 mb-5"
+                size="lg"
+                variant="outline"
+              >
+                <Plus className="w-8 h-8" />
+                New project
+              </Button>
+
               <Button
                 variant="ghost"
                 className="w-full flex items-center gap-3 justify-start h-10 text-foreground bg-accent/50"
@@ -120,23 +127,13 @@ export function ProjectsPage() {
           </div>
 
           <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 min-h-0 p-8">
-              <div className="flex flex-row items-center justify-between mb-6">
-                <h1 className="text-4xl font-bold">My Projects</h1>
-                <Button
-                  onClick={() => {
-                    if (!connection?.isActive) return;
-                    const navigate_local = navigate;
-                    createProject(connection, navigate_local);
-                  }}
-                  className="w-min font-semibold flex items-center gap-3 justify-start h-11"
-                  size="lg"
-                >
-                  <PlusCircle className="w-8 h-8" />
-                  New project
-                </Button>
+            <div className="flex-1 min-h-0">
+              <div className="flex flex-row items-center justify-between">
+                <h1 className="text-4xl font-bold ml-6 mb-2 mt-6">
+                  My Projects
+                </h1>
               </div>
-              <div className="h-full bg-card/30 border border-border/50 rounded-xl overflow-hidden pt-6">
+              <div className="h-full rounded-xl overflow-hidden pt-6">
                 <div className="relative w-full max-w-md ml-6">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
