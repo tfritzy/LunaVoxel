@@ -42,6 +42,7 @@ public static partial class Module
                              Columns = new[] { nameof(ProjectId) })]
     public partial class UserProject
     {
+        [PrimaryKey]
         public Identity User;
         public string ProjectId;
         public AccessType AccessType;
@@ -92,6 +93,15 @@ public static partial class Module
                 Layer = layer
             };
         }
+    }
+
+    [Table(Name = "user", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "email", Columns = new[] { nameof(Email) })]
+    public partial class User
+    {
+        [PrimaryKey]
+        public Identity Identity;
+        public string? Email;
     }
 
     [Type]

@@ -1,27 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { X, Link, ChevronDown } from "lucide-react";
+import { X, Link, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
+import { Button } from "../ui/button";
+import { AccessType, User, UserProject } from "@/module_bindings";
 
-interface UserProject {
-  id: string;
-  userId: string;
-  projectId: string;
-  role: "owner" | "editor" | "viewer";
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-    avatar?: string;
-  };
-}
-
-interface Project {
-  id: string;
-  name: string;
-  generalAccess: "private" | "link_viewer" | "link_editor";
-}
+type UserProjectWithEmail = UserProject & {
+  email?: string;
+};
 
 interface ShareModalProps {
   projectId: string;
@@ -46,6 +33,88 @@ interface GeneralAccessRowProps {
   ) => void;
 }
 
+const getRoleLabel = (role: AccessType["tag"]) => {
+  switch (role) {
+    case AccessType.ReadWrite.tag:
+      return "Editor";
+    case AccessType.Read.tag:
+      return "Viewer";
+    default:
+      return "Viewer";
+  }
+};
+
+function RoleDropdown({
+  disabled,
+  role,
+  onRoleChange,
+  allowRemove,
+  onRemove,
+}: {
+  disabled: boolean;
+  role: AccessType;
+  onRoleChange: (role: AccessType["tag"]) => void;
+  allowRemove: boolean;
+  onRemove: () => void;
+}) {
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+        className={cn(
+          "flex items-center gap-1 px-3 py-1 text-sm rounded-md transition-colors",
+          disabled
+            ? "text-muted-foreground cursor-default"
+            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+        )}
+        disabled={disabled}
+      >
+        {getRoleLabel(role.tag)}
+        {!disabled && <ChevronDown className="w-4 h-4" />}
+      </button>
+
+      {isRoleDropdownOpen && !disabled && (
+        <div className="absolute right-0 mt-1 w-32 bg-popover border border-border rounded-md shadow-md z-10">
+          <button
+            onClick={() => {
+              onRoleChange("ReadWrite");
+              setIsRoleDropdownOpen(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            {role.tag === "ReadWrite" && <Check />}
+            Editor
+          </button>
+
+          <button
+            onClick={() => {
+              onRoleChange("Read");
+              setIsRoleDropdownOpen(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground border-t border-border"
+          >
+            {role.tag === "Read" && <Check />}
+            Viewer
+          </button>
+          {!allowRemove && (
+            <button
+              onClick={() => {
+                onRemove();
+                setIsRoleDropdownOpen(false);
+              }}
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-destructive/10"
+            >
+              Remove access
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const PersonRow: React.FC<PersonRowProps> = ({
   userProject,
   currentUserId,
@@ -68,31 +137,10 @@ const PersonRow: React.FC<PersonRowProps> = ({
     return email?.slice(0, 2).toUpperCase() || "U";
   };
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case "owner":
-        return "Owner";
-      case "editor":
-        return "Editor";
-      case "viewer":
-        return "Viewer";
-      default:
-        return "Viewer";
-    }
-  };
-
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-        {userProject.user.avatar ? (
-          <img
-            src={userProject.user.avatar}
-            alt=""
-            className="w-10 h-10 rounded-full"
-          />
-        ) : (
-          getInitials(userProject.user.name, userProject.user.email)
-        )}
+        {getInitials("Joff", "joff@example.com")}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -109,55 +157,17 @@ const PersonRow: React.FC<PersonRowProps> = ({
         )}
       </div>
 
-      <div className="relative">
-        <button
-          onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-          className={cn(
-            "flex items-center gap-1 px-3 py-1 text-sm rounded-md transition-colors",
-            isOwner
-              ? "text-muted-foreground cursor-default"
-              : "text-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-          disabled={isOwner}
-        >
-          {getRoleLabel(userProject.role)}
-          {!isOwner && <ChevronDown className="w-4 h-4" />}
-        </button>
-
-        {isRoleDropdownOpen && !isOwner && (
-          <div className="absolute right-0 mt-1 w-32 bg-popover border border-border rounded-md shadow-md z-10">
-            <button
-              onClick={() => {
-                onRoleChange(userProject.id, "editor");
-                setIsRoleDropdownOpen(false);
-              }}
-              className="block w-full px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              Editor
-            </button>
-            <button
-              onClick={() => {
-                onRoleChange(userProject.id, "viewer");
-                setIsRoleDropdownOpen(false);
-              }}
-              className="block w-full px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              Viewer
-            </button>
-            {!isCurrentUser && (
-              <button
-                onClick={() => {
-                  onRemove(userProject.id);
-                  setIsRoleDropdownOpen(false);
-                }}
-                className="block w-full px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <RoleDropdown
+        disabled={isOwner}
+        role={userProject.user}
+        onRoleChange={function (role: AccessType["tag"]): void {
+          throw new Error("Function not implemented.");
+        }}
+        allowRemove
+        onRemove={function (): void {
+          throw new Error("Function not implemented.");
+        }}
+      />
     </div>
   );
 };
@@ -279,12 +289,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   const { project } = useCurrentProject();
   const { connection } = useDatabase();
   const [userProjects, setUserProjects] = useState<UserProject[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [userProjectsWithEmail, setUserProjectsWithEmail] = useState<
+    UserProjectWithEmail[]
+  >([]);
 
   useEffect(() => {
     if (!connection?.identity || !project.id) return;
-
-    console.log(`SELECT * FROM user_projects WHERE ProjectId='${project.id}'`);
-    const userProjectSub = connection
+    const userProjectsSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
         setUserProjects(
@@ -294,16 +306,40 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
         );
       })
       .onError((error) => {
-        console.error("Project subscription error:", error);
+        console.error("User projects subscription error:", error);
       })
       .subscribe([
         `SELECT * FROM user_projects WHERE ProjectId='${project.id}'`,
       ]);
-
+    const usersSub = connection
+      .subscriptionBuilder()
+      .onApplied(() => {
+        setUsers(connection.db.user.tableCache.iter());
+      })
+      .onError((error) => {
+        console.error("Users subscription error:", error);
+      })
+      .subscribe([
+        `SELECT u.* FROM user u JOIN user_projects up ON u.Identity = up.User WHERE up.ProjectId='${project.id}'`,
+      ]);
     return () => {
-      userProjectSub.unsubscribe();
+      userProjectsSub.unsubscribe();
+      usersSub.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const combined = userProjects.map((userProject) => {
+      const user = users.find((u) => u.identity.isEqual(userProject.user));
+      return {
+        ...userProject,
+        email: user?.email,
+      };
+    });
+    setUserProjectsWithEmail(combined);
+  }, [userProjects, users]);
+
+  console.log("User projects with email:", userProjectsWithEmail);
 
   const handleAddPeople = () => {
     if (!addPeopleValue.trim()) return;
@@ -357,15 +393,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-row space-x-2 justify-between">
             <input
               type="text"
               value={addPeopleValue}
               onChange={(e) => setAddPeopleValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Add people, groups, and calendar events"
+              placeholder="jenny@example.com"
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             />
+
+            <Button variant="outline">Invite</Button>
           </div>
         </div>
 

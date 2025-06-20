@@ -34,6 +34,10 @@ import {
 // Import and reexport all reducer arg types
 import { AddColorToPalette } from "./add_color_to_palette_reducer.ts";
 export { AddColorToPalette };
+import { ClientConnected } from "./client_connected_reducer.ts";
+export { ClientConnected };
+import { ClientDisconnected } from "./client_disconnected_reducer.ts";
+export { ClientDisconnected };
 import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
 import { InitializePalette } from "./initialize_palette_reducer.ts";
@@ -46,6 +50,8 @@ import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReplacePalette } from "./replace_palette_reducer.ts";
 export { ReplacePalette };
+import { SyncUser } from "./sync_user_reducer.ts";
+export { SyncUser };
 import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
@@ -56,6 +62,8 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
 export { ProjectsTableHandle };
+import { UserTableHandle } from "./user_table.ts";
+export { UserTableHandle };
 import { UserProjectsTableHandle } from "./user_projects_table.ts";
 export { UserProjectsTableHandle };
 
@@ -74,6 +82,8 @@ import { MeshType } from "./mesh_type_type.ts";
 export { MeshType };
 import { Project } from "./project_type.ts";
 export { Project };
+import { User } from "./user_type.ts";
+export { User };
 import { UserProject } from "./user_project_type.ts";
 export { UserProject };
 import { Vector3 } from "./vector_3_type.ts";
@@ -96,6 +106,11 @@ const REMOTE_MODULE = {
       rowType: Project.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
+    user: {
+      tableName: "user",
+      rowType: User.getTypeScriptAlgebraicType(),
+      primaryKey: "identity",
+    },
     user_projects: {
       tableName: "user_projects",
       rowType: UserProject.getTypeScriptAlgebraicType(),
@@ -105,6 +120,14 @@ const REMOTE_MODULE = {
     AddColorToPalette: {
       reducerName: "AddColorToPalette",
       argsType: AddColorToPalette.getTypeScriptAlgebraicType(),
+    },
+    ClientConnected: {
+      reducerName: "ClientConnected",
+      argsType: ClientConnected.getTypeScriptAlgebraicType(),
+    },
+    ClientDisconnected: {
+      reducerName: "ClientDisconnected",
+      argsType: ClientDisconnected.getTypeScriptAlgebraicType(),
     },
     CreateProject: {
       reducerName: "CreateProject",
@@ -129,6 +152,10 @@ const REMOTE_MODULE = {
     ReplacePalette: {
       reducerName: "ReplacePalette",
       argsType: ReplacePalette.getTypeScriptAlgebraicType(),
+    },
+    SyncUser: {
+      reducerName: "SyncUser",
+      argsType: SyncUser.getTypeScriptAlgebraicType(),
     },
     UpdateProjectName: {
       reducerName: "UpdateProjectName",
@@ -162,12 +189,15 @@ const REMOTE_MODULE = {
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
 | { name: "AddColorToPalette", args: AddColorToPalette }
+| { name: "ClientConnected", args: ClientConnected }
+| { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
+| { name: "SyncUser", args: SyncUser }
 | { name: "UpdateProjectName", args: UpdateProjectName }
 ;
 
@@ -188,6 +218,22 @@ export class RemoteReducers {
 
   removeOnAddColorToPalette(callback: (ctx: ReducerEventContext, projectId: string, color: number) => void) {
     this.connection.offReducer("AddColorToPalette", callback);
+  }
+
+  onClientConnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.onReducer("ClientConnected", callback);
+  }
+
+  removeOnClientConnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.offReducer("ClientConnected", callback);
+  }
+
+  onClientDisconnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.onReducer("ClientDisconnected", callback);
+  }
+
+  removeOnClientDisconnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.offReducer("ClientDisconnected", callback);
   }
 
   createProject(id: string, name: string, xDim: number, yDim: number, zDim: number) {
@@ -286,6 +332,22 @@ export class RemoteReducers {
     this.connection.offReducer("ReplacePalette", callback);
   }
 
+  syncUser(email: string) {
+    const __args = { email };
+    let __writer = new BinaryWriter(1024);
+    SyncUser.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("SyncUser", __argsBuffer, this.setCallReducerFlags.syncUserFlags);
+  }
+
+  onSyncUser(callback: (ctx: ReducerEventContext, email: string) => void) {
+    this.connection.onReducer("SyncUser", callback);
+  }
+
+  removeOnSyncUser(callback: (ctx: ReducerEventContext, email: string) => void) {
+    this.connection.offReducer("SyncUser", callback);
+  }
+
   updateProjectName(projectId: string, name: string) {
     const __args = { projectId, name };
     let __writer = new BinaryWriter(1024);
@@ -340,6 +402,11 @@ export class SetReducerFlags {
     this.replacePaletteFlags = flags;
   }
 
+  syncUserFlags: CallReducerFlags = 'FullUpdate';
+  syncUser(flags: CallReducerFlags) {
+    this.syncUserFlags = flags;
+  }
+
   updateProjectNameFlags: CallReducerFlags = 'FullUpdate';
   updateProjectName(flags: CallReducerFlags) {
     this.updateProjectNameFlags = flags;
@@ -360,6 +427,10 @@ export class RemoteTables {
 
   get projects(): ProjectsTableHandle {
     return new ProjectsTableHandle(this.connection.clientCache.getOrCreateTable<Project>(REMOTE_MODULE.tables.projects));
+  }
+
+  get user(): UserTableHandle {
+    return new UserTableHandle(this.connection.clientCache.getOrCreateTable<User>(REMOTE_MODULE.tables.user));
   }
 
   get userProjects(): UserProjectsTableHandle {

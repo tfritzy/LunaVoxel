@@ -23,6 +23,9 @@ function AppContent() {
     ) => {
       setConn(connection);
       localStorage.setItem("auth_token", token);
+      if (currentUser?.email) {
+        connection.reducers.syncUser(currentUser?.email);
+      }
     };
 
     const onDisconnect = () => {

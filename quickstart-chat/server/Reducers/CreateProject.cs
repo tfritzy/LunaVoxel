@@ -3,8 +3,7 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Reducer]
-    public static void
-    CreateProject(ReducerContext ctx, string id, string name, int xDim, int yDim, int zDim)
+    public static void CreateProject(ReducerContext ctx, string id, string name, int xDim, int yDim, int zDim)
     {
         var project = Project.Build(id, name, xDim, yDim, zDim, ctx.Sender, ctx.Timestamp);
         ctx.Db.projects.Insert(project);
