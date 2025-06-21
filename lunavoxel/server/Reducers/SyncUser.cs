@@ -7,7 +7,7 @@ public static partial class Module
     {
         var callerIdentity = ctx.Sender.ToString();
         var isDev = callerIdentity.ToLower() == "c20001c9fb07ee281b4568508fce95268f40161d9e237b696c223e628e73c2ad";
-        var isProd = callerIdentity.ToLower() == "c200362a49ab362c2072ab584cc6cb616a428b9375c255aaffa2631d893d4a1c";
+        var isProd = callerIdentity.ToLower() == "c200cbc423731cb43c1a9185ac9df0ddc76494eef51a95999bc015ba01a8d1e5";
 
         if (!isDev && !isProd)
         {
