@@ -1,4 +1,5 @@
 using SpacetimeDB;
+using SpacetimeDB.Internal.TableHandles;
 
 public static partial class Module
 {
@@ -36,24 +37,28 @@ public static partial class Module
     }
 
     [Table(Name = "user_projects", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "idx_user_project",
-                             Columns = new[] { nameof(User), nameof(ProjectId) })]
-    [SpacetimeDB.Index.BTree(Name = "idx_project_id_only",
-                             Columns = new[] { nameof(ProjectId) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_user_project", Columns = new[] { nameof(ProjectId), nameof(User) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_project_id_email", Columns = new[] { nameof(ProjectId), nameof(Email) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_project_id_only", Columns = new[] { nameof(ProjectId) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_user_email", Columns = new[] { nameof(User), nameof(Email) })]
     public partial class UserProject
     {
         [PrimaryKey]
-        public Identity User;
+        public string Id;
         public string ProjectId;
         public AccessType AccessType;
+        public Identity User;
+        public string? Email;
 
-        public static UserProject Build(Identity user, string projectId, AccessType accessType)
+        public static UserProject Build(Identity user, string projectId, AccessType accessType, string? email, string? id = null)
         {
             return new UserProject
             {
+                Id = id ?? IdGenerator.Generate("up"),
                 User = user,
                 ProjectId = projectId,
                 AccessType = accessType,
+                Email = email,
             };
         }
     }
@@ -102,6 +107,7 @@ public static partial class Module
         [PrimaryKey]
         public Identity Identity;
         public string? Email;
+        public string? Name;
     }
 
     [Type]

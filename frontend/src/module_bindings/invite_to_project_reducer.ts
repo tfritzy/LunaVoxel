@@ -30,42 +30,38 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+
 import { AccessType as __AccessType } from "./access_type_type";
 
-export type UserProject = {
-  id: string,
+export type InviteToProject = {
   projectId: string,
+  email: string,
   accessType: __AccessType,
-  user: Identity,
-  email: string | undefined,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace UserProject {
+export namespace InviteToProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("email", AlgebraicType.createStringType()),
       new ProductTypeElement("accessType", __AccessType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("user", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("email", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: UserProject): void {
-    UserProject.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: InviteToProject): void {
+    InviteToProject.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): UserProject {
-    return UserProject.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): InviteToProject {
+    return InviteToProject.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
-
 

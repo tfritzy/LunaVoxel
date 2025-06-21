@@ -42,6 +42,8 @@ import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
 import { InitializePalette } from "./initialize_palette_reducer.ts";
 export { InitializePalette };
+import { InviteToProject } from "./invite_to_project_reducer.ts";
+export { InviteToProject };
 import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
@@ -114,6 +116,7 @@ const REMOTE_MODULE = {
     user_projects: {
       tableName: "user_projects",
       rowType: UserProject.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
     },
   },
   reducers: {
@@ -136,6 +139,10 @@ const REMOTE_MODULE = {
     InitializePalette: {
       reducerName: "InitializePalette",
       argsType: InitializePalette.getTypeScriptAlgebraicType(),
+    },
+    InviteToProject: {
+      reducerName: "InviteToProject",
+      argsType: InviteToProject.getTypeScriptAlgebraicType(),
     },
     ModifyBlock: {
       reducerName: "ModifyBlock",
@@ -193,6 +200,7 @@ export type Reducer = never
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
 | { name: "InitializePalette", args: InitializePalette }
+| { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
@@ -266,6 +274,22 @@ export class RemoteReducers {
 
   removeOnInitializePalette(callback: (ctx: ReducerEventContext, projectId: string) => void) {
     this.connection.offReducer("InitializePalette", callback);
+  }
+
+  inviteToProject(projectId: string, email: string, accessType: AccessType) {
+    const __args = { projectId, email, accessType };
+    let __writer = new BinaryWriter(1024);
+    InviteToProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("InviteToProject", __argsBuffer, this.setCallReducerFlags.inviteToProjectFlags);
+  }
+
+  onInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.onReducer("InviteToProject", callback);
+  }
+
+  removeOnInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.offReducer("InviteToProject", callback);
   }
 
   modifyBlock(projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) {
@@ -380,6 +404,11 @@ export class SetReducerFlags {
   initializePaletteFlags: CallReducerFlags = 'FullUpdate';
   initializePalette(flags: CallReducerFlags) {
     this.initializePaletteFlags = flags;
+  }
+
+  inviteToProjectFlags: CallReducerFlags = 'FullUpdate';
+  inviteToProject(flags: CallReducerFlags) {
+    this.inviteToProjectFlags = flags;
   }
 
   modifyBlockFlags: CallReducerFlags = 'FullUpdate';

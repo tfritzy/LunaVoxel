@@ -1,4 +1,3 @@
-// frontend/src/firebase.ts
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -6,6 +5,7 @@ import {
   signInWithPopup,
   signInAnonymously,
 } from "firebase/auth";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDPeegGakaWlCl21QBQ7cOQ_-6yWTxXG94",
@@ -18,7 +18,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const functions = getFunctions(app);
 const googleProvider = new GoogleAuthProvider();
+
+if (import.meta.env.DEV) {
+  try {
+    connectFunctionsEmulator(functions, "localhost", 5001);
+    console.log("Connected to Functions emulator");
+  } catch {
+    console.log("Functions emulator already connected or not available");
+  }
+}
 
 export const signInWithGoogle = async () => {
   try {
@@ -49,4 +59,4 @@ export const signOut = async () => {
   }
 };
 
-export { auth };
+export { auth, functions, app };

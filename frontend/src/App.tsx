@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { DbConnection, ErrorContext } from "./module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
@@ -11,26 +12,82 @@ import { ProjectsPage } from "./pages/ProjectsPage";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 
+const getSpacetimeConfig = () => {
+  const isDev = import.meta.env.DEV || window.location.hostname === "localhost";
+
+  return {
+    uri: isDev ? "ws://localhost:3000" : "wss://maincloud.spacetimedb.com",
+  };
+};
+
+interface SyncUserRequest {
+  idToken: string;
+  identity: string;
+  spacetimeToken: string;
+}
+
+interface SyncUserResult {
+  success: boolean;
+  uid?: string;
+  error?: string;
+}
+
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
+  const [userSynced, setUserSynced] = useState(false);
   const { currentUser } = useAuth();
 
+  const syncUserWithCloudFunction = async (
+    idToken: string,
+    identity: Identity,
+    spacetimeToken: string
+  ) => {
+    try {
+      const functions = getFunctions();
+      const syncUser = httpsCallable<SyncUserRequest, SyncUserResult>(
+        functions,
+        "syncUser"
+      );
+
+      const result = await syncUser({
+        idToken,
+        identity: identity.toHexString(),
+        spacetimeToken,
+      });
+
+      if (result.data.success) {
+        console.log("User synced successfully:", result.data.uid);
+        setUserSynced(true);
+        return true;
+      } else {
+        console.error("Failed to sync user:", result.data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error calling syncUser:", error);
+      return false;
+    }
+  };
+
   useEffect(() => {
-    const onConnect = (
+    const onConnect = async (
       connection: DbConnection,
       identity: Identity,
       token: string
     ) => {
       setConn(connection);
       localStorage.setItem("auth_token", token);
-      if (currentUser?.email) {
-        connection.reducers.syncUser(currentUser?.email);
+
+      if (currentUser && !userSynced) {
+        const idToken = await currentUser.getIdToken();
+        await syncUserWithCloudFunction(idToken, identity, token);
       }
     };
 
     const onDisconnect = () => {
       console.log("Disconnected from SpacetimeDB");
       setConn(null);
+      setUserSynced(false);
     };
 
     const onConnectError = (_ctx: ErrorContext, err: Error) => {
@@ -38,21 +95,30 @@ function AppContent() {
       setConn(null);
     };
 
-    try {
-      currentUser?.getIdToken().then((idToken) => {
+    const connectToSpaceTime = async () => {
+      if (!currentUser) return;
+
+      try {
+        const idToken = await currentUser.getIdToken();
+        const config = getSpacetimeConfig();
+
+        console.log("Connecting to SpacetimeDB:", config);
+
         DbConnection.builder()
-          .withUri("ws://localhost:3000")
-          .withModuleName("quickstart-chat")
+          .withUri(config.uri)
+          .withModuleName("lunavoxel")
           .withToken(idToken || localStorage.getItem("auth_token") || "")
           .onConnect(onConnect)
           .onDisconnect(onDisconnect)
           .onConnectError(onConnectError)
           .build();
-      });
-    } catch (err) {
-      console.error("Error initializing connection:", err);
-    }
-  }, [currentUser]);
+      } catch (err) {
+        console.error("Error initializing connection:", err);
+      }
+    };
+
+    connectToSpaceTime();
+  }, [currentUser, userSynced]);
 
   if (!conn) return null;
 

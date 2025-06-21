@@ -1,7 +1,7 @@
 // frontend/src/firebase/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "firebase/auth";
-import { auth, signInWithGoogle, signInAsAnonymous, signOut } from "./firebase";
+import { User, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth, signInAsAnonymous, signOut } from "./firebase";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -23,6 +23,15 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const signInWithGoogle = async (): Promise<User> => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account",
+    });
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {

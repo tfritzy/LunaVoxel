@@ -2,11 +2,11 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "quickstart-chat", "quickstart-chat", "{BBD78D4A-9A7A-625B-4633-D46E3324219E}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lunavoxel", "lunavoxel", "{BBD78D4A-9A7A-625B-4633-D46E3324219E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StdbModule", "quickstart-chat\server\StdbModule.csproj", "{2C96A01C-5FB1-7314-3110-05D50517F82A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StdbModule", "lunavoxel\server\StdbModule.csproj", "{2C96A01C-5FB1-7314-3110-05D50517F82A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "quickstart-chat\test\test.csproj", "{53A745B8-2C4F-4606-8B95-972B87BBBD49}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "lunavoxel\test\test.csproj", "{53A745B8-2C4F-4606-8B95-972B87BBBD49}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

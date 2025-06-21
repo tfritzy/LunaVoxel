@@ -59,6 +59,28 @@ export class UserProjectsTableHandle {
   iter(): Iterable<UserProject> {
     return this.tableCache.iter();
   }
+  /**
+   * Access to the `id` unique index on the table `user_projects`,
+   * which allows point queries on the field of the same name
+   * via the [`UserProjectsIdUnique.find`] method.
+   *
+   * Users are encouraged not to explicitly reference this type,
+   * but to directly chain method calls,
+   * like `ctx.db.userProjects.id().find(...)`.
+   *
+   * Get a handle on the `id` unique index on the table `user_projects`.
+   */
+  id = {
+    // Find the subscribed row whose `id` column value is equal to `col_val`,
+    // if such a row is present in the client cache.
+    find: (col_val: string): UserProject | undefined => {
+      for (let row of this.tableCache.iter()) {
+        if (deepEqual(row.id, col_val)) {
+          return row;
+        }
+      }
+    },
+  };
 
   onInsert = (cb: (ctx: EventContext, row: UserProject) => void) => {
     return this.tableCache.onInsert(cb);
@@ -75,4 +97,12 @@ export class UserProjectsTableHandle {
   removeOnDelete = (cb: (ctx: EventContext, row: UserProject) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
-}
+
+  // Updates are only defined for tables with primary keys.
+  onUpdate = (cb: (ctx: EventContext, oldRow: UserProject, newRow: UserProject) => void) => {
+    return this.tableCache.onUpdate(cb);
+  }
+
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: UserProject, newRow: UserProject) => void) => {
+    return this.tableCache.removeOnUpdate(cb);
+  }}

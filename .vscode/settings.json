@@ -1,5 +1,5 @@
 {
-  "eslint.workingDirectories": ["./frontend", "./quickstart-chat"],
+  "eslint.workingDirectories": ["./frontend", "./lunavoxel"],
   "eslint.validate": [
     "javascript",
     "javascriptreact",
