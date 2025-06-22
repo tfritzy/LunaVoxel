@@ -11,6 +11,7 @@ import { CurrentProjectProvider } from "./contexts/CurrentProjectContext";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
+import { Toaster } from "sonner";
 
 const getSpacetimeConfig = () => {
   const isDev = import.meta.env.DEV || window.location.hostname === "localhost";
@@ -141,6 +142,7 @@ function AppContent() {
           </Routes>
         </Layout>
       </ProjectsProvider>
+      <Toaster />
     </DatabaseProvider>
   );
 }

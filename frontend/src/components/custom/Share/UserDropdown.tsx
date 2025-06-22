@@ -41,7 +41,7 @@ export function UserDropdown({
             <img
               src={currentUser.photoURL}
               alt="Profile"
-              className="w-10 h-10 rounded-full"
+              className="w-9 h-9 rounded-full"
             />
           ) : (
             <User className="w-4 h-4" />

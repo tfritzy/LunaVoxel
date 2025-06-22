@@ -69,7 +69,10 @@ export const PersonRow = ({
       >
         {initials}
         {isOwner && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full p-0.5 shadow-sm">
+          <div
+            title="Owner"
+            className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full p-0.5 shadow-sm"
+          >
             <Crown className="w-full h-full text-amber-500 fill-amber-500" />
           </div>
         )}
@@ -79,9 +82,6 @@ export const PersonRow = ({
           {userProject.email}
           {isCurrentUser && (
             <span className="text-muted-foreground"> (you)</span>
-          )}
-          {isOwner && (
-            <span className="text-amber-600 font-semibold"> (owner)</span>
           )}
         </div>
       </div>

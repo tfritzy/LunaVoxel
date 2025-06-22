@@ -47,7 +47,7 @@ export function ProjectsPage() {
         <header className="border-b border-border/50 bg-background/80 backdrop-blur-md shadow-sm">
           <div className="container mx-auto px-6">
             <div className="flex justify-between items-center h-16">
-              <Logo />
+              <Logo showText />
               <div className="flex items-center gap-4">
                 <UserDropdown
                   currentUser={currentUser}

@@ -10,7 +10,7 @@ import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { ProjectModal } from "./ProjectModal";
-import { ShareModal } from "./Share/ShareModal";
+import { ShareButton } from "./Share/ShareButton";
 
 export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
@@ -63,7 +63,7 @@ export function ProjectHeader() {
 
   return (
     <>
-      <nav className="h-16 w-full backdrop-brightness-75 backdrop-blur border-b border-border relative z-10">
+      <nav className="h-16 w-full bg-background border-b border-border relative z-10">
         <div className="w-full h-full py-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-4">
             <Link
@@ -73,7 +73,7 @@ export function ProjectHeader() {
               <Logo />
             </Link>
 
-            <div>
+            <div className="-translate-x-3">
               <div className="flex flex-row">
                 <ProjectNameInput />
               </div>
@@ -86,7 +86,9 @@ export function ProjectHeader() {
             </div>
           </div>
 
-          <div className="flex items-center">
+          <div className="flex flex-row space-x-4 items-center">
+            <ShareButton />
+
             <UserDropdown
               currentUser={currentUser}
               onSignIn={handleSignIn}
@@ -95,12 +97,6 @@ export function ProjectHeader() {
           </div>
         </div>
       </nav>
-
-      <ShareModal
-        projectId={projectId!}
-        isOpen={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-      />
 
       <ProjectModal
         isOpen={isProjectListOpen}

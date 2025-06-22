@@ -9,10 +9,11 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RoleDropdown } from "./RoleDropdown";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -26,6 +27,8 @@ export const InviteForm = ({
   connection: DbConnection;
   projectId: string;
 }) => {
+  const [placeholder, setPlaceholder] = useState("editor@example.com");
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -33,6 +36,18 @@ export const InviteForm = ({
       role: "ReadWrite",
     },
   });
+
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      if (values.role === "ReadWrite") {
+        setPlaceholder("editor@example.com");
+      } else {
+        setPlaceholder("viewer@example.com");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   useEffect(() => {
     if (form.formState.isSubmitSuccessful) {
@@ -79,13 +94,14 @@ export const InviteForm = ({
           render={({ field }) => (
             <FormItem className="w-full">
               <FormControl>
-                <Input type="email" placeholder="vox@example.com" {...field} />
+                <Input type="email" placeholder={placeholder} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button type="submit" variant="outline">
+          <Send className="w-4 h-4" />
           Invite
         </Button>
       </form>

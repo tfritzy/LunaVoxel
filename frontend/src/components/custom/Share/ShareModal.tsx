@@ -7,6 +7,7 @@ import { InviteForm } from "./InviteForm";
 import { GeneralAccessRow } from "./GeneralAccessRow";
 import { PersonRow } from "./PersonRow";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface ShareModalProps {
   projectId: string;
@@ -20,7 +21,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   const [userProjects, setUserProjects] = useState<UserProject[]>([]);
   const [showTopBorder, setShowTopBorder] = useState(false);
   const [showBottomBorder, setShowBottomBorder] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyLink = () => {
+    const shareUrl = `${window.location.origin}/project/${project.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copied to clipboard");
+  };
 
   const handleScroll = () => {
     const element = scrollRef.current;
@@ -30,6 +40,54 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
     setShowTopBorder(scrollTop > 0);
     setShowBottomBorder(scrollTop + clientHeight < scrollHeight - 1);
   };
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setShouldRender(false);
+      onClose();
+    }, 200);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      handleClose();
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
+
+      if (modalRef.current) {
+        modalRef.current.focus();
+      }
+    } else {
+      setIsVisible(false);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+
+      setTimeout(() => {
+        setShouldRender(false);
+      }, 200);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -109,23 +167,43 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
     };
   }, [connection, project.id]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="max-h-[90vh] w-xl overflow-y-auto">
-        <div className="bg-card rounded-lg mx-4 shadow-lg border border-border">
+    <div
+      className={`fixed inset-0 flex items-center justify-center z-50 transition-all duration-200 ease-out ${
+        isVisible ? "bg-black/10" : "bg-black/0"
+      }`}
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-modal-title"
+    >
+      <div
+        ref={modalRef}
+        className={`max-h-[90vh] w-xl overflow-y-auto transition-all duration-200 ease-out ${
+          isVisible
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-95 translate-y-4"
+        }`}
+        tabIndex={-1}
+      >
+        <div className="bg-background rounded-lg mx-4 shadow-lg border border-border">
           <div className="p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-card-foreground">
+              <h2
+                id="share-modal-title"
+                className="text-lg font-semibold text-foreground"
+              >
                 Share "{project.name}"
               </h2>
-              <button
-                onClick={onClose}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+              <Button
+                variant="ghost"
+                onClick={handleClose}
+                aria-label="Close share dialog"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
           </div>
           <div className="pl-6">
@@ -169,11 +247,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
             <GeneralAccessRow generalAccess={project.generalAccess} />
           </div>
           <div className="flex flex-row justify-between p-6 border-t border-border">
-            <Button size="lg" variant="outline">
+            <Button size="lg" variant="outline" onClick={handleCopyLink}>
               <Link className="w-4 h-4" />
               <span className="text-sm font-medium">Copy Link</span>
             </Button>
-            <Button size="lg" onClick={onClose} variant="outline">
+            <Button size="lg" onClick={handleClose} variant="outline">
               Done
             </Button>
           </div>

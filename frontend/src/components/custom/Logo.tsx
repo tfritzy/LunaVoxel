@@ -1,6 +1,6 @@
-export function Logo() {
+export function Logo({ showText }: { showText?: boolean }) {
   return (
-    <div className=" flex flex-row space-x-1">
+    <div className="flex flex-row space-x-1">
       <div className="w-8 h-8">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
           <circle cx="64" cy="64" r="60" fill="#fce5ac" />
@@ -11,7 +11,11 @@ export function Logo() {
         </svg>
       </div>
 
-      <span className="text-foreground font-bold text-lg ml-2">LunaVoxel</span>
+      {showText && (
+        <span className="text-foreground font-bold text-lg ml-2">
+          LunaVoxel
+        </span>
+      )}
     </div>
   );
 }
