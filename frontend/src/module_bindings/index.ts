@@ -34,6 +34,8 @@ import {
 // Import and reexport all reducer arg types
 import { AddColorToPalette } from "./add_color_to_palette_reducer.ts";
 export { AddColorToPalette };
+import { ChangeAccessToProject } from "./change_access_to_project_reducer.ts";
+export { ChangeAccessToProject };
 import { ClientConnected } from "./client_connected_reducer.ts";
 export { ClientConnected };
 import { ClientDisconnected } from "./client_disconnected_reducer.ts";
@@ -124,6 +126,10 @@ const REMOTE_MODULE = {
       reducerName: "AddColorToPalette",
       argsType: AddColorToPalette.getTypeScriptAlgebraicType(),
     },
+    ChangeAccessToProject: {
+      reducerName: "ChangeAccessToProject",
+      argsType: ChangeAccessToProject.getTypeScriptAlgebraicType(),
+    },
     ClientConnected: {
       reducerName: "ClientConnected",
       argsType: ClientConnected.getTypeScriptAlgebraicType(),
@@ -196,6 +202,7 @@ const REMOTE_MODULE = {
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
 | { name: "AddColorToPalette", args: AddColorToPalette }
+| { name: "ChangeAccessToProject", args: ChangeAccessToProject }
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
@@ -226,6 +233,22 @@ export class RemoteReducers {
 
   removeOnAddColorToPalette(callback: (ctx: ReducerEventContext, projectId: string, color: number) => void) {
     this.connection.offReducer("AddColorToPalette", callback);
+  }
+
+  changeAccessToProject(projectId: string, email: string, accessType: AccessType) {
+    const __args = { projectId, email, accessType };
+    let __writer = new BinaryWriter(1024);
+    ChangeAccessToProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ChangeAccessToProject", __argsBuffer, this.setCallReducerFlags.changeAccessToProjectFlags);
+  }
+
+  onChangeAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.onReducer("ChangeAccessToProject", callback);
+  }
+
+  removeOnChangeAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.offReducer("ChangeAccessToProject", callback);
   }
 
   onClientConnected(callback: (ctx: ReducerEventContext) => void) {
@@ -356,19 +379,19 @@ export class RemoteReducers {
     this.connection.offReducer("ReplacePalette", callback);
   }
 
-  syncUser(email: string) {
-    const __args = { email };
+  syncUser(identityHex: string, email: string, name: string) {
+    const __args = { identityHex, email, name };
     let __writer = new BinaryWriter(1024);
     SyncUser.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("SyncUser", __argsBuffer, this.setCallReducerFlags.syncUserFlags);
   }
 
-  onSyncUser(callback: (ctx: ReducerEventContext, email: string) => void) {
+  onSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
     this.connection.onReducer("SyncUser", callback);
   }
 
-  removeOnSyncUser(callback: (ctx: ReducerEventContext, email: string) => void) {
+  removeOnSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
     this.connection.offReducer("SyncUser", callback);
   }
 
@@ -394,6 +417,11 @@ export class SetReducerFlags {
   addColorToPaletteFlags: CallReducerFlags = 'FullUpdate';
   addColorToPalette(flags: CallReducerFlags) {
     this.addColorToPaletteFlags = flags;
+  }
+
+  changeAccessToProjectFlags: CallReducerFlags = 'FullUpdate';
+  changeAccessToProject(flags: CallReducerFlags) {
+    this.changeAccessToProjectFlags = flags;
   }
 
   createProjectFlags: CallReducerFlags = 'FullUpdate';

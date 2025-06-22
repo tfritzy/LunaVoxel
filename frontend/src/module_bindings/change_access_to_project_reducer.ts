@@ -31,34 +31,36 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type SyncUser = {
-  identityHex: string,
+import { AccessType as __AccessType } from "./access_type_type";
+
+export type ChangeAccessToProject = {
+  projectId: string,
   email: string,
-  name: string,
+  accessType: __AccessType,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace SyncUser {
+export namespace ChangeAccessToProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("identityHex", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("email", AlgebraicType.createStringType()),
-      new ProductTypeElement("name", AlgebraicType.createStringType()),
+      new ProductTypeElement("accessType", __AccessType.getTypeScriptAlgebraicType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: SyncUser): void {
-    SyncUser.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ChangeAccessToProject): void {
+    ChangeAccessToProject.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): SyncUser {
-    return SyncUser.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ChangeAccessToProject {
+    return ChangeAccessToProject.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

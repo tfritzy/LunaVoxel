@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { FileDropdown } from "./FileDropdown";
-import { UserDropdown } from "./UserDropdown";
+import { UserDropdown } from "./ShareModal/UserDropdown";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/firebase/AuthContext";
@@ -10,7 +10,7 @@ import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { ProjectModal } from "./ProjectModal";
-import { ShareModal } from "./ShareModal";
+import { ShareModal } from "./ShareModal/ShareModal";
 
 export function Navigation() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();

@@ -33,6 +33,7 @@ import {
 export type User = {
   identity: Identity,
   email: string | undefined,
+  name: string | undefined,
 };
 
 /**
@@ -47,6 +48,7 @@ export namespace User {
     return AlgebraicType.createProductType([
       new ProductTypeElement("identity", AlgebraicType.createIdentityType()),
       new ProductTypeElement("email", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+      new ProductTypeElement("name", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
     ]);
   }
 

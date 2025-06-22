@@ -7,7 +7,7 @@ import { FolderOpen, Users, Plus } from "lucide-react";
 import { createProject } from "@/lib/createProject";
 import { ProjectGrid } from "@/components/custom/ProjectsGrid";
 import { Logo } from "@/components/custom/Logo";
-import { UserDropdown } from "@/components/custom/UserDropdown";
+import { UserDropdown } from "@/components/custom/ShareModal/UserDropdown";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
