@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { FileDropdown } from "./FileDropdown";
-import { UserDropdown } from "./ShareModal/UserDropdown";
+import { UserDropdown } from "./Share/UserDropdown";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/firebase/AuthContext";
@@ -10,15 +10,16 @@ import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { ProjectModal } from "./ProjectModal";
-import { ShareModal } from "./ShareModal/ShareModal";
+import { ShareModal } from "./Share/ShareModal";
 
-export function Navigation() {
+export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const { connection } = useDatabase();
   const { userProjects, sharedProjects } = useProjects();
   const navigate = useNavigate();
   const [isProjectListOpen, setIsProjectListOpen] = useState(false);
   const { projectId } = useParams();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
@@ -97,10 +98,8 @@ export function Navigation() {
 
       <ShareModal
         projectId={projectId!}
-        isOpen={true}
-        onClose={function (): void {
-          throw new Error("Function not implemented.");
-        }}
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
       />
 
       <ProjectModal

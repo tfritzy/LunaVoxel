@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import { X } from "lucide-react";
+import { Link, X } from "lucide-react";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { EventContext, UserProject } from "@/module_bindings";
 import { InviteForm } from "./InviteForm";
 import { GeneralAccessRow } from "./GeneralAccessRow";
 import { PersonRow } from "./PersonRow";
+import { Button } from "@/components/ui/button";
 
 interface ShareModalProps {
   projectId: string;
@@ -143,7 +144,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
                 className="max-h-72 overflow-y-auto"
                 onScroll={handleScroll}
               >
-                <div className="space-y-1 pr-6">
+                <div className="space-y-1 pr-6 pl-2">
                   {userProjects.map((userProject) => (
                     <PersonRow
                       key={userProject.email?.toString()}
@@ -167,13 +168,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
             </h3>
             <GeneralAccessRow generalAccess={project.generalAccess} />
           </div>
-          <div className="p-6 border-t border-border">
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
-            >
+          <div className="flex flex-row justify-between p-6 border-t border-border">
+            <Button size="lg" variant="outline">
+              <Link className="w-4 h-4" />
+              <span className="text-sm font-medium">Copy Link</span>
+            </Button>
+            <Button size="lg" onClick={onClose} variant="outline">
               Done
-            </button>
+            </Button>
           </div>
         </div>
       </div>

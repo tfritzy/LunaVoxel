@@ -20,7 +20,6 @@ public static partial class Module
 
         var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("Project not found");
         var userProject = ctx.Db.user_projects.idx_project_id_email.Filter((projectId, email)).FirstOrDefault();
-
         if (userProject == null)
         {
             throw new ArgumentException("User not found in this project.");
@@ -31,7 +30,14 @@ public static partial class Module
             throw new ArgumentException("You cannot change access for the project owner.");
         }
 
-        userProject.AccessType = accessType;
-        ctx.Db.user_projects.Id.Update(userProject);
+        if (accessType == AccessType.None)
+        {
+            ctx.Db.user_projects.Id.Delete(userProject.Id);
+        }
+        else
+        {
+            userProject.AccessType = accessType;
+            ctx.Db.user_projects.Id.Update(userProject);
+        }
     }
 }

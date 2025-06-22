@@ -25,13 +25,11 @@ export function RoleDropdown({
   role,
   onRoleChange,
   allowRemove,
-  onRemove,
 }: {
   disabled: boolean;
   role: AccessType["tag"];
   onRoleChange: (role: AccessType["tag"]) => void;
   allowRemove: boolean;
-  onRemove?: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -62,7 +60,7 @@ export function RoleDropdown({
         </DropdownMenuItem>
         {allowRemove && <DropdownMenuSeparator />}
         {allowRemove && (
-          <DropdownMenuItem onClick={() => onRemove?.()}>
+          <DropdownMenuItem onClick={() => onRoleChange("None")}>
             Remove access
           </DropdownMenuItem>
         )}

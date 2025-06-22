@@ -6,7 +6,7 @@ import { ColorPalette } from "@/components/custom/ColorPalette";
 import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { BlockModificationMode } from "@/module_bindings";
-import { Navigation } from "@/components/custom/Navigation";
+import { ProjectHeader } from "@/components/custom/ProjectHeader";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 
 export function ProjectViewPage() {
@@ -94,7 +94,7 @@ export function ProjectViewPage() {
 
   return (
     <div>
-      <Navigation />
+      <ProjectHeader />
       <div className="h-full flex">
         {!chunksLoading && !error && projectId && (
           <ColorPalette projectId={projectId} />
