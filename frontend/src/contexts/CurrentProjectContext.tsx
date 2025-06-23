@@ -1,16 +1,13 @@
-import {
-  ColorPalette,
-  EventContext,
-  Project,
-  PokeProject,
-} from "@/module_bindings";
+import { ColorPalette, EventContext, Project } from "@/module_bindings";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useDatabase } from "./DatabaseContext";
 import { useParams } from "react-router-dom";
+import { useAuth } from "@/firebase/AuthContext";
+import { Button } from "@/components/ui/button";
 
 interface CurrentProjectContextType {
-  project: Project | null;
-  palette: ColorPalette | null;
+  project: Project;
+  palette: ColorPalette;
   selectedColor: number;
   setSelectedColor: (color: number) => void;
   projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
@@ -21,7 +18,7 @@ const ProjectContext = createContext<CurrentProjectContextType | undefined>(
   undefined
 );
 
-export function useCurrentProject() {
+export const useCurrentProject = () => {
   const context = useContext(ProjectContext);
   if (context === undefined) {
     throw new Error(
@@ -29,13 +26,94 @@ export function useCurrentProject() {
     );
   }
   return context;
-}
+};
 
-export function CurrentProjectProvider({
+const LoadingState = ({ status }: { status: "loading" | "poke-attempted" }) => (
+  <div className="h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
+      <p className="text-lg font-medium">
+        {status === "poke-attempted"
+          ? "Checking project access..."
+          : "Loading project..."}
+      </p>
+    </div>
+  </div>
+);
+
+const NotFoundState = ({
+  retryProjectLoad,
+}: {
+  retryProjectLoad: () => void;
+}) => {
+  const { currentUser, signInWithGoogle } = useAuth();
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      setTimeout(() => {
+        retryProjectLoad();
+      }, 1000);
+    } catch (error) {
+      console.error("Error signing in:", error);
+    }
+  };
+
+  return (
+    <div className="h-screen flex items-center justify-center bg-background">
+      <div className="bg-card p-8 rounded-lg shadow-lg max-w-md text-center border">
+        <div className="w-16 h-16 mx-auto mb-6 bg-muted rounded-full flex items-center justify-center">
+          <svg
+            className="w-8 h-8 text-muted-foreground"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+
+        <h2 className="text-xl font-semibold mb-3">Project Not Found</h2>
+
+        <p className="text-muted-foreground mb-6">
+          This project either doesn't exist or you don't have access to it.
+          {currentUser?.isAnonymous &&
+            " You may need to sign in to view this project."}
+        </p>
+
+        <div className="space-y-3">
+          {currentUser?.isAnonymous && (
+            <Button onClick={handleSignIn} className="w-full">
+              Sign In with Google
+            </Button>
+          )}
+          <Button
+            onClick={retryProjectLoad}
+            variant="outline"
+            className="w-full"
+          >
+            Try Again
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Make sure you have access to this project or check that the link is
+            correct
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const CurrentProjectProvider = ({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}) => {
   const [project, setProject] = useState<Project | null>(null);
   const [palette, setPalette] = useState<ColorPalette | null>(null);
   const { connection } = useDatabase();
@@ -152,29 +230,16 @@ export function CurrentProjectProvider({
     };
   }, [connection, projectId, pokeAttempted]);
 
+  if (projectStatus === "loading" || projectStatus === "poke-attempted") {
+    return <LoadingState status={projectStatus} />;
+  }
+
+  if (projectStatus === "not-found") {
+    return <NotFoundState retryProjectLoad={retryProjectLoad} />;
+  }
+
   if (!project || !palette) {
-    if (projectStatus === "loading" || projectStatus === "poke-attempted") {
-      return null;
-    }
-
-    if (projectStatus === "not-found") {
-      return (
-        <ProjectContext.Provider
-          value={{
-            project: null,
-            palette: null,
-            selectedColor,
-            setSelectedColor,
-            projectStatus,
-            retryProjectLoad,
-          }}
-        >
-          {children}
-        </ProjectContext.Provider>
-      );
-    }
-
-    return null;
+    return <LoadingState status="loading" />;
   }
 
   return (
@@ -191,4 +256,4 @@ export function CurrentProjectProvider({
       {children}
     </ProjectContext.Provider>
   );
-}
+};

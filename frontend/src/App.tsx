@@ -57,7 +57,6 @@ function AppContent() {
       });
 
       if (result.data.success) {
-        console.log("User synced successfully:", result.data.uid);
         setUserSynced(true);
         return true;
       } else {
