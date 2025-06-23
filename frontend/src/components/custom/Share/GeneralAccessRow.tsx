@@ -5,57 +5,54 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Project } from "@/module_bindings";
+import { Project, AccessType } from "@/module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { toast } from "sonner";
 
 export const GeneralAccessRow = ({ project }: { project: Project }) => {
   const { connection } = useDatabase();
-
-  const getAccessLabel = (access: number) => {
-    switch (access) {
-      case 0:
+  const getAccessLabel = (access: AccessType) => {
+    switch (access.tag) {
+      case "None":
         return "Restricted";
-      case 2:
-      case 1:
+      case "Read":
+      case "ReadWrite":
         return "Anyone with the link";
       default:
         return "Restricted";
     }
   };
-
-  const getAccessDescription = (access: number) => {
-    switch (access) {
-      case 0:
+  const getAccessDescription = (access: AccessType) => {
+    switch (access.tag) {
+      case "None":
         return "Only people with direct access can open this project";
-      case 1:
+      case "Read":
         return "Anyone on the internet with the link can view";
-      case 2:
+      case "ReadWrite":
         return "Anyone on the internet with the link can edit";
       default:
         return "Only people with access can open with the link";
     }
   };
-
-  const getRoleLabel = (access: number) => {
-    switch (access) {
-      case 1:
+  const getRoleLabel = (access: AccessType) => {
+    switch (access.tag) {
+      case "Read":
         return "Viewer";
-      case 2:
+      case "ReadWrite":
         return "Editor";
       default:
         return "";
     }
   };
-
-  const onGeneralAccessChange = (access: number) => {
+  const onGeneralAccessChange = (accessTag: string) => {
     if (!connection) return;
 
+    const access = { tag: accessTag } as AccessType;
     connection.reducers.changePublicAccessToProject(project.id, access);
     toast.success("Project access updated");
   };
 
-  const isLinkAccess = project.publicAccess > 0;
+  const isLinkAccess = project.publicAccess.tag !== "None";
 
   return (
     <div className="flex items-center gap-3 py-2">
@@ -75,14 +72,15 @@ export const GeneralAccessRow = ({ project }: { project: Project }) => {
             <ChevronDown className="w-4 h-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => onGeneralAccessChange(0)}>
+            {" "}
+            <DropdownMenuItem onClick={() => onGeneralAccessChange("None")}>
               <div>
                 <div className="text-sm font-medium text-popover-foreground">
                   Restricted
                 </div>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onGeneralAccessChange(1)}>
+            <DropdownMenuItem onClick={() => onGeneralAccessChange("Read")}>
               <div>
                 <div className="text-sm font-medium text-popover-foreground">
                   Anyone with the link
@@ -103,12 +101,15 @@ export const GeneralAccessRow = ({ project }: { project: Project }) => {
               <ChevronDown className="w-4 h-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => onGeneralAccessChange(1)}>
+              {" "}
+              <DropdownMenuItem onClick={() => onGeneralAccessChange("Read")}>
                 <div className="text-sm font-medium text-popover-foreground">
                   Viewer
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onGeneralAccessChange(2)}>
+              <DropdownMenuItem
+                onClick={() => onGeneralAccessChange("ReadWrite")}
+              >
                 <div className="text-sm font-medium text-popover-foreground">
                   Editor
                 </div>

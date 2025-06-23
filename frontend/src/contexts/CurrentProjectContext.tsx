@@ -1,13 +1,20 @@
-import { ColorPalette, EventContext, Project } from "@/module_bindings";
+import {
+  ColorPalette,
+  EventContext,
+  Project,
+  PokeProject,
+} from "@/module_bindings";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useDatabase } from "./DatabaseContext";
 import { useParams } from "react-router-dom";
 
 interface CurrentProjectContextType {
-  project: Project;
-  palette: ColorPalette;
+  project: Project | null;
+  palette: ColorPalette | null;
   selectedColor: number;
   setSelectedColor: (color: number) => void;
+  projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
+  retryProjectLoad: () => void;
 }
 
 const ProjectContext = createContext<CurrentProjectContextType | undefined>(
@@ -34,9 +41,22 @@ export function CurrentProjectProvider({
   const { connection } = useDatabase();
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedColor, setSelectedColor] = React.useState<number>(0);
+  const [projectStatus, setProjectStatus] = useState<
+    "loading" | "found" | "not-found" | "poke-attempted"
+  >("loading");
+  const [pokeAttempted, setPokeAttempted] = useState(false);
+
+  const retryProjectLoad = () => {
+    setProjectStatus("loading");
+    setPokeAttempted(false);
+    setProject(null);
+    setPalette(null);
+  };
 
   useEffect(() => {
     if (!connection?.identity || !projectId) return;
+
+    setProjectStatus("loading");
 
     const projectSub = connection
       .subscriptionBuilder()
@@ -45,14 +65,23 @@ export function CurrentProjectProvider({
         const newProject = (
           connection.db.projects.tableCache.iter() as Project[]
         ).find((p) => p.id === projectId);
-        if (!newProject) {
-          console.error("CurrentProjectContext: Missing project");
-          return;
+
+        if (newProject) {
+          setProject(newProject);
+          setProjectStatus("found");
+        } else if (!pokeAttempted) {
+          setPokeAttempted(true);
+          setProjectStatus("poke-attempted");
+          console.log("Project not found, calling PokeProject for", projectId);
+
+          connection.reducers.pokeProject(projectId);
+        } else {
+          setProjectStatus("not-found");
         }
-        setProject(newProject);
       })
       .onError((error) => {
         console.error("Project subscription error:", error);
+        setProjectStatus("not-found");
       })
       .subscribe([`SELECT * FROM projects WHERE Id='${projectId}'`]);
 
@@ -63,11 +92,9 @@ export function CurrentProjectProvider({
         const newPalette = (
           connection.db.colorPalette.tableCache.iter() as ColorPalette[]
         ).find((p) => p.projectId === projectId);
-        if (!newPalette) {
-          console.error("CurrentProjectContext: Missing palette");
-          return;
+        if (newPalette) {
+          setPalette(newPalette);
         }
-        setPalette(newPalette);
       })
       .onError((error) => {
         console.error("Color palette subscription error:", error);
@@ -79,6 +106,7 @@ export function CurrentProjectProvider({
     const onProjectInsert = (ctx: EventContext, row: Project) => {
       if (row.id === projectId) {
         setProject(row);
+        setProjectStatus("found");
       }
     };
 
@@ -89,6 +117,7 @@ export function CurrentProjectProvider({
     ) => {
       if (newProject.id === projectId) {
         setProject(newProject);
+        setProjectStatus("found");
       }
     };
 
@@ -121,16 +150,43 @@ export function CurrentProjectProvider({
       connection.db.colorPalette.removeOnInsert(onPaletteInsert);
       connection.db.colorPalette.removeOnUpdate(onPaletteUpdate);
     };
-  }, [connection, projectId]);
+  }, [connection, projectId, pokeAttempted]);
 
   if (!project || !palette) {
-    console.log("missing project or palette", { project, palette });
+    if (projectStatus === "loading" || projectStatus === "poke-attempted") {
+      return null;
+    }
+
+    if (projectStatus === "not-found") {
+      return (
+        <ProjectContext.Provider
+          value={{
+            project: null,
+            palette: null,
+            selectedColor,
+            setSelectedColor,
+            projectStatus,
+            retryProjectLoad,
+          }}
+        >
+          {children}
+        </ProjectContext.Provider>
+      );
+    }
+
     return null;
   }
 
   return (
     <ProjectContext.Provider
-      value={{ project, palette, selectedColor, setSelectedColor }}
+      value={{
+        project,
+        palette,
+        selectedColor,
+        setSelectedColor,
+        projectStatus,
+        retryProjectLoad,
+      }}
     >
       {children}
     </ProjectContext.Provider>
