@@ -10,3 +10,5 @@ spacetime publish -c --project-path lunavoxel/server lunavoxel -y
 
 Create world
 spacetime call lunavoxel CreateWorld "Cool world 1" 16, 16, 16
+
+Invoke-RestMethod -Uri "http://localhost:3000/v1/identity" -Method Post -ContentType "application/json"  | ConvertTo-Json -Depth 100

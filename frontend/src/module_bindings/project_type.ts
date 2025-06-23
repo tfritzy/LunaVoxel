@@ -30,6 +30,7 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { AccessType as __AccessType } from "./access_type_type";
 import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type Project = {
@@ -38,7 +39,7 @@ export type Project = {
   dimensions: __Vector3,
   owner: Identity,
   lastVisited: Timestamp,
-  publicAccess: number,
+  publicAccess: __AccessType,
 };
 
 /**
@@ -56,7 +57,7 @@ export namespace Project {
       new ProductTypeElement("dimensions", __Vector3.getTypeScriptAlgebraicType()),
       new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
       new ProductTypeElement("lastVisited", AlgebraicType.createTimestampType()),
-      new ProductTypeElement("publicAccess", AlgebraicType.createI32Type()),
+      new ProductTypeElement("publicAccess", __AccessType.getTypeScriptAlgebraicType()),
     ]);
   }
 

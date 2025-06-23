@@ -31,6 +31,7 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 import { Project } from "./project_type";
+import { AccessType as __AccessType } from "./access_type_type";
 import { Vector3 as __Vector3 } from "./vector_3_type";
 
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";

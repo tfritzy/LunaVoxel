@@ -5,7 +5,7 @@ using SpacetimeDB.Internal.TableHandles;
 public static partial class Module
 {
     [Reducer]
-    public static void ChangePublicAccessToProject(ReducerContext ctx, string projectId, int accessType)
+    public static void ChangePublicAccessToProject(ReducerContext ctx, string projectId, AccessType accessType)
     {
         if (string.IsNullOrEmpty(projectId))
         {

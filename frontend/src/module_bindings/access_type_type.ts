@@ -36,6 +36,7 @@ export namespace AccessType {
   // One type is generated per variant and will be used in the `value` field of
   // the tagged union.
   export type None = { tag: "None" };
+  export type Inherited = { tag: "Inherited" };
   export type Read = { tag: "Read" };
   export type ReadWrite = { tag: "ReadWrite" };
 
@@ -46,12 +47,14 @@ export namespace AccessType {
   // assert!(foo.value === 42);
   // ```
   export const None = { tag: "None" };
+  export const Inherited = { tag: "Inherited" };
   export const Read = { tag: "Read" };
   export const ReadWrite = { tag: "ReadWrite" };
 
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createSumType([
       new SumTypeVariant("None", AlgebraicType.createProductType([])),
+      new SumTypeVariant("Inherited", AlgebraicType.createProductType([])),
       new SumTypeVariant("Read", AlgebraicType.createProductType([])),
       new SumTypeVariant("ReadWrite", AlgebraicType.createProductType([])),
     ]);
@@ -68,7 +71,7 @@ export namespace AccessType {
 }
 
 // The tagged union or sum type for the algebraic type `AccessType`.
-export type AccessType = AccessType.None | AccessType.Read | AccessType.ReadWrite;
+export type AccessType = AccessType.None | AccessType.Inherited | AccessType.Read | AccessType.ReadWrite;
 
 export default AccessType;
 

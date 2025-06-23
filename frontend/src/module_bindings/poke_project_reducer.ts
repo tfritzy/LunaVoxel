@@ -31,17 +31,14 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-import { AccessType as __AccessType } from "./access_type_type";
-
-export type ChangePublicAccessToProject = {
+export type PokeProject = {
   projectId: string,
-  accessType: __AccessType,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace ChangePublicAccessToProject {
+export namespace PokeProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -49,16 +46,15 @@ export namespace ChangePublicAccessToProject {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("accessType", __AccessType.getTypeScriptAlgebraicType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: ChangePublicAccessToProject): void {
-    ChangePublicAccessToProject.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: PokeProject): void {
+    PokeProject.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): ChangePublicAccessToProject {
-    return ChangePublicAccessToProject.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): PokeProject {
+    return PokeProject.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

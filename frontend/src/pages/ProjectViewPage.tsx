@@ -20,8 +20,7 @@ export function ProjectViewPage() {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const { userProjects } = useProjects();
-  const { selectedColor } = useCurrentProject();
+  const { selectedColor, project } = useCurrentProject();
 
   useEffect(() => {}, [selectedColor]);
 
@@ -61,8 +60,6 @@ export function ProjectViewPage() {
       engineRef.current = null;
     }
 
-    const project = userProjects.find((p) => p.id === projectId);
-
     if (!project) {
       setError("Unable to find project " + projectId);
       return;
@@ -80,7 +77,7 @@ export function ProjectViewPage() {
         engineRef.current = null;
       }
     };
-  }, [chunksLoading, connection, userProjects, projectId]);
+  }, [chunksLoading, connection, project, projectId]);
 
   useEffect(() => {
     if (engineRef.current) {

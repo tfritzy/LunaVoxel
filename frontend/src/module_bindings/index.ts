@@ -52,6 +52,8 @@ import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
+import { PokeProject } from "./poke_project_reducer.ts";
+export { PokeProject };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReplacePalette } from "./replace_palette_reducer.ts";
@@ -164,6 +166,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
     },
+    PokeProject: {
+      reducerName: "PokeProject",
+      argsType: PokeProject.getTypeScriptAlgebraicType(),
+    },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
@@ -217,6 +223,7 @@ export type Reducer = never
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
+| { name: "PokeProject", args: PokeProject }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SyncUser", args: SyncUser }
@@ -242,7 +249,7 @@ export class RemoteReducers {
     this.connection.offReducer("AddColorToPalette", callback);
   }
 
-  changePublicAccessToProject(projectId: string, accessType: number) {
+  changePublicAccessToProject(projectId: string, accessType: AccessType) {
     const __args = { projectId, accessType };
     let __writer = new BinaryWriter(1024);
     ChangePublicAccessToProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
@@ -250,11 +257,11 @@ export class RemoteReducers {
     this.connection.callReducer("ChangePublicAccessToProject", __argsBuffer, this.setCallReducerFlags.changePublicAccessToProjectFlags);
   }
 
-  onChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: number) => void) {
+  onChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: AccessType) => void) {
     this.connection.onReducer("ChangePublicAccessToProject", callback);
   }
 
-  removeOnChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: number) => void) {
+  removeOnChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: AccessType) => void) {
     this.connection.offReducer("ChangePublicAccessToProject", callback);
   }
 
@@ -370,6 +377,22 @@ export class RemoteReducers {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
+  pokeProject(projectId: string) {
+    const __args = { projectId };
+    let __writer = new BinaryWriter(1024);
+    PokeProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("PokeProject", __argsBuffer, this.setCallReducerFlags.pokeProjectFlags);
+  }
+
+  onPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("PokeProject", callback);
+  }
+
+  removeOnPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("PokeProject", callback);
+  }
+
   removeColorFromPalette(projectId: string, colorIndex: number) {
     const __args = { projectId, colorIndex };
     let __writer = new BinaryWriter(1024);
@@ -475,6 +498,11 @@ export class SetReducerFlags {
   modifyBlockRectFlags: CallReducerFlags = 'FullUpdate';
   modifyBlockRect(flags: CallReducerFlags) {
     this.modifyBlockRectFlags = flags;
+  }
+
+  pokeProjectFlags: CallReducerFlags = 'FullUpdate';
+  pokeProject(flags: CallReducerFlags) {
+    this.pokeProjectFlags = flags;
   }
 
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';

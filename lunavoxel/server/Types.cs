@@ -7,14 +7,12 @@ public static partial class Module
 
     [SpacetimeDB.ClientVisibilityFilter]
     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-        "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender OR p.PublicAccess > 0"
+        "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender"
     );
 
     [Table(Name = "projects", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited",
                              Columns = new[] { nameof(Owner), nameof(LastVisited) })]
-    [SpacetimeDB.Index.BTree(Name = "idx_public_access",
-                             Columns = new[] { nameof(PublicAccess) })]
     public partial class Project
     {
         [PrimaryKey]
@@ -23,10 +21,9 @@ public static partial class Module
         public Vector3 Dimensions;
         public Identity Owner;
         public Timestamp LastVisited;
-        public int PublicAccess;
+        public AccessType PublicAccess;
 
-        public static Project Build(string id, string name, int xDim, int yDim, int zDim, Identity owner,
-                                  Timestamp timestamp)
+        public static Project Build(string id, string name, int xDim, int yDim, int zDim, Identity owner, Timestamp timestamp)
         {
             return new Project
             {
@@ -35,7 +32,7 @@ public static partial class Module
                 Dimensions = new Vector3(xDim, yDim, zDim),
                 Owner = owner,
                 LastVisited = timestamp,
-                PublicAccess = (int)AccessType.None
+                PublicAccess = AccessType.None
             };
         }
     }
@@ -172,7 +169,8 @@ public static partial class Module
     public enum AccessType
     {
         None,
+        Inherited,
         Read,
-        ReadWrite
+        ReadWrite,
     }
 }
