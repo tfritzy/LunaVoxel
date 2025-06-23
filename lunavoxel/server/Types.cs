@@ -7,12 +7,14 @@ public static partial class Module
 
     [SpacetimeDB.ClientVisibilityFilter]
     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-        "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender"
+        "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender OR p.PublicAccess > 0"
     );
 
     [Table(Name = "projects", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited",
                              Columns = new[] { nameof(Owner), nameof(LastVisited) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_public_access",
+                             Columns = new[] { nameof(PublicAccess) })]
     public partial class Project
     {
         [PrimaryKey]
@@ -21,6 +23,7 @@ public static partial class Module
         public Vector3 Dimensions;
         public Identity Owner;
         public Timestamp LastVisited;
+        public int PublicAccess;
 
         public static Project Build(string id, string name, int xDim, int yDim, int zDim, Identity owner,
                                   Timestamp timestamp)
@@ -31,7 +34,8 @@ public static partial class Module
                 Name = name,
                 Dimensions = new Vector3(xDim, yDim, zDim),
                 Owner = owner,
-                LastVisited = timestamp
+                LastVisited = timestamp,
+                PublicAccess = (int)AccessType.None
             };
         }
     }
@@ -41,6 +45,7 @@ public static partial class Module
     [SpacetimeDB.Index.BTree(Name = "idx_project_id_email", Columns = new[] { nameof(ProjectId), nameof(Email) })]
     [SpacetimeDB.Index.BTree(Name = "idx_project_id_only", Columns = new[] { nameof(ProjectId) })]
     [SpacetimeDB.Index.BTree(Name = "idx_user_email", Columns = new[] { nameof(User), nameof(Email) })]
+    [SpacetimeDB.Index.BTree(Name = "idx_user_only", Columns = new[] { nameof(User) })]
     public partial class UserProject
     {
         [PrimaryKey]

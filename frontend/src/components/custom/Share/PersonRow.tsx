@@ -50,7 +50,7 @@ export const PersonRow = ({
   const handleAccessChange = React.useCallback(
     (accessType: AccessType["tag"]) => {
       if (!connection || !userProject.email) return;
-      connection.reducers.changeAccessToProject(
+      connection.reducers.changeUserAccessToProject(
         userProject.projectId,
         userProject.email,
         { tag: accessType }

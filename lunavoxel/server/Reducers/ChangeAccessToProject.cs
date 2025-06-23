@@ -5,11 +5,16 @@ using SpacetimeDB.Internal.TableHandles;
 public static partial class Module
 {
     [Reducer]
-    public static void ChangeAccessToProject(ReducerContext ctx, string projectId, string email, AccessType accessType)
+    public static void ChangeUserAccessToProject(ReducerContext ctx, string projectId, string email, AccessType accessType)
     {
         if (string.IsNullOrEmpty(projectId))
         {
             throw new ArgumentException("Project ID cannot be null or empty.");
+        }
+
+        if (string.IsNullOrEmpty(email))
+        {
+            throw new ArgumentException("Email cannot be null or empty.");
         }
 
         var userAccess = ctx.Db.user_projects.idx_user_project.Filter((projectId, ctx.Sender)).FirstOrDefault();

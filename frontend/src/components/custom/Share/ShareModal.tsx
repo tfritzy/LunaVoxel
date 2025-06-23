@@ -244,7 +244,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
             <h3 className="text-sm font-medium text-card-foreground mb-3">
               General access
             </h3>
-            <GeneralAccessRow generalAccess={project.generalAccess} />
+            <GeneralAccessRow project={project} />
           </div>
           <div className="flex flex-row justify-between p-6 border-t border-border">
             <Button size="lg" variant="outline" onClick={handleCopyLink}>

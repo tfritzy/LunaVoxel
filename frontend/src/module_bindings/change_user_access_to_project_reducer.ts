@@ -33,7 +33,7 @@ import {
 
 import { AccessType as __AccessType } from "./access_type_type";
 
-export type ChangeAccessToProject = {
+export type ChangeUserAccessToProject = {
   projectId: string,
   email: string,
   accessType: __AccessType,
@@ -42,7 +42,7 @@ export type ChangeAccessToProject = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace ChangeAccessToProject {
+export namespace ChangeUserAccessToProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -55,12 +55,12 @@ export namespace ChangeAccessToProject {
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: ChangeAccessToProject): void {
-    ChangeAccessToProject.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ChangeUserAccessToProject): void {
+    ChangeUserAccessToProject.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): ChangeAccessToProject {
-    return ChangeAccessToProject.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ChangeUserAccessToProject {
+    return ChangeUserAccessToProject.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
