@@ -82,7 +82,7 @@ public static partial class Module
         public string Id;
         public string ProjectId;
         public Identity Player;
-        public Vector3 Position;
+        public Vector3Float Position;
     }
 
     [Table(Name = "chunk", Public = true)]
@@ -153,12 +153,19 @@ public static partial class Module
     }
 
     [Type]
-    public partial struct Vector3
-    (int x, int y, int z)
+    public partial struct Vector3(int x, int y, int z)
     {
         public int X = x;
         public int Y = y;
         public int Z = z;
+    }
+
+    [Type]
+    public partial struct Vector3Float(float x, float y, float z)
+    {
+        public float X = x;
+        public float Y = y;
+        public float Z = z;
     }
 
     [Type]

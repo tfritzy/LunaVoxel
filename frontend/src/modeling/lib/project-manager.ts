@@ -7,7 +7,6 @@ import {
   Project,
 } from "../../module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
-import { GridRaycaster } from "./grid-raycaster";
 import { CursorManager, PlayerCursor } from "./cursor-manager";
 import { Builder } from "./builder";
 
@@ -18,8 +17,7 @@ export class ProjectManager {
   private dbConn: DbConnection;
   private project: Project;
   private currentUpdateController: AbortController | null = null;
-  private raycaster: GridRaycaster | null = null;
-  private builder;
+  private builder: Builder;
   private currentChunk: Chunk | null = null;
 
   constructor(
@@ -39,15 +37,16 @@ export class ProjectManager {
       this.dbConn,
       this.project.id,
       project.dimensions,
+      camera,
+      scene,
       container,
       this.onPreviewUpdate
     );
-    this.setupRaycaster(camera, container);
     this.setupChunks();
     this.setupCursors();
   }
 
-  public setSelectedColor(color: number) {
+  public setSelectedColor(color: number): void {
     this.builder.setSelectedColor(color);
   }
 
@@ -72,29 +71,9 @@ export class ProjectManager {
   };
 
   onPreviewUpdate = () => {
-    console.log("update chunk mesh from preview.");
+    console.log("update chunk mesh from preview");
     this.updateChunkMesh();
   };
-
-  private setupRaycaster(camera: THREE.Camera, container: HTMLElement): void {
-    if (this.raycaster) {
-      this.raycaster.dispose();
-      this.raycaster = null;
-    }
-
-    this.raycaster = new GridRaycaster(camera, this.scene, container, {
-      onHover: (gridPos, pos) => {
-        if (gridPos) {
-          this.builder.onMouseHover(gridPos, pos);
-        }
-      },
-      onClick: (position) => {
-        if (position) {
-          this.builder.onMouseClick(position);
-        }
-      },
-    });
-  }
 
   onChunkUpdate = (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
     this.currentChunk = newRow;
@@ -124,7 +103,7 @@ export class ProjectManager {
     }
   };
 
-  private updateChunkMesh() {
+  private updateChunkMesh(): void {
     if (!this.currentChunk) return;
 
     this.currentUpdateController = new AbortController();
@@ -138,18 +117,15 @@ export class ProjectManager {
 
   public setTool(tool: BlockModificationMode): void {
     this.builder.setTool(tool);
-    if (this.raycaster) {
-      this.raycaster.setTool(tool);
-    }
   }
 
-  dispose() {
+  dispose(): void {
     if (this.currentUpdateController) {
       this.currentUpdateController.abort();
       this.currentUpdateController = null;
     }
 
-    this.raycaster?.dispose();
+    this.builder.dispose();
     this.chunkMesh.dispose();
     this.cursorManager.dispose();
     this.dbConn.db.chunk.removeOnUpdate(this.onChunkUpdate);

@@ -74,7 +74,7 @@ export class CursorManager {
   }
 
   private createCursor(cursor: PlayerCursor): void {
-    const geometry = new THREE.SphereGeometry(0.1, 8, 6);
+    const geometry = new THREE.SphereGeometry(0.4, 8, 6);
 
     const playerKey = cursor.player.toString();
     let color = this.playerColors.get(playerKey);

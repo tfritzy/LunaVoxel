@@ -31,7 +31,7 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 import { PlayerCursor } from "./player_cursor_type";
-import { Vector3 as __Vector3 } from "./vector_3_type";
+import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
 
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 

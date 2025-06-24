@@ -102,6 +102,8 @@ import { UserProject } from "./user_project_type.ts";
 export { UserProject };
 import { Vector3 } from "./vector_3_type.ts";
 export { Vector3 };
+import { Vector3Float } from "./vector_3_float_type.ts";
+export { Vector3Float };
 
 const REMOTE_MODULE = {
   tables: {
@@ -457,19 +459,19 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
-  updateCursorPos(projectId: string, identity: Identity, pos: Vector3) {
-    const __args = { projectId, identity, pos };
+  updateCursorPos(projectId: string, identity: Identity, x: number, y: number, z: number) {
+    const __args = { projectId, identity, x, y, z };
     let __writer = new BinaryWriter(1024);
     UpdateCursorPos.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateCursorPos", __argsBuffer, this.setCallReducerFlags.updateCursorPosFlags);
   }
 
-  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, pos: Vector3) => void) {
+  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number) => void) {
     this.connection.onReducer("UpdateCursorPos", callback);
   }
 
-  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, pos: Vector3) => void) {
+  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number) => void) {
     this.connection.offReducer("UpdateCursorPos", callback);
   }
 

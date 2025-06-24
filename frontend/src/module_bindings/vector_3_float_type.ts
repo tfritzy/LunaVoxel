@@ -30,10 +30,7 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-
-export type UpdateCursorPos = {
-  projectId: string,
-  identity: Identity,
+export type Vector3Float = {
   x: number,
   y: number,
   z: number,
@@ -42,28 +39,27 @@ export type UpdateCursorPos = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace UpdateCursorPos {
+export namespace Vector3Float {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("identity", AlgebraicType.createIdentityType()),
       new ProductTypeElement("x", AlgebraicType.createF32Type()),
       new ProductTypeElement("y", AlgebraicType.createF32Type()),
       new ProductTypeElement("z", AlgebraicType.createF32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: UpdateCursorPos): void {
-    UpdateCursorPos.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Vector3Float): void {
+    Vector3Float.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): UpdateCursorPos {
-    return UpdateCursorPos.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Vector3Float {
+    return Vector3Float.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
+
 

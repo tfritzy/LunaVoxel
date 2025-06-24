@@ -30,13 +30,13 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Vector3 as __Vector3 } from "./vector_3_type";
+import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
 
 export type PlayerCursor = {
   id: string,
   projectId: string,
   player: Identity,
-  position: __Vector3,
+  position: __Vector3Float,
 };
 
 /**
@@ -52,7 +52,7 @@ export namespace PlayerCursor {
       new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("player", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("position", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("position", __Vector3Float.getTypeScriptAlgebraicType()),
     ]);
   }
 

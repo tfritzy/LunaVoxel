@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { layers } from "./layers";
 import {
   BlockModificationMode,
   DbConnection,
@@ -6,19 +7,29 @@ import {
   Vector3,
 } from "../../module_bindings";
 
-export const Builder = class {
+export class Builder {
   public previewBlocks: (MeshType | undefined)[][][];
   private dbConn: DbConnection;
   private projectId: string;
-  private currentTool: BlockModificationMode = { tag: "Build" };
-  private startPosition: THREE.Vector3 | null = null;
-  private isMouseDown: boolean = false;
   private dimensions: Vector3;
-  private lastPreviewStart: THREE.Vector3 | null = null;
-  private lastPreviewEnd: THREE.Vector3 | null = null;
   private onPreviewUpdate: () => void;
   private selectedColor: number;
 
+  private raycaster: THREE.Raycaster;
+  private mouse: THREE.Vector2;
+  private camera: THREE.Camera;
+  private scene: THREE.Scene;
+  private domElement: HTMLElement;
+
+  private currentTool: BlockModificationMode = { tag: "Build" };
+  private startPosition: THREE.Vector3 | null = null;
+  private isMouseDown: boolean = false;
+  private lastPreviewStart: THREE.Vector3 | null = null;
+  private lastPreviewEnd: THREE.Vector3 | null = null;
+  private lastHoveredPosition: THREE.Vector3 | null = null;
+
+  private boundMouseMove: (event: MouseEvent) => void;
+  private boundMouseClick: (event: MouseEvent) => void;
   private boundMouseDown: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
 
@@ -26,26 +37,48 @@ export const Builder = class {
     dbConn: DbConnection,
     projectId: string,
     dimensions: Vector3,
-    container: HTMLElement,
+    camera: THREE.Camera,
+    scene: THREE.Scene,
+    domElement: HTMLElement,
     onPreviewUpdate: () => void
   ) {
     this.dbConn = dbConn;
     this.projectId = projectId;
+    this.dimensions = dimensions;
+    this.camera = camera;
+    this.scene = scene;
+    this.domElement = domElement;
     this.onPreviewUpdate = onPreviewUpdate;
     this.selectedColor = 0xffffff;
 
-    this.boundMouseDown = this.onMouseDown.bind(this);
-    this.boundContextMenu = this.onContextMenu.bind(this);
-    this.dimensions = dimensions;
+    this.raycaster = new THREE.Raycaster();
+    this.raycaster.layers.set(layers.raycast);
+    this.mouse = new THREE.Vector2();
 
     this.previewBlocks = this.initializePreviewBlocks();
 
-    container.addEventListener("mousedown", this.boundMouseDown);
-    container.addEventListener("contextmenu", this.boundContextMenu);
+    this.boundMouseMove = this.onMouseMove.bind(this);
+    this.boundMouseClick = this.onMouseClick.bind(this);
+    this.boundMouseDown = this.onMouseDown.bind(this);
+    this.boundContextMenu = this.onContextMenu.bind(this);
+
+    this.addEventListeners();
   }
 
-  public setSelectedColor(color: number) {
+  public setTool(tool: BlockModificationMode): void {
+    this.currentTool = tool;
+  }
+
+  public setSelectedColor(color: number): void {
     this.selectedColor = color;
+  }
+
+  public updateCamera(camera: THREE.Camera): void {
+    this.camera = camera;
+  }
+
+  public getTool(): BlockModificationMode {
+    return this.currentTool;
   }
 
   private initializePreviewBlocks(): (MeshType | undefined)[][][] {
@@ -59,19 +92,44 @@ export const Builder = class {
         }
       }
     }
-
     return previewBlocks;
   }
 
-  private clearPreviewBlocks(): void {
-    for (let x = 0; x < this.previewBlocks.length; x++) {
-      for (let y = 0; y < this.previewBlocks[x].length; y++) {
-        for (let z = 0; z < this.previewBlocks[x][y].length; z++) {
-          if (this.previewBlocks[x][y][z]) {
-            this.previewBlocks[x][y][z] = undefined;
-          }
-        }
-      }
+  private addEventListeners(): void {
+    this.domElement.addEventListener("mousemove", this.boundMouseMove);
+    this.domElement.addEventListener("mouseup", this.boundMouseClick);
+    this.domElement.addEventListener("mousedown", this.boundMouseDown);
+    this.domElement.addEventListener("contextmenu", this.boundContextMenu);
+  }
+
+  private removeEventListeners(): void {
+    this.domElement.removeEventListener("mousemove", this.boundMouseMove);
+    this.domElement.removeEventListener("mouseup", this.boundMouseClick);
+    this.domElement.removeEventListener("mousedown", this.boundMouseDown);
+    this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
+  }
+
+  private onMouseMove(event: MouseEvent): void {
+    this.updateMousePosition(event);
+    const gridPos = this.checkIntersection();
+
+    this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
+
+    if (gridPos) {
+      this.onMouseHover(gridPos);
+    }
+  }
+
+  private onMouseClick(event: MouseEvent): void {
+    if (event.button !== 0) {
+      return;
+    }
+    this.updateMousePosition(event);
+    const gridPos = this.checkIntersection();
+
+    const position = gridPos || this.lastHoveredPosition;
+    if (position) {
+      this.onMouseClickHandler(position);
     }
   }
 
@@ -85,76 +143,66 @@ export const Builder = class {
     event.preventDefault();
   }
 
-  public setTool(tool: BlockModificationMode): void {
-    this.currentTool = tool;
+  private updateMousePosition(event: MouseEvent): void {
+    const rect = this.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
-  public getTool(): BlockModificationMode {
-    return this.currentTool;
-  }
-
-  private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3) {
-    if (!this.dbConn.isActive) return;
-
-    const minPos = new THREE.Vector3(
-      Math.min(startPos.x, endPos.x),
-      Math.min(startPos.y, endPos.y),
-      Math.min(startPos.z, endPos.z)
+  private checkIntersection(): THREE.Vector3 | null {
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(
+      this.scene.children,
+      true
     );
 
-    const maxPos = new THREE.Vector3(
-      Math.max(startPos.x, endPos.x),
-      Math.max(startPos.y, endPos.y),
-      Math.max(startPos.z, endPos.z)
-    );
+    if (intersects.length > 0) {
+      const intersection = intersects[0];
 
-    minPos.clamp(new THREE.Vector3(0, 0, 0), this.dimensions);
-    maxPos.clamp(new THREE.Vector3(0, 0, 0), this.dimensions);
+      this.dbConn.reducers.updateCursorPos(
+        this.projectId,
+        this.dbConn.identity!,
+        intersection.point.x,
+        intersection.point.y,
+        intersection.point.z
+      );
 
-    this.clearPreviewBlocks();
-    for (let x = minPos.x; x <= maxPos.x; x++) {
-      for (let y = minPos.y; y <= maxPos.y; y++) {
-        for (let z = minPos.z; z <= maxPos.z; z++) {
-          this.previewBlocks[x][y][z] = { tag: "Block" };
+      const gridPos = this.floorVector3(intersection.point);
+
+      if (intersection.object.userData.isBoundaryBox) {
+        return gridPos;
+      } else {
+        if (
+          this.currentTool.tag === "Erase" ||
+          this.currentTool.tag === "Paint"
+        ) {
+          const normal = intersection.face?.normal.multiplyScalar(-0.1);
+          if (normal) {
+            return this.floorVector3(gridPos.add(normal));
+          }
+          return gridPos;
+        } else {
+          const normal = intersection.face?.normal.multiplyScalar(0.1);
+          if (normal) {
+            return this.floorVector3(gridPos.add(normal));
+          }
+          return gridPos;
         }
       }
     }
 
-    this.onPreviewUpdate();
+    return null;
   }
 
-  private modifyBlock(
-    tool: BlockModificationMode,
-    startPos: THREE.Vector3,
-    endPos: THREE.Vector3,
-    color: number
-  ) {
-    if (!this.dbConn.isActive) return;
-
-    this.dbConn.reducers.modifyBlockRect(
-      this.projectId,
-      tool,
-      { tag: "Block" },
-      startPos.x,
-      startPos.y,
-      startPos.z,
-      endPos.x,
-      endPos.y,
-      endPos.z,
-      color
-    );
+  private floorVector3(vector3: THREE.Vector3): THREE.Vector3 {
+    vector3.x = Math.floor(vector3.x);
+    vector3.y = Math.floor(vector3.y);
+    vector3.z = Math.floor(vector3.z);
+    return vector3;
   }
 
-  public onMouseHover(gridPos: THREE.Vector3, pos: THREE.Vector3 | null) {
+  private onMouseHover(gridPos: THREE.Vector3): void {
     if (!this.dbConn.isActive) return;
-
-    if (pos) {
-      this.dbConn.reducers.updateCursorPos(
-        this.projectId,
-        this.dbConn.identity!,
-        pos
-      );
-    }
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
@@ -177,7 +225,7 @@ export const Builder = class {
     }
   }
 
-  public onMouseClick(position: THREE.Vector3) {
+  private onMouseClickHandler(position: THREE.Vector3): void {
     if (!this.dbConn.isActive) return;
 
     const endPos = position;
@@ -191,4 +239,71 @@ export const Builder = class {
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }
-};
+
+  private clearPreviewBlocks(): void {
+    for (let x = 0; x <= this.dimensions.x; x++) {
+      for (let y = 0; y <= this.dimensions.y; y++) {
+        for (let z = 0; z <= this.dimensions.z; z++) {
+          this.previewBlocks[x][y][z] = undefined;
+        }
+      }
+    }
+    this.onPreviewUpdate();
+  }
+
+  private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
+    this.clearPreviewBlocks();
+
+    const minX = Math.min(startPos.x, endPos.x);
+    const maxX = Math.max(startPos.x, endPos.x);
+    const minY = Math.min(startPos.y, endPos.y);
+    const maxY = Math.max(startPos.y, endPos.y);
+    const minZ = Math.min(startPos.z, endPos.z);
+    const maxZ = Math.max(startPos.z, endPos.z);
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          if (
+            x >= 0 &&
+            x <= this.dimensions.x &&
+            y >= 0 &&
+            y <= this.dimensions.y &&
+            z >= 0 &&
+            z <= this.dimensions.z
+          ) {
+            this.previewBlocks[x][y][z] = { tag: "Block" };
+          }
+        }
+      }
+    }
+
+    this.onPreviewUpdate();
+  }
+
+  private modifyBlock(
+    tool: BlockModificationMode,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    color: number
+  ): void {
+    if (!this.dbConn.isActive) return;
+
+    this.dbConn.reducers.modifyBlockRect(
+      this.projectId,
+      tool,
+      { tag: "Block" },
+      startPos.x,
+      startPos.y,
+      startPos.z,
+      endPos.x,
+      endPos.y,
+      endPos.z,
+      color
+    );
+  }
+
+  public dispose(): void {
+    this.removeEventListeners();
+  }
+}
