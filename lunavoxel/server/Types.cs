@@ -73,6 +73,17 @@ public static partial class Module
         public int[] Colors = [];
     }
 
+    [Table(Name = "player_cursor", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "player_cursor_project", Columns = new[] { nameof(ProjectId) })]
+    [SpacetimeDB.Index.BTree(Name = "player_cursor_project_player", Columns = new[] { nameof(ProjectId), nameof(Player) })]
+    public partial class PlayerCursor
+    {
+        [PrimaryKey]
+        public string Id;
+        public string ProjectId;
+        public Identity Player;
+        public Vector3 Position;
+    }
 
     [Table(Name = "chunk", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "chunk_project", Columns = new[] { nameof(ProjectId) })]

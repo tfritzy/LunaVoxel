@@ -114,7 +114,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
       .onApplied(() => {
         const projectUserProjects = Array.from(
           connection.db.userProjects.iter()
-        ).filter((up) => up.projectId === project.id);
+        )
+          .filter((up) => up.projectId === project.id)
+          .filter((up) => up.accessType.tag !== "Inherited");
         setUserProjects(projectUserProjects);
       })
       .onError((error) => {
@@ -125,7 +127,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
       ]);
 
     const onInsert = (_ctx: EventContext, userProject: UserProject) => {
-      if (userProject.projectId === project.id) {
+      if (
+        userProject.projectId === project.id &&
+        userProject.accessType.tag !== "Inherited"
+      ) {
         setUserProjects((prev) => {
           const exists = prev.some((up) => up.email === userProject.email);
           return exists ? prev : [...prev, userProject];
@@ -139,11 +144,18 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
       newUserProject: UserProject
     ) => {
       if (newUserProject.projectId === project.id) {
-        setUserProjects((prev) =>
-          prev.map((up) =>
-            up.email === oldUserProject.email ? newUserProject : up
-          )
-        );
+        if (newUserProject.accessType.tag !== "Inherited") {
+          setUserProjects((prev) =>
+            prev.map((up) =>
+              up.email === oldUserProject.email ? newUserProject : up
+            )
+          );
+        } else {
+          // Remove from list if access type changed to inherited
+          setUserProjects((prev) =>
+            prev.filter((up) => up.email !== oldUserProject.email)
+          );
+        }
       }
     };
 

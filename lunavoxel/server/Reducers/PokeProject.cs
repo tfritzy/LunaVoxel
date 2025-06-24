@@ -11,6 +11,11 @@ public static partial class Module
             return;
         }
 
+        if (project.PublicAccess != AccessType.Read && project.PublicAccess != AccessType.ReadWrite)
+        {
+            return;
+        }
+
         var existingUserProject = ctx.Db.user_projects.idx_user_project.Filter((projectId, ctx.Sender)).FirstOrDefault();
         if (existingUserProject != null)
         {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { DbConnection, ErrorContext } from "./module_bindings";
@@ -38,43 +38,38 @@ function AppContent() {
   const [userSynced, setUserSynced] = useState(false);
   const { currentUser } = useAuth();
 
-  const syncUserWithCloudFunction = async (
-    idToken: string,
-    identity: Identity,
-    spacetimeToken: string
-  ) => {
-    try {
-      const functions = getFunctions();
-      const syncUser = httpsCallable<SyncUserRequest, SyncUserResult>(
-        functions,
-        "syncUser"
-      );
+  const syncUserWithCloudFunction = useCallback(
+    async (idToken: string, identity: Identity, spacetimeToken: string) => {
+      try {
+        const functions = getFunctions();
+        const syncUser = httpsCallable<SyncUserRequest, SyncUserResult>(
+          functions,
+          "syncUser"
+        );
 
-      const result = await syncUser({
-        idToken,
-        identity: identity.toHexString(),
-        spacetimeToken,
-      });
+        const result = await syncUser({
+          idToken,
+          identity: identity.toHexString(),
+          spacetimeToken,
+        });
 
-      if (result.data.success) {
-        setUserSynced(true);
-        return true;
-      } else {
-        console.error("Failed to sync user:", result.data.error);
+        if (result.data.success) {
+          setUserSynced(true);
+          return true;
+        } else {
+          console.error("Failed to sync user:", result.data.error);
+          return false;
+        }
+      } catch (error) {
+        console.error("Error calling syncUser:", error);
         return false;
       }
-    } catch (error) {
-      console.error("Error calling syncUser:", error);
-      return false;
-    }
-  };
+    },
+    []
+  );
 
-  useEffect(() => {
-    const onConnect = async (
-      connection: DbConnection,
-      identity: Identity,
-      token: string
-    ) => {
+  const handleConnect = useCallback(
+    async (connection: DbConnection, identity: Identity, token: string) => {
       setConn(connection);
       localStorage.setItem("auth_token", token);
 
@@ -82,22 +77,32 @@ function AppContent() {
         const idToken = await currentUser.getIdToken();
         await syncUserWithCloudFunction(idToken, identity, token);
       }
-    };
+    },
+    [currentUser, userSynced, syncUserWithCloudFunction]
+  );
 
-    const onDisconnect = () => {
-      console.log("Disconnected from SpacetimeDB");
-      setConn(null);
-      setUserSynced(false);
-    };
+  const handleDisconnect = useCallback(() => {
+    console.log("Disconnected from SpacetimeDB");
+    setConn(null);
+    setUserSynced(false);
+  }, []);
 
-    const onConnectError = (_ctx: ErrorContext, err: Error) => {
-      console.log("Error connecting to SpacetimeDB:", err);
-      setConn(null);
-    };
+  const handleConnectError = useCallback((_ctx: ErrorContext, err: Error) => {
+    console.log("Error connecting to SpacetimeDB:", err);
+    setConn(null);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (conn) {
+      console.log("Connection already exists, skipping");
+      return;
+    }
 
     const connectToSpaceTime = async () => {
-      if (!currentUser) return;
-
       try {
         const idToken = await currentUser.getIdToken();
         const config = getSpacetimeConfig();
@@ -108,9 +113,9 @@ function AppContent() {
           .withUri(config.uri)
           .withModuleName("lunavoxel")
           .withToken(idToken || localStorage.getItem("auth_token") || "")
-          .onConnect(onConnect)
-          .onDisconnect(onDisconnect)
-          .onConnectError(onConnectError)
+          .onConnect(handleConnect)
+          .onDisconnect(handleDisconnect)
+          .onConnectError(handleConnectError)
           .build();
       } catch (err) {
         console.error("Error initializing connection:", err);
@@ -118,7 +123,7 @@ function AppContent() {
     };
 
     connectToSpaceTime();
-  }, [currentUser, userSynced]);
+  }, [currentUser, conn, handleConnect, handleDisconnect, handleConnectError]);
 
   if (!conn) return null;
 
