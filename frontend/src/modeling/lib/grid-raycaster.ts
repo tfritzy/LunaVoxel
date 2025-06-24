@@ -5,7 +5,7 @@ import { BlockModificationMode } from "@/module_bindings";
 export type Tool = "build" | "erase" | "paint";
 
 export interface GridRaycasterEvents {
-  onHover?: (position: THREE.Vector3 | null) => void;
+  onHover?: (gridPos: THREE.Vector3 | null, pos: THREE.Vector3 | null) => void;
   onClick?: (position: THREE.Vector3 | null) => void;
 }
 
@@ -55,12 +55,12 @@ export class GridRaycaster {
 
   private onMouseMove(event: MouseEvent): void {
     this.updateMousePosition(event);
-    const placementPosition = this.checkIntersection();
+    const { gridPos, pos } = this.checkIntersection();
 
-    this.lastHoveredPosition = placementPosition || this.lastHoveredPosition;
+    this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
 
     if (this.events.onHover) {
-      this.events.onHover(placementPosition);
+      this.events.onHover(gridPos, pos);
     }
   }
 
@@ -69,10 +69,10 @@ export class GridRaycaster {
       return;
     }
     this.updateMousePosition(event);
-    const placementPosition = this.checkIntersection();
+    const { gridPos } = this.checkIntersection();
 
     if (this.events.onClick) {
-      this.events.onClick(placementPosition || this.lastHoveredPosition);
+      this.events.onClick(gridPos || this.lastHoveredPosition);
     }
   }
 
@@ -82,7 +82,10 @@ export class GridRaycaster {
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
-  private checkIntersection(): THREE.Vector3 | null {
+  private checkIntersection(): {
+    gridPos: THREE.Vector3 | null;
+    pos: THREE.Vector3 | null;
+  } {
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects(
       this.scene.children,
@@ -95,7 +98,7 @@ export class GridRaycaster {
       const point = this.floorVector3(intersection.point);
 
       if (intersection.object.userData.isBoundaryBox) {
-        return point;
+        return { gridPos: point, pos: intersection.point };
       } else {
         if (
           this.currentTool.tag === "Erase" ||
@@ -103,19 +106,26 @@ export class GridRaycaster {
         ) {
           const normal = intersection.face?.normal.multiplyScalar(-0.1);
           if (normal) {
-            return this.floorVector3(point.add(normal));
+            return {
+              gridPos: this.floorVector3(point.add(normal)),
+              pos: intersection.point,
+            };
           }
-          return point;
+          return { gridPos: point, pos: intersection.point };
         } else {
           const normal = intersection.face?.normal.multiplyScalar(0.1);
           if (normal) {
-            return this.floorVector3(point.add(normal));
+            return {
+              gridPos: this.floorVector3(point.add(normal)),
+              pos: intersection.point,
+            };
           }
-          return point;
+          return { gridPos: point, pos: intersection.point };
         }
       }
     }
-    return null;
+
+    return { gridPos: null, pos: null };
   }
 
   private floorVector3(vector3: THREE.Vector3) {
@@ -127,10 +137,6 @@ export class GridRaycaster {
 
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
-  }
-
-  public raycastAtMouse(): THREE.Vector3 | null {
-    return this.checkIntersection();
   }
 
   public dispose(): void {

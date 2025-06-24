@@ -6,7 +6,7 @@ import {
   Vector3,
 } from "../../module_bindings";
 
-export class Builder {
+export const Builder = class {
   public previewBlocks: (MeshType | undefined)[][][];
   private dbConn: DbConnection;
   private projectId: string;
@@ -145,11 +145,19 @@ export class Builder {
     );
   }
 
-  public onMouseHover(position: THREE.Vector3) {
+  public onMouseHover(gridPos: THREE.Vector3, pos: THREE.Vector3 | null) {
     if (!this.dbConn.isActive) return;
 
+    if (pos) {
+      this.dbConn.reducers.updateCursorPos(
+        this.projectId,
+        this.dbConn.identity!,
+        pos
+      );
+    }
+
     if (this.isMouseDown && !this.startPosition) {
-      this.startPosition = position.clone();
+      this.startPosition = gridPos.clone();
     }
 
     if (
@@ -157,21 +165,15 @@ export class Builder {
       this.lastPreviewEnd &&
       this.startPosition &&
       this.lastPreviewStart.equals(this.startPosition) &&
-      this.lastPreviewEnd.equals(position)
+      this.lastPreviewEnd.equals(gridPos)
     ) {
       return;
     }
 
-    this.dbConn.reducers.updateCursorPos(
-      this.projectId,
-      this.dbConn.identity!,
-      position
-    );
     if (this.isMouseDown && this.startPosition) {
-      this.previewBlock(this.startPosition, position);
-
+      this.previewBlock(this.startPosition, gridPos);
       this.lastPreviewStart = this.startPosition.clone();
-      this.lastPreviewEnd = position.clone();
+      this.lastPreviewEnd = gridPos.clone();
     }
   }
 
@@ -189,4 +191,4 @@ export class Builder {
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }
-}
+};

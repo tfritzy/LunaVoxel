@@ -8,16 +8,18 @@ import {
 } from "../../module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import { GridRaycaster } from "./grid-raycaster";
+import { CursorManager, PlayerCursor } from "./cursor-manager";
 import { Builder } from "./builder";
 
 export class ProjectManager {
   private scene: THREE.Scene;
   private chunkMesh: ChunkMesh;
+  private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
   private currentUpdateController: AbortController | null = null;
   private raycaster: GridRaycaster | null = null;
-  private builder: Builder;
+  private builder;
   private currentChunk: Chunk | null = null;
 
   constructor(
@@ -31,6 +33,7 @@ export class ProjectManager {
     this.scene = scene;
     this.project = project;
     this.chunkMesh = new ChunkMesh(scene);
+    this.cursorManager = new CursorManager(scene, project.id);
     this.setupEvents();
     this.builder = new Builder(
       this.dbConn,
@@ -41,6 +44,7 @@ export class ProjectManager {
     );
     this.setupRaycaster(camera, container);
     this.setupChunks();
+    this.setupCursors();
   }
 
   public setSelectedColor(color: number) {
@@ -49,6 +53,9 @@ export class ProjectManager {
 
   setupEvents = () => {
     this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
+    this.dbConn.db.playerCursor.onUpdate(this.onCursorUpdate);
+    this.dbConn.db.playerCursor.onInsert(this.onCursorInsert);
+    this.dbConn.db.playerCursor.onDelete(this.onCursorDelete);
   };
 
   setupChunks = async () => {
@@ -58,6 +65,10 @@ export class ProjectManager {
       this.currentChunk = c;
       await this.updateChunkMesh();
     }
+  };
+
+  setupCursors = () => {
+    this.cursorManager.updateFromDatabase(this.dbConn);
   };
 
   onPreviewUpdate = () => {
@@ -72,9 +83,9 @@ export class ProjectManager {
     }
 
     this.raycaster = new GridRaycaster(camera, this.scene, container, {
-      onHover: (position) => {
-        if (position) {
-          this.builder.onMouseHover(position);
+      onHover: (gridPos, pos) => {
+        if (gridPos) {
+          this.builder.onMouseHover(gridPos, pos);
         }
       },
       onClick: (position) => {
@@ -88,6 +99,29 @@ export class ProjectManager {
   onChunkUpdate = (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
     this.currentChunk = newRow;
     this.updateChunkMesh();
+  };
+
+  onCursorUpdate = (
+    ctx: EventContext,
+    oldRow: PlayerCursor,
+    newRow: PlayerCursor
+  ) => {
+    if (newRow.projectId === this.project.id) {
+      console.log("Cursor updated:", newRow);
+      this.cursorManager.updateFromDatabase(this.dbConn);
+    }
+  };
+
+  onCursorInsert = (ctx: EventContext, row: PlayerCursor) => {
+    if (row.projectId === this.project.id) {
+      this.cursorManager.updateFromDatabase(this.dbConn);
+    }
+  };
+
+  onCursorDelete = (ctx: EventContext, row: PlayerCursor) => {
+    if (row.projectId === this.project.id) {
+      this.cursorManager.updateFromDatabase(this.dbConn);
+    }
   };
 
   private updateChunkMesh() {
@@ -117,6 +151,10 @@ export class ProjectManager {
 
     this.raycaster?.dispose();
     this.chunkMesh.dispose();
+    this.cursorManager.dispose();
     this.dbConn.db.chunk.removeOnUpdate(this.onChunkUpdate);
+    this.dbConn.db.playerCursor.removeOnUpdate(this.onCursorUpdate);
+    this.dbConn.db.playerCursor.removeOnInsert(this.onCursorInsert);
+    this.dbConn.db.playerCursor.removeOnDelete(this.onCursorDelete);
   }
 }

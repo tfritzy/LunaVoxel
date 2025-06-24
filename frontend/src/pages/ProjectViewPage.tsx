@@ -15,6 +15,7 @@ export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [chunksLoading, setChunksLoading] = useState(true);
+  const [cursorsLoading, setCursorsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
@@ -27,8 +28,9 @@ export const ProjectViewPage = () => {
     if (!projectId || !connection) return;
 
     setChunksLoading(true);
+    setCursorsLoading(true);
 
-    const sub = connection
+    const chunksSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
         setChunksLoading(false);
@@ -40,9 +42,24 @@ export const ProjectViewPage = () => {
       })
       .subscribe([`SELECT * FROM chunk WHERE ProjectId='${projectId}'`]);
 
+    const cursorsSub = connection
+      .subscriptionBuilder()
+      .onApplied(() => {
+        setCursorsLoading(false);
+      })
+      .onError((err) => {
+        console.error("Error subscribing to cursors:", err);
+        setCursorsLoading(false);
+      })
+      .subscribe([
+        `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
+      ]);
+
     return () => {
-      sub.unsubscribe();
+      chunksSub.unsubscribe();
+      cursorsSub.unsubscribe();
       setChunksLoading(true);
+      setCursorsLoading(true);
 
       if (engineRef.current) {
         engineRef.current.dispose();
@@ -52,7 +69,7 @@ export const ProjectViewPage = () => {
   }, [projectId, connection]);
 
   useEffect(() => {
-    if (chunksLoading || !connection) return;
+    if (chunksLoading || cursorsLoading || !connection) return;
 
     if (engineRef.current) {
       engineRef.current.dispose();
@@ -71,7 +88,7 @@ export const ProjectViewPage = () => {
         engineRef.current = null;
       }
     };
-  }, [chunksLoading, connection, project, projectId]);
+  }, [chunksLoading, cursorsLoading, connection, project, projectId]);
 
   useEffect(() => {
     if (engineRef.current) {
@@ -87,48 +104,42 @@ export const ProjectViewPage = () => {
     <div>
       <ProjectHeader />
       <div className="h-full flex">
-        {!chunksLoading && !error && projectId && (
+        {!chunksLoading && !cursorsLoading && !error && projectId && (
           <ColorPalette projectId={projectId} />
         )}
 
         <div className="flex-1 relative">
           <div
             ref={containerRef}
-            className="voxel-container"
-            style={{
-              width: "100%",
-              height: "100vh",
-              position: "relative",
-            }}
+            className="w-full h-full bg-slate-900"
+            style={{ height: "calc(100vh - 64px)" }}
           />
 
-          {!chunksLoading && !error && (
-            <FloatingToolbar
-              currentTool={currentTool}
-              onToolChange={handleToolChange}
-            />
-          )}
-
-          {chunksLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
-                <p className="text-lg font-medium">Loading chunks...</p>
-              </div>
+          {(chunksLoading || cursorsLoading) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+              <div className="text-white">Loading...</div>
             </div>
           )}
 
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm z-20">
-              <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center">
-                <p className="text-xl text-destructive font-medium mb-4">
-                  {error}
-                </p>
-                <Button onClick={() => setError(null)} variant="outline">
-                  Try Again
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+              <div className="text-center text-white">
+                <div className="mb-4">{error}</div>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  Retry
                 </Button>
               </div>
             </div>
+          )}
+
+          {!chunksLoading && !cursorsLoading && !error && (
+            <FloatingToolbar
+              currentTool={currentTool}
+              onToolChange={handleToolChange}
+            />
           )}
         </div>
       </div>
