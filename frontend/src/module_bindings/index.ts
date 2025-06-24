@@ -60,6 +60,8 @@ import { ReplacePalette } from "./replace_palette_reducer.ts";
 export { ReplacePalette };
 import { SyncUser } from "./sync_user_reducer.ts";
 export { SyncUser };
+import { UpdateCursorPos } from "./update_cursor_pos_reducer.ts";
+export { UpdateCursorPos };
 import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
@@ -68,6 +70,8 @@ import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
 import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
+import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
+export { PlayerCursorTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
 export { ProjectsTableHandle };
 import { UserTableHandle } from "./user_table.ts";
@@ -88,6 +92,8 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { MeshType } from "./mesh_type_type.ts";
 export { MeshType };
+import { PlayerCursor } from "./player_cursor_type.ts";
+export { PlayerCursor };
 import { Project } from "./project_type.ts";
 export { Project };
 import { User } from "./user_type.ts";
@@ -108,6 +114,11 @@ const REMOTE_MODULE = {
       tableName: "color_palette",
       rowType: ColorPalette.getTypeScriptAlgebraicType(),
       primaryKey: "projectId",
+    },
+    player_cursor: {
+      tableName: "player_cursor",
+      rowType: PlayerCursor.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
     },
     projects: {
       tableName: "projects",
@@ -182,6 +193,10 @@ const REMOTE_MODULE = {
       reducerName: "SyncUser",
       argsType: SyncUser.getTypeScriptAlgebraicType(),
     },
+    UpdateCursorPos: {
+      reducerName: "UpdateCursorPos",
+      argsType: UpdateCursorPos.getTypeScriptAlgebraicType(),
+    },
     UpdateProjectName: {
       reducerName: "UpdateProjectName",
       argsType: UpdateProjectName.getTypeScriptAlgebraicType(),
@@ -227,6 +242,7 @@ export type Reducer = never
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SyncUser", args: SyncUser }
+| { name: "UpdateCursorPos", args: UpdateCursorPos }
 | { name: "UpdateProjectName", args: UpdateProjectName }
 ;
 
@@ -441,6 +457,22 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
+  updateCursorPos(projectId: string, identity: Identity, pos: Vector3) {
+    const __args = { projectId, identity, pos };
+    let __writer = new BinaryWriter(1024);
+    UpdateCursorPos.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("UpdateCursorPos", __argsBuffer, this.setCallReducerFlags.updateCursorPosFlags);
+  }
+
+  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, pos: Vector3) => void) {
+    this.connection.onReducer("UpdateCursorPos", callback);
+  }
+
+  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, pos: Vector3) => void) {
+    this.connection.offReducer("UpdateCursorPos", callback);
+  }
+
   updateProjectName(projectId: string, name: string) {
     const __args = { projectId, name };
     let __writer = new BinaryWriter(1024);
@@ -520,6 +552,11 @@ export class SetReducerFlags {
     this.syncUserFlags = flags;
   }
 
+  updateCursorPosFlags: CallReducerFlags = 'FullUpdate';
+  updateCursorPos(flags: CallReducerFlags) {
+    this.updateCursorPosFlags = flags;
+  }
+
   updateProjectNameFlags: CallReducerFlags = 'FullUpdate';
   updateProjectName(flags: CallReducerFlags) {
     this.updateProjectNameFlags = flags;
@@ -536,6 +573,10 @@ export class RemoteTables {
 
   get colorPalette(): ColorPaletteTableHandle {
     return new ColorPaletteTableHandle(this.connection.clientCache.getOrCreateTable<ColorPalette>(REMOTE_MODULE.tables.color_palette));
+  }
+
+  get playerCursor(): PlayerCursorTableHandle {
+    return new PlayerCursorTableHandle(this.connection.clientCache.getOrCreateTable<PlayerCursor>(REMOTE_MODULE.tables.player_cursor));
   }
 
   get projects(): ProjectsTableHandle {

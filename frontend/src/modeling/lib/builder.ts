@@ -9,11 +9,11 @@ import {
 export class Builder {
   public previewBlocks: (MeshType | undefined)[][][];
   private dbConn: DbConnection;
-  private world: string;
+  private projectId: string;
   private currentTool: BlockModificationMode = { tag: "Build" };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
-  private worldDimensions: Vector3;
+  private dimensions: Vector3;
   private lastPreviewStart: THREE.Vector3 | null = null;
   private lastPreviewEnd: THREE.Vector3 | null = null;
   private onPreviewUpdate: () => void;
@@ -24,19 +24,19 @@ export class Builder {
 
   constructor(
     dbConn: DbConnection,
-    world: string,
-    worldDimensions: Vector3,
+    projectId: string,
+    dimensions: Vector3,
     container: HTMLElement,
     onPreviewUpdate: () => void
   ) {
     this.dbConn = dbConn;
-    this.world = world;
+    this.projectId = projectId;
     this.onPreviewUpdate = onPreviewUpdate;
     this.selectedColor = 0xffffff;
 
     this.boundMouseDown = this.onMouseDown.bind(this);
     this.boundContextMenu = this.onContextMenu.bind(this);
-    this.worldDimensions = worldDimensions;
+    this.dimensions = dimensions;
 
     this.previewBlocks = this.initializePreviewBlocks();
 
@@ -50,11 +50,11 @@ export class Builder {
 
   private initializePreviewBlocks(): (MeshType | undefined)[][][] {
     const previewBlocks: (MeshType | undefined)[][][] = [];
-    for (let x = 0; x <= this.worldDimensions.x; x++) {
+    for (let x = 0; x <= this.dimensions.x; x++) {
       previewBlocks[x] = [];
-      for (let y = 0; y <= this.worldDimensions.y; y++) {
+      for (let y = 0; y <= this.dimensions.y; y++) {
         previewBlocks[x][y] = [];
-        for (let z = 0; z <= this.worldDimensions.z; z++) {
+        for (let z = 0; z <= this.dimensions.z; z++) {
           previewBlocks[x][y][z] = undefined;
         }
       }
@@ -108,8 +108,8 @@ export class Builder {
       Math.max(startPos.z, endPos.z)
     );
 
-    minPos.clamp(new THREE.Vector3(0, 0, 0), this.worldDimensions);
-    maxPos.clamp(new THREE.Vector3(0, 0, 0), this.worldDimensions);
+    minPos.clamp(new THREE.Vector3(0, 0, 0), this.dimensions);
+    maxPos.clamp(new THREE.Vector3(0, 0, 0), this.dimensions);
 
     this.clearPreviewBlocks();
     for (let x = minPos.x; x <= maxPos.x; x++) {
@@ -132,7 +132,7 @@ export class Builder {
     if (!this.dbConn.isActive) return;
 
     this.dbConn.reducers.modifyBlockRect(
-      this.world,
+      this.projectId,
       tool,
       { tag: "Block" },
       startPos.x,
@@ -148,26 +148,30 @@ export class Builder {
   public onMouseHover(position: THREE.Vector3) {
     if (!this.dbConn.isActive) return;
 
-    if (this.isMouseDown) {
-      if (!this.startPosition) {
-        this.startPosition = position.clone();
-      }
+    if (this.isMouseDown && !this.startPosition) {
+      this.startPosition = position.clone();
+    }
 
-      const currentStart = this.startPosition;
-      const currentEnd = position;
-      if (
-        this.lastPreviewStart &&
-        this.lastPreviewEnd &&
-        this.lastPreviewStart.equals(currentStart) &&
-        this.lastPreviewEnd.equals(currentEnd)
-      ) {
-        return;
-      }
+    if (
+      this.lastPreviewStart &&
+      this.lastPreviewEnd &&
+      this.startPosition &&
+      this.lastPreviewStart.equals(this.startPosition) &&
+      this.lastPreviewEnd.equals(position)
+    ) {
+      return;
+    }
 
-      this.previewBlock(currentStart, currentEnd);
+    this.dbConn.reducers.updateCursorPos(
+      this.projectId,
+      this.dbConn.identity!,
+      position
+    );
+    if (this.isMouseDown && this.startPosition) {
+      this.previewBlock(this.startPosition, position);
 
-      this.lastPreviewStart = currentStart.clone();
-      this.lastPreviewEnd = currentEnd.clone();
+      this.lastPreviewStart = this.startPosition.clone();
+      this.lastPreviewEnd = position.clone();
     }
   }
 
