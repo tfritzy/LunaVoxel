@@ -2,7 +2,7 @@ import { BlockModificationMode, BlockRun, MeshType } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFaces } from "./chunk-mesh";
 
-export function findExteriorFaces(
+export const findExteriorFaces = (
   realBlocks: (BlockRun | undefined)[][][],
   previewBlocks: (MeshType | undefined)[][][],
   previewMode: BlockModificationMode,
@@ -10,19 +10,20 @@ export function findExteriorFaces(
 ): {
   meshFaces: Map<string, VoxelFaces>;
   previewFaces: Map<string, VoxelFaces>;
-} {
+} => {
   const exteriorFaces: Map<string, VoxelFaces> = new Map();
   const previewFaces: Map<string, VoxelFaces> = new Map();
 
-  const visitedSize =
-    (dimensions.xDim + 2) * (dimensions.yDim + 2) * (dimensions.zDim + 2);
-  const visited = new Uint8Array(visitedSize);
+  const { xDim, yDim, zDim } = dimensions;
+  const expandedXDim = xDim + 2;
+  const expandedYDim = yDim + 2;
+  const expandedZDim = zDim + 2;
+  const visitedSize = expandedXDim * expandedYDim * expandedZDim;
 
-  // Add a "queued" bit array to prevent duplicate enqueuing
+  const visited = new Uint8Array(visitedSize);
   const queued = new Uint8Array(visitedSize);
 
-  const expandedVolume = visitedSize;
-  const queueCapacity = Math.min(expandedVolume, 1000000); // Reasonable upper limit
+  const queueCapacity = Math.min(visitedSize, 1000000);
   const queueX = new Int16Array(queueCapacity);
   const queueY = new Int16Array(queueCapacity);
   const queueZ = new Int16Array(queueCapacity);
@@ -30,22 +31,11 @@ export function findExteriorFaces(
   let queueEnd = 0;
 
   const minX = -1;
-  const maxX = dimensions.xDim;
+  const maxX = xDim;
   const minY = -1;
-  const maxY = dimensions.yDim;
+  const maxY = yDim;
   const minZ = -1;
-  const maxZ = dimensions.zDim;
-
-  const isInVoxelBounds = (x: number, y: number, z: number): boolean => {
-    return (
-      x >= 0 &&
-      x < dimensions.xDim &&
-      y >= 0 &&
-      y < dimensions.yDim &&
-      z >= 0 &&
-      z < dimensions.zDim
-    );
-  };
+  const maxZ = zDim;
 
   const isInExplorationBounds = (x: number, y: number, z: number): boolean => {
     return (
@@ -54,7 +44,8 @@ export function findExteriorFaces(
   };
 
   const isSolid = (x: number, y: number, z: number): boolean => {
-    if (!isInVoxelBounds(x, y, z)) return false;
+    if (x < 0 || x >= xDim || y < 0 || y >= yDim || z < 0 || z >= zDim)
+      return false;
     return !!realBlocks[x]?.[y]?.[z];
   };
 
@@ -63,7 +54,8 @@ export function findExteriorFaces(
   };
 
   const getBlock = (x: number, y: number, z: number): BlockRun | undefined => {
-    if (!isInVoxelBounds(x, y, z)) return undefined;
+    if (x < 0 || x >= xDim || y < 0 || y >= yDim || z < 0 || z >= zDim)
+      return undefined;
     return realBlocks[x]?.[y]?.[z];
   };
 
@@ -72,18 +64,14 @@ export function findExteriorFaces(
     y: number,
     z: number
   ): MeshType | undefined => {
-    if (!isInVoxelBounds(x, y, z)) return undefined;
+    if (x < 0 || x >= xDim || y < 0 || y >= yDim || z < 0 || z >= zDim)
+      return undefined;
     return previewBlocks?.[x]?.[y]?.[z];
   };
 
   const getVisitedIndex = (x: number, y: number, z: number): number => {
-    const adjustedX = x + 1;
-    const adjustedY = y + 1;
-    const adjustedZ = z + 1;
     return (
-      adjustedX * (dimensions.yDim + 2) * (dimensions.zDim + 2) +
-      adjustedY * (dimensions.zDim + 2) +
-      adjustedZ
+      (x + 1) * expandedYDim * expandedZDim + (y + 1) * expandedZDim + (z + 1)
     );
   };
 
@@ -91,20 +79,13 @@ export function findExteriorFaces(
     return visited[getVisitedIndex(x, y, z)] === 1;
   };
 
-  const setVisited = (x: number, y: number, z: number): void => {
-    visited[getVisitedIndex(x, y, z)] = 1;
-  };
-
   const isQueued = (x: number, y: number, z: number): boolean => {
     return queued[getVisitedIndex(x, y, z)] === 1;
   };
 
-  const setQueued = (x: number, y: number, z: number): void => {
-    queued[getVisitedIndex(x, y, z)] = 1;
-  };
-
   const enqueue = (x: number, y: number, z: number): void => {
-    if (isQueued(x, y, z)) return;
+    const index = getVisitedIndex(x, y, z);
+    if (queued[index] === 1) return;
 
     if (queueEnd >= queueCapacity) {
       console.warn(
@@ -116,15 +97,11 @@ export function findExteriorFaces(
     queueX[queueEnd] = x;
     queueY[queueEnd] = y;
     queueZ[queueEnd] = z;
-    setQueued(x, y, z);
+    queued[index] = 1;
     queueEnd++;
   };
 
-  const dequeue = (): {
-    x: number;
-    y: number;
-    z: number;
-  } | null => {
+  const dequeue = (): { x: number; y: number; z: number } | null => {
     if (queueStart >= queueEnd) return null;
     const result = {
       x: queueX[queueStart],
@@ -146,8 +123,10 @@ export function findExteriorFaces(
     [0, 0, -1],
   ];
 
-  const borderSpacing = 4;
+  const isEraseMode = previewMode.tag === BlockModificationMode.Erase.tag;
+  const isBuildMode = previewMode.tag === BlockModificationMode.Build.tag;
 
+  const borderSpacing = 4;
   for (let x = minX; x <= maxX; x += borderSpacing) {
     for (let y = minY; y <= maxY; y += borderSpacing) {
       for (let z = minZ; z <= maxZ; z += borderSpacing) {
@@ -172,8 +151,9 @@ export function findExteriorFaces(
     if (!current) break;
 
     const { x, y, z } = current;
-    if (isVisited(x, y, z)) continue;
-    setVisited(x, y, z);
+    const visitedIndex = getVisitedIndex(x, y, z);
+    if (visited[visitedIndex] === 1) continue;
+    visited[visitedIndex] = 1;
 
     const sourceIsPreview = !!getPreviewBlock(x, y, z);
 
@@ -182,6 +162,7 @@ export function findExteriorFaces(
       const nx = x + dir[0];
       const ny = y + dir[1];
       const nz = z + dir[2];
+
       const previewBlock = getPreviewBlock(nx, ny, nz);
       const hasPreview = !!previewBlock;
       const block = getBlock(nx, ny, nz);
@@ -189,9 +170,7 @@ export function findExteriorFaces(
 
       if (
         isInExplorationBounds(nx, ny, nz) &&
-        (isAir(nx, ny, nz) ||
-          (previewMode.tag === BlockModificationMode.Erase.tag &&
-            hasPreview)) &&
+        (isAir(nx, ny, nz) || (isEraseMode && hasPreview)) &&
         !isVisited(nx, ny, nz) &&
         !isQueued(nx, ny, nz)
       ) {
@@ -199,11 +178,8 @@ export function findExteriorFaces(
       }
 
       const key = `${nx},${ny},${nz}`;
-      if (
-        hasReal &&
-        (previewMode.tag === BlockModificationMode.Build.tag || !hasPreview)
-      ) {
-        const blockColor = block?.color ? block.color : 0xffffff;
+      if (hasReal && (isBuildMode || !hasPreview)) {
+        const blockColor = block?.color || 0xffffff;
 
         if (!exteriorFaces.has(key)) {
           exteriorFaces.set(key, {
@@ -235,4 +211,4 @@ export function findExteriorFaces(
   }
 
   return { meshFaces: exteriorFaces, previewFaces };
-}
+};

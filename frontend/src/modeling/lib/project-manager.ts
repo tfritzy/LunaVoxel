@@ -71,7 +71,6 @@ export class ProjectManager {
   };
 
   onPreviewUpdate = () => {
-    console.log("update chunk mesh from preview");
     this.updateChunkMesh();
   };
 
@@ -86,7 +85,6 @@ export class ProjectManager {
     newRow: PlayerCursor
   ) => {
     if (newRow.projectId === this.project.id) {
-      console.log("Cursor updated:", newRow);
       this.cursorManager.updateFromDatabase(this.dbConn);
     }
   };
@@ -107,7 +105,6 @@ export class ProjectManager {
     if (!this.currentChunk) return;
 
     this.currentUpdateController = new AbortController();
-
     this.chunkMesh.update(
       this.currentChunk,
       this.builder.previewBlocks,
@@ -124,7 +121,6 @@ export class ProjectManager {
       this.currentUpdateController.abort();
       this.currentUpdateController = null;
     }
-
     this.builder.dispose();
     this.chunkMesh.dispose();
     this.cursorManager.dispose();

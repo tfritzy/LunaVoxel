@@ -290,7 +290,6 @@ export const Builder = class {
         }
       }
     }
-    this.onPreviewUpdate();
   }
 
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {

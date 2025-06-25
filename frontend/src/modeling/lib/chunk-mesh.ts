@@ -84,7 +84,6 @@ export class ChunkMesh {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.MeshLambertMaterial | null = null;
 
-  // Preview mesh properties
   private previewMesh: THREE.Mesh | null = null;
 
   private currentUpdateId: number = 0;
@@ -124,17 +123,18 @@ export class ChunkMesh {
     previewBlocks: (MeshType | undefined)[][][],
     buildMode: BlockModificationMode
   ): void {
+    const totalStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
     try {
       const realBlocks = this.decompressBlocks(newChunk.blocks);
-
       if (updateId !== this.currentUpdateId) {
         return;
       }
 
       this.cacheVersion++;
 
+      const faceFindingStartTime = performance.now();
       const { meshFaces, previewFaces } = findExteriorFaces(
         realBlocks,
         previewBlocks,
@@ -145,14 +145,28 @@ export class ChunkMesh {
           zDim: newChunk.zDim,
         }
       );
+      const faceFindingEndTime = performance.now();
 
       if (updateId !== this.currentUpdateId) {
         return;
       }
 
-      // Update both main mesh and preview mesh
+      const meshUpdateStartTime = performance.now();
       this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode);
       this.updatePreviewMesh(previewFaces, buildMode);
+      const meshUpdateEndTime = performance.now();
+
+      const totalEndTime = performance.now();
+
+      const faceFindingDuration = faceFindingEndTime - faceFindingStartTime;
+      const meshUpdateDuration = meshUpdateEndTime - meshUpdateStartTime;
+      const totalDuration = totalEndTime - totalStartTime;
+
+      console.log(`  
+        Find exterior faces: ${faceFindingDuration.toFixed(2)}ms,
+        Mesh update: ${meshUpdateDuration.toFixed(2)}ms,
+        Total update time: ${totalDuration.toFixed(2)}ms
+      `);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
