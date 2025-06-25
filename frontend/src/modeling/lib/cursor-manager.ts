@@ -1,12 +1,14 @@
 import * as THREE from "three";
 import { Vector3, DbConnection } from "../../module_bindings";
 import { Identity } from "@clockworklabs/spacetimedb-sdk";
+import { layers } from "./layers";
 
 export interface PlayerCursor {
   id: string;
   projectId: string;
   player: Identity;
   position: Vector3;
+  normal: Vector3;
 }
 
 export class CursorManager {
@@ -56,11 +58,24 @@ export class CursorManager {
       const existingMesh = this.cursors.get(cursor.id);
 
       if (existingMesh) {
-        existingMesh.position.set(
+        const newPosition = new THREE.Vector3(
           cursor.position.x,
           cursor.position.y,
           cursor.position.z
         );
+        const newNormal = new THREE.Vector3(
+          cursor.normal.x,
+          cursor.normal.y,
+          cursor.normal.z
+        );
+
+        if (
+          !existingMesh.position.equals(newPosition) ||
+          !this.getMeshNormal(existingMesh).equals(newNormal)
+        ) {
+          existingMesh.position.copy(newPosition);
+          this.orientCursorToNormal(existingMesh, cursor.normal);
+        }
       } else {
         this.createCursor(cursor);
       }
@@ -73,10 +88,16 @@ export class CursorManager {
     }
   }
 
-  private createCursor(cursor: PlayerCursor): void {
-    const geometry = new THREE.SphereGeometry(0.4, 8, 6);
+  private getMeshNormal(mesh: THREE.Mesh): THREE.Vector3 {
+    const direction = new THREE.Vector3();
+    mesh.getWorldDirection(direction);
+    return direction.negate();
+  }
 
-    const playerKey = cursor.player.toString();
+  private createCursor(cursor: PlayerCursor): void {
+    const geometry = new THREE.PlaneGeometry(1, 1);
+
+    const playerKey = cursor.player.toHexString();
     let color = this.playerColors.get(playerKey);
 
     if (!color) {
@@ -89,13 +110,41 @@ export class CursorManager {
       color: color,
       transparent: true,
       opacity: 0.8,
+      side: THREE.DoubleSide,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(cursor.position.x, cursor.position.y, cursor.position.z);
+    mesh.layers.set(layers.ghost);
+
+    this.orientCursorToNormal(mesh, cursor.normal);
 
     this.cursors.set(cursor.id, mesh);
     this.scene.add(mesh);
+  }
+
+  private orientCursorToNormal(mesh: THREE.Mesh, normal: Vector3): void {
+    const normalVector = new THREE.Vector3(normal.x, normal.y, normal.z);
+    normalVector.normalize();
+
+    const basePosition = new THREE.Vector3(
+      mesh.position.x,
+      mesh.position.y,
+      mesh.position.z
+    );
+
+    const offset = normalVector.clone().multiplyScalar(0.01);
+    mesh.position.copy(basePosition).add(offset);
+
+    const quaternion = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 0, 1);
+
+    if (Math.abs(normalVector.dot(up)) > 0.99) {
+      up.set(0, 1, 0);
+    }
+
+    quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normalVector);
+    mesh.setRotationFromQuaternion(quaternion);
   }
 
   private removeCursor(cursorId: string): void {

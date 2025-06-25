@@ -459,19 +459,19 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
-  updateCursorPos(projectId: string, identity: Identity, x: number, y: number, z: number) {
-    const __args = { projectId, identity, x, y, z };
+  updateCursorPos(projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) {
+    const __args = { projectId, identity, x, y, z, nx, ny, nz };
     let __writer = new BinaryWriter(1024);
     UpdateCursorPos.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateCursorPos", __argsBuffer, this.setCallReducerFlags.updateCursorPosFlags);
   }
 
-  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number) => void) {
+  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) => void) {
     this.connection.onReducer("UpdateCursorPos", callback);
   }
 
-  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number) => void) {
+  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) => void) {
     this.connection.offReducer("UpdateCursorPos", callback);
   }
 

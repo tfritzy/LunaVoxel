@@ -37,6 +37,9 @@ export type UpdateCursorPos = {
   x: number,
   y: number,
   z: number,
+  nx: number,
+  ny: number,
+  nz: number,
 };
 
 /**
@@ -54,6 +57,9 @@ export namespace UpdateCursorPos {
       new ProductTypeElement("x", AlgebraicType.createF32Type()),
       new ProductTypeElement("y", AlgebraicType.createF32Type()),
       new ProductTypeElement("z", AlgebraicType.createF32Type()),
+      new ProductTypeElement("nx", AlgebraicType.createF32Type()),
+      new ProductTypeElement("ny", AlgebraicType.createF32Type()),
+      new ProductTypeElement("nz", AlgebraicType.createF32Type()),
     ]);
   }
 

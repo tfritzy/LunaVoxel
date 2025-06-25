@@ -7,7 +7,7 @@ import {
   Vector3,
 } from "../../module_bindings";
 
-export class Builder {
+export const Builder = class {
   public previewBlocks: (MeshType | undefined)[][][];
   private dbConn: DbConnection;
   private projectId: string;
@@ -32,6 +32,9 @@ export class Builder {
   private boundMouseClick: (event: MouseEvent) => void;
   private boundMouseDown: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
+
+  private lastCursorUpdateTime: number = 0;
+  private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
 
   constructor(
     dbConn: DbConnection,
@@ -149,6 +152,26 @@ export class Builder {
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
+  private throttledUpdateCursorPos(
+    faceCenter: THREE.Vector3,
+    worldNormal: THREE.Vector3
+  ): void {
+    const now = Date.now();
+    if (now - this.lastCursorUpdateTime >= this.CURSOR_UPDATE_THROTTLE_MS) {
+      this.dbConn.reducers.updateCursorPos(
+        this.projectId,
+        this.dbConn.identity!,
+        faceCenter.x,
+        faceCenter.y,
+        faceCenter.z,
+        worldNormal.x,
+        worldNormal.y,
+        worldNormal.z
+      );
+      this.lastCursorUpdateTime = now;
+    }
+  }
+
   private checkIntersection(): THREE.Vector3 | null {
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects(
@@ -158,16 +181,35 @@ export class Builder {
 
     if (intersects.length > 0) {
       const intersection = intersects[0];
+      const intersectionPoint = intersection.point;
+      const face = intersection.face;
+      const gridPos = this.floorVector3(intersectionPoint.clone());
 
-      this.dbConn.reducers.updateCursorPos(
-        this.projectId,
-        this.dbConn.identity!,
-        intersection.point.x,
-        intersection.point.y,
-        intersection.point.z
-      );
+      if (face) {
+        const worldNormal = face.normal.clone();
+        worldNormal.transformDirection(intersection.object.matrixWorld);
+        worldNormal.normalize();
 
-      const gridPos = this.floorVector3(intersection.point);
+        const faceCenter = new THREE.Vector3(
+          gridPos.x + 0.5,
+          gridPos.y + 0.5,
+          gridPos.z + 0.5
+        );
+
+        const absNormal = new THREE.Vector3(
+          Math.abs(worldNormal.x),
+          Math.abs(worldNormal.y),
+          Math.abs(worldNormal.z)
+        );
+        if (absNormal.x > absNormal.y && absNormal.x > absNormal.z) {
+          faceCenter.x = gridPos.x + (worldNormal.x > 0 ? 1 : 0);
+        } else if (absNormal.y > absNormal.x && absNormal.y > absNormal.z) {
+          faceCenter.y = gridPos.y + (worldNormal.y > 0 ? 1 : 0);
+        } else {
+          faceCenter.z = gridPos.z + (worldNormal.z > 0 ? 1 : 0);
+        }
+        this.throttledUpdateCursorPos(faceCenter, worldNormal);
+      }
 
       if (intersection.object.userData.isBoundaryBox) {
         return gridPos;
@@ -178,13 +220,13 @@ export class Builder {
         ) {
           const normal = intersection.face?.normal.multiplyScalar(-0.1);
           if (normal) {
-            return this.floorVector3(gridPos.add(normal));
+            return this.floorVector3(intersectionPoint.add(normal));
           }
           return gridPos;
         } else {
           const normal = intersection.face?.normal.multiplyScalar(0.1);
           if (normal) {
-            return this.floorVector3(gridPos.add(normal));
+            return this.floorVector3(intersectionPoint.add(normal));
           }
           return gridPos;
         }
@@ -306,4 +348,4 @@ export class Builder {
   public dispose(): void {
     this.removeEventListeners();
   }
-}
+};

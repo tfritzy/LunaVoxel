@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 
-export function addGroundPlane(
+export const addGroundPlane = (
   scene: THREE.Scene,
   worldXDim: number,
   worldYDim: number,
   worldZDim: number
-) {
+) => {
   const invisibleBoxGeometry = new THREE.BoxGeometry(
     worldXDim,
     worldZDim,
@@ -46,25 +46,23 @@ export function addGroundPlane(
     scene.add(gridLines);
   }
 
-  // const axisArrows = createOptimizedAxisArrows(
-  //   scene,
-  //   worldXDim,
-  //   worldYDim,
-  //   worldZDim
-  // );
+  const axisArrows = createAxisArrows(worldXDim, worldYDim);
+  if (axisArrows) {
+    scene.add(axisArrows);
+  }
 
   return {
     invisibleBox,
     wireframeBox,
-    axisArrows: undefined,
+    axisArrows,
   };
-}
+};
 
-function createWireframeBox(
+const createWireframeBox = (
   worldXDim: number,
   worldYDim: number,
   worldZDim: number
-): THREE.LineSegments | null {
+): THREE.LineSegments | null => {
   const wireframeGeometry = new THREE.BoxGeometry(
     worldXDim,
     worldZDim,
@@ -80,51 +78,44 @@ function createWireframeBox(
   wireframeBox.layers.set(layers.ghost);
   wireframeGeometry.dispose();
   return wireframeBox;
-}
+};
 
-function createOptimizedGridLines(
+const createOptimizedGridLines = (
   worldXDim: number,
   worldYDim: number
-): THREE.LineSegments | null {
+): THREE.LineSegments | null => {
   const positions: number[] = [];
   const colors: number[] = [];
   const lineYPosition = 0.001;
 
-  // Color definitions for different line weights
   const lightColor = new THREE.Color(0x333333);
   const mediumColor = new THREE.Color(0x444444);
   const heavyColor = new THREE.Color(0x555555);
   const majorColor = new THREE.Color(0x666666);
 
-  function getLineColor(index: number): THREE.Color {
+  const getLineColor = (index: number): THREE.Color => {
     if (index % 20 === 0) return majorColor;
     if (index % 4 === 0) return heavyColor;
     if (index % 2 === 0) return mediumColor;
     return lightColor;
-  }
+  };
 
-  // Vertical grid lines (parallel to Z-axis)
   for (let i = 0; i <= worldXDim; i++) {
     const color = getLineColor(i);
 
-    // Start point
     positions.push(i, lineYPosition, 0);
     colors.push(color.r, color.g, color.b);
 
-    // End point
     positions.push(i, lineYPosition, worldYDim);
     colors.push(color.r, color.g, color.b);
   }
 
-  // Horizontal grid lines (parallel to X-axis)
   for (let i = 0; i <= worldYDim; i++) {
     const color = getLineColor(i);
 
-    // Start point
     positions.push(0, lineYPosition, i);
     colors.push(color.r, color.g, color.b);
 
-    // End point
     positions.push(worldXDim, lineYPosition, i);
     colors.push(color.r, color.g, color.b);
   }
@@ -150,4 +141,72 @@ function createOptimizedGridLines(
   gridLines.layers.set(layers.ghost);
 
   return gridLines;
-}
+};
+
+const createAxisArrows = (
+  worldXDim: number,
+  worldYDim: number
+): THREE.Group | null => {
+  const arrowLength = Math.max(1, Math.min(worldXDim, worldYDim) * 0.1);
+  const arrowHeadLength = arrowLength * 0.2;
+  const arrowHeadWidth = arrowLength * 0.1;
+  const shaftRadius = arrowLength * 0.02;
+  const arrowYPosition = 0.01;
+
+  const arrowGroup = new THREE.Group();
+
+  const createArrow = (
+    color: number,
+    direction: THREE.Vector3
+  ): THREE.Group => {
+    const arrow = new THREE.Group();
+
+    const shaftGeometry = new THREE.CylinderGeometry(
+      shaftRadius,
+      shaftRadius,
+      arrowLength - arrowHeadLength,
+      8
+    );
+    const shaftMaterial = new THREE.MeshBasicMaterial({ color });
+    const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+    shaft.position.copy(
+      direction.clone().multiplyScalar((arrowLength - arrowHeadLength) / 2)
+    );
+
+    const headGeometry = new THREE.ConeGeometry(
+      arrowHeadWidth,
+      arrowHeadLength,
+      8
+    );
+    const headMaterial = new THREE.MeshBasicMaterial({ color });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.copy(
+      direction.clone().multiplyScalar(arrowLength - arrowHeadLength / 2)
+    );
+
+    if (direction.x !== 0) {
+      shaft.rotation.z = direction.x > 0 ? -Math.PI / 2 : Math.PI / 2;
+      head.rotation.z = direction.x > 0 ? -Math.PI / 2 : Math.PI / 2;
+    } else if (direction.z !== 0) {
+      shaft.rotation.x = direction.z > 0 ? Math.PI / 2 : -Math.PI / 2;
+      head.rotation.x = direction.z > 0 ? Math.PI / 2 : -Math.PI / 2;
+    }
+
+    arrow.add(shaft);
+    arrow.add(head);
+    arrow.layers.set(layers.ghost);
+
+    return arrow;
+  };
+
+  const xArrow = createArrow(0xff0000, new THREE.Vector3(1, 0, 0));
+  xArrow.position.set(0, arrowYPosition, 0);
+
+  const zArrow = createArrow(0x0000ff, new THREE.Vector3(0, 0, 1));
+  zArrow.position.set(0, arrowYPosition, 0);
+
+  arrowGroup.add(xArrow);
+  arrowGroup.add(zArrow);
+
+  return arrowGroup;
+};

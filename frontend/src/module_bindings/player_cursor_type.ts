@@ -37,6 +37,7 @@ export type PlayerCursor = {
   projectId: string,
   player: Identity,
   position: __Vector3Float,
+  normal: __Vector3Float,
 };
 
 /**
@@ -53,6 +54,7 @@ export namespace PlayerCursor {
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("player", AlgebraicType.createIdentityType()),
       new ProductTypeElement("position", __Vector3Float.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("normal", __Vector3Float.getTypeScriptAlgebraicType()),
     ]);
   }
 

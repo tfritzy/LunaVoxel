@@ -83,6 +83,7 @@ public static partial class Module
         public string ProjectId;
         public Identity Player;
         public Vector3Float Position;
+        public Vector3Float Normal;
     }
 
     [Table(Name = "chunk", Public = true)]
