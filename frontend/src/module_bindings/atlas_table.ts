@@ -30,23 +30,23 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { ColorPalette } from "./color_palette_type";
+import { Atlas } from "./atlas_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `color_palette`.
+ * Table handle for the table `atlas`.
  *
- * Obtain a handle from the [`colorPalette`] property on [`RemoteTables`],
- * like `ctx.db.colorPalette`.
+ * Obtain a handle from the [`atlas`] property on [`RemoteTables`],
+ * like `ctx.db.atlas`.
  *
  * Users are encouraged not to explicitly reference this type,
  * but to directly chain method calls,
- * like `ctx.db.colorPalette.on_insert(...)`.
+ * like `ctx.db.atlas.on_insert(...)`.
  */
-export class ColorPaletteTableHandle {
-  tableCache: TableCache<ColorPalette>;
+export class AtlasTableHandle {
+  tableCache: TableCache<Atlas>;
 
-  constructor(tableCache: TableCache<ColorPalette>) {
+  constructor(tableCache: TableCache<Atlas>) {
     this.tableCache = tableCache;
   }
 
@@ -54,24 +54,24 @@ export class ColorPaletteTableHandle {
     return this.tableCache.count();
   }
 
-  iter(): Iterable<ColorPalette> {
+  iter(): Iterable<Atlas> {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `projectId` unique index on the table `color_palette`,
+   * Access to the `projectId` unique index on the table `atlas`,
    * which allows point queries on the field of the same name
-   * via the [`ColorPaletteProjectIdUnique.find`] method.
+   * via the [`AtlasProjectIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.colorPalette.projectId().find(...)`.
+   * like `ctx.db.atlas.projectId().find(...)`.
    *
-   * Get a handle on the `projectId` unique index on the table `color_palette`.
+   * Get a handle on the `projectId` unique index on the table `atlas`.
    */
   projectId = {
     // Find the subscribed row whose `projectId` column value is equal to `col_val`,
     // if such a row is present in the client cache.
-    find: (col_val: string): ColorPalette | undefined => {
+    find: (col_val: string): Atlas | undefined => {
       for (let row of this.tableCache.iter()) {
         if (deepEqual(row.projectId, col_val)) {
           return row;
@@ -80,27 +80,27 @@ export class ColorPaletteTableHandle {
     },
   };
 
-  onInsert = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
+  onInsert = (cb: (ctx: EventContext, row: Atlas) => void) => {
     return this.tableCache.onInsert(cb);
   }
 
-  removeOnInsert = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
+  removeOnInsert = (cb: (ctx: EventContext, row: Atlas) => void) => {
     return this.tableCache.removeOnInsert(cb);
   }
 
-  onDelete = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
+  onDelete = (cb: (ctx: EventContext, row: Atlas) => void) => {
     return this.tableCache.onDelete(cb);
   }
 
-  removeOnDelete = (cb: (ctx: EventContext, row: ColorPalette) => void) => {
+  removeOnDelete = (cb: (ctx: EventContext, row: Atlas) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
 
   // Updates are only defined for tables with primary keys.
-  onUpdate = (cb: (ctx: EventContext, oldRow: ColorPalette, newRow: ColorPalette) => void) => {
+  onUpdate = (cb: (ctx: EventContext, oldRow: Atlas, newRow: Atlas) => void) => {
     return this.tableCache.onUpdate(cb);
   }
 
-  removeOnUpdate = (cb: (ctx: EventContext, onRow: ColorPalette, newRow: ColorPalette) => void) => {
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: Atlas, newRow: Atlas) => void) => {
     return this.tableCache.removeOnUpdate(cb);
   }}

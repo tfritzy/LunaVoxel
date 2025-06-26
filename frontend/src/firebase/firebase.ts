@@ -24,6 +24,7 @@ const googleProvider = new GoogleAuthProvider();
 if (import.meta.env.DEV) {
   try {
     connectFunctionsEmulator(functions, "localhost", 5001);
+    connectStorageEmulator(Storage, "localhost", 9199);
     console.log("Connected to Functions emulator");
   } catch {
     console.log("Functions emulator already connected or not available");
@@ -60,3 +61,6 @@ export const signOut = async () => {
 };
 
 export { auth, functions, app };
+function connectStorageEmulator(storage: any, arg1: string, arg2: number) {
+  throw new Error("Function not implemented.");
+}

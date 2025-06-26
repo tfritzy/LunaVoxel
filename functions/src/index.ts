@@ -4,16 +4,26 @@ import { onCall, onRequest } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
+import { updateAtlas } from "./update-atlas";
 
 setGlobalOptions({ region: "us-central1" });
 
-initializeApp();
+export const adminApp = initializeApp();
 
-const spacetimeUrl = defineString("SPACETIME_URL", {
+if (process.env.FUNCTIONS_EMULATOR === "true") {
+  process.env.FIREBASE_STORAGE_EMULATOR_HOST = "localhost:9199";
+  console.log("Functions running in emulator mode");
+}
+
+setGlobalOptions({
+  region: "us-central1",
+});
+
+export const spacetimeUrl = defineString("SPACETIME_URL", {
   default: "localhost:3000",
 });
 
-const hostSpacetimeToken = defineString("SPACETIME_TOKEN", {
+export const hostSpacetimeToken = defineString("SPACETIME_TOKEN", {
   default: "",
 });
 
@@ -29,7 +39,7 @@ interface SyncUserResponse {
   error?: string;
 }
 
-const validateSpacetimeIdentity = async (
+export const validateSpacetimeIdentity = async (
   identity: string,
   token: string
 ): Promise<boolean> => {
@@ -153,3 +163,5 @@ export const syncUser = onCall<SyncUserRequest, Promise<SyncUserResponse>>(
 export const healthCheck = onRequest((req, res) => {
   res.status(200).send("Functions are running!");
 });
+
+export { updateAtlas };

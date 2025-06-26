@@ -73,6 +73,16 @@ public static partial class Module
         public int[] Colors = [];
     }
 
+
+    [Table(Name = "atlas", Public = true)]
+    public partial class Atlas
+    {
+        [PrimaryKey]
+        public string ProjectId;
+        public int[] Colors = [];
+        public int Version;
+    }
+
     [Table(Name = "player_cursor", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "player_cursor_project", Columns = new[] { nameof(ProjectId) })]
     [SpacetimeDB.Index.BTree(Name = "player_cursor_project_player", Columns = new[] { nameof(ProjectId), nameof(Player) })]

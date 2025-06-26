@@ -60,12 +60,16 @@ import { ReplacePalette } from "./replace_palette_reducer.ts";
 export { ReplacePalette };
 import { SyncUser } from "./sync_user_reducer.ts";
 export { SyncUser };
+import { UpdateAtlas } from "./update_atlas_reducer.ts";
+export { UpdateAtlas };
 import { UpdateCursorPos } from "./update_cursor_pos_reducer.ts";
 export { UpdateCursorPos };
 import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
 // Import and reexport all table handle types
+import { AtlasTableHandle } from "./atlas_table.ts";
+export { AtlasTableHandle };
 import { ChunkTableHandle } from "./chunk_table.ts";
 export { ChunkTableHandle };
 import { ColorPaletteTableHandle } from "./color_palette_table.ts";
@@ -82,6 +86,8 @@ export { UserProjectsTableHandle };
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
 export { AccessType };
+import { Atlas } from "./atlas_type.ts";
+export { Atlas };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
 import { BlockRun } from "./block_run_type.ts";
@@ -107,6 +113,11 @@ export { Vector3Float };
 
 const REMOTE_MODULE = {
   tables: {
+    atlas: {
+      tableName: "atlas",
+      rowType: Atlas.getTypeScriptAlgebraicType(),
+      primaryKey: "projectId",
+    },
     chunk: {
       tableName: "chunk",
       rowType: Chunk.getTypeScriptAlgebraicType(),
@@ -195,6 +206,10 @@ const REMOTE_MODULE = {
       reducerName: "SyncUser",
       argsType: SyncUser.getTypeScriptAlgebraicType(),
     },
+    UpdateAtlas: {
+      reducerName: "UpdateAtlas",
+      argsType: UpdateAtlas.getTypeScriptAlgebraicType(),
+    },
     UpdateCursorPos: {
       reducerName: "UpdateCursorPos",
       argsType: UpdateCursorPos.getTypeScriptAlgebraicType(),
@@ -244,6 +259,7 @@ export type Reducer = never
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SyncUser", args: SyncUser }
+| { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
 | { name: "UpdateProjectName", args: UpdateProjectName }
 ;
@@ -459,6 +475,22 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
+  updateAtlas(projectId: string, index: number, color: number, incrementVersion: boolean) {
+    const __args = { projectId, index, color, incrementVersion };
+    let __writer = new BinaryWriter(1024);
+    UpdateAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("UpdateAtlas", __argsBuffer, this.setCallReducerFlags.updateAtlasFlags);
+  }
+
+  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean) => void) {
+    this.connection.onReducer("UpdateAtlas", callback);
+  }
+
+  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean) => void) {
+    this.connection.offReducer("UpdateAtlas", callback);
+  }
+
   updateCursorPos(projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) {
     const __args = { projectId, identity, x, y, z, nx, ny, nz };
     let __writer = new BinaryWriter(1024);
@@ -554,6 +586,11 @@ export class SetReducerFlags {
     this.syncUserFlags = flags;
   }
 
+  updateAtlasFlags: CallReducerFlags = 'FullUpdate';
+  updateAtlas(flags: CallReducerFlags) {
+    this.updateAtlasFlags = flags;
+  }
+
   updateCursorPosFlags: CallReducerFlags = 'FullUpdate';
   updateCursorPos(flags: CallReducerFlags) {
     this.updateCursorPosFlags = flags;
@@ -568,6 +605,10 @@ export class SetReducerFlags {
 
 export class RemoteTables {
   constructor(private connection: DbConnectionImpl) {}
+
+  get atlas(): AtlasTableHandle {
+    return new AtlasTableHandle(this.connection.clientCache.getOrCreateTable<Atlas>(REMOTE_MODULE.tables.atlas));
+  }
 
   get chunk(): ChunkTableHandle {
     return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.chunk));

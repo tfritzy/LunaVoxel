@@ -8,6 +8,7 @@ import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
+import { AtlasSlotModal } from "@/components/custom/AtlasSlotModal";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -142,6 +143,16 @@ export const ProjectViewPage = () => {
             />
           )}
         </div>
+
+        <AtlasSlotModal
+          isOpen
+          onClose={function (): void {
+            throw new Error("Function not implemented.");
+          }}
+          projectId={projectId!}
+          index={0}
+          cellSize={16}
+        />
       </div>
     </div>
   );
