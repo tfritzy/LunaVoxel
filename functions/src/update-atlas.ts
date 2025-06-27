@@ -9,46 +9,69 @@ interface UpdateAtlasRequest {
   index: number;
   texture: string;
   tint: string;
+  cellSize: number;
 }
 
 interface UpdateAtlasResponse {
   error?: string;
 }
-
 export const updateAtlas = onCall<
   UpdateAtlasRequest,
   Promise<UpdateAtlasResponse>
 >(async (request) => {
-  const { projectId, index, texture, tint } = request.data;
+  const { projectId, index, texture, tint, cellSize } = request.data;
 
   const bucket = getStorage(adminApp).bucket();
   const atlasFile = bucket.file(`atlases/${projectId}.png`);
 
   let existingAtlas: Buffer | null = null;
-  let currentDimensions = 0;
+  let currentGridSize = 0;
 
   const [exists] = await atlasFile.exists();
   if (exists) {
     const [buffer] = await atlasFile.download();
     existingAtlas = buffer;
     const image = await loadImage(buffer);
-    currentDimensions = image.width;
+    currentGridSize = image.width / cellSize;
   }
 
-  const currentSlots =
-    currentDimensions > 0
-      ? Math.pow(currentDimensions / Math.sqrt(currentDimensions), 2)
-      : 0;
+  const currentSlots = currentGridSize * currentGridSize;
   const requiredSlots = Math.max(currentSlots, index + 1);
   const newGridSize = Math.ceil(Math.sqrt(requiredSlots));
-  const cellSize =
-    currentDimensions > 0 ? currentDimensions / Math.sqrt(currentSlots) : 64;
   const newDimensions = newGridSize * cellSize;
 
   const canvas = createCanvas(newDimensions, newDimensions);
   const ctx = canvas.getContext("2d");
 
-  if (existingAtlas) {
+  if (existingAtlas && currentGridSize !== newGridSize) {
+    const existingImage = await loadImage(existingAtlas);
+
+    // Copy each existing cell to its correct position in the new grid
+    for (let i = 0; i < currentSlots; i++) {
+      const oldCol = i % currentGridSize;
+      const oldRow = Math.floor(i / currentGridSize);
+      const oldX = oldCol * cellSize;
+      const oldY = oldRow * cellSize;
+
+      const newCol = i % newGridSize;
+      const newRow = Math.floor(i / newGridSize);
+      const newX = newCol * cellSize;
+      const newY = newRow * cellSize;
+
+      // Extract the cell from old position and draw to new position
+      ctx.drawImage(
+        existingImage,
+        oldX,
+        oldY,
+        cellSize,
+        cellSize,
+        newX,
+        newY,
+        cellSize,
+        cellSize
+      );
+    }
+  } else if (existingAtlas) {
     const existingImage = await loadImage(existingAtlas);
     ctx.drawImage(existingImage, 0, 0);
   }

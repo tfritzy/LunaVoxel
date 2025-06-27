@@ -136,17 +136,18 @@ export const AtlasSlotModal = ({
         textureBase64 = await fileToBase64(values.texture);
       }
 
-      let tintValue = "";
+      let tintValue = 0;
       if (values.color) {
         const rgb = hexToRgb(values.color);
-        tintValue = rgbToInt(rgb.r, rgb.g, rgb.b).toString();
+        tintValue = rgbToInt(rgb.r, rgb.g, rgb.b);
       }
 
       await updateAtlas({
         projectId,
-        index,
+        index: 1020,
         texture: textureBase64,
         tint: tintValue,
+        cellSize,
       });
 
       onClose();

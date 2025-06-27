@@ -11,5 +11,6 @@ public static partial class Module
         ctx.Db.user_projects.Insert(UserProject.Build(ctx.Sender, project.Id, AccessType.ReadWrite, user.Email));
         ctx.Db.chunk.Insert(Chunk.Build(project.Id, xDim, yDim, zDim, 0));
         InitializePalette(ctx, project.Id);
+        InitializeAtlas(ctx, project.Id);
     }
 }

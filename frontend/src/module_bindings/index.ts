@@ -44,6 +44,8 @@ import { ClientDisconnected } from "./client_disconnected_reducer.ts";
 export { ClientDisconnected };
 import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
+import { InitializeAtlas } from "./initialize_atlas_reducer.ts";
+export { InitializeAtlas };
 import { InitializePalette } from "./initialize_palette_reducer.ts";
 export { InitializePalette };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
@@ -174,6 +176,10 @@ const REMOTE_MODULE = {
       reducerName: "CreateProject",
       argsType: CreateProject.getTypeScriptAlgebraicType(),
     },
+    InitializeAtlas: {
+      reducerName: "InitializeAtlas",
+      argsType: InitializeAtlas.getTypeScriptAlgebraicType(),
+    },
     InitializePalette: {
       reducerName: "InitializePalette",
       argsType: InitializePalette.getTypeScriptAlgebraicType(),
@@ -251,6 +257,7 @@ export type Reducer = never
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
+| { name: "InitializeAtlas", args: InitializeAtlas }
 | { name: "InitializePalette", args: InitializePalette }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
@@ -345,6 +352,22 @@ export class RemoteReducers {
 
   removeOnCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
     this.connection.offReducer("CreateProject", callback);
+  }
+
+  initializeAtlas(projectId: string) {
+    const __args = { projectId };
+    let __writer = new BinaryWriter(1024);
+    InitializeAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("InitializeAtlas", __argsBuffer, this.setCallReducerFlags.initializeAtlasFlags);
+  }
+
+  onInitializeAtlas(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("InitializeAtlas", callback);
+  }
+
+  removeOnInitializeAtlas(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("InitializeAtlas", callback);
   }
 
   initializePalette(projectId: string) {
@@ -544,6 +567,11 @@ export class SetReducerFlags {
   createProjectFlags: CallReducerFlags = 'FullUpdate';
   createProject(flags: CallReducerFlags) {
     this.createProjectFlags = flags;
+  }
+
+  initializeAtlasFlags: CallReducerFlags = 'FullUpdate';
+  initializeAtlas(flags: CallReducerFlags) {
+    this.initializeAtlasFlags = flags;
   }
 
   initializePaletteFlags: CallReducerFlags = 'FullUpdate';
