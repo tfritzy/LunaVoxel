@@ -78,17 +78,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
       canvas.width = cellSize;
       canvas.height = cellSize;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(
-        image,
-        x,
-        y,
-        cellSize,
-        cellSize,
-        0,
-        0,
-        cellSize,
-        cellSize
-      );
+      ctx.drawImage(image, x, y, cellSize, cellSize, 0, 0, cellSize, cellSize);
 
       const imageData = ctx.getImageData(0, 0, cellSize, cellSize);
       const isEmpty = imageData.data.every((value, index) =>
@@ -147,7 +137,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        const atlasRow = connection.db.atlas.projectId.find(projectId);
+        const atlasRow = connection.db.atlas.project_id.find(projectId);
         if (atlasRow) {
           setAtlas(atlasRow);
           if (atlasRow.version !== lastVersionRef.current) {

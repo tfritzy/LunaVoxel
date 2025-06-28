@@ -2,7 +2,7 @@ Generate Types
 spacetime generate --lang typescript --out-dir frontend/src/module_bindings --project-path lunavoxel/server
 
 Query table
-spacetime sql lunavoxel "SELECT * from user_projects"
+spacetime sql lunavoxel "SELECT * from atlas"
 
 Publish
 spacetime publish --project-path lunavoxel/server lunavoxel

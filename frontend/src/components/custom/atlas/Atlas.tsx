@@ -41,7 +41,7 @@ export const Atlas = ({ projectId }: AtlasProps) => {
   return (
     <div className="p-4">
       <div
-        className="grid gap-2 w-fit"
+        className="grid w-fit"
         style={{
           gridTemplateColumns: `repeat(${slotsPerRow}, ${slotSize}px)`,
         }}

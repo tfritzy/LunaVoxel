@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Input } from "@/components/ui/input";
-import { X, Upload, Palette } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -57,57 +56,54 @@ const CubePreview = ({
     cube: THREE.Mesh;
     material: THREE.MeshLambertMaterial;
   } | null>(null);
+  const lastTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!mountRef.current) return;
-
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a1a);
-
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     const containerWidth = mountRef.current.clientWidth;
     const width = containerWidth;
     const height = width * 0.7;
     const aspectRatio = width / height;
-
     const camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
     camera.position.set(1, 0.75, 1);
     camera.lookAt(0, -0.1, 0);
-
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
     const ambientLight = new THREE.AmbientLight(0x404040, 1);
     scene.add(ambientLight);
-
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
     directionalLight.position.set(5, 5, 5);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
-
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshLambertMaterial({ color: color });
-
     const cube = new THREE.Mesh(geometry, material);
     cube.castShadow = true;
     scene.add(cube);
-
     mountRef.current.appendChild(renderer.domElement);
-
     sceneRef.current = { scene, camera, renderer, cube, material };
+    lastTimeRef.current = performance.now();
 
-    const animate = () => {
+    const animate = (currentTime: number) => {
       if (!sceneRef.current) return;
       requestAnimationFrame(animate);
-      sceneRef.current.cube.rotation.y += 0.001;
+
+      const deltaTime = currentTime - lastTimeRef.current;
+      lastTimeRef.current = currentTime;
+
+      const rotationSpeed = 0.001;
+      sceneRef.current.cube.rotation.y += rotationSpeed * deltaTime;
+
       sceneRef.current.renderer.render(
         sceneRef.current.scene,
         sceneRef.current.camera
       );
     };
-    animate();
-
+    animate(performance.now());
     return () => {
       if (sceneRef.current) {
         mountRef.current?.removeChild(sceneRef.current.renderer.domElement);
@@ -115,15 +111,12 @@ const CubePreview = ({
       }
     };
   }, []);
-
   useEffect(() => {
     if (!sceneRef.current) return;
     sceneRef.current.material.color.setHex(color);
   }, [color]);
-
   useEffect(() => {
     if (!sceneRef.current) return;
-
     if (texture) {
       const canvas = document.createElement("canvas");
       canvas.width = texture.width;
@@ -142,7 +135,6 @@ const CubePreview = ({
       sceneRef.current.material.needsUpdate = true;
     }
   }, [texture]);
-
   return (
     <div
       ref={mountRef}
@@ -177,16 +169,23 @@ const TextureDropZone = ({
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = cellSize;
-      canvas.height = cellSize;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         onError("Failed to get canvas context");
         return;
       }
 
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, cellSize, cellSize);
+      if (cellSize === -1) {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      } else {
+        canvas.width = cellSize;
+        canvas.height = cellSize;
+        ctx.drawImage(img, 0, 0, cellSize, cellSize);
+      }
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       onImageData(imageData);
     };
     img.onerror = () => {
@@ -301,7 +300,9 @@ const TextureDropZone = ({
               Drop texture here
             </p>
             <p className="text-xs text-muted-foreground text-center">
-              {cellSize}x{cellSize} pixels
+              {cellSize > 0
+                ? `${cellSize}x${cellSize} pixels`
+                : "Any square size"}
             </p>
           </>
         )}
@@ -366,6 +367,8 @@ export const AtlasSlotModal = ({
       const updateAtlas = httpsCallable(functions, "updateAtlas");
 
       let textureBase64 = "";
+      let actualCellSize = cellSize;
+
       if (selectedImageData) {
         const canvas = document.createElement("canvas");
         canvas.width = selectedImageData.width;
@@ -375,6 +378,10 @@ export const AtlasSlotModal = ({
           ctx.putImageData(selectedImageData, 0, 0);
           textureBase64 = canvas.toDataURL("image/png").split(",")[1];
         }
+
+        if (cellSize === -1) {
+          actualCellSize = selectedImageData.width;
+        }
       }
 
       await updateAtlas({
@@ -382,7 +389,7 @@ export const AtlasSlotModal = ({
         index,
         texture: textureBase64,
         tint: selectedColor,
-        cellSize,
+        cellSize: actualCellSize,
       });
 
       onClose();
@@ -406,7 +413,7 @@ export const AtlasSlotModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="bg-card rounded-xs shadow-lg p-6 w-full max-w-lg">
+      <div className="bg-card rounded shadow-lg p-6 w-full max-w-lg border border-border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Edit Atlas Slot {index}</h2>
           <Button onClick={handleClose} variant="ghost" size="sm">
@@ -418,19 +425,29 @@ export const AtlasSlotModal = ({
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="flex flex-row space-x-4">
-            <HexColorPicker
-              color={intToHex(selectedColor)}
-              onChange={handleColorChange}
-              style={{ width: "150px", height: "175px" }}
-            />
+            <div>
+              <div className="w-full text-center mb-1 text-sm text-muted-foreground">
+                Color
+              </div>
+              <HexColorPicker
+                color={intToHex(selectedColor)}
+                onChange={handleColorChange}
+                style={{ width: "150px", height: "150px" }}
+              />
+            </div>
 
-            <TextureDropZone
-              onImageData={handleImageData}
-              onError={setFileError}
-              cellSize={cellSize}
-              imageData={selectedImageData}
-              error={fileError}
-            />
+            <div>
+              <div className="w-full text-center mb-1 text-sm text-muted-foreground">
+                Texture
+              </div>
+              <TextureDropZone
+                onImageData={handleImageData}
+                onError={setFileError}
+                cellSize={cellSize}
+                imageData={selectedImageData}
+                error={fileError}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2">

@@ -67,7 +67,7 @@ export const AtlasSlot = ({
       className={`
         relative cursor-pointer transition-all duration-150
         ${isHovered ? "scale-110 z-10" : "scale-100"}
-        hover:shadow-lg
+        hover:shadow-lg border border-black
       `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -75,7 +75,7 @@ export const AtlasSlot = ({
     >
       <canvas
         ref={canvasRef}
-        className="rounded-xs transition-all duration-150"
+        className="transition-all duration-150 border border-white"
         style={{
           width: `${displaySize}px`,
           height: `${displaySize}px`,
