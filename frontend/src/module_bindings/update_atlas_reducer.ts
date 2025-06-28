@@ -36,6 +36,7 @@ export type UpdateAtlas = {
   index: number,
   color: number,
   incrementVersion: boolean,
+  cellSize: number,
 };
 
 /**
@@ -52,6 +53,7 @@ export namespace UpdateAtlas {
       new ProductTypeElement("index", AlgebraicType.createI32Type()),
       new ProductTypeElement("color", AlgebraicType.createI32Type()),
       new ProductTypeElement("incrementVersion", AlgebraicType.createBoolType()),
+      new ProductTypeElement("cellSize", AlgebraicType.createI32Type()),
     ]);
   }
 

@@ -2,13 +2,12 @@ import { useRef, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { ColorPalette } from "@/components/custom/ColorPalette";
 import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
 import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
-import { AtlasSlotModal } from "@/components/custom/AtlasSlotModal";
+import { Atlas } from "@/components/custom/atlas/Atlas";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -106,7 +105,7 @@ export const ProjectViewPage = () => {
       <ProjectHeader />
       <div className="h-full flex">
         {!chunksLoading && !cursorsLoading && !error && projectId && (
-          <ColorPalette projectId={projectId} />
+          <Atlas projectId={projectId} />
         )}
 
         <div className="flex-1 relative">
@@ -143,16 +142,6 @@ export const ProjectViewPage = () => {
             />
           )}
         </div>
-
-        <AtlasSlotModal
-          isOpen
-          onClose={function (): void {
-            throw new Error("Function not implemented.");
-          }}
-          projectId={projectId!}
-          index={0}
-          cellSize={16}
-        />
       </div>
     </div>
   );

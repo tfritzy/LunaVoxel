@@ -21,6 +21,27 @@ export const updateAtlas = onCall<
 >(async (request) => {
   const { projectId, index, texture, tint, cellSize } = request.data;
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const spacetimeHost = spacetimeUrl.value();
+  const isDev = spacetimeHost.includes("localhost");
+  const protocol = isDev ? "http" : "https";
+  const response = await fetch(
+    `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/UpdateAtlas`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify([projectId, index, tint, true, cellSize]),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    logger.error("SpacetimeDB update atlas failed:", errorText);
+    throw new Error(`SpacetimeDB error: ${response.status} ${errorText}`);
+  }
+
   const bucket = getStorage(adminApp).bucket();
   const atlasFile = bucket.file(`atlases/${projectId}.png`);
 
@@ -92,27 +113,6 @@ export const updateAtlas = onCall<
       contentType: "image/png",
     },
   });
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  const spacetimeHost = spacetimeUrl.value();
-  const isDev = spacetimeHost.includes("localhost");
-  const protocol = isDev ? "http" : "https";
-  const response = await fetch(
-    `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/UpdateAtlas`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify([projectId, index, tint, true]),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    logger.error("SpacetimeDB sync failed:", errorText);
-    throw new Error(`SpacetimeDB error: ${response.status} ${errorText}`);
-  }
 
   return { error: undefined };
 });

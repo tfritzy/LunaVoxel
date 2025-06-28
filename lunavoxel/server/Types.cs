@@ -73,7 +73,6 @@ public static partial class Module
         public int[] Colors = [];
     }
 
-
     [Table(Name = "atlas", Public = true)]
     public partial class Atlas
     {
@@ -81,6 +80,7 @@ public static partial class Module
         public string ProjectId;
         public int[] Colors = [];
         public int Version;
+        public int CellSize = -1;
     }
 
     [Table(Name = "player_cursor", Public = true)]

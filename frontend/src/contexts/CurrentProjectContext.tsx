@@ -1,13 +1,15 @@
-import { ColorPalette, EventContext, Project } from "@/module_bindings";
+import { Atlas, EventContext, Project } from "@/module_bindings";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useDatabase } from "./DatabaseContext";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
+import { AtlasSlot, useAtlas } from "@/lib/useAtlas";
 
 interface CurrentProjectContextType {
   project: Project;
-  palette: ColorPalette;
+  atlas: Atlas;
+  atlasSlots: AtlasSlot[];
   selectedColor: number;
   setSelectedColor: (color: number) => void;
   projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
@@ -115,7 +117,6 @@ export const CurrentProjectProvider = ({
   children: React.ReactNode;
 }) => {
   const [project, setProject] = useState<Project | null>(null);
-  const [palette, setPalette] = useState<ColorPalette | null>(null);
   const { connection } = useDatabase();
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedColor, setSelectedColor] = React.useState<number>(0);
@@ -123,12 +124,12 @@ export const CurrentProjectProvider = ({
     "loading" | "found" | "not-found" | "poke-attempted"
   >("loading");
   const [pokeAttempted, setPokeAttempted] = useState(false);
+  const { atlas, slots } = useAtlas(projectId || "");
 
   const retryProjectLoad = () => {
     setProjectStatus("loading");
     setPokeAttempted(false);
     setProject(null);
-    setPalette(null);
   };
 
   useEffect(() => {
@@ -163,24 +164,6 @@ export const CurrentProjectProvider = ({
       })
       .subscribe([`SELECT * FROM projects WHERE Id='${projectId}'`]);
 
-    const colorPaletteSub = connection
-      .subscriptionBuilder()
-      .onApplied(() => {
-        console.log("subscribed to palette for ", projectId);
-        const newPalette = (
-          connection.db.colorPalette.tableCache.iter() as ColorPalette[]
-        ).find((p) => p.projectId === projectId);
-        if (newPalette) {
-          setPalette(newPalette);
-        }
-      })
-      .onError((error) => {
-        console.error("Color palette subscription error:", error);
-      })
-      .subscribe([
-        `SELECT * FROM color_palette WHERE ProjectId='${projectId}'`,
-      ]);
-
     const onProjectInsert = (ctx: EventContext, row: Project) => {
       if (row.id === projectId) {
         setProject(row);
@@ -199,34 +182,13 @@ export const CurrentProjectProvider = ({
       }
     };
 
-    const onPaletteInsert = (ctx: EventContext, row: ColorPalette) => {
-      if (row.projectId === projectId) {
-        setPalette(row);
-      }
-    };
-
-    const onPaletteUpdate = (
-      ctx: EventContext,
-      oldPalette: ColorPalette,
-      newPalette: ColorPalette
-    ) => {
-      if (newPalette.projectId === projectId) {
-        setPalette(newPalette);
-      }
-    };
-
     connection.db.projects.onInsert(onProjectInsert);
     connection.db.projects.onUpdate(onProjectUpdate);
-    connection.db.colorPalette.onInsert(onPaletteInsert);
-    connection.db.colorPalette.onUpdate(onPaletteUpdate);
 
     return () => {
       projectSub.unsubscribe();
-      colorPaletteSub.unsubscribe();
       connection.db.projects.removeOnInsert(onProjectInsert);
       connection.db.projects.removeOnUpdate(onProjectUpdate);
-      connection.db.colorPalette.removeOnInsert(onPaletteInsert);
-      connection.db.colorPalette.removeOnUpdate(onPaletteUpdate);
     };
   }, [connection, projectId, pokeAttempted]);
 
@@ -238,7 +200,7 @@ export const CurrentProjectProvider = ({
     return <NotFoundState retryProjectLoad={retryProjectLoad} />;
   }
 
-  if (!project || !palette) {
+  if (!project || !atlas) {
     return <LoadingState status="loading" />;
   }
 
@@ -246,7 +208,8 @@ export const CurrentProjectProvider = ({
     <ProjectContext.Provider
       value={{
         project,
-        palette,
+        atlas,
+        atlasSlots: slots,
         selectedColor,
         setSelectedColor,
         projectStatus,

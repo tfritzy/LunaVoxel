@@ -6,6 +6,7 @@ import {
   signInAnonymously,
 } from "firebase/auth";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { connectStorageEmulator, getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDPeegGakaWlCl21QBQ7cOQ_-6yWTxXG94",
@@ -19,12 +20,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const functions = getFunctions(app);
+const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 if (import.meta.env.DEV) {
   try {
     connectFunctionsEmulator(functions, "localhost", 5001);
-    connectStorageEmulator(Storage, "localhost", 9199);
+    connectStorageEmulator(storage, "localhost", 9199);
     console.log("Connected to Functions emulator");
   } catch {
     console.log("Functions emulator already connected or not available");
@@ -60,7 +62,4 @@ export const signOut = async () => {
   }
 };
 
-export { auth, functions, app };
-function connectStorageEmulator(storage: any, arg1: string, arg2: number) {
-  throw new Error("Function not implemented.");
-}
+export { auth, functions, app, storage };

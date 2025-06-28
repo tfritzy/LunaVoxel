@@ -498,19 +498,19 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
-  updateAtlas(projectId: string, index: number, color: number, incrementVersion: boolean) {
-    const __args = { projectId, index, color, incrementVersion };
+  updateAtlas(projectId: string, index: number, color: number, incrementVersion: boolean, cellSize: number) {
+    const __args = { projectId, index, color, incrementVersion, cellSize };
     let __writer = new BinaryWriter(1024);
     UpdateAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateAtlas", __argsBuffer, this.setCallReducerFlags.updateAtlasFlags);
   }
 
-  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean) => void) {
+  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean, cellSize: number) => void) {
     this.connection.onReducer("UpdateAtlas", callback);
   }
 
-  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean) => void) {
+  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean, cellSize: number) => void) {
     this.connection.offReducer("UpdateAtlas", callback);
   }
 

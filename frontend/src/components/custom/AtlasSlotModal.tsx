@@ -1,22 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { X, Upload, Palette } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useState, useEffect, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import "@/components/custom/color-picker.css";
+import * as THREE from "three";
 
 interface AtlasSlotModalProps {
   isOpen: boolean;
@@ -24,19 +14,9 @@ interface AtlasSlotModalProps {
   projectId: string;
   index: number;
   cellSize: number;
+  defaultTint: number;
+  defaultTexture: ImageData | null;
 }
-
-const formSchema = z
-  .object({
-    color: z
-      .string()
-      .regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color")
-      .optional(),
-    texture: z.instanceof(File).optional(),
-  })
-  .refine((data) => data.color || data.texture, {
-    message: "Either color or texture must be provided",
-  });
 
 const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -53,78 +33,332 @@ const rgbToInt = (r: number, g: number, b: number): number => {
   return (r << 16) | (g << 8) | b;
 };
 
+const intToHex = (value: number): string => {
+  const r = (value >> 16) & 0xff;
+  const g = (value >> 8) & 0xff;
+  const b = value & 0xff;
+  return `#${r.toString(16).padStart(2, "0")}${g
+    .toString(16)
+    .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+};
+
+const CubePreview = ({
+  color,
+  texture,
+}: {
+  color: number;
+  texture: ImageData | null;
+}) => {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<{
+    scene: THREE.Scene;
+    camera: THREE.PerspectiveCamera;
+    renderer: THREE.WebGLRenderer;
+    cube: THREE.Mesh;
+    material: THREE.MeshLambertMaterial;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!mountRef.current) return;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a1a);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const containerWidth = mountRef.current.clientWidth;
+    const width = containerWidth;
+    const height = width * 0.7;
+    const aspectRatio = width / height;
+
+    const camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
+    camera.position.set(1, 0.75, 1);
+    camera.lookAt(0, -0.1, 0);
+
+    renderer.setSize(width, height);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(5, 5, 5);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshLambertMaterial({ color: color });
+
+    const cube = new THREE.Mesh(geometry, material);
+    cube.castShadow = true;
+    scene.add(cube);
+
+    mountRef.current.appendChild(renderer.domElement);
+
+    sceneRef.current = { scene, camera, renderer, cube, material };
+
+    const animate = () => {
+      if (!sceneRef.current) return;
+      requestAnimationFrame(animate);
+      sceneRef.current.cube.rotation.y += 0.001;
+      sceneRef.current.renderer.render(
+        sceneRef.current.scene,
+        sceneRef.current.camera
+      );
+    };
+    animate();
+
+    return () => {
+      if (sceneRef.current) {
+        mountRef.current?.removeChild(sceneRef.current.renderer.domElement);
+        sceneRef.current.renderer.dispose();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sceneRef.current) return;
+    sceneRef.current.material.color.setHex(color);
+  }, [color]);
+
+  useEffect(() => {
+    if (!sceneRef.current) return;
+
+    if (texture) {
+      const canvas = document.createElement("canvas");
+      canvas.width = texture.width;
+      canvas.height = texture.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.putImageData(texture, 0, 0);
+        const threeTexture = new THREE.CanvasTexture(canvas);
+        threeTexture.minFilter = THREE.NearestFilter;
+        threeTexture.magFilter = THREE.NearestFilter;
+        sceneRef.current.material.map = threeTexture;
+        sceneRef.current.material.needsUpdate = true;
+      }
+    } else {
+      sceneRef.current.material.map = null;
+      sceneRef.current.material.needsUpdate = true;
+    }
+  }, [texture]);
+
+  return (
+    <div
+      ref={mountRef}
+      className="rounded-xs overflow-hidden border border-border"
+    />
+  );
+};
+
+const TextureDropZone = ({
+  onImageData,
+  onError,
+  cellSize,
+  imageData,
+  error,
+}: {
+  onImageData: (data: ImageData | null) => void;
+  onError: (error: string) => void;
+  cellSize: number;
+  imageData: ImageData | null;
+  error: string;
+}) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      onError("File is not an image");
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = cellSize;
+      canvas.height = cellSize;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        onError("Failed to get canvas context");
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, cellSize, cellSize);
+      onImageData(imageData);
+    };
+    img.onerror = () => {
+      onError("Failed to load image");
+    };
+    img.src = URL.createObjectURL(file);
+    return null;
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      processFile(files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleRemoveTexture = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onImageData(null);
+  };
+
+  const renderTexturePreview = () => {
+    if (!imageData) return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = imageData.width;
+    canvas.height = imageData.height;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.putImageData(imageData, 0, 0);
+      return canvas.toDataURL();
+    }
+    return null;
+  };
+
+  const texturePreview = renderTexturePreview();
+
+  return (
+    <div className="space-y-2">
+      <div
+        className={`
+          w-[150px] h-[150px] rounded-xs cursor-pointer
+          flex flex-col items-center justify-center
+          transition-colors duration-200 relative
+          ${
+            texturePreview
+              ? `${
+                  isDragOver
+                    ? "border-2 border-dashed border-primary bg-primary/10"
+                    : ""
+                }`
+              : `border-2 border-dashed ${
+                  isDragOver
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50 hover:bg-muted/50"
+                }`
+          }
+          ${texturePreview ? "p-0" : "p-4"}
+        `}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {texturePreview ? (
+          <>
+            <img
+              src={texturePreview}
+              alt="Texture preview"
+              className="w-full h-full object-cover rounded-xs pixelated"
+              style={{ imageRendering: "pixelated" }}
+            />
+            {isHovered && (
+              <button
+                onClick={handleRemoveTexture}
+                className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/80 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <Upload className="w-6 h-6 text-muted-foreground mb-2" />
+            <p className="text-xs text-muted-foreground text-center mb-1">
+              Drop texture here
+            </p>
+            <p className="text-xs text-muted-foreground text-center">
+              {cellSize}x{cellSize} pixels
+            </p>
+          </>
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+};
+
 export const AtlasSlotModal = ({
   isOpen,
   onClose,
   projectId,
   index,
   cellSize,
+  defaultTint,
+  defaultTexture,
 }: AtlasSlotModalProps) => {
-  const [selectedColor, setSelectedColor] = useState<string>("#ffffff");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedColor, setSelectedColor] = useState<number>(defaultTint);
+  const [selectedImageData, setSelectedImageData] = useState<ImageData | null>(
+    null
+  );
   const [fileError, setFileError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      color: undefined,
-      texture: undefined,
-    },
-  });
+  useEffect(() => {
+    if (isOpen) {
+      if (defaultTint !== undefined) {
+        setSelectedColor(defaultTint);
+      }
 
-  const validateImageDimensions = (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const isValid = img.width === cellSize && img.height === cellSize;
-        if (!isValid) {
-          setFileError(`Image must be ${cellSize}x${cellSize} pixels`);
-        }
-        resolve(isValid);
-      };
-      img.onerror = () => {
-        setFileError("Invalid image file");
-        resolve(false);
-      };
-      img.src = URL.createObjectURL(file);
-    });
+      if (defaultTexture) {
+        setSelectedImageData(defaultTexture);
+      }
+    }
+  }, [isOpen, defaultTint, defaultTexture]);
+
+  const handleImageData = (imageData: ImageData | null) => {
+    setSelectedImageData(imageData);
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    setFileError("");
-
-    if (!file.type.startsWith("image/")) {
-      setFileError("Please select an image file");
+    if (!selectedColor && !selectedImageData) {
       return;
     }
 
-    const isValidDimensions = await validateImageDimensions(file);
-    if (isValidDimensions) {
-      setSelectedFile(file);
-      form.setValue("texture", file);
-    }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
 
     try {
@@ -132,28 +366,26 @@ export const AtlasSlotModal = ({
       const updateAtlas = httpsCallable(functions, "updateAtlas");
 
       let textureBase64 = "";
-      if (values.texture) {
-        textureBase64 = await fileToBase64(values.texture);
-      }
-
-      let tintValue = 0;
-      if (values.color) {
-        const rgb = hexToRgb(values.color);
-        tintValue = rgbToInt(rgb.r, rgb.g, rgb.b);
+      if (selectedImageData) {
+        const canvas = document.createElement("canvas");
+        canvas.width = selectedImageData.width;
+        canvas.height = selectedImageData.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.putImageData(selectedImageData, 0, 0);
+          textureBase64 = canvas.toDataURL("image/png").split(",")[1];
+        }
       }
 
       await updateAtlas({
         projectId,
-        index: 1020,
+        index,
         texture: textureBase64,
-        tint: tintValue,
+        tint: selectedColor,
         cellSize,
       });
 
       onClose();
-      form.reset();
-      setSelectedFile(null);
-      setSelectedColor("#ffffff");
     } catch (error) {
       console.error("Error updating atlas:", error);
     } finally {
@@ -162,21 +394,19 @@ export const AtlasSlotModal = ({
   };
 
   const handleColorChange = (color: string) => {
-    setSelectedColor(color);
-    form.setValue("color", color);
+    const rgb = hexToRgb(color);
+    const intColor = rgbToInt(rgb.r, rgb.g, rgb.b);
+    setSelectedColor(intColor);
   };
 
   const handleClose = () => {
     onClose();
-    form.reset();
-    setSelectedFile(null);
-    setSelectedColor("#ffffff");
     setFileError("");
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="bg-card rounded-lg shadow-lg p-6 w-full max-w-lg">
+      <div className="bg-card rounded-xs shadow-lg p-6 w-full max-w-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Edit Atlas Slot {index}</h2>
           <Button onClick={handleClose} variant="ghost" size="sm">
@@ -184,86 +414,34 @@ export const AtlasSlotModal = ({
           </Button>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="color"
-                render={() => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Palette className="w-4 h-4" />
-                      Color (optional)
-                    </FormLabel>
-                    <FormControl>
-                      <div className="space-y-3">
-                        <Input
-                          value={selectedColor}
-                          onChange={(e) => handleColorChange(e.target.value)}
-                          placeholder="#ffffff"
-                        />
-                        <div className="w-full max-w-xs mx-auto">
-                          <HexColorPicker
-                            color={selectedColor}
-                            onChange={handleColorChange}
-                            style={{ width: "100%", height: "200px" }}
-                          />
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <CubePreview color={selectedColor} texture={selectedImageData} />
 
-              <FormField
-                control={form.control}
-                name="texture"
-                render={() => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Texture (optional)
-                    </FormLabel>
-                    <FormControl>
-                      <div className="space-y-2">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Required dimensions: {cellSize}x{cellSize} pixels
-                        </p>
-                        {fileError && (
-                          <p className="text-xs text-destructive">
-                            {fileError}
-                          </p>
-                        )}
-                        {selectedFile && (
-                          <p className="text-xs text-green-600">
-                            ✓ {selectedFile.name}
-                          </p>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+          <div className="flex flex-row space-x-4">
+            <HexColorPicker
+              color={intToHex(selectedColor)}
+              onChange={handleColorChange}
+              style={{ width: "150px", height: "175px" }}
+            />
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Updating..." : "Update Slot"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+            <TextureDropZone
+              onImageData={handleImageData}
+              onError={setFileError}
+              cellSize={cellSize}
+              imageData={selectedImageData}
+              error={fileError}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Slot"}
+            </Button>
+          </div>
+        </form>
       </div>
     </Modal>
   );

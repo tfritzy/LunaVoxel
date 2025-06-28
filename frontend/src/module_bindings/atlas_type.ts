@@ -34,6 +34,7 @@ export type Atlas = {
   projectId: string,
   colors: number[],
   version: number,
+  cellSize: number,
 };
 
 /**
@@ -49,6 +50,7 @@ export namespace Atlas {
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
       new ProductTypeElement("version", AlgebraicType.createI32Type()),
+      new ProductTypeElement("cellSize", AlgebraicType.createI32Type()),
     ]);
   }
 

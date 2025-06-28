@@ -3,7 +3,7 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Reducer]
-    public static void UpdateAtlas(ReducerContext ctx, string projectId, int index, int color, bool incrementVersion)
+    public static void UpdateAtlas(ReducerContext ctx, string projectId, int index, int color, bool incrementVersion, int cellSize)
     {
         if (string.IsNullOrEmpty(projectId))
         {
@@ -23,6 +23,12 @@ public static partial class Module
             atlas.Version++;
         }
 
+        if (atlas.CellSize > 0 && cellSize != atlas.CellSize)
+        {
+            throw new System.ArgumentException("Cell size cannot be changed once set.");
+        }
+
+        atlas.CellSize = cellSize;
         atlas.Colors[index] = color;
         ctx.Db.atlas.ProjectId.Update(atlas);
     }
