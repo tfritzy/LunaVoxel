@@ -117,7 +117,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
 
         setAtlasImage(image);
       } catch (downloadError) {
-        console.log("Atlas file doesn't exist yet, using empty atlas");
         setAtlasImage(null);
       }
 

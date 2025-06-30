@@ -12,7 +12,6 @@ export const adminApp = initializeApp();
 
 if (process.env.FUNCTIONS_EMULATOR === "true") {
   process.env.FIREBASE_STORAGE_EMULATOR_HOST = "localhost:9199";
-  console.log("Functions running in emulator mode");
 }
 
 setGlobalOptions({

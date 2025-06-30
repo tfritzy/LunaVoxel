@@ -11,12 +11,12 @@ public static partial class Module
         ReducerContext ctx,
         string projectId,
         BlockModificationMode mode,
-        MeshType type,
+        int blockType,
         List<Vector3> positions,
         int color)
     {
         var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
-        var decompressedBlocks = BlockCompression.Decompress(chunk.Blocks, chunk.xDim, chunk.yDim, chunk.zDim);
+        var voxels = VoxelRLE.Decompress(chunk.Voxels);
 
         foreach (var position in positions)
         {

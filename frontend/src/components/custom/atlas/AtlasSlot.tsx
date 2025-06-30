@@ -16,7 +16,6 @@ export const AtlasSlot = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const displaySize = 48;
-  console.log(textureData);
 
   const intToHex = (color: number): string => {
     return `#${color.toString(16).padStart(6, "0")}`;

@@ -1,7 +1,7 @@
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { useState } from "react";
 import { AtlasSlot } from "./AtlasSlot";
-import { AtlasSlotModal } from "../AtlasSlotModal";
+import { AtlasSlotModal } from "./AtlasSlotModal";
 
 interface AtlasProps {
   projectId: string;
@@ -13,7 +13,6 @@ export const Atlas = ({ projectId }: AtlasProps) => {
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
-  console.log(atlasSlots);
 
   const handleSlotClick = (index: number) => {
     setSelectedSlotIndex(index);

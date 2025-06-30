@@ -140,7 +140,6 @@ export const CurrentProjectProvider = ({
     const projectSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        console.log("subscribed to project for ", projectId);
         const newProject = (
           connection.db.projects.tableCache.iter() as Project[]
         ).find((p) => p.id === projectId);
@@ -151,7 +150,6 @@ export const CurrentProjectProvider = ({
         } else if (!pokeAttempted) {
           setPokeAttempted(true);
           setProjectStatus("poke-attempted");
-          console.log("Project not found, calling PokeProject for", projectId);
 
           connection.reducers.pokeProject(projectId);
         } else {

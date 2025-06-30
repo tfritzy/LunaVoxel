@@ -162,11 +162,11 @@ export class ChunkMesh {
       const meshUpdateDuration = meshUpdateEndTime - meshUpdateStartTime;
       const totalDuration = totalEndTime - totalStartTime;
 
-      console.log(`  
-        Find exterior faces: ${faceFindingDuration.toFixed(2)}ms,
-        Mesh update: ${meshUpdateDuration.toFixed(2)}ms,
-        Total update time: ${totalDuration.toFixed(2)}ms
-      `);
+      // console.log(`
+      //   Find exterior faces: ${faceFindingDuration.toFixed(2)}ms,
+      //   Mesh update: ${meshUpdateDuration.toFixed(2)}ms,
+      //   Total update time: ${totalDuration.toFixed(2)}ms
+      // `);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;

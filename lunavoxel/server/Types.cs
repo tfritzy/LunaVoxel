@@ -107,7 +107,7 @@ public static partial class Module
         public int yDim;
         public int zDim;
         public int Layer;
-        public BlockRun[] Blocks = System.Array.Empty<BlockRun>();
+        public byte[] Voxels = [];
 
         public static Chunk Build(string projectId, int xDim, int yDim, int zDim, int layer)
         {
@@ -118,7 +118,6 @@ public static partial class Module
                 xDim = xDim,
                 yDim = yDim,
                 zDim = zDim,
-                Blocks = System.Array.Empty<BlockRun>(),
                 Layer = layer
             };
         }
@@ -134,33 +133,44 @@ public static partial class Module
         public string? Name;
     }
 
-    [Type]
-    public partial struct BlockRun
+    public class Block
     {
-        public MeshType Type;
-        public int? Color;
-        public Vector3 TopLeft;
-        public Vector3 BottomRight;
+        public int Type;
+        public int Rotation;
 
-        public BlockRun(MeshType type, Vector3 topLeft, Vector3 bottomRight, int? color = null)
+        public Block(int type, int rotation = 0)
         {
-            this.Type = type;
-            this.Color = color;
-            this.TopLeft = topLeft;
-            this.BottomRight = bottomRight;
+            Type = type;
+            Rotation = rotation;
+        }
+
+        public static Block FromBytes(byte[] data)
+        {
+            if (data.Length != 2)
+                throw new ArgumentException("Invalid block data length");
+
+            ushort combined = (ushort)((data[0] << 8) | data[1]);
+
+            ushort type = (ushort)(combined >> 3);
+            byte rotation = (byte)(combined & 0x07);
+
+            return new Block(type, rotation);
+        }
+
+        public byte[] ToBytes()
+        {
+            // Pack type (13 bits) and rotation (3 bits) into 2 bytes
+            byte[] data = new byte[2];
+            data[0] = (byte)((Type & 0x1FFF) | ((Rotation & 0x07) << 13));
+            data[1] = 0; // Unused byte
+            return data;
         }
     }
 
-    public class Block
+    [Type]
+    public partial class Face
     {
-        public MeshType Type;
-        public int? Color;
-
-        public Block(MeshType type, int? color = null)
-        {
-            this.Type = type;
-            this.Color = color;
-        }
+        public int AtlasIndex;
     }
 
     [Type]
@@ -177,13 +187,6 @@ public static partial class Module
         public float X = x;
         public float Y = y;
         public float Z = z;
-    }
-
-    [Type]
-    public enum MeshType
-    {
-        Block,
-        RoundBlock
     }
 
     [Type]

@@ -15,6 +15,7 @@ interface UpdateAtlasRequest {
 interface UpdateAtlasResponse {
   error?: string;
 }
+
 export const updateAtlas = onCall<
   UpdateAtlasRequest,
   Promise<UpdateAtlasResponse>

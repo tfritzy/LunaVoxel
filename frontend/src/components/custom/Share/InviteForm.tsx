@@ -59,7 +59,6 @@ export const InviteForm = ({
   }, [form.formState.isSubmitSuccessful, form.reset, form.getValues]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Submitting invite:", projectId, values);
     connection.reducers.inviteToProject(projectId, values.email, {
       tag: values.role,
     });

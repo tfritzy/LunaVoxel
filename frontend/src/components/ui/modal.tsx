@@ -18,12 +18,13 @@ type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  disableOutsideClick?: boolean;
 };
 
 export const Modal = (props: ModalProps) => {
   return (
     <div
-      onClick={props.onClose}
+      onClick={props.disableOutsideClick ? undefined : props.onClose}
       className="fixed left-0 top-0 w-full h-full bg-[#00000022] z-50"
       style={{
         pointerEvents: props.isOpen ? "all" : "none",
