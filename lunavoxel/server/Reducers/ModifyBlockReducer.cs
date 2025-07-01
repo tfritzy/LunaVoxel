@@ -6,8 +6,7 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Reducer]
-    public static void
-    ModifyBlock(
+    public static void ModifyBlock(
         ReducerContext ctx,
         string projectId,
         BlockModificationMode mode,
@@ -16,8 +15,8 @@ public static partial class Module
         int color)
     {
         var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
-        var voxels = VoxelRLE.Decompress(chunk.Voxels);
-
+        byte[] voxels = VoxelRLE.Decompress(chunk.Voxels);
+        
         foreach (var position in positions)
         {
             int x = position.X, y = position.Y, z = position.Z;
@@ -25,24 +24,36 @@ public static partial class Module
             {
                 continue;
             }
+            
+            int index = (x * chunk.yDim * chunk.zDim + y * chunk.zDim + z) * 2;
+            
             switch (mode)
             {
                 case BlockModificationMode.Build:
-                    decompressedBlocks[x, y, z] = new Block(type, color);
+                    var buildBlock = new Block(blockType, color);
+                    var buildBytes = buildBlock.ToBytes();
+                    Array.Copy(buildBytes, 0, voxels, index, 2);
                     break;
+                    
                 case BlockModificationMode.Erase:
-                    decompressedBlocks[x, y, z] = null;
+                    voxels[index] = 0;
+                    voxels[index + 1] = 0;
                     break;
+                    
                 case BlockModificationMode.Paint:
-                    var existingBlock = decompressedBlocks[x, y, z];
-                    if (existingBlock != null && existingBlock.Type != MeshType.Block)
+                    var existingBytes = new byte[] { voxels[index], voxels[index + 1] };
+                    var existingBlock = Block.FromBytes(existingBytes);
+                    if (existingBlock.Type != 0)
                     {
-                        decompressedBlocks[x, y, z] = new Block(existingBlock.Type, color);
+                        var paintedBlock = new Block(existingBlock.Type, color);
+                        var paintedBytes = paintedBlock.ToBytes();
+                        Array.Copy(paintedBytes, 0, voxels, index, 2);
                     }
                     break;
             }
         }
-        chunk.Blocks = BlockCompression.Compress(decompressedBlocks).ToArray();
+        
+        chunk.Voxels = VoxelRLE.Compress(voxels);
         ctx.Db.chunk.Id.Update(chunk);
     }
 }

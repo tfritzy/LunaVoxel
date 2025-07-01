@@ -151,7 +151,7 @@ public static partial class Module
 
             ushort combined = (ushort)((data[0] << 8) | data[1]);
 
-            ushort type = (ushort)(combined >> 3);
+            ushort type = (ushort)(combined >> 6);
             byte rotation = (byte)(combined & 0x07);
 
             return new Block(type, rotation);
@@ -159,11 +159,13 @@ public static partial class Module
 
         public byte[] ToBytes()
         {
-            // Pack type (13 bits) and rotation (3 bits) into 2 bytes
-            byte[] data = new byte[2];
-            data[0] = (byte)((Type & 0x1FFF) | ((Rotation & 0x07) << 13));
-            data[1] = 0; // Unused byte
-            return data;
+            ushort combined = (ushort)((Type << 6) | (Rotation & 0x07));
+
+            return
+            [
+                (byte)(combined >> 8),
+                (byte)(combined & 0xFF)
+            ];
         }
     }
 
