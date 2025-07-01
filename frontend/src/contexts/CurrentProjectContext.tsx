@@ -12,8 +12,8 @@ interface CurrentProjectContextType {
   atlas: Atlas;
   atlasSlots: AtlasSlot[];
   textureAtlas: THREE.Texture | null;
-  selectedColor: number;
-  setSelectedColor: (color: number) => void;
+  selectedBlock: number;
+  setSelectedBlock: (block: number) => void;
   projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
   retryProjectLoad: () => void;
 }
@@ -121,7 +121,7 @@ export const CurrentProjectProvider = ({
   const [project, setProject] = useState<Project | null>(null);
   const { connection } = useDatabase();
   const { projectId } = useParams<{ projectId: string }>();
-  const [selectedColor, setSelectedColor] = React.useState<number>(0);
+  const [selectedBlock, setSelectedBlock] = React.useState<number>(0);
   const [projectStatus, setProjectStatus] = useState<
     "loading" | "found" | "not-found" | "poke-attempted"
   >("loading");
@@ -205,6 +205,8 @@ export const CurrentProjectProvider = ({
     return <LoadingState status="loading" />;
   }
 
+  console.log("Current atlas in ProjectProvider:", atlas);
+
   return (
     <ProjectContext.Provider
       value={{
@@ -212,8 +214,8 @@ export const CurrentProjectProvider = ({
         atlas,
         atlasSlots: slots,
         textureAtlas: texture,
-        selectedColor,
-        setSelectedColor,
+        selectedBlock,
+        setSelectedBlock,
         projectStatus,
         retryProjectLoad,
       }}

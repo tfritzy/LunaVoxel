@@ -20,9 +20,11 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const { selectedColor, project, atlas, textureAtlas } = useCurrentProject();
+  const { selectedBlock, project, atlas, textureAtlas } = useCurrentProject();
 
-  useEffect(() => {}, [selectedColor]);
+  useEffect(() => {
+    engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
+  }, [selectedBlock]);
 
   useEffect(() => {
     if (!projectId || !connection) return;
@@ -97,12 +99,17 @@ export const ProjectViewPage = () => {
   }, [currentTool]);
 
   useEffect(() => {
+    console.log("Atlas updated:", atlas);
     if (engineRef.current) {
+      console.log("Setting atlas in engine:", atlas);
       engineRef.current.projectManager.setAtlas(atlas);
+    } else {
+      console.warn("Engine not initialized yet, atlas will be set later.");
     }
   }, [atlas]);
 
   useEffect(() => {
+    console.log("Texture atlas updated:", textureAtlas);
     if (engineRef.current && textureAtlas) {
       engineRef.current.projectManager.setTextureAtlas(textureAtlas);
     }

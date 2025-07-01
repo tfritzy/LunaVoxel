@@ -20,6 +20,7 @@ export class ProjectManager {
   private currentUpdateController: AbortController | null = null;
   private builder;
   private currentChunk: Chunk | null = null;
+  private atlas: Atlas | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -47,17 +48,18 @@ export class ProjectManager {
     this.setupCursors();
   }
 
-  public setSelectedBlock(block: number): void {
+  setSelectedBlock = (block: number) => {
     this.builder.setSelectedBlock(block);
-  }
+  };
 
-  public setAtlas(atlas: Atlas): void {
-    this.chunkMesh.setAtlas(atlas);
-  }
+  setAtlas = (atlas: Atlas) => {
+    console.log("Setting atlas in project manager:", atlas);
+    this.atlas = atlas;
+  };
 
-  public setTextureAtlas(textureAtlas: THREE.Texture): void {
+  setTextureAtlas = (textureAtlas: THREE.Texture) => {
     this.chunkMesh.setTextureAtlas(textureAtlas);
-  }
+  };
 
   setupEvents = () => {
     this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
@@ -110,16 +112,24 @@ export class ProjectManager {
     }
   };
 
-  private updateChunkMesh(): void {
-    if (!this.currentChunk) return;
+  private updateChunkMesh = () => {
+    if (!this.currentChunk || !this.atlas) {
+      console.warn(
+        "No current chunk or atlas set, skipping mesh update.",
+        this.currentChunk,
+        this.atlas
+      );
+      return;
+    }
 
     this.currentUpdateController = new AbortController();
     this.chunkMesh.update(
       this.currentChunk,
       this.builder.previewBlocks,
-      this.builder.getTool()
+      this.builder.getTool(),
+      this.atlas
     );
-  }
+  };
 
   public setTool(tool: BlockModificationMode): void {
     this.builder.setTool(tool);

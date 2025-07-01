@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
+import { useDatabase } from "@/contexts/DatabaseContext";
 
 export function CreateNewPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const { connection } = useDatabase();
 
   useEffect(() => {
     const createAndRedirect = async () => {
       try {
-        const result = await createProject(navigate);
+        const result = await createProject(connection, navigate);
         if (!result.success) {
           setError(
             result.error || "Failed to create project. Please try again."

@@ -79,11 +79,8 @@ export class ChunkMesh {
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.MeshLambertMaterial | null = null;
-  private atlas: Atlas | null = null;
   private textureAtlas: THREE.Texture | null = null;
-
   private previewMesh: THREE.Mesh | null = null;
-
   private currentUpdateId: number = 0;
   private cacheVersion: number = 0;
 
@@ -95,17 +92,13 @@ export class ChunkMesh {
     this.previewMesh = null;
   }
 
-  setAtlas(atlas: Atlas): void {
-    this.atlas = atlas;
-  }
-
-  setTextureAtlas(textureAtlas: THREE.Texture): void {
+  setTextureAtlas = (textureAtlas: THREE.Texture) => {
     this.textureAtlas = textureAtlas;
     if (this.material) {
       this.material.map = textureAtlas;
       this.material.needsUpdate = true;
     }
-  }
+  };
 
   decompressBlocks(
     rleBytes: Uint8Array,
@@ -156,16 +149,13 @@ export class ChunkMesh {
     return { type, rotation };
   }
 
-  update(
+  update = (
     newChunk: Chunk,
     previewBlocks: (Block | undefined)[][][],
-    buildMode: BlockModificationMode
-  ): void {
-    if (!this.atlas) {
-      console.warn("[ChunkMesh] Atlas not set, skipping update.");
-      return;
-    }
-
+    buildMode: BlockModificationMode,
+    atlas: Atlas
+  ) => {
+    console.log("[ChunkMesh] Updating chunk mesh", this.textureAtlas);
     const totalStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
@@ -187,7 +177,7 @@ export class ChunkMesh {
         realBlocks,
         previewBlocks,
         buildMode,
-        this.atlas,
+        atlas,
         {
           xDim: newChunk.xDim,
           yDim: newChunk.yDim,
@@ -220,7 +210,7 @@ export class ChunkMesh {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
     }
-  }
+  };
 
   private updateMesh(
     exteriorFaces: Map<string, VoxelFaces>,

@@ -13,8 +13,13 @@ export const Atlas = ({ projectId }: AtlasProps) => {
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { setSelectedBlock, selectedBlock } = useCurrentProject();
 
   const handleSlotClick = (index: number) => {
+    setSelectedBlock(index);
+  };
+
+  const handleEditClick = (index: number) => {
     setSelectedSlotIndex(index);
     setIsModalOpen(true);
   };
@@ -46,15 +51,26 @@ export const Atlas = ({ projectId }: AtlasProps) => {
         }}
       >
         {atlasSlots.map((slot) => (
-          <AtlasSlot
-            key={slot.index}
-            index={slot.index}
-            textureData={slot.textureData}
-            onClick={handleSlotClick}
-          />
+          <div key={slot.index} className="relative group">
+            <AtlasSlot
+              index={slot.index}
+              textureData={slot.textureData}
+              onClick={handleSlotClick}
+              isSelected={selectedBlock === slot.index}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditClick(slot.index);
+              }}
+              className="absolute top-0 right-0 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs"
+              aria-label="Edit slot"
+            >
+              ✎
+            </button>
+          </div>
         ))}
       </div>
-
       {selectedSlotIndex !== null && (
         <AtlasSlotModal
           isOpen={isModalOpen}

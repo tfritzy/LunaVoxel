@@ -64,10 +64,6 @@ export class VoxelEngine {
     this.setupPerformanceMonitoring();
   }
 
-  public onColorSelected(color: number) {
-    this.projectManager.setSelectedBlock(color);
-  }
-
   private setupRenderer(container: HTMLElement): THREE.WebGLRenderer {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container.clientWidth, container.clientHeight);

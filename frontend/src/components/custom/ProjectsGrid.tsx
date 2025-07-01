@@ -9,6 +9,7 @@ import { createProject } from "@/lib/createProject";
 import { useAuth } from "@/firebase/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { Project } from "@/module_bindings";
+import { useDatabase } from "@/contexts/DatabaseContext";
 
 interface ProjectGridProps {
   onProjectClick: (projectId: string) => void;
@@ -132,10 +133,11 @@ export function ProjectGrid({
   const { currentUser } = useAuth();
   const { userProjects, sharedProjects } = useProjects();
   const [searchTerm, setSearchTerm] = useState("");
+  const { connection } = useDatabase();
 
   const handleCreateNew = async () => {
     try {
-      await createProject(connnavigate);
+      await createProject(connection, navigate);
       onCreateProject?.();
     } catch (error) {
       console.error("Error creating project:", error);

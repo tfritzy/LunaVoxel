@@ -9,12 +9,14 @@ import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { ProjectModal } from "./ProjectModal";
 import { ShareButton } from "./Share/ShareButton";
+import { useDatabase } from "@/contexts/DatabaseContext";
 
 export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
   const [isProjectListOpen, setIsProjectListOpen] = useState(false);
   const { projectId } = useParams();
+  const { connection } = useDatabase();
 
   const handleSignIn = async () => {
     try {
@@ -35,7 +37,7 @@ export function ProjectHeader() {
 
   const handleNewProject = async () => {
     try {
-      await createProject(navigate);
+      await createProject(connection, navigate);
     } catch (error) {
       console.error("Error creating project:", error);
     }

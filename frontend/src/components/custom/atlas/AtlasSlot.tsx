@@ -4,9 +4,15 @@ interface AtlasSlotProps {
   index: number;
   textureData: ImageData | null;
   onClick: (index: number) => void;
+  isSelected?: boolean;
 }
 
-export const AtlasSlot = ({ index, textureData, onClick }: AtlasSlotProps) => {
+export const AtlasSlot = ({
+  index,
+  textureData,
+  onClick,
+  isSelected = false,
+}: AtlasSlotProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const displaySize = 48;
@@ -20,7 +26,6 @@ export const AtlasSlot = ({ index, textureData, onClick }: AtlasSlotProps) => {
 
     canvas.width = displaySize;
     canvas.height = displaySize;
-
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, displaySize, displaySize);
 
@@ -33,7 +38,6 @@ export const AtlasSlot = ({ index, textureData, onClick }: AtlasSlotProps) => {
       tempCanvas.width = sourceSize;
       tempCanvas.height = sourceSize;
       tempCtx.putImageData(textureData, 0, 0);
-
       ctx.drawImage(tempCanvas, 0, 0, displaySize, displaySize);
     }
   }, [textureData, displaySize]);
@@ -42,8 +46,8 @@ export const AtlasSlot = ({ index, textureData, onClick }: AtlasSlotProps) => {
     <div
       className={`
         relative cursor-pointer transition-all duration-150
-        ${isHovered ? "scale-110 z-10" : "scale-100"}
         hover:shadow-lg border border-black
+        ${isSelected ? "ring-blue-500 ring-2" : ""}
       `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
