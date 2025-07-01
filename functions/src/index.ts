@@ -5,6 +5,8 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 import { updateAtlas } from "./update-atlas";
+import { createProject } from "./create-project";
+import { validateSpacetimeIdentity } from "./identity-validation";
 
 setGlobalOptions({ region: "us-central1" });
 
@@ -38,124 +40,64 @@ interface SyncUserResponse {
   error?: string;
 }
 
-export const validateSpacetimeIdentity = async (
-  identity: string,
-  token: string
-): Promise<boolean> => {
-  try {
-    const spacetimeHost = spacetimeUrl.value();
-    const isDev = spacetimeHost.includes("localhost");
-    const protocol = isDev ? "http" : "https";
-    const url = `${protocol}://${spacetimeHost}/v1/identity/${identity}/verify`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    logger.info(
-      `SpacetimeDB identity verification response: ${response.status} ${response.statusText}`
-    );
-
-    if (response.status === 204) {
-      logger.info(
-        `SpacetimeDB identity verification successful for ${identity}`
-      );
-      return true;
-    } else if (response.status === 400) {
-      logger.error(
-        `SpacetimeDB identity verification failed: Token valid but doesn't match identity ${identity}`
-      );
-      const responseText = await response.text();
-      logger.error(`Response body: ${responseText}`);
-      return false;
-    } else if (response.status === 401) {
-      logger.error(
-        `SpacetimeDB identity verification failed: Invalid token for identity ${identity}`
-      );
-      const responseText = await response.text();
-      logger.error(`Response body: ${responseText}`);
-      return false;
-    } else {
-      logger.error(
-        `SpacetimeDB identity verification failed: Unexpected status ${response.status} for identity ${identity}`
-      );
-      const responseText = await response.text();
-      logger.error(`Response body: ${responseText}`);
-      return false;
-    }
-  } catch (error) {
-    logger.error("Error validating SpacetimeDB identity:", error);
-    return false;
-  }
-};
-
 export const syncUser = onCall<SyncUserRequest, Promise<SyncUserResponse>>(
   async (request) => {
-    const {
-      idToken,
-      identity,
-      spacetimeToken: userSpacetimeToken,
-    } = request.data;
+    const { idToken, identity, spacetimeToken } = request.data;
 
-    if (!idToken) {
-      throw new Error("ID token is required");
-    }
+    try {
+      const decodedToken = await getAuth(adminApp).verifyIdToken(idToken);
+      const uid = decodedToken.uid;
 
-    if (!identity) {
-      throw new Error("SpacetimeDB identity is required");
-    }
+      const isValidIdentity = await validateSpacetimeIdentity(
+        identity,
+        spacetimeToken
+      );
 
-    if (!userSpacetimeToken) {
-      throw new Error("SpacetimeDB token is required");
-    }
-
-    const isValidIdentity = await validateSpacetimeIdentity(
-      identity,
-      userSpacetimeToken
-    );
-    if (!isValidIdentity) {
-      throw new Error("Invalid SpacetimeDB identity or token");
-    }
-
-    const decodedToken = await getAuth().verifyIdToken(idToken);
-    const { uid, email, name } = decodedToken;
-
-    logger.info(
-      `Syncing user: ${uid}, email: ${email}, spacetime identity: ${identity}`
-    );
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    const cloudFunctionToken = hostSpacetimeToken.value();
-    if (cloudFunctionToken) {
-      headers["Authorization"] = `Bearer ${cloudFunctionToken}`;
-    }
-
-    const spacetimeHost = spacetimeUrl.value();
-    const isDev = spacetimeHost.includes("localhost");
-    const protocol = isDev ? "http" : "https";
-
-    const response = await fetch(
-      `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/SyncUser`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify([identity, email || "", name || ""]),
+      if (!isValidIdentity) {
+        return {
+          success: false,
+          error: "Invalid SpaceTime identity",
+        };
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error("SpacetimeDB sync failed:", errorText);
-      throw new Error(`SpacetimeDB error: ${response.status} ${errorText}`);
+      const spacetimeHost = spacetimeUrl.value();
+      const isDev = spacetimeHost.includes("localhost");
+      const protocol = isDev ? "http" : "https";
+      const cloudFunctionToken = hostSpacetimeToken.value();
+
+      const response = await fetch(
+        `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/SyncUser`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${cloudFunctionToken}`,
+          },
+          body: JSON.stringify([
+            identity,
+            decodedToken.email || "",
+            decodedToken.name || "",
+          ]),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("SpacetimeDB sync failed:", errorText);
+        throw new Error(`SpacetimeDB error: ${response.status} ${errorText}`);
+      }
+
+      return {
+        success: true,
+        uid,
+      };
+    } catch (error) {
+      logger.error("Error in syncUser:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
-
-    return { success: true, uid };
   }
 );
 
@@ -163,4 +105,4 @@ export const healthCheck = onRequest((req, res) => {
   res.status(200).send("Functions are running!");
 });
 
-export { updateAtlas };
+export { updateAtlas, createProject };

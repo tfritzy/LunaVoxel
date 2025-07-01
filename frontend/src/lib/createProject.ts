@@ -1,12 +1,62 @@
-import { DbConnection } from "@/module_bindings";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { generateId } from "./idGenerator";
 import { NavigateFunction } from "react-router-dom";
+import { DbConnection } from "@/module_bindings";
 
-export function createProject(
-  connection: DbConnection,
-  navigate: NavigateFunction
-) {
-  const id = generateId("pjct");
-  connection?.reducers.createProject(id, "Untitled project", 32, 32, 32);
-  navigate(`/project/${id}`);
+interface CreateProjectRequest {
+  id: string;
+  name: string;
+  xDim: number;
+  yDim: number;
+  zDim: number;
+  userIdentity: string;
+  spacetimeToken: string;
 }
+
+interface CreateProjectResponse {
+  success: boolean;
+  projectId?: string;
+  error?: string;
+}
+
+export const createProject = async (
+  connection: DbConnection | null,
+  navigate: NavigateFunction,
+  name: string = "Untitled project"
+) => {
+  const id = generateId("pjct");
+
+  if (!connection || !connection.identity || !connection.token) {
+    console.error("No valid connection or identity found");
+    return { success: false, error: "No valid connection or identity found" };
+  }
+
+  try {
+    const functions = getFunctions();
+    const createProjectFunction = httpsCallable<
+      CreateProjectRequest,
+      CreateProjectResponse
+    >(functions, "createProject");
+
+    const result = await createProjectFunction({
+      id,
+      name,
+      xDim: 32,
+      yDim: 32,
+      zDim: 32,
+      userIdentity: connection.identity.toHexString(),
+      spacetimeToken: connection.token,
+    });
+
+    if (result.data.success) {
+      navigate(`/project/${id}`);
+      return { success: true, projectId: id };
+    } else {
+      console.error("Failed to create project:", result.data.error);
+      return { success: false, error: result.data.error };
+    }
+  } catch (error) {
+    console.error("Error calling createProject function:", error);
+    return { success: false, error: "Failed to create project" };
+  }
+};

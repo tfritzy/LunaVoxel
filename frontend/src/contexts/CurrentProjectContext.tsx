@@ -155,6 +155,7 @@ export const CurrentProjectProvider = ({
 
           connection.reducers.pokeProject(projectId);
         } else {
+          console.warn("Project not found after poke attempt:", projectId);
           setProjectStatus("not-found");
         }
       })

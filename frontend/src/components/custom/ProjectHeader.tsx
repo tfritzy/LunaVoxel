@@ -2,8 +2,6 @@ import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { FileDropdown } from "./FileDropdown";
 import { UserDropdown } from "./Share/UserDropdown";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/firebase/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
@@ -14,12 +12,9 @@ import { ShareButton } from "./Share/ShareButton";
 
 export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
-  const { connection } = useDatabase();
-  const { userProjects, sharedProjects } = useProjects();
   const navigate = useNavigate();
   const [isProjectListOpen, setIsProjectListOpen] = useState(false);
   const { projectId } = useParams();
-  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
@@ -38,9 +33,12 @@ export function ProjectHeader() {
     }
   };
 
-  const handleNewProject = () => {
-    if (!connection?.isActive) return;
-    createProject(connection, navigate);
+  const handleNewProject = async () => {
+    try {
+      await createProject(navigate);
+    } catch (error) {
+      console.error("Error creating project:", error);
+    }
   };
 
   const handleOpenProject = () => {
@@ -52,8 +50,6 @@ export function ProjectHeader() {
   };
 
   const visitProject = (projectId: string) => {
-    if (!connection?.isActive) return;
-
     try {
       navigate(`/project/${projectId}`);
     } catch (err) {
@@ -68,29 +64,26 @@ export function ProjectHeader() {
           <div className="flex items-center gap-4">
             <Link
               to="/projects"
-              className="flex items-center gap-2 font-semibold text-4xl"
+              className="text-xl font-bold text-foreground hover:text-primary transition-colors"
             >
               <Logo />
             </Link>
-
-            <div className="-translate-x-3">
-              <div className="flex flex-row">
-                <ProjectNameInput />
-              </div>
-              <div className="flex flex-row">
-                <FileDropdown
-                  onNewProject={handleNewProject}
-                  onOpenProject={handleOpenProject}
-                />
-              </div>
+            <div className="flex items-center space-x-1">
+              <FileDropdown
+                onNew={handleNewProject}
+                onOpen={handleOpenProject}
+              />
             </div>
           </div>
 
-          <div className="flex flex-row space-x-4 items-center">
-            <ShareButton />
+          <div className="flex-1 flex justify-center">
+            {projectId && <ProjectNameInput />}
+          </div>
 
+          <div className="flex items-center space-x-2">
+            {projectId && <ShareButton />}
             <UserDropdown
-              currentUser={currentUser}
+              user={currentUser}
               onSignIn={handleSignIn}
               onSignOut={handleSignOut}
             />
@@ -98,13 +91,13 @@ export function ProjectHeader() {
         </div>
       </nav>
 
-      <ProjectModal
-        isOpen={isProjectListOpen}
-        onClose={handleCloseProject}
-        userProjects={userProjects}
-        sharedProjects={sharedProjects}
-        onProjectClick={visitProject}
-      />
+      {isProjectListOpen && (
+        <ProjectModal
+          isOpen={isProjectListOpen}
+          onClose={handleCloseProject}
+          onProjectClick={visitProject}
+        />
+      )}
     </>
   );
 }

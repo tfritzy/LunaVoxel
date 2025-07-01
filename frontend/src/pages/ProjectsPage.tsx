@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, Users, Plus } from "lucide-react";
@@ -8,12 +7,13 @@ import { createProject } from "@/lib/createProject";
 import { ProjectGrid } from "@/components/custom/ProjectsGrid";
 import { Logo } from "@/components/custom/Logo";
 import { UserDropdown } from "@/components/custom/Share/UserDropdown";
+import { useDatabase } from "@/contexts/DatabaseContext";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
-  const { connection } = useDatabase();
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const [viewMode, setViewMode] = useState<"my" | "shared">("my");
+  const { connection } = useDatabase();
 
   const handleSignIn = async () => {
     try {
@@ -32,8 +32,15 @@ export function ProjectsPage() {
     }
   };
 
+  const handleCreateProject = async () => {
+    try {
+      await createProject(connection, navigate);
+    } catch (error) {
+      console.error("Error creating project:", error);
+    }
+  };
+
   const visitProject = (projectId: string) => {
-    if (!connection?.isActive) return;
     try {
       navigate(`/project/${projectId}`);
     } catch (err) {
@@ -63,11 +70,7 @@ export function ProjectsPage() {
           <div className="w-64 border-r border-border/50 flex-shrink-0">
             <div className="px-6 pt-4 space-y-1">
               <Button
-                onClick={() => {
-                  if (!connection?.isActive) return;
-                  const navigate_local = navigate;
-                  createProject(connection, navigate_local);
-                }}
+                onClick={handleCreateProject}
                 className="w-min font-semibold flex items-center gap-3 justify-start h-11 mb-5"
                 size="lg"
                 variant="outline"
@@ -103,7 +106,9 @@ export function ProjectsPage() {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            <h1 className="text-2xl font-semibold ml-6 mt-4">My projects</h1>
+            <h1 className="text-2xl font-semibold ml-6 mt-4">
+              {viewMode === "my" ? "My projects" : "Shared with me"}
+            </h1>
             <ProjectGrid
               viewMode={viewMode}
               onProjectClick={visitProject}

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import React from "react";
 import { FolderOpen, Plus, Search } from "lucide-react";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { useAuth } from "@/firebase/AuthContext";
@@ -129,72 +128,61 @@ export function ProjectGrid({
   showSearch = true,
   viewMode,
 }: ProjectGridProps) {
-  const { connection } = useDatabase();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { userProjects, sharedProjects } = useProjects();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleCreateNew = () => {
-    if (!connection?.isActive) return;
-    createProject(connection, navigate);
-    onCreateProject?.();
+  const handleCreateNew = async () => {
+    try {
+      await createProject(connnavigate);
+      onCreateProject?.();
+    } catch (error) {
+      console.error("Error creating project:", error);
+    }
   };
 
   const currentProjects = viewMode === "my" ? userProjects : sharedProjects;
+
   const filteredProjects = currentProjects.filter((project) =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const groupedProjects = filteredProjects.reduce((groups, project) => {
-    const group = getGroupLabel(project.lastVisited as Timestamp);
-    if (!groups[group]) {
-      groups[group] = [];
+    const groupName = getGroupLabel(project.lastVisited);
+    if (!groups[groupName]) {
+      groups[groupName] = [];
     }
-    groups[group].push(project);
+    groups[groupName].push(project);
     return groups;
   }, {} as Record<string, Project[]>);
 
-  Object.keys(groupedProjects).forEach((groupName) => {
-    groupedProjects[groupName].sort(
-      (a, b) =>
-        (b.lastVisited as Timestamp).toDate().getTime() -
-        (a.lastVisited as Timestamp).toDate().getTime()
-    );
-  });
-
-  if (currentUser?.isAnonymous) {
+  if (!currentUser) {
     return <SignInPrompt />;
   }
 
   return (
     <div className="flex flex-col h-full">
-      {(showSearch || (showCreateButton && viewMode === "my")) && (
-        <div className="flex flex-row items-center justify-between px-6 pt-4">
-          {showSearch && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                placeholder={
-                  viewMode === "shared"
-                    ? "Search shared projects..."
-                    : "Search projects..."
-                }
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 max-w-xs h-9"
-                size={125}
-              />
-            </div>
-          )}
+      {showSearch && (
+        <div className="flex flex-row items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-2 flex-1 max-w-xs">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+          </div>
           {showCreateButton && viewMode === "my" && (
             <Button
               onClick={handleCreateNew}
+              size="sm"
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Create new
+              <span className="hidden sm:inline">Create new</span>
             </Button>
           )}
         </div>
@@ -218,7 +206,7 @@ export function ProjectGrid({
 
               return (
                 <div key={groupName} className="mb-8">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
                     {groupName}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
