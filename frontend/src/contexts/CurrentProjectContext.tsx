@@ -5,11 +5,13 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
 import { AtlasSlot, useAtlas } from "@/lib/useAtlas";
+import * as THREE from "three";
 
 interface CurrentProjectContextType {
   project: Project;
   atlas: Atlas;
   atlasSlots: AtlasSlot[];
+  textureAtlas: THREE.Texture | null;
   selectedColor: number;
   setSelectedColor: (color: number) => void;
   projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
@@ -124,7 +126,7 @@ export const CurrentProjectProvider = ({
     "loading" | "found" | "not-found" | "poke-attempted"
   >("loading");
   const [pokeAttempted, setPokeAttempted] = useState(false);
-  const { atlas, slots } = useAtlas(projectId || "");
+  const { atlas, slots, texture } = useAtlas(projectId || "");
 
   const retryProjectLoad = () => {
     setProjectStatus("loading");
@@ -208,6 +210,7 @@ export const CurrentProjectProvider = ({
         project,
         atlas,
         atlasSlots: slots,
+        textureAtlas: texture,
         selectedColor,
         setSelectedColor,
         projectStatus,

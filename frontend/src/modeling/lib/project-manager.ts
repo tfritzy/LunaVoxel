@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import {
+  Atlas,
   BlockModificationMode,
   Chunk,
   DbConnection,
@@ -17,7 +18,7 @@ export class ProjectManager {
   private dbConn: DbConnection;
   private project: Project;
   private currentUpdateController: AbortController | null = null;
-  private builder: Builder;
+  private builder;
   private currentChunk: Chunk | null = null;
 
   constructor(
@@ -46,8 +47,16 @@ export class ProjectManager {
     this.setupCursors();
   }
 
-  public setSelectedColor(color: number): void {
-    this.builder.setSelectedColor(color);
+  public setSelectedBlock(block: number): void {
+    this.builder.setSelectedBlock(block);
+  }
+
+  public setAtlas(atlas: Atlas): void {
+    this.chunkMesh.setAtlas(atlas);
+  }
+
+  public setTextureAtlas(textureAtlas: THREE.Texture): void {
+    this.chunkMesh.setTextureAtlas(textureAtlas);
   }
 
   setupEvents = () => {

@@ -30,32 +30,34 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { Face as __Face } from "./face_type";
 
-export type InitializePalette = {
-  projectId: string,
+export type BlockBlueprint = {
+  faces: __Face[],
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace InitializePalette {
+export namespace BlockBlueprint {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("faces", AlgebraicType.createArrayType(__Face.getTypeScriptAlgebraicType())),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: InitializePalette): void {
-    InitializePalette.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: BlockBlueprint): void {
+    BlockBlueprint.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): InitializePalette {
-    return InitializePalette.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): BlockBlueprint {
+    return BlockBlueprint.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
+
 

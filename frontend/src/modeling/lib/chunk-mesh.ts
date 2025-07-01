@@ -1,16 +1,12 @@
 import * as THREE from "three";
-import {
-  BlockModificationMode,
-  BlockRun,
-  Chunk,
-  MeshType,
-} from "@/module_bindings";
+import { Atlas, BlockModificationMode, Chunk } from "@/module_bindings";
 import { calculateVertexAOFast as calculateVertexAO } from "./ambient-occlusion";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
+import { Block } from "../blocks";
 
 export type VoxelFaces = {
-  color: number;
+  textureIndex: number;
   gridPos: THREE.Vector3;
   faceIndexes: number[];
 };
@@ -83,6 +79,8 @@ export class ChunkMesh {
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.MeshLambertMaterial | null = null;
+  private atlas: Atlas | null = null;
+  private textureAtlas: THREE.Texture | null = null;
 
   private previewMesh: THREE.Mesh | null = null;
 
@@ -97,37 +95,87 @@ export class ChunkMesh {
     this.previewMesh = null;
   }
 
-  decompressBlocks(blocks: BlockRun[]): (BlockRun | undefined)[][][] {
-    const decompressed: (BlockRun | undefined)[][][] = [];
-    for (const blockRun of blocks) {
-      const { topLeft, bottomRight } = blockRun;
+  setAtlas(atlas: Atlas): void {
+    this.atlas = atlas;
+  }
 
-      for (let x = topLeft.x; x <= bottomRight.x; x++) {
-        if (!decompressed[x]) decompressed[x] = [];
-        for (let y = topLeft.y; y <= bottomRight.y; y++) {
-          if (!decompressed[x][y]) decompressed[x][y] = [];
-          for (let z = topLeft.z; z <= bottomRight.z; z++) {
-            if (!decompressed[x][y][z]) {
-              decompressed[x][y][z] = blockRun;
-            }
-          }
+  setTextureAtlas(textureAtlas: THREE.Texture): void {
+    this.textureAtlas = textureAtlas;
+    if (this.material) {
+      this.material.map = textureAtlas;
+      this.material.needsUpdate = true;
+    }
+  }
+
+  decompressBlocks(
+    rleBytes: Uint8Array,
+    xDim: number,
+    yDim: number,
+    zDim: number
+  ): (Block | undefined)[][][] {
+    const decompressed: (Block | undefined)[][][] = Array(xDim)
+      .fill(null)
+      .map(() =>
+        Array(yDim)
+          .fill(null)
+          .map(() => Array(zDim).fill(undefined))
+      );
+
+    let byteIndex = 0;
+    let blockIndex = 0;
+
+    while (byteIndex < rleBytes.length) {
+      const runLength = rleBytes[byteIndex];
+      const blockBytes = rleBytes.slice(byteIndex + 1, byteIndex + 3);
+
+      const block = this.blockFromBytes(blockBytes);
+
+      for (let i = 0; i < runLength; i++) {
+        const x = Math.floor(blockIndex / (yDim * zDim));
+        const y = Math.floor((blockIndex % (yDim * zDim)) / zDim);
+        const z = blockIndex % zDim;
+
+        if (x < xDim && y < yDim && z < zDim) {
+          decompressed[x][y][z] = block.type === 0 ? undefined : block;
         }
+
+        blockIndex++;
       }
+
+      byteIndex += 3;
     }
 
     return decompressed;
   }
 
+  private blockFromBytes(bytes: Uint8Array): Block {
+    const combined = (bytes[0] << 8) | bytes[1];
+    const type = combined >> 6;
+    const rotation = combined & 0x07;
+
+    return { type, rotation };
+  }
+
   update(
     newChunk: Chunk,
-    previewBlocks: (MeshType | undefined)[][][],
+    previewBlocks: (Block | undefined)[][][],
     buildMode: BlockModificationMode
   ): void {
+    if (!this.atlas) {
+      console.warn("[ChunkMesh] Atlas not set, skipping update.");
+      return;
+    }
+
     const totalStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
     try {
-      const realBlocks = this.decompressBlocks(newChunk.blocks);
+      const realBlocks = this.decompressBlocks(
+        newChunk.voxels,
+        newChunk.xDim,
+        newChunk.yDim,
+        newChunk.zDim
+      );
       if (updateId !== this.currentUpdateId) {
         return;
       }
@@ -139,6 +187,7 @@ export class ChunkMesh {
         realBlocks,
         previewBlocks,
         buildMode,
+        this.atlas,
         {
           xDim: newChunk.xDim,
           yDim: newChunk.yDim,
@@ -175,44 +224,35 @@ export class ChunkMesh {
 
   private updateMesh(
     exteriorFaces: Map<string, VoxelFaces>,
-    realBlocks: (BlockRun | undefined)[][][],
-    previewBlocks: (MeshType | undefined)[][][],
+    realBlocks: (Block | undefined)[][][],
+    previewBlocks: (Block | undefined)[][][],
     previewMode: BlockModificationMode
   ): void {
     let totalFaceCount = 0;
     for (const voxelFace of exteriorFaces.values()) {
       totalFaceCount += voxelFace.faceIndexes.length;
     }
-
     const totalVertices = totalFaceCount * 4;
     const totalIndices = totalFaceCount * 6;
-
     const vertices = new Float32Array(totalVertices * 3);
     const indices = new Uint32Array(totalIndices);
     const normals = new Float32Array(totalVertices * 3);
-    const colors = new Float32Array(totalVertices * 3);
-
+    const uvs = new Float32Array(totalVertices * 2);
     let vertexOffset = 0;
     let indexOffset = 0;
     let vertexIndex = 0;
-
-    const colorCache = new Map<number, THREE.Color>();
+    let uvOffset = 0;
 
     for (const voxelFace of exteriorFaces.values()) {
-      const { color, gridPos, faceIndexes } = voxelFace;
-
-      let colorObj = colorCache.get(color);
-      if (!colorObj) {
-        colorObj = new THREE.Color(color);
-        colorCache.set(color, colorObj);
-      }
-
+      const { textureIndex, gridPos, faceIndexes } = voxelFace;
       const posX = gridPos.x + 0.5;
       const posY = gridPos.y + 0.5;
       const posZ = gridPos.z + 0.5;
       const blockX = gridPos.x;
       const blockY = gridPos.y;
       const blockZ = gridPos.z;
+
+      const textureCoords = this.getTextureCoordinates(textureIndex);
 
       for (let i = 0; i < faceIndexes.length; i++) {
         const faceIndex = faceIndexes[i];
@@ -222,12 +262,10 @@ export class ChunkMesh {
         const normalX = faceNormal[0];
         const normalY = faceNormal[1];
         const normalZ = faceNormal[2];
-
         const startVertexIndex = vertexIndex;
 
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
-
           const aoFactor = calculateVertexAO(
             blockX,
             blockY,
@@ -242,27 +280,28 @@ export class ChunkMesh {
           vertices[vertexOffset] = vertex[0] + posX;
           vertices[vertexOffset + 1] = vertex[1] + posY;
           vertices[vertexOffset + 2] = vertex[2] + posZ;
-
           normals[vertexOffset] = normalX;
           normals[vertexOffset + 1] = normalY;
           normals[vertexOffset + 2] = normalZ;
 
-          colors[vertexOffset] = colorObj!.r * aoFactor;
-          colors[vertexOffset + 1] = colorObj!.g * aoFactor;
-          colors[vertexOffset + 2] = colorObj!.b * aoFactor;
+          uvs[uvOffset] = textureCoords[j * 2];
+          uvs[uvOffset + 1] = textureCoords[j * 2 + 1];
+          if (aoFactor < 1.0) {
+            uvs[uvOffset] = uvs[uvOffset] * aoFactor;
+            uvs[uvOffset + 1] = uvs[uvOffset + 1] * aoFactor;
+          }
 
           vertexOffset += 3;
+          uvOffset += 2;
           vertexIndex++;
         }
 
         indices[indexOffset] = startVertexIndex;
         indices[indexOffset + 1] = startVertexIndex + 1;
         indices[indexOffset + 2] = startVertexIndex + 2;
-
         indices[indexOffset + 3] = startVertexIndex;
         indices[indexOffset + 4] = startVertexIndex + 2;
         indices[indexOffset + 5] = startVertexIndex + 3;
-
         indexOffset += 6;
       }
     }
@@ -270,7 +309,7 @@ export class ChunkMesh {
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
       this.material = new THREE.MeshLambertMaterial({
-        vertexColors: true,
+        map: this.textureAtlas,
         side: THREE.FrontSide,
       });
       this.mesh = new THREE.Mesh(this.geometry, this.material);
@@ -284,18 +323,33 @@ export class ChunkMesh {
       new THREE.BufferAttribute(vertices, 3)
     );
     this.geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
-    this.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    this.geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
     this.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.normal.needsUpdate = true;
-    this.geometry.attributes.color.needsUpdate = true;
-
+    this.geometry.attributes.uv.needsUpdate = true;
     if (this.geometry.index) {
       this.geometry.index.needsUpdate = true;
     }
-
     this.geometry.computeBoundingSphere();
+  }
+
+  private getTextureCoordinates(textureIndex: number): number[] {
+    const atlasSize = 16;
+    const textureSize = 1.0 / atlasSize;
+    const u = (textureIndex % atlasSize) * textureSize;
+    const v = Math.floor(textureIndex / atlasSize) * textureSize;
+
+    return [
+      u,
+      v + textureSize,
+      u + textureSize,
+      v + textureSize,
+      u + textureSize,
+      v,
+      u,
+      v,
+    ];
   }
 
   private updatePreviewMesh(

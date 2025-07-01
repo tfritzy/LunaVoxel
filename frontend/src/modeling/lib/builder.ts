@@ -3,17 +3,17 @@ import { layers } from "./layers";
 import {
   BlockModificationMode,
   DbConnection,
-  MeshType,
   Vector3,
 } from "../../module_bindings";
+import { Block } from "../blocks";
 
 export const Builder = class {
-  public previewBlocks: (MeshType | undefined)[][][];
+  public previewBlocks: (Block | undefined)[][][];
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
   private onPreviewUpdate: () => void;
-  private selectedColor: number;
+  private selectedBlock: number;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -52,7 +52,7 @@ export const Builder = class {
     this.scene = scene;
     this.domElement = domElement;
     this.onPreviewUpdate = onPreviewUpdate;
-    this.selectedColor = 0xffffff;
+    this.selectedBlock = 1;
 
     this.raycaster = new THREE.Raycaster();
     this.raycaster.layers.set(layers.raycast);
@@ -72,8 +72,8 @@ export const Builder = class {
     this.currentTool = tool;
   }
 
-  public setSelectedColor(color: number): void {
-    this.selectedColor = color;
+  public setSelectedBlock(block: number): void {
+    this.selectedBlock = block;
   }
 
   public updateCamera(camera: THREE.Camera): void {
@@ -84,8 +84,8 @@ export const Builder = class {
     return this.currentTool;
   }
 
-  private initializePreviewBlocks(): (MeshType | undefined)[][][] {
-    const previewBlocks: (MeshType | undefined)[][][] = [];
+  private initializePreviewBlocks(): (Block | undefined)[][][] {
+    const previewBlocks: (Block | undefined)[][][] = [];
     for (let x = 0; x <= this.dimensions.x; x++) {
       previewBlocks[x] = [];
       for (let y = 0; y <= this.dimensions.y; y++) {
@@ -274,7 +274,7 @@ export const Builder = class {
     const startPos = this.startPosition || position;
 
     this.clearPreviewBlocks();
-    this.modifyBlock(this.currentTool, startPos, endPos, this.selectedColor);
+    this.modifyBlock(this.currentTool, startPos, endPos);
 
     this.isMouseDown = false;
     this.startPosition = null;
@@ -313,7 +313,10 @@ export const Builder = class {
             z >= 0 &&
             z <= this.dimensions.z
           ) {
-            this.previewBlocks[x][y][z] = { tag: "Block" };
+            this.previewBlocks[x][y][z] = {
+              rotation: 0,
+              type: this.selectedBlock,
+            };
           }
         }
       }
@@ -325,22 +328,21 @@ export const Builder = class {
   private modifyBlock(
     tool: BlockModificationMode,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3,
-    color: number
+    endPos: THREE.Vector3
   ): void {
     if (!this.dbConn.isActive) return;
 
     this.dbConn.reducers.modifyBlockRect(
       this.projectId,
       tool,
-      { tag: "Block" },
+      this.selectedBlock,
       startPos.x,
       startPos.y,
       startPos.z,
       endPos.x,
       endPos.y,
       endPos.z,
-      color
+      0
     );
   }
 

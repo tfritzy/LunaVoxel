@@ -78,9 +78,10 @@ public static partial class Module
     {
         [PrimaryKey]
         public string ProjectId;
-        public int[] Colors = [];
         public int Version;
         public int CellSize = -1;
+        public int Size;
+        public BlockBlueprint[] Blocks = [];
     }
 
     [Table(Name = "player_cursor", Public = true)]
@@ -133,6 +134,18 @@ public static partial class Module
         public string? Name;
     }
 
+    [Type]
+    public partial class Face
+    {
+        public int AtlasIndex;
+    }
+
+    [Type]
+    public partial class BlockBlueprint
+    {
+        public Face[] Faces = [];
+    }
+
     public class Block
     {
         public int Type;
@@ -167,12 +180,6 @@ public static partial class Module
                 (byte)(combined & 0xFF)
             ];
         }
-    }
-
-    [Type]
-    public partial class Face
-    {
-        public int AtlasIndex;
     }
 
     [Type]

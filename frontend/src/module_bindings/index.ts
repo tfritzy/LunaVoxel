@@ -32,8 +32,6 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 // Import and reexport all reducer arg types
-import { AddColorToPalette } from "./add_color_to_palette_reducer.ts";
-export { AddColorToPalette };
 import { ChangePublicAccessToProject } from "./change_public_access_to_project_reducer.ts";
 export { ChangePublicAccessToProject };
 import { ChangeUserAccessToProject } from "./change_user_access_to_project_reducer.ts";
@@ -46,8 +44,6 @@ import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
 import { InitializeAtlas } from "./initialize_atlas_reducer.ts";
 export { InitializeAtlas };
-import { InitializePalette } from "./initialize_palette_reducer.ts";
-export { InitializePalette };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
 export { InviteToProject };
 import { ModifyBlock } from "./modify_block_reducer.ts";
@@ -90,16 +86,16 @@ import { AccessType } from "./access_type_type.ts";
 export { AccessType };
 import { Atlas } from "./atlas_type.ts";
 export { Atlas };
+import { BlockBlueprint } from "./block_blueprint_type.ts";
+export { BlockBlueprint };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
-import { BlockRun } from "./block_run_type.ts";
-export { BlockRun };
 import { Chunk } from "./chunk_type.ts";
 export { Chunk };
 import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
-import { MeshType } from "./mesh_type_type.ts";
-export { MeshType };
+import { Face } from "./face_type.ts";
+export { Face };
 import { PlayerCursor } from "./player_cursor_type.ts";
 export { PlayerCursor };
 import { Project } from "./project_type.ts";
@@ -152,10 +148,6 @@ const REMOTE_MODULE = {
     },
   },
   reducers: {
-    AddColorToPalette: {
-      reducerName: "AddColorToPalette",
-      argsType: AddColorToPalette.getTypeScriptAlgebraicType(),
-    },
     ChangePublicAccessToProject: {
       reducerName: "ChangePublicAccessToProject",
       argsType: ChangePublicAccessToProject.getTypeScriptAlgebraicType(),
@@ -179,10 +171,6 @@ const REMOTE_MODULE = {
     InitializeAtlas: {
       reducerName: "InitializeAtlas",
       argsType: InitializeAtlas.getTypeScriptAlgebraicType(),
-    },
-    InitializePalette: {
-      reducerName: "InitializePalette",
-      argsType: InitializePalette.getTypeScriptAlgebraicType(),
     },
     InviteToProject: {
       reducerName: "InviteToProject",
@@ -251,14 +239,12 @@ const REMOTE_MODULE = {
 
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
-| { name: "AddColorToPalette", args: AddColorToPalette }
 | { name: "ChangePublicAccessToProject", args: ChangePublicAccessToProject }
 | { name: "ChangeUserAccessToProject", args: ChangeUserAccessToProject }
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
 | { name: "InitializeAtlas", args: InitializeAtlas }
-| { name: "InitializePalette", args: InitializePalette }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
@@ -273,22 +259,6 @@ export type Reducer = never
 
 export class RemoteReducers {
   constructor(private connection: DbConnectionImpl, private setCallReducerFlags: SetReducerFlags) {}
-
-  addColorToPalette(projectId: string, color: number) {
-    const __args = { projectId, color };
-    let __writer = new BinaryWriter(1024);
-    AddColorToPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("AddColorToPalette", __argsBuffer, this.setCallReducerFlags.addColorToPaletteFlags);
-  }
-
-  onAddColorToPalette(callback: (ctx: ReducerEventContext, projectId: string, color: number) => void) {
-    this.connection.onReducer("AddColorToPalette", callback);
-  }
-
-  removeOnAddColorToPalette(callback: (ctx: ReducerEventContext, projectId: string, color: number) => void) {
-    this.connection.offReducer("AddColorToPalette", callback);
-  }
 
   changePublicAccessToProject(projectId: string, accessType: AccessType) {
     const __args = { projectId, accessType };
@@ -370,22 +340,6 @@ export class RemoteReducers {
     this.connection.offReducer("InitializeAtlas", callback);
   }
 
-  initializePalette(projectId: string) {
-    const __args = { projectId };
-    let __writer = new BinaryWriter(1024);
-    InitializePalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("InitializePalette", __argsBuffer, this.setCallReducerFlags.initializePaletteFlags);
-  }
-
-  onInitializePalette(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.onReducer("InitializePalette", callback);
-  }
-
-  removeOnInitializePalette(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.offReducer("InitializePalette", callback);
-  }
-
   inviteToProject(projectId: string, email: string, accessType: AccessType) {
     const __args = { projectId, email, accessType };
     let __writer = new BinaryWriter(1024);
@@ -402,35 +356,35 @@ export class RemoteReducers {
     this.connection.offReducer("InviteToProject", callback);
   }
 
-  modifyBlock(projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) {
-    const __args = { projectId, mode, type, positions, color };
+  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) {
+    const __args = { projectId, mode, blockType, positions, rotation };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, positions: Vector3[], color: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number) {
-    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, color };
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) {
+    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, rotation };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: MeshType, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
@@ -498,19 +452,19 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
-  updateAtlas(projectId: string, index: number, color: number, incrementVersion: boolean, cellSize: number) {
-    const __args = { projectId, index, color, incrementVersion, cellSize };
+  updateAtlas(projectId: string, newSize: number, incrementVersion: boolean, cellSize: number) {
+    const __args = { projectId, newSize, incrementVersion, cellSize };
     let __writer = new BinaryWriter(1024);
     UpdateAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateAtlas", __argsBuffer, this.setCallReducerFlags.updateAtlasFlags);
   }
 
-  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean, cellSize: number) => void) {
+  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, newSize: number, incrementVersion: boolean, cellSize: number) => void) {
     this.connection.onReducer("UpdateAtlas", callback);
   }
 
-  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, index: number, color: number, incrementVersion: boolean, cellSize: number) => void) {
+  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, newSize: number, incrementVersion: boolean, cellSize: number) => void) {
     this.connection.offReducer("UpdateAtlas", callback);
   }
 
@@ -549,11 +503,6 @@ export class RemoteReducers {
 }
 
 export class SetReducerFlags {
-  addColorToPaletteFlags: CallReducerFlags = 'FullUpdate';
-  addColorToPalette(flags: CallReducerFlags) {
-    this.addColorToPaletteFlags = flags;
-  }
-
   changePublicAccessToProjectFlags: CallReducerFlags = 'FullUpdate';
   changePublicAccessToProject(flags: CallReducerFlags) {
     this.changePublicAccessToProjectFlags = flags;
@@ -572,11 +521,6 @@ export class SetReducerFlags {
   initializeAtlasFlags: CallReducerFlags = 'FullUpdate';
   initializeAtlas(flags: CallReducerFlags) {
     this.initializeAtlasFlags = flags;
-  }
-
-  initializePaletteFlags: CallReducerFlags = 'FullUpdate';
-  initializePalette(flags: CallReducerFlags) {
-    this.initializePaletteFlags = flags;
   }
 
   inviteToProjectFlags: CallReducerFlags = 'FullUpdate';

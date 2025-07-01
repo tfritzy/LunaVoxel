@@ -33,8 +33,7 @@ import {
 
 export type UpdateAtlas = {
   projectId: string,
-  index: number,
-  color: number,
+  newSize: number,
   incrementVersion: boolean,
   cellSize: number,
 };
@@ -50,8 +49,7 @@ export namespace UpdateAtlas {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("index", AlgebraicType.createI32Type()),
-      new ProductTypeElement("color", AlgebraicType.createI32Type()),
+      new ProductTypeElement("newSize", AlgebraicType.createI32Type()),
       new ProductTypeElement("incrementVersion", AlgebraicType.createBoolType()),
       new ProductTypeElement("cellSize", AlgebraicType.createI32Type()),
     ]);

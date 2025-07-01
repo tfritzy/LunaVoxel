@@ -3,7 +3,12 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Reducer]
-    public static void UpdateAtlas(ReducerContext ctx, string projectId, int index, int color, bool incrementVersion, int cellSize)
+    public static void UpdateAtlas(
+        ReducerContext ctx,
+        string projectId,
+        int newSize,
+        bool incrementVersion,
+        int cellSize)
     {
         if (string.IsNullOrEmpty(projectId))
         {
@@ -12,11 +17,6 @@ public static partial class Module
 
         var atlas = ctx.Db.atlas.ProjectId.Find(projectId)
             ?? throw new System.ArgumentException("Atlas not found for the given project ID.");
-
-        if (index < 0 || index >= atlas.Colors.Length)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(index), "Index is out of range for the atlas colors.");
-        }
 
         if (incrementVersion)
         {
@@ -29,7 +29,7 @@ public static partial class Module
         }
 
         atlas.CellSize = cellSize;
-        atlas.Colors[index] = color;
+        atlas.Size = newSize;
         ctx.Db.atlas.ProjectId.Update(atlas);
     }
 }

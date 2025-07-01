@@ -8,14 +8,14 @@ public static partial class Module
         ReducerContext ctx,
         string projectId,
         BlockModificationMode mode,
-        MeshType type,
+        int type,
         int x1,
         int y1,
         int z1,
         int x2,
         int y2,
         int z2,
-        int color)
+        int rotation)
     {
         var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
         List<Vector3> positions = [];
@@ -35,6 +35,6 @@ public static partial class Module
                 }
             }
         }
-        ModifyBlock(ctx, projectId, mode, type, positions, color);
+        ModifyBlock(ctx, projectId, mode, type, positions, rotation);
     }
 }

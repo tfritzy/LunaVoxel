@@ -32,15 +32,14 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
-import { MeshType as __MeshType } from "./mesh_type_type";
 import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type ModifyBlock = {
   projectId: string,
   mode: __BlockModificationMode,
-  type: __MeshType,
+  blockType: number,
   positions: __Vector3[],
-  color: number,
+  rotation: number,
 };
 
 /**
@@ -55,9 +54,9 @@ export namespace ModifyBlock {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("blockType", AlgebraicType.createI32Type()),
       new ProductTypeElement("positions", AlgebraicType.createArrayType(__Vector3.getTypeScriptAlgebraicType())),
-      new ProductTypeElement("color", AlgebraicType.createI32Type()),
+      new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
     ]);
   }
 

@@ -30,8 +30,6 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { BlockRun as __BlockRun } from "./block_run_type";
-
 export type Chunk = {
   id: string,
   projectId: string,
@@ -39,7 +37,7 @@ export type Chunk = {
   yDim: number,
   zDim: number,
   layer: number,
-  blocks: __BlockRun[],
+  voxels: Uint8Array,
 };
 
 /**
@@ -58,7 +56,7 @@ export namespace Chunk {
       new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("zDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("layer", AlgebraicType.createI32Type()),
-      new ProductTypeElement("blocks", AlgebraicType.createArrayType(__BlockRun.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("voxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
     ]);
   }
 

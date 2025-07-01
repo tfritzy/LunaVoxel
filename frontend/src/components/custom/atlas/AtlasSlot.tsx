@@ -3,23 +3,13 @@ import { useState, useRef, useEffect } from "react";
 interface AtlasSlotProps {
   index: number;
   textureData: ImageData | null;
-  tint: number;
   onClick: (index: number) => void;
 }
 
-export const AtlasSlot = ({
-  index,
-  textureData,
-  tint,
-  onClick,
-}: AtlasSlotProps) => {
+export const AtlasSlot = ({ index, textureData, onClick }: AtlasSlotProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const displaySize = 48;
-
-  const intToHex = (color: number): string => {
-    return `#${color.toString(16).padStart(6, "0")}`;
-  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,21 +35,8 @@ export const AtlasSlot = ({
       tempCtx.putImageData(textureData, 0, 0);
 
       ctx.drawImage(tempCanvas, 0, 0, displaySize, displaySize);
-
-      if (tint !== 0xffffff) {
-        const tintHex = intToHex(tint);
-
-        ctx.globalCompositeOperation = "multiply";
-        ctx.fillStyle = tintHex;
-        ctx.fillRect(0, 0, displaySize, displaySize);
-        ctx.globalCompositeOperation = "source-over";
-      }
-    } else {
-      const tintHex = intToHex(tint);
-      ctx.fillStyle = tintHex;
-      ctx.fillRect(0, 0, displaySize, displaySize);
     }
-  }, [textureData, tint, displaySize]);
+  }, [textureData, displaySize]);
 
   return (
     <div

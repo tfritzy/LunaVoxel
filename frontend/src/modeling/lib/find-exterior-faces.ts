@@ -1,11 +1,13 @@
-import { BlockModificationMode, BlockRun, MeshType } from "@/module_bindings";
+import { Atlas, BlockModificationMode } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFaces } from "./chunk-mesh";
+import { Block } from "../blocks";
 
 export const findExteriorFaces = (
-  realBlocks: (BlockRun | undefined)[][][],
-  previewBlocks: (MeshType | undefined)[][][],
+  realBlocks: (Block | undefined)[][][],
+  previewBlocks: (Block | undefined)[][][],
   previewMode: BlockModificationMode,
+  atlas: Atlas,
   dimensions: { xDim: number; yDim: number; zDim: number }
 ): {
   meshFaces: Map<string, VoxelFaces>;
@@ -53,7 +55,7 @@ export const findExteriorFaces = (
     return !isSolid(x, y, z);
   };
 
-  const getBlock = (x: number, y: number, z: number): BlockRun | undefined => {
+  const getBlock = (x: number, y: number, z: number): Block | undefined => {
     if (x < 0 || x >= xDim || y < 0 || y >= yDim || z < 0 || z >= zDim)
       return undefined;
     return realBlocks[x]?.[y]?.[z];
@@ -63,7 +65,7 @@ export const findExteriorFaces = (
     x: number,
     y: number,
     z: number
-  ): MeshType | undefined => {
+  ): Block | undefined => {
     if (x < 0 || x >= xDim || y < 0 || y >= yDim || z < 0 || z >= zDim)
       return undefined;
     return previewBlocks?.[x]?.[y]?.[z];
@@ -179,11 +181,12 @@ export const findExteriorFaces = (
 
       const key = `${nx},${ny},${nz}`;
       if (hasReal && (isBuildMode || !hasPreview)) {
-        const blockColor = block?.color || 0xffffff;
+        const blueprint = atlas.blocks[block.type];
+        const index = blueprint.faces[dirIndex].atlasIndex;
 
         if (!exteriorFaces.has(key)) {
           exteriorFaces.set(key, {
-            color: blockColor,
+            textureIndex: index,
             faceIndexes: [],
             gridPos: new THREE.Vector3(nx, ny, nz),
           });
@@ -196,8 +199,10 @@ export const findExteriorFaces = (
 
       if (hasPreview && !sourceIsPreview) {
         if (!previewFaces.has(key)) {
+          const blueprint = atlas.blocks[previewBlock.type];
+          const index = blueprint.faces[dirIndex].atlasIndex;
           previewFaces.set(key, {
-            color: 0xffffff,
+            textureIndex: index,
             faceIndexes: [],
             gridPos: new THREE.Vector3(nx, ny, nz),
           });

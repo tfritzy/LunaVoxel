@@ -34,7 +34,7 @@ export const Atlas = ({ projectId }: AtlasProps) => {
     );
   }
 
-  const slotsPerRow = Math.ceil(Math.sqrt(atlas.colors.length));
+  const slotsPerRow = Math.ceil(Math.sqrt(atlas.size));
   const slotSize = 48;
 
   return (
@@ -50,7 +50,6 @@ export const Atlas = ({ projectId }: AtlasProps) => {
             key={slot.index}
             index={slot.index}
             textureData={slot.textureData}
-            tint={slot.tint}
             onClick={handleSlotClick}
           />
         ))}
@@ -64,7 +63,6 @@ export const Atlas = ({ projectId }: AtlasProps) => {
           index={selectedSlotIndex}
           cellSize={atlas.cellSize}
           defaultTexture={atlasSlots[selectedSlotIndex].textureData}
-          defaultTint={atlasSlots[selectedSlotIndex].tint}
         />
       )}
     </div>

@@ -20,7 +20,7 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const { selectedColor, project } = useCurrentProject();
+  const { selectedColor, project, atlas, textureAtlas } = useCurrentProject();
 
   useEffect(() => {}, [selectedColor]);
 
@@ -95,6 +95,18 @@ export const ProjectViewPage = () => {
       engineRef.current.projectManager.setTool(currentTool);
     }
   }, [currentTool]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.projectManager.setAtlas(atlas);
+    }
+  }, [atlas]);
+
+  useEffect(() => {
+    if (engineRef.current && textureAtlas) {
+      engineRef.current.projectManager.setTextureAtlas(textureAtlas);
+    }
+  }, [textureAtlas]);
 
   const handleToolChange = (tool: BlockModificationMode) => {
     setCurrentTool(tool);

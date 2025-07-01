@@ -31,6 +31,8 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 import { Atlas } from "./atlas_type";
+import { BlockBlueprint as __BlockBlueprint } from "./block_blueprint_type";
+
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**

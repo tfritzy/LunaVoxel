@@ -14,7 +14,6 @@ interface AtlasSlotModalProps {
   projectId: string;
   index: number;
   cellSize: number;
-  defaultTint: number;
   defaultTexture: ImageData | null;
 }
 
@@ -48,10 +47,9 @@ export const AtlasSlotModal = ({
   projectId,
   index,
   cellSize,
-  defaultTint,
   defaultTexture,
 }: AtlasSlotModalProps) => {
-  const [selectedColor, setSelectedColor] = useState<number>(defaultTint);
+  const [selectedColor, setSelectedColor] = useState<number>(0xffffff);
   const [selectedImageData, setSelectedImageData] = useState<ImageData | null>(
     null
   );
@@ -60,15 +58,13 @@ export const AtlasSlotModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (defaultTint !== undefined) {
-        setSelectedColor(defaultTint);
-      }
+      setSelectedColor(0xffffff);
 
       if (defaultTexture) {
         setSelectedImageData(defaultTexture);
       }
     }
-  }, [isOpen, defaultTint, defaultTexture]);
+  }, [isOpen, defaultTexture]);
 
   const handleImageData = (imageData: ImageData | null) => {
     setSelectedImageData(imageData);

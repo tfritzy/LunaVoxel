@@ -65,7 +65,7 @@ export class VoxelEngine {
   }
 
   public onColorSelected(color: number) {
-    this.projectManager.setSelectedColor(color);
+    this.projectManager.setSelectedBlock(color);
   }
 
   private setupRenderer(container: HTMLElement): THREE.WebGLRenderer {

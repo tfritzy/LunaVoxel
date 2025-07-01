@@ -30,39 +30,30 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { MeshType as __MeshType } from "./mesh_type_type";
-import { Vector3 as __Vector3 } from "./vector_3_type";
-
-export type BlockRun = {
-  type: __MeshType,
-  color: number | undefined,
-  topLeft: __Vector3,
-  bottomRight: __Vector3,
+export type Face = {
+  atlasIndex: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace BlockRun {
+export namespace Face {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("type", __MeshType.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("color", AlgebraicType.createOptionType(AlgebraicType.createI32Type())),
-      new ProductTypeElement("topLeft", __Vector3.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("bottomRight", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("atlasIndex", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: BlockRun): void {
-    BlockRun.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Face): void {
+    Face.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): BlockRun {
-    return BlockRun.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Face {
+    return Face.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

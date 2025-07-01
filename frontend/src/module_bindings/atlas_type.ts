@@ -30,11 +30,14 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
+import { BlockBlueprint as __BlockBlueprint } from "./block_blueprint_type";
+
 export type Atlas = {
   projectId: string,
-  colors: number[],
   version: number,
   cellSize: number,
+  size: number,
+  blocks: __BlockBlueprint[],
 };
 
 /**
@@ -48,9 +51,10 @@ export namespace Atlas {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
       new ProductTypeElement("version", AlgebraicType.createI32Type()),
       new ProductTypeElement("cellSize", AlgebraicType.createI32Type()),
+      new ProductTypeElement("size", AlgebraicType.createI32Type()),
+      new ProductTypeElement("blocks", AlgebraicType.createArrayType(__BlockBlueprint.getTypeScriptAlgebraicType())),
     ]);
   }
 
