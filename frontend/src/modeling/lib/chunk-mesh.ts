@@ -155,7 +155,6 @@ export class ChunkMesh {
     buildMode: BlockModificationMode,
     atlas: Atlas
   ) => {
-    console.log("[ChunkMesh] Updating chunk mesh", this.textureAtlas);
     const totalStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
@@ -256,16 +255,17 @@ export class ChunkMesh {
 
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
-          const aoFactor = calculateVertexAO(
-            blockX,
-            blockY,
-            blockZ,
-            faceIndex,
-            j,
-            realBlocks,
-            previewBlocks,
-            previewMode
-          );
+          const aoFactor = 1;
+          //  = calculateVertexAO(
+          //   blockX,
+          //   blockY,
+          //   blockZ,
+          //   faceIndex,
+          //   j,
+          //   realBlocks,
+          //   previewBlocks,
+          //   previewMode
+          // );
 
           vertices[vertexOffset] = vertex[0] + posX;
           vertices[vertexOffset + 1] = vertex[1] + posY;

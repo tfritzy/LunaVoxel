@@ -35,6 +35,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     threeTexture.minFilter = THREE.NearestFilter;
     threeTexture.wrapS = THREE.ClampToEdgeWrapping;
     threeTexture.wrapT = THREE.ClampToEdgeWrapping;
+    threeTexture.generateMipmaps = false;
     threeTexture.needsUpdate = true;
     return threeTexture;
   };
@@ -144,7 +145,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
       .subscriptionBuilder()
       .onApplied(() => {
         const atlasRow = connection.db.atlas.projectId.find(projectId);
-        console.log("Atlas subscription applied:", atlasRow);
         if (atlasRow) {
           setAtlas(atlasRow);
           if (atlasRow.version !== lastVersionRef.current) {
@@ -163,7 +163,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
       oldAtlas: Atlas,
       newAtlas: Atlas
     ) => {
-      console.log("Atlas updated:", newAtlas);
       if (newAtlas.projectId === projectId) {
         setAtlas(newAtlas);
         if (newAtlas.version !== lastVersionRef.current) {
@@ -173,7 +172,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     };
 
     const onAtlasInsert = (ctx: EventContext, newAtlas: Atlas) => {
-      console.log("Atlas inserted:", newAtlas);
       if (newAtlas.projectId === projectId) {
         setAtlas(newAtlas);
         downloadAtlasImage(newAtlas.version);
@@ -206,8 +204,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
       }
     };
   }, []);
-
-  console.log("Current atlas: ", atlas);
 
   return {
     atlas,

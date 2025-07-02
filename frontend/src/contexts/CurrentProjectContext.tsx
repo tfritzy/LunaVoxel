@@ -205,8 +205,6 @@ export const CurrentProjectProvider = ({
     return <LoadingState status="loading" />;
   }
 
-  console.log("Current atlas in ProjectProvider:", atlas);
-
   return (
     <ProjectContext.Provider
       value={{

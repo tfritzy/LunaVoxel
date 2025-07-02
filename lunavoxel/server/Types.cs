@@ -119,7 +119,8 @@ public static partial class Module
                 xDim = xDim,
                 yDim = yDim,
                 zDim = zDim,
-                Layer = layer
+                Layer = layer,
+                Voxels = VoxelRLE.Compress(new byte[xDim * yDim * zDim * 2])
             };
         }
     }

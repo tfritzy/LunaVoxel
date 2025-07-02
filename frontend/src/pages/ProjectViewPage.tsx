@@ -84,6 +84,11 @@ export const ProjectViewPage = () => {
       project,
     });
 
+    engineRef.current.projectManager.setSelectedBlock(selectedBlock);
+    engineRef.current.projectManager.setTool(currentTool);
+    engineRef.current.projectManager.setAtlas(atlas);
+    engineRef.current.projectManager.setTextureAtlas(textureAtlas);
+
     return () => {
       if (engineRef.current) {
         engineRef.current.dispose();
@@ -99,17 +104,12 @@ export const ProjectViewPage = () => {
   }, [currentTool]);
 
   useEffect(() => {
-    console.log("Atlas updated:", atlas);
     if (engineRef.current) {
-      console.log("Setting atlas in engine:", atlas);
       engineRef.current.projectManager.setAtlas(atlas);
-    } else {
-      console.warn("Engine not initialized yet, atlas will be set later.");
     }
   }, [atlas]);
 
   useEffect(() => {
-    console.log("Texture atlas updated:", textureAtlas);
     if (engineRef.current && textureAtlas) {
       engineRef.current.projectManager.setTextureAtlas(textureAtlas);
     }

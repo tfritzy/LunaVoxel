@@ -53,12 +53,13 @@ export class ProjectManager {
   };
 
   setAtlas = (atlas: Atlas) => {
-    console.log("Setting atlas in project manager:", atlas);
     this.atlas = atlas;
   };
 
-  setTextureAtlas = (textureAtlas: THREE.Texture) => {
-    this.chunkMesh.setTextureAtlas(textureAtlas);
+  setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
+    if (textureAtlas) {
+      this.chunkMesh.setTextureAtlas(textureAtlas);
+    }
   };
 
   setupEvents = () => {

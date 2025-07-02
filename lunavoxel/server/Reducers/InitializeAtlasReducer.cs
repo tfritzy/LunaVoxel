@@ -11,6 +11,23 @@ public static partial class Module
             return;
         }
 
-        ctx.Db.atlas.Insert(new Atlas { ProjectId = projectId, Size = 32 });
+        var blocks = new BlockBlueprint[64];
+        for (int i = 0; i < blocks.Length; i++)
+        {
+            blocks[i] = new BlockBlueprint
+            {
+                Faces =
+                [
+                    new Face { AtlasIndex = i },
+                    new Face { AtlasIndex = i },
+                    new Face { AtlasIndex = i },
+                    new Face { AtlasIndex = i },
+                    new Face { AtlasIndex = i },
+                    new Face { AtlasIndex = i }
+                ]
+            };
+
+        }
+        ctx.Db.atlas.Insert(new Atlas { ProjectId = projectId, Size = 64, Blocks = blocks, CellSize = 1 });
     }
 }
