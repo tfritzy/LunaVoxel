@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { Atlas, BlockModificationMode, Chunk } from "@/module_bindings";
-import { calculateVertexAOFast as calculateVertexAO } from "./ambient-occlusion";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
 import { Block } from "../blocks";
+import { createVoxelMaterial } from "./shader";
 
 export type VoxelFaces = {
   textureIndex: number;
@@ -14,60 +14,60 @@ export type VoxelFaces = {
 const faces = [
   {
     vertices: [
-      [0.4999, -0.4999, -0.4999],
-      [0.4999, 0.4999, -0.4999],
-      [0.4999, 0.4999, 0.4999],
-      [0.4999, -0.4999, 0.4999],
+      [0.5, -0.5, -0.5],
+      [0.5, 0.5, -0.5],
+      [0.5, 0.5, 0.5],
+      [0.5, -0.5, 0.5],
     ],
     normal: [1, 0, 0],
     offset: [1, 0, 0],
   },
   {
     vertices: [
-      [-0.4999, -0.4999, -0.4999],
-      [-0.4999, -0.4999, 0.4999],
-      [-0.4999, 0.4999, 0.4999],
-      [-0.4999, 0.4999, -0.4999],
+      [-0.5, -0.5, -0.5],
+      [-0.5, -0.5, 0.5],
+      [-0.5, 0.5, 0.5],
+      [-0.5, 0.5, -0.5],
     ],
     normal: [-1, 0, 0],
     offset: [-1, 0, 0],
   },
   {
     vertices: [
-      [-0.4999, 0.4999, -0.4999],
-      [-0.4999, 0.4999, 0.4999],
-      [0.4999, 0.4999, 0.4999],
-      [0.4999, 0.4999, -0.4999],
+      [-0.5, 0.5, -0.5],
+      [-0.5, 0.5, 0.5],
+      [0.5, 0.5, 0.5],
+      [0.5, 0.5, -0.5],
     ],
     normal: [0, 1, 0],
     offset: [0, 1, 0],
   },
   {
     vertices: [
-      [-0.4999, -0.4999, -0.4999],
-      [0.4999, -0.4999, -0.4999],
-      [0.4999, -0.4999, 0.4999],
-      [-0.4999, -0.4999, 0.4999],
+      [-0.5, -0.5, -0.5],
+      [0.5, -0.5, -0.5],
+      [0.5, -0.5, 0.5],
+      [-0.5, -0.5, 0.5],
     ],
     normal: [0, -1, 0],
     offset: [0, -1, 0],
   },
   {
     vertices: [
-      [-0.4999, -0.4999, 0.4999],
-      [0.4999, -0.4999, 0.4999],
-      [0.4999, 0.4999, 0.4999],
-      [-0.4999, 0.4999, 0.4999],
+      [-0.5, -0.5, 0.5],
+      [0.5, -0.5, 0.5],
+      [0.5, 0.5, 0.5],
+      [-0.5, 0.5, 0.5],
     ],
     normal: [0, 0, 1],
     offset: [0, 0, 1],
   },
   {
     vertices: [
-      [-0.4999, -0.4999, -0.4999],
-      [-0.4999, 0.4999, -0.4999],
-      [0.4999, 0.4999, -0.4999],
-      [0.4999, -0.4999, -0.4999],
+      [-0.5, -0.5, -0.5],
+      [-0.5, 0.5, -0.5],
+      [0.5, 0.5, -0.5],
+      [0.5, -0.5, -0.5],
     ],
     normal: [0, 0, -1],
     offset: [0, 0, -1],
@@ -78,7 +78,7 @@ export class ChunkMesh {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
-  private material: THREE.MeshLambertMaterial | null = null;
+  private material: THREE.ShaderMaterial | null = null;
   private textureAtlas: THREE.Texture | null = null;
   private previewMesh: THREE.Mesh | null = null;
   private currentUpdateId: number = 0;
@@ -155,7 +155,7 @@ export class ChunkMesh {
     buildMode: BlockModificationMode,
     atlas: Atlas
   ) => {
-    const totalStartTime = performance.now();
+    // const totalStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
     try {
@@ -171,7 +171,7 @@ export class ChunkMesh {
 
       this.cacheVersion++;
 
-      const faceFindingStartTime = performance.now();
+      // const faceFindingStartTime = performance.now();
       const { meshFaces, previewFaces } = findExteriorFaces(
         realBlocks,
         previewBlocks,
@@ -183,28 +183,22 @@ export class ChunkMesh {
           zDim: newChunk.zDim,
         }
       );
-      const faceFindingEndTime = performance.now();
+      // const faceFindingEndTime = performance.now();
 
       if (updateId !== this.currentUpdateId) {
         return;
       }
 
-      const meshUpdateStartTime = performance.now();
-      this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode);
+      // const meshUpdateStartTime = performance.now();
+      this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode, atlas);
       this.updatePreviewMesh(previewFaces, buildMode);
-      const meshUpdateEndTime = performance.now();
+      // const meshUpdateEndTime = performance.now();
 
-      const totalEndTime = performance.now();
+      // const totalEndTime = performance.now();
 
-      const faceFindingDuration = faceFindingEndTime - faceFindingStartTime;
-      const meshUpdateDuration = meshUpdateEndTime - meshUpdateStartTime;
-      const totalDuration = totalEndTime - totalStartTime;
-
-      // console.log(`
-      //   Find exterior faces: ${faceFindingDuration.toFixed(2)}ms,
-      //   Mesh update: ${meshUpdateDuration.toFixed(2)}ms,
-      //   Total update time: ${totalDuration.toFixed(2)}ms
-      // `);
+      // const faceFindingDuration = faceFindingEndTime - faceFindingStartTime;
+      // const meshUpdateDuration = meshUpdateEndTime - meshUpdateStartTime;
+      // const totalDuration = totalEndTime - totalStartTime;
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -215,7 +209,8 @@ export class ChunkMesh {
     exteriorFaces: Map<string, VoxelFaces>,
     realBlocks: (Block | undefined)[][][],
     previewBlocks: (Block | undefined)[][][],
-    previewMode: BlockModificationMode
+    previewMode: BlockModificationMode,
+    atlas: Atlas
   ): void {
     let totalFaceCount = 0;
     for (const voxelFace of exteriorFaces.values()) {
@@ -241,7 +236,11 @@ export class ChunkMesh {
       const blockY = gridPos.y;
       const blockZ = gridPos.z;
 
-      const textureCoords = this.getTextureCoordinates(textureIndex);
+      const textureCoords = this.getTextureCoordinates(
+        textureIndex,
+        Math.sqrt(atlas.size),
+        atlas.cellSize
+      );
 
       for (let i = 0; i < faceIndexes.length; i++) {
         const faceIndex = faceIndexes[i];
@@ -256,16 +255,6 @@ export class ChunkMesh {
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
           const aoFactor = 1;
-          //  = calculateVertexAO(
-          //   blockX,
-          //   blockY,
-          //   blockZ,
-          //   faceIndex,
-          //   j,
-          //   realBlocks,
-          //   previewBlocks,
-          //   previewMode
-          // );
 
           vertices[vertexOffset] = vertex[0] + posX;
           vertices[vertexOffset + 1] = vertex[1] + posY;
@@ -298,10 +287,7 @@ export class ChunkMesh {
 
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
-      this.material = new THREE.MeshLambertMaterial({
-        map: this.textureAtlas,
-        side: THREE.FrontSide,
-      });
+      this.material = createVoxelMaterial(this.textureAtlas!);
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.mesh.castShadow = true;
       this.mesh.receiveShadow = true;
@@ -324,22 +310,38 @@ export class ChunkMesh {
     this.geometry.computeBoundingSphere();
   }
 
-  private getTextureCoordinates(textureIndex: number): number[] {
-    const atlasSize = 16;
+  private getTextureCoordinates(
+    textureIndex: number,
+    atlasSize: number,
+    pixelsPerTile: number
+  ): number[] {
     const textureSize = 1.0 / atlasSize;
-    const u = (textureIndex % atlasSize) * textureSize;
-    const v = Math.floor(textureIndex / atlasSize) * textureSize;
 
-    return [
-      u,
-      v + textureSize,
-      u + textureSize,
-      v + textureSize,
-      u + textureSize,
-      v,
-      u,
-      v,
-    ];
+    if (pixelsPerTile === 1) {
+      const halfPixel = textureSize * 0.5;
+      const u = (textureIndex % atlasSize) * textureSize + halfPixel;
+      const v = Math.floor(textureIndex / atlasSize) * textureSize + halfPixel;
+      const flippedV = 1.0 - v;
+      return [u, flippedV, u, flippedV, u, flippedV, u, flippedV];
+    } else {
+      const totalAtlasPixels = atlasSize * pixelsPerTile;
+      const inset = 0.5 / totalAtlasPixels;
+      const u = (textureIndex % atlasSize) * textureSize;
+      const v = Math.floor(textureIndex / atlasSize) * textureSize;
+      const flippedVMin = 1.0 - (v + textureSize);
+      const flippedVMax = 1.0 - v;
+
+      return [
+        u + inset,
+        flippedVMax - inset,
+        u + textureSize - inset,
+        flippedVMax - inset,
+        u + textureSize - inset,
+        flippedVMin + inset,
+        u + inset,
+        flippedVMin + inset,
+      ];
+    }
   }
 
   private updatePreviewMesh(

@@ -43,7 +43,6 @@ export class VoxelEngine {
       ),
       this.renderer.domElement
     );
-    this.setupLights();
     addGroundPlane(
       this.scene,
       this.project.dimensions.x,
@@ -71,24 +70,6 @@ export class VoxelEngine {
     renderer.shadowMap.enabled = true;
     container.appendChild(renderer.domElement);
     return renderer;
-  }
-
-  private setupLights(): void {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2);
-    this.scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(25, 75, 50);
-    directionalLight.shadow.mapSize.width = 8192;
-    directionalLight.shadow.mapSize.height = 8192;
-    directionalLight.shadow.camera.near = 10;
-    directionalLight.shadow.camera.far = 120;
-    directionalLight.shadow.camera.left = -40;
-    directionalLight.shadow.camera.right = 40;
-    directionalLight.shadow.camera.top = 40;
-    directionalLight.shadow.camera.bottom = -40;
-    directionalLight.shadow.bias = -0.00000001;
-    this.scene.add(directionalLight);
   }
 
   private setupCamera(): THREE.PerspectiveCamera {

@@ -44,32 +44,44 @@ export const Atlas = ({ projectId }: AtlasProps) => {
 
   return (
     <div className="p-4">
-      <div
-        className="grid w-fit"
-        style={{
-          gridTemplateColumns: `repeat(${slotsPerRow}, ${slotSize}px)`,
-        }}
-      >
-        {atlasSlots.map((slot) => (
-          <div key={slot.index} className="relative group">
-            <AtlasSlot
-              index={slot.index}
-              textureData={slot.textureData}
-              onClick={handleSlotClick}
-              isSelected={selectedBlock === slot.index}
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditClick(slot.index);
-              }}
-              className="absolute top-0 right-0 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs"
-              aria-label="Edit slot"
-            >
-              ✎
-            </button>
-          </div>
-        ))}
+      <div className="relative w-fit">
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: `repeat(${slotsPerRow}, ${slotSize}px)`,
+          }}
+        >
+          {atlasSlots.map((slot) => (
+            <div key={slot.index} className="relative group">
+              <AtlasSlot
+                index={slot.index}
+                textureData={slot.textureData}
+                onClick={handleSlotClick}
+                isSelected={selectedBlock === slot.index}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(slot.index);
+                }}
+                className="absolute top-0 right-0 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs"
+                aria-label="Edit slot"
+              >
+                ✎
+              </button>
+            </div>
+          ))}
+        </div>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 1px, transparent 1px)
+            `,
+            backgroundSize: `${slotSize}px ${slotSize}px`,
+          }}
+        />
       </div>
       {selectedSlotIndex !== null && (
         <AtlasSlotModal

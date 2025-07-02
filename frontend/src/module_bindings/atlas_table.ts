@@ -60,22 +60,22 @@ export class AtlasTableHandle {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `projectId` unique index on the table `atlas`,
+   * Access to the `project_id` unique index on the table `atlas`,
    * which allows point queries on the field of the same name
    * via the [`AtlasProjectIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.atlas.projectId().find(...)`.
+   * like `ctx.db.atlas.project_id().find(...)`.
    *
-   * Get a handle on the `projectId` unique index on the table `atlas`.
+   * Get a handle on the `project_id` unique index on the table `atlas`.
    */
-  projectId = {
-    // Find the subscribed row whose `projectId` column value is equal to `col_val`,
+  project_id = {
+    // Find the subscribed row whose `project_id` column value is equal to `col_val`,
     // if such a row is present in the client cache.
     find: (col_val: string): Atlas | undefined => {
       for (let row of this.tableCache.iter()) {
-        if (deepEqual(row.projectId, col_val)) {
+        if (deepEqual(row.project_id, col_val)) {
           return row;
         }
       }

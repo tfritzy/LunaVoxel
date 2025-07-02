@@ -46,7 +46,7 @@ export const AtlasSlot = ({
     <div
       className={`
         relative cursor-pointer transition-all duration-150
-        hover:shadow-lg border border-black
+        hover:shadow-lg
         ${isSelected ? "ring-blue-500 ring-2" : ""}
       `}
       onMouseEnter={() => setIsHovered(true)}
@@ -55,7 +55,7 @@ export const AtlasSlot = ({
     >
       <canvas
         ref={canvasRef}
-        className="transition-all duration-150 border border-white"
+        className="transition-all duration-150"
         style={{
           width: `${displaySize}px`,
           height: `${displaySize}px`,
