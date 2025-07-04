@@ -2,30 +2,40 @@
 @import "tw-animate-css";
 
 :root {
-  --background: hsl(210 12% 12%);
-  --foreground: hsl(214 13% 90%);
-  --muted: hsl(210 12% 20%);
-  --muted-foreground: hsl(210 12% 50%);
-  --popover: hsl(210 12% 13%);
-  --popover-foreground: hsl(214 13% 100%);
-  --card: hsl(210 12% 14%);
-  --card-foreground: hsl(214 13% 95%);
-  --border: hsl(210 2% 21%);
-  --input: hsl(210 2% 24%);
-  --primary: hsl(214 13% 90%);
-  --primary-foreground: hsl(214 13% 30%);
-  --secondary: hsl(214 3% 25%);
-  --secondary-foreground: hsl(214 3% 85%);
-  --accent: hsl(210 12% 31%);
-  --accent-foreground: hsl(210 12% 91%);
-  --destructive: hsl(1 94% 54%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --ring: hsl(214 13% 90%);
-  --chart-1: hsl(214 13% 90%);
-  --chart-2: hsl(214 3% 25%);
-  --chart-3: hsl(210 12% 31%);
-  --chart-4: hsl(214 3% 28%);
-  --chart-5: hsl(214 16% 90%);
+  --background: hsl(240 17% 9%); /* Catppuccin Crust */
+  --foreground: hsl(225 47% 88%); /* Catppuccin Text */
+  
+  --muted: hsl(237 12% 23%); /* Catppuccin Surface0 */
+  --muted-foreground: hsl(229 24% 78%); /* Catppuccin Subtext0 */
+  
+  --popover: hsl(240 20% 12%); /* Catppuccin Mantle */
+  --popover-foreground: hsl(225 47% 88%); /* Catppuccin Text */
+  
+  --card: hsl(237 12% 23%); /* Catppuccin Surface0 */
+  --card-foreground: hsl(225 47% 88%); /* Catppuccin Text */
+  
+  --border: hsl(237 11% 31%); /* Catppuccin Surface1 */
+  --input: hsl(232 11% 40%); /* Catppuccin Surface2 */
+  
+  --primary: hsl(217 91% 76%); /* Catppuccin Blue */
+  --primary-foreground: hsl(240 17% 9%); /* Catppuccin Crust */
+  
+  --secondary: hsl(237 11% 31%); /* Catppuccin Surface1 */
+  --secondary-foreground: hsl(225 47% 88%); /* Catppuccin Text */
+  
+  --accent: hsl(267 83% 84%); /* Catppuccin Mauve */
+  --accent-foreground: hsl(240 20% 15%); /* Catppuccin Base */
+  
+  --destructive: hsl(348 83% 75%); /* Catppuccin Red */
+  --destructive-foreground: hsl(240 20% 15%); /* Catppuccin Base */
+  
+  --ring: hsl(217 91% 76%); /* Catppuccin Blue */
+
+  --chart-1: hsl(217 91% 76%); /* Blue */
+  --chart-2: hsl(115 54% 76%); /* Green */
+  --chart-3: hsl(22 92% 75%);  /* Peach */
+  --chart-4: hsl(267 83% 84%); /* Mauve */
+  --chart-5: hsl(348 83% 75%); /* Red */
 }
 
 @theme inline {
@@ -61,16 +71,13 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
   --font-sans: Montserrat, sans-serif;
   --font-mono: Fira Code, monospace;
   --font-serif: Georgia, serif;
-
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);

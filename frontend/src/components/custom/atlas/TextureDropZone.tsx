@@ -3,17 +3,15 @@ import { useState, useRef } from "react";
 import "@/components/custom/color-picker.css";
 
 export const TextureDropZone = ({
+  imageData,
   onImageData,
   onError,
   cellSize,
-  imageData,
-  error,
 }: {
+  imageData: ImageData | null;
   onImageData: (data: ImageData | null) => void;
   onError: (error: string) => void;
   cellSize: number;
-  imageData: ImageData | null;
-  error: string;
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -34,14 +32,27 @@ export const TextureDropZone = ({
         return;
       }
 
-      if (cellSize === -1) {
+      if (img.width !== img.height) {
+        onError("Texture must be square");
+        return;
+      }
+
+      if (img.width > 128 || img.height > 128) {
+        onError("Texture must be 128x128 pixels or smaller");
+        return;
+      }
+
+      if (cellSize < 2) {
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
       } else {
-        canvas.width = cellSize;
-        canvas.height = cellSize;
-        ctx.drawImage(img, 0, 0, cellSize, cellSize);
+        if (img.width !== cellSize || img.height !== cellSize) {
+          onError(
+            `Texture must be exactly ${cellSize}x${cellSize} to be consistent with the rest of the atlas.`
+          );
+          return;
+        }
       }
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -107,10 +118,9 @@ export const TextureDropZone = ({
   const texturePreview = renderTexturePreview();
 
   return (
-    <div className="space-y-2">
+    <div className="">
       <div
-        className={`
-          w-[150px] h-[150px] rounded-xs cursor-pointer
+        className={`h-[190px] w-[190px] rounded-xs cursor-pointer
           flex flex-col items-center justify-center
           transition-colors duration-200 relative
           ${
@@ -159,7 +169,7 @@ export const TextureDropZone = ({
               Drop texture here
             </p>
             <p className="text-xs text-muted-foreground text-center">
-              {cellSize > 0
+              {cellSize > 1
                 ? `${cellSize}x${cellSize} pixels`
                 : "Any square size"}
             </p>
@@ -174,8 +184,6 @@ export const TextureDropZone = ({
         onChange={handleFileChange}
         className="hidden"
       />
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 };

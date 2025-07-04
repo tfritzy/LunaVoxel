@@ -4,75 +4,14 @@ import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
 import { Block } from "../blocks";
 import { createVoxelMaterial } from "./shader";
+import { faces } from "./voxel-constants";
+import { getTextureCoordinates } from "./texture-coords";
 
 export type VoxelFaces = {
   textureIndex: number;
   gridPos: THREE.Vector3;
   faceIndexes: number[];
 };
-
-const faces = [
-  {
-    vertices: [
-      [0.5, -0.5, -0.5],
-      [0.5, 0.5, -0.5],
-      [0.5, 0.5, 0.5],
-      [0.5, -0.5, 0.5],
-    ],
-    normal: [1, 0, 0],
-    offset: [1, 0, 0],
-  },
-  {
-    vertices: [
-      [-0.5, -0.5, -0.5],
-      [-0.5, -0.5, 0.5],
-      [-0.5, 0.5, 0.5],
-      [-0.5, 0.5, -0.5],
-    ],
-    normal: [-1, 0, 0],
-    offset: [-1, 0, 0],
-  },
-  {
-    vertices: [
-      [-0.5, 0.5, -0.5],
-      [-0.5, 0.5, 0.5],
-      [0.5, 0.5, 0.5],
-      [0.5, 0.5, -0.5],
-    ],
-    normal: [0, 1, 0],
-    offset: [0, 1, 0],
-  },
-  {
-    vertices: [
-      [-0.5, -0.5, -0.5],
-      [0.5, -0.5, -0.5],
-      [0.5, -0.5, 0.5],
-      [-0.5, -0.5, 0.5],
-    ],
-    normal: [0, -1, 0],
-    offset: [0, -1, 0],
-  },
-  {
-    vertices: [
-      [-0.5, -0.5, 0.5],
-      [0.5, -0.5, 0.5],
-      [0.5, 0.5, 0.5],
-      [-0.5, 0.5, 0.5],
-    ],
-    normal: [0, 0, 1],
-    offset: [0, 0, 1],
-  },
-  {
-    vertices: [
-      [-0.5, -0.5, -0.5],
-      [-0.5, 0.5, -0.5],
-      [0.5, 0.5, -0.5],
-      [0.5, -0.5, -0.5],
-    ],
-    normal: [0, 0, -1],
-    offset: [0, 0, -1],
-  },
-];
 
 export class ChunkMesh {
   private scene: THREE.Scene;
@@ -155,7 +94,6 @@ export class ChunkMesh {
     buildMode: BlockModificationMode,
     atlas: Atlas
   ) => {
-    // const totalStartTime = performance.now();
     const updateId = ++this.currentUpdateId;
 
     try {
@@ -171,7 +109,6 @@ export class ChunkMesh {
 
       this.cacheVersion++;
 
-      // const faceFindingStartTime = performance.now();
       const { meshFaces, previewFaces } = findExteriorFaces(
         realBlocks,
         previewBlocks,
@@ -183,22 +120,13 @@ export class ChunkMesh {
           zDim: newChunk.zDim,
         }
       );
-      // const faceFindingEndTime = performance.now();
 
       if (updateId !== this.currentUpdateId) {
         return;
       }
 
-      // const meshUpdateStartTime = performance.now();
       this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode, atlas);
       this.updatePreviewMesh(previewFaces, buildMode);
-      // const meshUpdateEndTime = performance.now();
-
-      // const totalEndTime = performance.now();
-
-      // const faceFindingDuration = faceFindingEndTime - faceFindingStartTime;
-      // const meshUpdateDuration = meshUpdateEndTime - meshUpdateStartTime;
-      // const totalDuration = totalEndTime - totalStartTime;
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -236,7 +164,7 @@ export class ChunkMesh {
       const blockY = gridPos.y;
       const blockZ = gridPos.z;
 
-      const textureCoords = this.getTextureCoordinates(
+      const textureCoords = getTextureCoordinates(
         textureIndex,
         Math.sqrt(atlas.size),
         atlas.cellSize
@@ -308,40 +236,6 @@ export class ChunkMesh {
       this.geometry.index.needsUpdate = true;
     }
     this.geometry.computeBoundingSphere();
-  }
-
-  private getTextureCoordinates(
-    textureIndex: number,
-    atlasSize: number,
-    pixelsPerTile: number
-  ): number[] {
-    const textureSize = 1.0 / atlasSize;
-
-    if (pixelsPerTile === 1) {
-      const halfPixel = textureSize * 0.5;
-      const u = (textureIndex % atlasSize) * textureSize + halfPixel;
-      const v = Math.floor(textureIndex / atlasSize) * textureSize + halfPixel;
-      const flippedV = 1.0 - v;
-      return [u, flippedV, u, flippedV, u, flippedV, u, flippedV];
-    } else {
-      const totalAtlasPixels = atlasSize * pixelsPerTile;
-      const inset = 0.5 / totalAtlasPixels;
-      const u = (textureIndex % atlasSize) * textureSize;
-      const v = Math.floor(textureIndex / atlasSize) * textureSize;
-      const flippedVMin = 1.0 - (v + textureSize);
-      const flippedVMax = 1.0 - v;
-
-      return [
-        u + inset,
-        flippedVMax - inset,
-        u + textureSize - inset,
-        flippedVMax - inset,
-        u + textureSize - inset,
-        flippedVMin + inset,
-        u + inset,
-        flippedVMin + inset,
-      ];
-    }
   }
 
   private updatePreviewMesh(

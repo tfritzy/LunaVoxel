@@ -8,7 +8,9 @@ import { storage } from "@/firebase/firebase";
 export interface AtlasSlot {
   index: number;
   textureData: ImageData | null;
+  blobUrl: string | null;
   isEmpty: boolean;
+  isSolidColor: boolean;
 }
 
 interface UseAtlasReturn {
@@ -40,10 +42,33 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     return threeTexture;
   };
 
-  const extractSlotsFromImage = (
+  const isSolidColorImageData = (imageData: ImageData): boolean => {
+    const data = imageData.data;
+    if (data.length === 0) return false;
+
+    const firstR = data[0];
+    const firstG = data[1];
+    const firstB = data[2];
+    const firstA = data[3];
+
+    for (let i = 4; i < data.length; i += 4) {
+      if (
+        data[i] !== firstR ||
+        data[i + 1] !== firstG ||
+        data[i + 2] !== firstB ||
+        data[i + 3] !== firstA
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const extractSlotsFromImage = async (
     texture: THREE.Texture | null,
     cellSize: number
-  ): AtlasSlot[] => {
+  ): Promise<AtlasSlot[]> => {
     const totalSlots = atlas?.size || 0;
     const extractedSlots: AtlasSlot[] = [];
 
@@ -52,7 +77,9 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         extractedSlots.push({
           index: i,
           textureData: null,
+          blobUrl: null,
           isEmpty: true,
+          isSolidColor: false,
         });
         continue;
       }
@@ -68,7 +95,9 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         extractedSlots.push({
           index: i,
           textureData: null,
+          blobUrl: null,
           isEmpty: true,
+          isSolidColor: false,
         });
         continue;
       }
@@ -79,7 +108,9 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         extractedSlots.push({
           index: i,
           textureData: null,
+          blobUrl: null,
           isEmpty: true,
+          isSolidColor: false,
         });
         continue;
       }
@@ -94,10 +125,24 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         index % 4 === 3 ? value === 0 : true
       );
 
+      const isSolidColor = isEmpty ? false : isSolidColorImageData(imageData);
+
+      let blobUrl: string | null = null;
+      if (!isEmpty) {
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob(resolve);
+        });
+        if (blob) {
+          blobUrl = URL.createObjectURL(blob);
+        }
+      }
+
       extractedSlots.push({
         index: i,
         textureData: isEmpty ? null : imageData,
+        blobUrl,
         isEmpty,
+        isSolidColor,
       });
     }
 
@@ -144,7 +189,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        const atlasRow = connection.db.atlas.project_id.find(projectId);
+        const atlasRow = connection.db.atlas.projectId.find(projectId);
         if (atlasRow) {
           setAtlas(atlasRow);
           if (atlasRow.version !== lastVersionRef.current) {
@@ -189,13 +234,28 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
   }, [connection, projectId]);
 
   useEffect(() => {
-    if (atlas) {
-      const extractedSlots = extractSlotsFromImage(texture, atlas.cellSize);
-      setSlots(extractedSlots);
+    slots.forEach((slot) => {
+      if (slot.blobUrl) {
+        URL.revokeObjectURL(slot.blobUrl);
+      }
+    });
+
+    if (atlas && texture) {
+      extractSlotsFromImage(texture, atlas.cellSize).then(setSlots);
     } else {
       setSlots([]);
     }
   }, [atlas, texture]);
+
+  useEffect(() => {
+    return () => {
+      slots.forEach((slot) => {
+        if (slot.blobUrl) {
+          URL.revokeObjectURL(slot.blobUrl);
+        }
+      });
+    };
+  }, []);
 
   useEffect(() => {
     return () => {

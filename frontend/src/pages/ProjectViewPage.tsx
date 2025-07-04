@@ -7,7 +7,7 @@ import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
-import { Atlas } from "@/components/custom/atlas/Atlas";
+import { AtlasDrawer } from "@/components/custom/atlas/AtlasDrawer";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -123,10 +123,6 @@ export const ProjectViewPage = () => {
     <div>
       <ProjectHeader />
       <div className="h-full flex">
-        {!chunksLoading && !cursorsLoading && !error && projectId && (
-          <Atlas projectId={projectId} />
-        )}
-
         <div className="flex-1 relative">
           <div
             ref={containerRef}
@@ -160,6 +156,8 @@ export const ProjectViewPage = () => {
               onToolChange={handleToolChange}
             />
           )}
+
+          <AtlasDrawer />
         </div>
       </div>
     </div>

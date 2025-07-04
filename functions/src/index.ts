@@ -4,9 +4,9 @@ import { onCall, onRequest } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
-import { updateAtlas } from "./update-atlas";
 import { createProject } from "./create-project";
 import { validateSpacetimeIdentity } from "./identity-validation";
+import { addToAtlas, updateAtlasIndex } from "./update-atlas";
 
 setGlobalOptions({ region: "us-central1" });
 
@@ -105,4 +105,4 @@ export const healthCheck = onRequest((req, res) => {
   res.status(200).send("Functions are running!");
 });
 
-export { updateAtlas, createProject };
+export { createProject, addToAtlas, updateAtlasIndex };

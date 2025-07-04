@@ -6,7 +6,7 @@ public static partial class Module
     public static void SyncUser(ReducerContext ctx, string identityHex, string email, string name)
     {
         var callerIdentity = ctx.Sender.ToString();
-        var isDev = callerIdentity.ToLower() == "c20092edf77ea11076c105b29564a0eb21ec648b08bd7067157554d0827dc8ee";
+        var isDev = callerIdentity.ToLower() == "c20091e6821cc31b3baa4fb1c81f2ac90df80bb2616958d2d252a404fd0e272c";
         var isProd = callerIdentity.ToLower() == "c200cbc423731cb43c1a9185ac9df0ddc76494eef51a95999bc015ba01a8d1e5";
 
         if (!isDev && !isProd)
@@ -36,6 +36,11 @@ public static partial class Module
         }
     }
 }
+
+
+
+
+
 
 
 

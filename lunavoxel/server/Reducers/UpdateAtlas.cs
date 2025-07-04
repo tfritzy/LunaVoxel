@@ -12,11 +12,11 @@ public static partial class Module
     {
         if (string.IsNullOrEmpty(projectId))
         {
-            throw new System.ArgumentException("Project ID cannot be null or empty.");
+            throw new ArgumentException("Project ID cannot be null or empty.");
         }
 
         var atlas = ctx.Db.atlas.ProjectId.Find(projectId)
-            ?? throw new System.ArgumentException("Atlas not found for the given project ID.");
+            ?? throw new ArgumentException("Atlas not found for the given project ID.");
 
         if (incrementVersion)
         {
@@ -25,7 +25,7 @@ public static partial class Module
 
         if (atlas.CellSize > 0 && cellSize != atlas.CellSize)
         {
-            throw new System.ArgumentException("Cell size cannot be changed once set.");
+            throw new ArgumentException("Cell size cannot be changed once set.");
         }
 
         atlas.CellSize = cellSize;
