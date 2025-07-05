@@ -9,6 +9,7 @@ interface AddToAtlasRequest {
   projectId: string;
   texture: string;
   cellSize: number;
+  atlasSize: number;
 }
 
 interface UpdateAtlasIndexRequest {
@@ -16,6 +17,7 @@ interface UpdateAtlasIndexRequest {
   index: number;
   texture: string;
   cellSize: number;
+  atlasSize: number;
 }
 
 interface AtlasResponse {
@@ -25,7 +27,7 @@ interface AtlasResponse {
 
 const callSpacetimeUpdateAtlas = async (
   projectId: string,
-  index: number,
+  newSize: number,
   incrementVersion: boolean,
   cellSize: number
 ): Promise<void> => {
@@ -41,7 +43,7 @@ const callSpacetimeUpdateAtlas = async (
     {
       method: "POST",
       headers,
-      body: JSON.stringify([projectId, index, incrementVersion, cellSize]),
+      body: JSON.stringify([projectId, newSize, incrementVersion, cellSize]),
     }
   );
 
@@ -70,7 +72,7 @@ const getAtlasInfo = async (projectId: string, cellSize: number) => {
         currentCellSize = 1;
         currentGridSize = image.width;
       } else {
-        if (image.width % cellSize !== 0) {
+        if (image.width !== cellSize) {
           throw new Error(
             "Existing atlas dimensions do not match the provided cell size"
           );
@@ -191,7 +193,7 @@ const saveAtlasToStorage = async (
 
 export const addToAtlas = onCall<AddToAtlasRequest, Promise<AtlasResponse>>(
   async (request) => {
-    const { projectId, texture, cellSize } = request.data;
+    const { projectId, texture, cellSize, atlasSize } = request.data;
 
     const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
       await getAtlasInfo(projectId, cellSize);
@@ -202,11 +204,10 @@ export const addToAtlas = onCall<AddToAtlasRequest, Promise<AtlasResponse>>(
       );
     }
 
-    const currentSlots = currentGridSize * currentGridSize;
-    const nextIndex = currentSlots;
+    const nextIndex = atlasSize;
     const requiredSlots = nextIndex + 1;
 
-    await callSpacetimeUpdateAtlas(projectId, nextIndex, true, cellSize);
+    await callSpacetimeUpdateAtlas(projectId, requiredSlots, true, cellSize);
 
     const { canvas, ctx, newGridSize } = await createAtlasCanvas(
       existingAtlas,
@@ -230,7 +231,7 @@ export const updateAtlasIndex = onCall<
   UpdateAtlasIndexRequest,
   Promise<AtlasResponse>
 >(async (request) => {
-  const { projectId, index, texture, cellSize } = request.data;
+  const { projectId, index, texture, cellSize, atlasSize } = request.data;
 
   const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
     await getAtlasInfo(projectId, cellSize);
@@ -239,10 +240,10 @@ export const updateAtlasIndex = onCall<
     throw new Error("Cannot change cell size except from 1x1 to larger sizes");
   }
 
-  const currentSlots = currentGridSize * currentGridSize;
+  const currentSlots = atlasSize;
   const requiredSlots = Math.max(currentSlots, index + 1);
 
-  await callSpacetimeUpdateAtlas(projectId, index, true, cellSize);
+  await callSpacetimeUpdateAtlas(projectId, requiredSlots, true, cellSize);
 
   const { canvas, ctx, newGridSize } = await createAtlasCanvas(
     existingAtlas,

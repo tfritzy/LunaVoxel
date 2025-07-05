@@ -30,7 +30,7 @@ export class VoxelEngine {
 
     this.renderer = this.setupRenderer(this.container);
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x222222);
+    this.scene.background = new THREE.Color(0x181826);
 
     this.camera = this.setupCamera();
 

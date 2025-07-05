@@ -47,6 +47,19 @@ const createColorTexture = (color: string, size: number): string => {
   return canvas.toDataURL("image/png").split(",")[1];
 };
 
+const rgbToHex = (r: number, g: number, b: number): string => {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+
+const getColorFromTextureData = (textureData: ImageData): string => {
+  const data = textureData.data;
+  const r = data[0];
+  const g = data[1];
+  const b = data[2];
+
+  return rgbToHex(r, g, b);
+};
+
 export const EditAtlasSlotModal = ({
   index,
   isOpen,
@@ -75,9 +88,10 @@ export const EditAtlasSlotModal = ({
     }
 
     if (slot.isSolidColor) {
-      setSelectedColor(
-        slot.textureData?.data.slice(0, 4).join(",") || "#ffffff"
-      );
+      const color = slot.textureData
+        ? getColorFromTextureData(slot.textureData)
+        : "#ffffff";
+      setSelectedColor(color);
       setTextureData(null);
       setSelectionMode("color");
     } else {
@@ -114,12 +128,10 @@ export const EditAtlasSlotModal = ({
     const functions = getFunctions();
 
     let textureBase64 = "";
-    let actualCellSize = atlas.cellSize;
 
     if (selectionMode === "color") {
       const textureSize = atlas.cellSize >= 2 ? atlas.cellSize : 64;
       textureBase64 = createColorTexture(selectedColor, textureSize);
-      actualCellSize = textureSize;
     } else if (selectionMode === "texture" && textureData) {
       const canvas = document.createElement("canvas");
       canvas.width = textureData.width;
@@ -129,9 +141,6 @@ export const EditAtlasSlotModal = ({
         ctx.putImageData(textureData, 0, 0);
         textureBase64 = canvas.toDataURL("image/png").split(",")[1];
       }
-      if (atlas.cellSize < 2) {
-        actualCellSize = textureData.width;
-      }
     }
 
     try {
@@ -140,7 +149,8 @@ export const EditAtlasSlotModal = ({
         await addToAtlas({
           projectId: project.id,
           texture: textureBase64,
-          cellSize: actualCellSize,
+          cellSize: atlas.cellSize,
+          atlasSize: atlas.size,
         });
       } else {
         const updateAtlasIndex = httpsCallable(functions, "updateAtlasIndex");
@@ -148,7 +158,8 @@ export const EditAtlasSlotModal = ({
           projectId: project.id,
           index,
           texture: textureBase64,
-          cellSize: actualCellSize,
+          cellSize: atlas.cellSize,
+          atlasSize: atlas.size,
         });
       }
     } catch {
@@ -160,13 +171,14 @@ export const EditAtlasSlotModal = ({
     setIsSubmitting(false);
     onClose();
   }, [
-    atlas.cellSize,
-    index,
-    onClose,
-    project.id,
-    selectedColor,
-    textureData,
     selectionMode,
+    textureData,
+    onClose,
+    atlas.cellSize,
+    atlas.size,
+    selectedColor,
+    index,
+    project.id,
   ]);
 
   const isSubmitDisabled =

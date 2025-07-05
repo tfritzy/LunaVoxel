@@ -25,7 +25,7 @@ interface UseAtlasReturn {
 export const useAtlas = (projectId: string): UseAtlasReturn => {
   const { connection } = useDatabase();
   const [atlas, setAtlas] = useState<Atlas | null>(null);
-  const [slots, setSlots] = useState<AtlasSlot[]>([]);
+  const [allSlots, setAllSlots] = useState<AtlasSlot[]>([]);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -189,7 +189,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        const atlasRow = connection.db.atlas.projectId.find(projectId);
+        const atlasRow = connection.db.atlas.project_id.find(projectId);
         if (atlasRow) {
           setAtlas(atlasRow);
           if (atlasRow.version !== lastVersionRef.current) {
@@ -234,22 +234,22 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
   }, [connection, projectId]);
 
   useEffect(() => {
-    slots.forEach((slot) => {
+    allSlots.forEach((slot) => {
       if (slot.blobUrl) {
         URL.revokeObjectURL(slot.blobUrl);
       }
     });
 
     if (atlas && texture) {
-      extractSlotsFromImage(texture, atlas.cellSize).then(setSlots);
+      extractSlotsFromImage(texture, atlas.cellSize).then(setAllSlots);
     } else {
-      setSlots([]);
+      setAllSlots([]);
     }
   }, [atlas, texture]);
 
   useEffect(() => {
     return () => {
-      slots.forEach((slot) => {
+      allSlots.forEach((slot) => {
         if (slot.blobUrl) {
           URL.revokeObjectURL(slot.blobUrl);
         }
@@ -265,9 +265,11 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     };
   }, []);
 
+  const nonEmptySlots = allSlots.filter((slot) => !slot.isEmpty);
+
   return {
     atlas,
-    slots,
+    slots: nonEmptySlots,
     texture,
     isLoading,
     error,

@@ -1,5 +1,5 @@
 import { HexColorPicker } from "react-colorful";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "@/components/custom/color-picker.css";
 
 const getTextColor = (hexColor: string): string => {
@@ -23,6 +23,12 @@ export const ColorPicker = ({
   onChange: (color: string) => void;
 }) => {
   const [inputValue, setInputValue] = useState(color);
+
+  useEffect(() => {
+    if (isValidHex(color)) {
+      setInputValue(color);
+    }
+  }, [color]);
 
   const handleColorChange = (newColor: string) => {
     onChange(newColor);

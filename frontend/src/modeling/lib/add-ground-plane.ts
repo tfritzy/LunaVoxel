@@ -41,10 +41,10 @@ export const addGroundPlane = (
     scene.add(wireframeBox);
   }
 
-  const gridLines = createOptimizedGridLines(worldXDim, worldYDim);
-  if (gridLines) {
-    scene.add(gridLines);
-  }
+  // const gridLines = createOptimizedGridLines(worldXDim, worldYDim);
+  // if (gridLines) {
+  //   scene.add(gridLines);
+  // }
 
   const axisArrows = createAxisArrows(worldXDim, worldYDim);
   if (axisArrows) {
