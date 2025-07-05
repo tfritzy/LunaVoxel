@@ -54,12 +54,12 @@ const callSpacetimeUpdateAtlas = async (
   }
 };
 
-const getAtlasInfo = async (projectId: string, cellSize: number) => {
+const getAtlasInfo = async (projectId: string, atlasSize: number) => {
   const bucket = getStorage(adminApp).bucket();
   const atlasFile = bucket.file(`atlases/${projectId}.png`);
   let existingAtlas: Buffer | null = null;
   let currentGridSize = 0;
-  let currentCellSize = cellSize;
+  let currentCellSize = 1;
 
   const [exists] = await atlasFile.exists();
   if (exists) {
@@ -68,18 +68,9 @@ const getAtlasInfo = async (projectId: string, cellSize: number) => {
     const image = (await loadImage(buffer)) as any;
 
     if (image.width === image.height && image.width > 0) {
-      if (cellSize === 1) {
-        currentCellSize = 1;
-        currentGridSize = image.width;
-      } else {
-        if (image.width !== cellSize) {
-          throw new Error(
-            "Existing atlas dimensions do not match the provided cell size"
-          );
-        }
-        currentCellSize = cellSize;
-        currentGridSize = image.width / cellSize;
-      }
+      const actualGridSize = Math.ceil(Math.sqrt(atlasSize));
+      currentCellSize = image.width / actualGridSize;
+      currentGridSize = actualGridSize;
     }
   }
 
@@ -103,6 +94,9 @@ const createAtlasCanvas = async (
     const currentSlots = currentGridSize * currentGridSize;
 
     if (currentCellSize === 1 && newCellSize > 1) {
+      const tempCanvas = createCanvas(1, 1);
+      const tempCtx = tempCanvas.getContext("2d");
+
       for (let i = 0; i < currentSlots; i++) {
         const oldCol = i % currentGridSize;
         const oldRow = Math.floor(i / currentGridSize);
@@ -114,8 +108,6 @@ const createAtlasCanvas = async (
         const newX = newCol * newCellSize;
         const newY = newRow * newCellSize;
 
-        const tempCanvas = createCanvas(1, 1);
-        const tempCtx = tempCanvas.getContext("2d");
         tempCtx.drawImage(existingImage, oldX, oldY, 1, 1, 0, 0, 1, 1);
         const pixelData = tempCtx.getImageData(0, 0, 1, 1);
 
@@ -155,7 +147,10 @@ const createAtlasCanvas = async (
       ctx.drawImage(existingImage, 0, 0);
     } else {
       throw new Error(
-        "Cannot resize atlas with different cell sizes except from 1x1 to larger sizes"
+        "Cannot resize atlas with different cell sizes except from 1x1 to larger sizes. Current size: " +
+          currentCellSize +
+          ", New size: " +
+          newCellSize
       );
     }
   }
@@ -196,7 +191,7 @@ export const addToAtlas = onCall<AddToAtlasRequest, Promise<AtlasResponse>>(
     const { projectId, texture, cellSize, atlasSize } = request.data;
 
     const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
-      await getAtlasInfo(projectId, cellSize);
+      await getAtlasInfo(projectId, atlasSize);
 
     if (currentCellSize !== 1 && currentCellSize !== cellSize) {
       throw new Error(
@@ -206,19 +201,31 @@ export const addToAtlas = onCall<AddToAtlasRequest, Promise<AtlasResponse>>(
 
     const nextIndex = atlasSize;
     const requiredSlots = nextIndex + 1;
+    const actualCellSize = currentCellSize === 1 ? cellSize : currentCellSize;
 
-    await callSpacetimeUpdateAtlas(projectId, requiredSlots, true, cellSize);
+    await callSpacetimeUpdateAtlas(
+      projectId,
+      requiredSlots,
+      true,
+      actualCellSize
+    );
 
     const { canvas, ctx, newGridSize } = await createAtlasCanvas(
       existingAtlas,
       currentGridSize,
       currentCellSize,
       requiredSlots,
-      cellSize
+      actualCellSize
     );
 
     if (texture) {
-      await addTextureToCanvas(ctx, texture, nextIndex, newGridSize, cellSize);
+      await addTextureToCanvas(
+        ctx,
+        texture,
+        nextIndex,
+        newGridSize,
+        actualCellSize
+      );
     }
 
     await saveAtlasToStorage(atlasFile, canvas);
@@ -234,7 +241,7 @@ export const updateAtlasIndex = onCall<
   const { projectId, index, texture, cellSize, atlasSize } = request.data;
 
   const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
-    await getAtlasInfo(projectId, cellSize);
+    await getAtlasInfo(projectId, atlasSize);
 
   if (currentCellSize !== 1 && currentCellSize !== cellSize) {
     throw new Error("Cannot change cell size except from 1x1 to larger sizes");
@@ -242,19 +249,25 @@ export const updateAtlasIndex = onCall<
 
   const currentSlots = atlasSize;
   const requiredSlots = Math.max(currentSlots, index + 1);
+  const actualCellSize = currentCellSize === 1 ? cellSize : currentCellSize;
 
-  await callSpacetimeUpdateAtlas(projectId, requiredSlots, true, cellSize);
+  await callSpacetimeUpdateAtlas(
+    projectId,
+    requiredSlots,
+    true,
+    actualCellSize
+  );
 
   const { canvas, ctx, newGridSize } = await createAtlasCanvas(
     existingAtlas,
     currentGridSize,
     currentCellSize,
     requiredSlots,
-    cellSize
+    actualCellSize
   );
 
   if (texture) {
-    await addTextureToCanvas(ctx, texture, index, newGridSize, cellSize);
+    await addTextureToCanvas(ctx, texture, index, newGridSize, actualCellSize);
   }
 
   await saveAtlasToStorage(atlasFile, canvas);

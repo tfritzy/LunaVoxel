@@ -18,6 +18,7 @@ export const AtlasDrawer = () => {
         alt={`Atlas Slot ${slot.index}`}
         key={slot.index}
         className="w-12 h-12 object-cover cursor-pointer hover:brightness-125"
+        style={{ imageRendering: "pixelated" }}
       />
     ));
 

@@ -130,7 +130,7 @@ export const EditAtlasSlotModal = ({
     let textureBase64 = "";
 
     if (selectionMode === "color") {
-      const textureSize = atlas.cellSize >= 2 ? atlas.cellSize : 64;
+      const textureSize = atlas.cellSize;
       textureBase64 = createColorTexture(selectedColor, textureSize);
     } else if (selectionMode === "texture" && textureData) {
       const canvas = document.createElement("canvas");
@@ -149,7 +149,7 @@ export const EditAtlasSlotModal = ({
         await addToAtlas({
           projectId: project.id,
           texture: textureBase64,
-          cellSize: atlas.cellSize,
+          cellSize: textureData?.width || atlas.cellSize,
           atlasSize: atlas.size,
         });
       } else {
@@ -158,7 +158,7 @@ export const EditAtlasSlotModal = ({
           projectId: project.id,
           index,
           texture: textureBase64,
-          cellSize: atlas.cellSize,
+          cellSize: textureData?.width || atlas.cellSize,
           atlasSize: atlas.size,
         });
       }

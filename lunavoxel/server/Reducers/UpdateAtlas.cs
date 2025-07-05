@@ -23,7 +23,7 @@ public static partial class Module
             atlas.Version++;
         }
 
-        if (atlas.CellSize > 0 && cellSize != atlas.CellSize)
+        if (atlas.CellSize > 1 && cellSize != atlas.CellSize)
         {
             throw new ArgumentException("Cell size cannot be changed once set.");
         }

@@ -27,6 +27,7 @@ export const TextureDropZone = ({
     img.onload = () => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
+
       if (!ctx) {
         onError("Failed to get canvas context");
         return;
@@ -42,17 +43,16 @@ export const TextureDropZone = ({
         return;
       }
 
-      if (cellSize < 2) {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-      } else {
-        if (img.width !== cellSize || img.height !== cellSize) {
-          onError(
-            `Texture must be exactly ${cellSize}x${cellSize} to be consistent with the rest of the atlas.`
-          );
-          return;
-        }
+      console.log(`Loaded image: ${img.width}x${img.height}`);
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      if (cellSize > 1 && (img.width !== cellSize || img.height !== cellSize)) {
+        onError(
+          `Texture must be exactly ${cellSize}x${cellSize} to be consistent with the rest of the atlas.`
+        );
+        return;
       }
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
