@@ -3,7 +3,7 @@ import React from "react";
 const DesktopModal = (props: ModalProps) => {
   return (
     <div
-      className={`bg-background fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 backdrop-blur-xl backdrop-brightness-60 rounded-lg shadow-lg drop-shadow-xl max-w-11/12 max-h-3/4 transition-transform duration-300 ${
+      className={`bg-background border border-border fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 backdrop-blur-xl backdrop-brightness-60 rounded-lg shadow-lg drop-shadow-xl max-w-11/12 max-h-3/4 transition-transform duration-300 ${
         props.isOpen
           ? "scale-100 opacity-100 pointer-events-auto"
           : "scale-95 opacity-0 pointer-events-none"

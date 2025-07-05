@@ -7,7 +7,7 @@ export const AtlasDrawer = () => {
   const [editingSlotIndex, setEditingSlotIndex] = useState<
     number | "new" | null
   >(null);
-  const { atlasSlots } = useCurrentProject();
+  const { atlasSlots, atlas } = useCurrentProject();
 
   const entries: JSX.Element[] = useMemo(() => {
     const slots = atlasSlots.map((slot) => (
@@ -41,7 +41,12 @@ export const AtlasDrawer = () => {
 
   return (
     <div className="absolute right-0 top-0 h-full bg-background border-l border-border overflow-y-auto p-4">
-      <h2 className="text-lg font-semibold mb-2">Texture Atlas</h2>
+      <h2 className="text-lg font-semibold mb-2">
+        Texture Atlas{" "}
+        <span className="text-muted-foreground">
+          ({atlas.cellSize}x{atlas.cellSize})
+        </span>
+      </h2>
       <div className="relative grid grid-cols-4">
         {entries}
         <div className="absolute inset-0 pointer-events-none grid grid-cols-4 border-white/25 border-l-[.5px] border-t-[.5px]">

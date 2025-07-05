@@ -5,10 +5,11 @@ import { TextureDropZone } from "./TextureDropZone";
 import { ColorPicker } from "../ColorPicker";
 import React from "react";
 import { AtlasSlot } from "@/lib/useAtlas";
-import { X, Palette, Image, Loader2 } from "lucide-react";
+import { X, Palette, Image, Loader2, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { SelectionCard } from "./SelectionCard";
+import { functions } from "@/firebase/firebase";
 
 type SelectionMode = "color" | "texture";
 
@@ -75,6 +76,7 @@ export const EditAtlasSlotModal = ({
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("color");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   const slot: AtlasSlot | null = index !== "new" ? atlasSlots[index] : null;
   const isAdd = index === "new";
@@ -121,6 +123,44 @@ export const EditAtlasSlotModal = ({
 
   const handleDismissError = () => {
     setError(null);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleDeleteConfirm = React.useCallback(async () => {
+    setIsSubmitting(true);
+    const deleteAtlasIndex = httpsCallable(functions, "deleteAtlasIndex");
+
+    try {
+      await deleteAtlasIndex({
+        projectId: project.id,
+        index,
+        cellSize: textureData?.width || atlas.cellSize,
+        atlasSize: atlas.size,
+      });
+    } catch {
+      setError("Failed to delete the atlas slot. Please try again.");
+      setIsSubmitting(false);
+      setShowDeleteConfirmation(false);
+      return;
+    }
+
+    setIsSubmitting(false);
+    setShowDeleteConfirmation(false);
+    onClose();
+  }, [
+    atlas.cellSize,
+    atlas.size,
+    index,
+    onClose,
+    project.id,
+    textureData?.width,
+  ]);
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirmation(false);
   };
 
   const handleSubmit = React.useCallback(async () => {
@@ -191,10 +231,48 @@ export const EditAtlasSlotModal = ({
     : `Edit Atlas Index ${index + 1}`;
   const submitButtonText = isAdd ? "Add to Atlas" : "Update Atlas";
 
+  if (showDeleteConfirmation) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center justify-between p-4 pl-6 border-b border-border">
+            <h2 className="text-xl font-semibold">Confirm Delete</h2>
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex-1 p-6">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this atlas slot? This action
+              cannot be undone.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end space-x-3 p-4 px-6 border-t border-border">
+            <Button variant="outline" onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              {isSubmitting && <Loader2 className="animate-spin h-4 w-4" />}
+              <Trash className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="flex flex-col min-h-0">
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex items-center justify-between p-4 pl-6 border-b border-border">
           <h2 className="text-xl font-semibold">{title}</h2>
           <Button
             onClick={onClose}
@@ -254,14 +332,24 @@ export const EditAtlasSlotModal = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
-            {isSubmitting && <Loader2 className="animate-spin h-4 w-4" />}
-            {submitButtonText}
-          </Button>
+        <div className="flex flex-row justify-between items-center p-4 px-6 border-t border-border">
+          {!isAdd && (
+            <Button variant="outline" onClick={handleDeleteClick}>
+              <Trash className="h-4 w-4" />
+              Delete
+            </Button>
+          )}
+          {isAdd && <div />}
+
+          <div className="flex items-center justify-end space-x-3">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
+              {isSubmitting && <Loader2 className="animate-spin h-4 w-4" />}
+              {submitButtonText}
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>

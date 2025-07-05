@@ -6,7 +6,7 @@ import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 import { createProject } from "./create-project";
 import { validateSpacetimeIdentity } from "./identity-validation";
-import { addToAtlas, updateAtlasIndex } from "./update-atlas";
+import { addToAtlas, deleteAtlasIndex, updateAtlasIndex } from "./update-atlas";
 
 setGlobalOptions({ region: "us-central1" });
 
@@ -105,4 +105,4 @@ export const healthCheck = onRequest((req, res) => {
   res.status(200).send("Functions are running!");
 });
 
-export { createProject, addToAtlas, updateAtlasIndex };
+export { createProject, addToAtlas, updateAtlasIndex, deleteAtlasIndex };

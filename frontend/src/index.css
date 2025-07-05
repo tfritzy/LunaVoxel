@@ -18,8 +18,8 @@
   --input: hsl(232 11% 40%); /* Catppuccin Surface2 */
   
   --primary: hsl(217 91% 76%); /* Catppuccin Blue */
-  --primary-foreground: hsl(240 17% 9%); /* Catppuccin Crust */
-  
+  --primary-foreground: hsl(240 17% 9%); /* Catppuccin Base -> Crust */
+ 
   --secondary: hsl(237 11% 31%); /* Catppuccin Surface1 */
   --secondary-foreground: hsl(225 47% 88%); /* Catppuccin Text */
   
@@ -27,7 +27,7 @@
   --accent-foreground: hsl(240 20% 15%); /* Catppuccin Base */
   
   --destructive: hsl(348 83% 75%); /* Catppuccin Red */
-  --destructive-foreground: hsl(240 20% 15%); /* Catppuccin Base */
+  --destructive-foreground: hsl(0 100% 100%); /* White */
   
   --ring: hsl(217 91% 76%); /* Catppuccin Blue */
 
