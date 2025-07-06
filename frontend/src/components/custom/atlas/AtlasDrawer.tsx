@@ -1,5 +1,5 @@
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { JSX, useMemo, useState } from "react";
 import { EditAtlasSlotModal } from "./EditAtlasSlotModal";
 
@@ -7,7 +7,25 @@ export const AtlasDrawer = () => {
   const [editingSlotIndex, setEditingSlotIndex] = useState<
     number | "new" | null
   >(null);
-  const { atlasSlots, atlas } = useCurrentProject();
+  const { atlasSlots, atlas, textureAtlas } = useCurrentProject();
+
+  const handleDownload = () => {
+    if (!textureAtlas?.image) return;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const image = textureAtlas.image as HTMLImageElement;
+    canvas.width = image.width;
+    canvas.height = image.height;
+    ctx.drawImage(image, 0, 0);
+
+    const link = document.createElement("a");
+    link.download = "texture-atlas.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  };
 
   const entries: JSX.Element[] = useMemo(() => {
     const slots = atlasSlots.map((slot) => (
@@ -21,7 +39,6 @@ export const AtlasDrawer = () => {
         style={{ imageRendering: "pixelated" }}
       />
     ));
-
     slots.push(
       <button
         className="cursor-pointer"
@@ -35,18 +52,45 @@ export const AtlasDrawer = () => {
         </div>
       </button>
     );
-
     return slots;
   }, [atlasSlots]);
 
   return (
     <div className="absolute right-0 top-0 h-full bg-background border-l border-border overflow-y-auto p-4">
-      <h2 className="text-lg font-semibold mb-2">
-        Texture Atlas{" "}
-        <span className="text-muted-foreground">
-          ({atlas.cellSize}x{atlas.cellSize})
-        </span>
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Texture Atlas</h2>
+        <button
+          onClick={handleDownload}
+          disabled={!textureAtlas?.image}
+          className="p-2 hover:bg-muted rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Download texture atlas"
+        >
+          <Download className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-1 mb-4 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Cell size:</span>
+          <span className="font-mono">
+            {atlas.cellSize}×{atlas.cellSize}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Atlas size:</span>
+          <span className="font-mono">
+            {textureAtlas?.image?.width || 0}×{textureAtlas?.image?.height || 0}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Used slots:</span>
+          <span className="font-mono">
+            {atlas.size}/
+            {Math.pow(textureAtlas?.image?.width / atlas.cellSize || 0, 2)}
+          </span>
+        </div>
+      </div>
+
       <div className="relative grid grid-cols-4">
         {entries}
         <div className="absolute inset-0 pointer-events-none grid grid-cols-4 border-white/25 border-l-[.5px] border-t-[.5px]">
@@ -58,7 +102,6 @@ export const AtlasDrawer = () => {
           ))}
         </div>
       </div>
-
       {editingSlotIndex !== null && (
         <EditAtlasSlotModal
           index={editingSlotIndex || 0}

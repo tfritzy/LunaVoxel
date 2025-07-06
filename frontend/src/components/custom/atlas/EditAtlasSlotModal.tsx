@@ -132,12 +132,17 @@ export const EditAtlasSlotModal = ({
   const handleDeleteConfirm = React.useCallback(async () => {
     setIsSubmitting(true);
     const deleteAtlasIndex = httpsCallable(functions, "deleteAtlasIndex");
+    const willBeNoRemainingTextures =
+      atlasSlots
+        .filter((slot) => slot && slot.index !== index)
+        .filter((slot) => !slot.isSolidColor).length === 0;
+    const newSizeCell = willBeNoRemainingTextures ? 1 : atlas.cellSize;
 
     try {
       await deleteAtlasIndex({
         projectId: project.id,
         index,
-        cellSize: textureData?.width || atlas.cellSize,
+        cellSize: newSizeCell,
         atlasSize: atlas.size,
       });
     } catch {
@@ -150,14 +155,7 @@ export const EditAtlasSlotModal = ({
     setIsSubmitting(false);
     setShowDeleteConfirmation(false);
     onClose();
-  }, [
-    atlas.cellSize,
-    atlas.size,
-    index,
-    onClose,
-    project.id,
-    textureData?.width,
-  ]);
+  }, [atlas.cellSize, atlas.size, atlasSlots, index, onClose, project.id]);
 
   const handleDeleteCancel = () => {
     setShowDeleteConfirmation(false);

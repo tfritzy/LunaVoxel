@@ -7,7 +7,6 @@ public static partial class Module
         ReducerContext ctx,
         string projectId,
         int newSize,
-        bool incrementVersion,
         int cellSize)
     {
         if (string.IsNullOrEmpty(projectId))
@@ -18,16 +17,7 @@ public static partial class Module
         var atlas = ctx.Db.atlas.ProjectId.Find(projectId)
             ?? throw new ArgumentException("Atlas not found for the given project ID.");
 
-        if (incrementVersion)
-        {
-            atlas.Version++;
-        }
-
-        if (atlas.CellSize > 1 && cellSize != atlas.CellSize)
-        {
-            throw new ArgumentException("Cell size cannot be changed once set.");
-        }
-
+        atlas.Version++;
         atlas.CellSize = cellSize;
         atlas.Size = newSize;
         ctx.Db.atlas.ProjectId.Update(atlas);

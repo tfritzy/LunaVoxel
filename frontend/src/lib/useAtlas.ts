@@ -189,7 +189,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        const atlasRow = connection.db.atlas.projectId.find(projectId);
+        const atlasRow = connection.db.atlas.project_id.find(projectId);
         if (atlasRow) {
           setAtlas(atlasRow);
           if (atlasRow.version !== lastVersionRef.current) {

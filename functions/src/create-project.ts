@@ -187,7 +187,7 @@ export const createProject = onCall<
       {
         method: "POST",
         headers,
-        body: JSON.stringify([id, gridSize * gridSize, true, 1]),
+        body: JSON.stringify([id, gridSize * gridSize, 1]),
       }
     );
 

@@ -34,7 +34,6 @@ import {
 export type UpdateAtlas = {
   projectId: string,
   newSize: number,
-  incrementVersion: boolean,
   cellSize: number,
 };
 
@@ -50,7 +49,6 @@ export namespace UpdateAtlas {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("newSize", AlgebraicType.createI32Type()),
-      new ProductTypeElement("incrementVersion", AlgebraicType.createBoolType()),
       new ProductTypeElement("cellSize", AlgebraicType.createI32Type()),
     ]);
   }

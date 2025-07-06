@@ -35,7 +35,6 @@ interface AtlasResponse {
 const callSpacetimeUpdateAtlas = async (
   projectId: string,
   newSize: number,
-  incrementVersion: boolean,
   cellSize: number
 ): Promise<void> => {
   const headers: Record<string, string> = {
@@ -50,7 +49,7 @@ const callSpacetimeUpdateAtlas = async (
     {
       method: "POST",
       headers,
-      body: JSON.stringify([projectId, newSize, incrementVersion, cellSize]),
+      body: JSON.stringify([projectId, newSize, cellSize]),
     }
   );
 
@@ -210,13 +209,6 @@ export const addToAtlas = onCall<AddToAtlasRequest, Promise<AtlasResponse>>(
     const requiredSlots = nextIndex + 1;
     const actualCellSize = currentCellSize === 1 ? cellSize : currentCellSize;
 
-    await callSpacetimeUpdateAtlas(
-      projectId,
-      requiredSlots,
-      true,
-      actualCellSize
-    );
-
     const { canvas, ctx, newGridSize } = await createAtlasCanvas(
       existingAtlas,
       currentGridSize,
@@ -236,6 +228,8 @@ export const addToAtlas = onCall<AddToAtlasRequest, Promise<AtlasResponse>>(
     }
 
     await saveAtlasToStorage(atlasFile, canvas);
+
+    await callSpacetimeUpdateAtlas(projectId, requiredSlots, actualCellSize);
 
     return { error: undefined, index: nextIndex };
   }
@@ -258,13 +252,6 @@ export const updateAtlasIndex = onCall<
   const requiredSlots = Math.max(currentSlots, index + 1);
   const actualCellSize = currentCellSize === 1 ? cellSize : currentCellSize;
 
-  await callSpacetimeUpdateAtlas(
-    projectId,
-    requiredSlots,
-    true,
-    actualCellSize
-  );
-
   const { canvas, ctx, newGridSize } = await createAtlasCanvas(
     existingAtlas,
     currentGridSize,
@@ -278,6 +265,8 @@ export const updateAtlasIndex = onCall<
   }
 
   await saveAtlasToStorage(atlasFile, canvas);
+
+  await callSpacetimeUpdateAtlas(projectId, requiredSlots, actualCellSize);
 
   return { error: undefined };
 });
@@ -314,7 +303,7 @@ export const deleteAtlasIndex = onCall<
   if (newAtlasSize === 0) {
     const canvas = createCanvas(0, 0);
     await saveAtlasToStorage(atlasFile, canvas);
-    await callSpacetimeUpdateAtlas(projectId, 0, true, actualCellSize);
+    await callSpacetimeUpdateAtlas(projectId, 0, actualCellSize);
     return { error: undefined };
   }
 
@@ -328,36 +317,76 @@ export const deleteAtlasIndex = onCall<
 
   const existingImage = (await loadImage(existingAtlas)) as any;
 
-  for (let i = 0; i < atlasSize; i++) {
-    if (i === index) {
-      continue;
+  if (currentCellSize > 1 && actualCellSize === 1) {
+    const tempCanvas = createCanvas(1, 1);
+    const tempCtx = tempCanvas.getContext("2d");
+
+    for (let i = 0; i < atlasSize; i++) {
+      if (i === index) {
+        continue;
+      }
+
+      const sourceCol = i % currentGridSize;
+      const sourceRow = Math.floor(i / currentGridSize);
+      const sourceX = sourceCol * currentCellSize;
+      const sourceY = sourceRow * currentCellSize;
+
+      tempCtx.drawImage(
+        existingImage,
+        sourceX,
+        sourceY,
+        currentCellSize,
+        currentCellSize,
+        0,
+        0,
+        1,
+        1
+      );
+      const pixelData = tempCtx.getImageData(0, 0, 1, 1);
+
+      const destIndex = i > index ? i - 1 : i;
+      const destCol = destIndex % newGridSize;
+      const destRow = Math.floor(destIndex / newGridSize);
+      const destX = destCol * actualCellSize;
+      const destY = destRow * actualCellSize;
+
+      ctx.fillStyle = `rgba(${pixelData.data[0]}, ${pixelData.data[1]}, ${
+        pixelData.data[2]
+      }, ${pixelData.data[3] / 255})`;
+      ctx.fillRect(destX, destY, actualCellSize, actualCellSize);
     }
+  } else {
+    for (let i = 0; i < atlasSize; i++) {
+      if (i === index) {
+        continue;
+      }
 
-    const sourceCol = i % currentGridSize;
-    const sourceRow = Math.floor(i / currentGridSize);
-    const sourceX = sourceCol * actualCellSize;
-    const sourceY = sourceRow * actualCellSize;
+      const sourceCol = i % currentGridSize;
+      const sourceRow = Math.floor(i / currentGridSize);
+      const sourceX = sourceCol * currentCellSize;
+      const sourceY = sourceRow * currentCellSize;
 
-    const destIndex = i > index ? i - 1 : i;
-    const destCol = destIndex % newGridSize;
-    const destRow = Math.floor(destIndex / newGridSize);
-    const destX = destCol * actualCellSize;
-    const destY = destRow * actualCellSize;
+      const destIndex = i > index ? i - 1 : i;
+      const destCol = destIndex % newGridSize;
+      const destRow = Math.floor(destIndex / newGridSize);
+      const destX = destCol * actualCellSize;
+      const destY = destRow * actualCellSize;
 
-    ctx.drawImage(
-      existingImage,
-      sourceX,
-      sourceY,
-      actualCellSize,
-      actualCellSize,
-      destX,
-      destY,
-      actualCellSize,
-      actualCellSize
-    );
+      ctx.drawImage(
+        existingImage,
+        sourceX,
+        sourceY,
+        currentCellSize,
+        currentCellSize,
+        destX,
+        destY,
+        actualCellSize,
+        actualCellSize
+      );
+    }
   }
 
-  await callSpacetimeUpdateAtlas(projectId, newAtlasSize, true, actualCellSize);
+  await callSpacetimeUpdateAtlas(projectId, newAtlasSize, actualCellSize);
   await saveAtlasToStorage(atlasFile, canvas);
 
   return { error: undefined };
