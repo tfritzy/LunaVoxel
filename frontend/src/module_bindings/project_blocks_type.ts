@@ -30,30 +30,32 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-export type Face = {
-  atlasIndex: number,
+export type ProjectBlocks = {
+  projectId: string,
+  blockFaceAtlasIndexes: number[][],
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace Face {
+export namespace ProjectBlocks {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("atlasIndex", AlgebraicType.createI32Type()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("blockFaceAtlasIndexes", AlgebraicType.createArrayType(AlgebraicType.createArrayType(AlgebraicType.createI32Type()))),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Face): void {
-    Face.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ProjectBlocks): void {
+    ProjectBlocks.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Face {
-    return Face.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ProjectBlocks {
+    return ProjectBlocks.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

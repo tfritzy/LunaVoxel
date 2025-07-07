@@ -1,4 +1,4 @@
-import { Atlas, EventContext, Project } from "@/module_bindings";
+import { Atlas, EventContext, Project, ProjectBlocks } from "@/module_bindings";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useDatabase } from "./DatabaseContext";
 import { useParams } from "react-router-dom";
@@ -6,12 +6,14 @@ import { useAuth } from "@/firebase/AuthContext";
 import { Button } from "@/components/ui/button";
 import { AtlasSlot, useAtlas } from "@/lib/useAtlas";
 import * as THREE from "three";
+import { useBlocks } from "@/lib/useBlocks";
 
 interface CurrentProjectContextType {
   project: Project;
   atlas: Atlas;
   atlasSlots: AtlasSlot[];
   textureAtlas: THREE.Texture | null;
+  blocks: ProjectBlocks;
   selectedBlock: number;
   setSelectedBlock: (block: number) => void;
   projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
@@ -127,6 +129,7 @@ export const CurrentProjectProvider = ({
   >("loading");
   const [pokeAttempted, setPokeAttempted] = useState(false);
   const { atlas, slots, texture } = useAtlas(projectId || "");
+  const { blocks } = useBlocks(connection, projectId || "");
 
   const retryProjectLoad = () => {
     setProjectStatus("loading");
@@ -201,7 +204,7 @@ export const CurrentProjectProvider = ({
     return <NotFoundState retryProjectLoad={retryProjectLoad} />;
   }
 
-  if (!project || !atlas) {
+  if (!project || !atlas || !blocks) {
     return <LoadingState status="loading" />;
   }
 
@@ -216,6 +219,7 @@ export const CurrentProjectProvider = ({
         setSelectedBlock,
         projectStatus,
         retryProjectLoad,
+        blocks: blocks,
       }}
     >
       {children}

@@ -20,7 +20,10 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const { selectedBlock, project, atlas, textureAtlas } = useCurrentProject();
+  const { selectedBlock, project, atlas, textureAtlas, blocks } =
+    useCurrentProject();
+
+  console.log(blocks);
 
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);

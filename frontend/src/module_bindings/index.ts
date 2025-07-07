@@ -74,6 +74,8 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
 export { PlayerCursorTableHandle };
+import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
+export { ProjectBlocksTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
 export { ProjectsTableHandle };
 import { UserTableHandle } from "./user_table.ts";
@@ -86,20 +88,18 @@ import { AccessType } from "./access_type_type.ts";
 export { AccessType };
 import { Atlas } from "./atlas_type.ts";
 export { Atlas };
-import { BlockBlueprint } from "./block_blueprint_type.ts";
-export { BlockBlueprint };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
 import { Chunk } from "./chunk_type.ts";
 export { Chunk };
 import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
-import { Face } from "./face_type.ts";
-export { Face };
 import { PlayerCursor } from "./player_cursor_type.ts";
 export { PlayerCursor };
 import { Project } from "./project_type.ts";
 export { Project };
+import { ProjectBlocks } from "./project_blocks_type.ts";
+export { ProjectBlocks };
 import { User } from "./user_type.ts";
 export { User };
 import { UserProject } from "./user_project_type.ts";
@@ -130,6 +130,11 @@ const REMOTE_MODULE = {
       tableName: "player_cursor",
       rowType: PlayerCursor.getTypeScriptAlgebraicType(),
       primaryKey: "id",
+    },
+    project_blocks: {
+      tableName: "project_blocks",
+      rowType: ProjectBlocks.getTypeScriptAlgebraicType(),
+      primaryKey: "projectId",
     },
     projects: {
       tableName: "projects",
@@ -592,6 +597,10 @@ export class RemoteTables {
 
   get playerCursor(): PlayerCursorTableHandle {
     return new PlayerCursorTableHandle(this.connection.clientCache.getOrCreateTable<PlayerCursor>(REMOTE_MODULE.tables.player_cursor));
+  }
+
+  get projectBlocks(): ProjectBlocksTableHandle {
+    return new ProjectBlocksTableHandle(this.connection.clientCache.getOrCreateTable<ProjectBlocks>(REMOTE_MODULE.tables.project_blocks));
   }
 
   get projects(): ProjectsTableHandle {

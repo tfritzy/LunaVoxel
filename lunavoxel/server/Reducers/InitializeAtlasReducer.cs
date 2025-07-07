@@ -11,7 +11,7 @@ public static partial class Module
             return;
         }
 
-        ProjectBlocks blocks = new() { BlockFaceAtlasIndexes = new int[64][] };
+        ProjectBlocks blocks = new() { ProjectId = projectId, BlockFaceAtlasIndexes = new int[64][] };
         for (int i = 0; i < blocks.BlockFaceAtlasIndexes.Length; i++)
         {
             blocks.BlockFaceAtlasIndexes[i] = [i, i, i, i, i, i];

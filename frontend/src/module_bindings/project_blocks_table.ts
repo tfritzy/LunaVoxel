@@ -30,23 +30,23 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Atlas } from "./atlas_type";
+import { ProjectBlocks } from "./project_blocks_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `atlas`.
+ * Table handle for the table `project_blocks`.
  *
- * Obtain a handle from the [`atlas`] property on [`RemoteTables`],
- * like `ctx.db.atlas`.
+ * Obtain a handle from the [`projectBlocks`] property on [`RemoteTables`],
+ * like `ctx.db.projectBlocks`.
  *
  * Users are encouraged not to explicitly reference this type,
  * but to directly chain method calls,
- * like `ctx.db.atlas.on_insert(...)`.
+ * like `ctx.db.projectBlocks.on_insert(...)`.
  */
-export class AtlasTableHandle {
-  tableCache: TableCache<Atlas>;
+export class ProjectBlocksTableHandle {
+  tableCache: TableCache<ProjectBlocks>;
 
-  constructor(tableCache: TableCache<Atlas>) {
+  constructor(tableCache: TableCache<ProjectBlocks>) {
     this.tableCache = tableCache;
   }
 
@@ -54,24 +54,24 @@ export class AtlasTableHandle {
     return this.tableCache.count();
   }
 
-  iter(): Iterable<Atlas> {
+  iter(): Iterable<ProjectBlocks> {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `projectId` unique index on the table `atlas`,
+   * Access to the `projectId` unique index on the table `project_blocks`,
    * which allows point queries on the field of the same name
-   * via the [`AtlasProjectIdUnique.find`] method.
+   * via the [`ProjectBlocksProjectIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.atlas.projectId().find(...)`.
+   * like `ctx.db.projectBlocks.projectId().find(...)`.
    *
-   * Get a handle on the `projectId` unique index on the table `atlas`.
+   * Get a handle on the `projectId` unique index on the table `project_blocks`.
    */
   projectId = {
     // Find the subscribed row whose `projectId` column value is equal to `col_val`,
     // if such a row is present in the client cache.
-    find: (col_val: string): Atlas | undefined => {
+    find: (col_val: string): ProjectBlocks | undefined => {
       for (let row of this.tableCache.iter()) {
         if (deepEqual(row.projectId, col_val)) {
           return row;
@@ -80,27 +80,27 @@ export class AtlasTableHandle {
     },
   };
 
-  onInsert = (cb: (ctx: EventContext, row: Atlas) => void) => {
+  onInsert = (cb: (ctx: EventContext, row: ProjectBlocks) => void) => {
     return this.tableCache.onInsert(cb);
   }
 
-  removeOnInsert = (cb: (ctx: EventContext, row: Atlas) => void) => {
+  removeOnInsert = (cb: (ctx: EventContext, row: ProjectBlocks) => void) => {
     return this.tableCache.removeOnInsert(cb);
   }
 
-  onDelete = (cb: (ctx: EventContext, row: Atlas) => void) => {
+  onDelete = (cb: (ctx: EventContext, row: ProjectBlocks) => void) => {
     return this.tableCache.onDelete(cb);
   }
 
-  removeOnDelete = (cb: (ctx: EventContext, row: Atlas) => void) => {
+  removeOnDelete = (cb: (ctx: EventContext, row: ProjectBlocks) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
 
   // Updates are only defined for tables with primary keys.
-  onUpdate = (cb: (ctx: EventContext, oldRow: Atlas, newRow: Atlas) => void) => {
+  onUpdate = (cb: (ctx: EventContext, oldRow: ProjectBlocks, newRow: ProjectBlocks) => void) => {
     return this.tableCache.onUpdate(cb);
   }
 
-  removeOnUpdate = (cb: (ctx: EventContext, onRow: Atlas, newRow: Atlas) => void) => {
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: ProjectBlocks, newRow: ProjectBlocks) => void) => {
     return this.tableCache.removeOnUpdate(cb);
   }}
