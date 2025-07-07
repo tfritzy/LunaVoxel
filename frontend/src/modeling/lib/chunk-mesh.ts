@@ -1,5 +1,10 @@
 import * as THREE from "three";
-import { Atlas, BlockModificationMode, Chunk } from "@/module_bindings";
+import {
+  Atlas,
+  BlockModificationMode,
+  Chunk,
+  ProjectBlocks,
+} from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
 import { Block } from "../blocks";
@@ -92,7 +97,8 @@ export class ChunkMesh {
     newChunk: Chunk,
     previewBlocks: (Block | undefined)[][][],
     buildMode: BlockModificationMode,
-    atlas: Atlas
+    atlas: Atlas,
+    blocks: ProjectBlocks
   ) => {
     const updateId = ++this.currentUpdateId;
 
@@ -114,6 +120,7 @@ export class ChunkMesh {
         previewBlocks,
         buildMode,
         atlas,
+        blocks,
         {
           xDim: newChunk.xDim,
           yDim: newChunk.yDim,
@@ -160,9 +167,6 @@ export class ChunkMesh {
       const posX = gridPos.x + 0.5;
       const posY = gridPos.y + 0.5;
       const posZ = gridPos.z + 0.5;
-      const blockX = gridPos.x;
-      const blockY = gridPos.y;
-      const blockZ = gridPos.z;
 
       const textureCoords = getTextureCoordinates(
         textureIndex,

@@ -6,6 +6,7 @@ import {
   DbConnection,
   EventContext,
   Project,
+  ProjectBlocks,
 } from "../../module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import { CursorManager, PlayerCursor } from "./cursor-manager";
@@ -21,6 +22,7 @@ export class ProjectManager {
   private builder;
   private currentChunk: Chunk | null = null;
   private atlas: Atlas | null = null;
+  private blocks: ProjectBlocks | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -54,6 +56,10 @@ export class ProjectManager {
 
   setAtlas = (atlas: Atlas) => {
     this.atlas = atlas;
+  };
+
+  setBlocks = (blocks: ProjectBlocks) => {
+    this.blocks = blocks;
   };
 
   setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
@@ -128,7 +134,8 @@ export class ProjectManager {
       this.currentChunk,
       this.builder.previewBlocks,
       this.builder.getTool(),
-      this.atlas
+      this.atlas,
+      this.blocks
     );
   };
 

@@ -24,8 +24,6 @@ export const ProjectViewPage = () => {
   const { selectedBlock, project, atlas, textureAtlas, blocks } =
     useCurrentProject();
 
-  console.log(blocks);
-
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
   }, [selectedBlock]);
@@ -91,6 +89,7 @@ export const ProjectViewPage = () => {
     engineRef.current.projectManager.setSelectedBlock(selectedBlock);
     engineRef.current.projectManager.setTool(currentTool);
     engineRef.current.projectManager.setAtlas(atlas);
+    engineRef.current.projectManager.setBlocks(blocks);
     engineRef.current.projectManager.setTextureAtlas(textureAtlas);
 
     return () => {
@@ -112,6 +111,12 @@ export const ProjectViewPage = () => {
       engineRef.current.projectManager.setAtlas(atlas);
     }
   }, [atlas]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.projectManager.setBlocks(blocks);
+    }
+  }, [blocks]);
 
   useEffect(() => {
     if (engineRef.current && textureAtlas) {

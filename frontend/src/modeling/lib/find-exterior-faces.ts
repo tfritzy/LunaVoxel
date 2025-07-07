@@ -1,4 +1,4 @@
-import { Atlas, BlockModificationMode } from "@/module_bindings";
+import { Atlas, BlockModificationMode, ProjectBlocks } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFaces } from "./chunk-mesh";
 import { Block } from "../blocks";
@@ -8,6 +8,7 @@ export const findExteriorFaces = (
   previewBlocks: (Block | undefined)[][][],
   previewMode: BlockModificationMode,
   atlas: Atlas,
+  blocks: ProjectBlocks,
   dimensions: { xDim: number; yDim: number; zDim: number }
 ): {
   meshFaces: Map<string, VoxelFaces>;
@@ -181,8 +182,8 @@ export const findExteriorFaces = (
 
       const key = `${nx},${ny},${nz}`;
       if (hasReal && (isBuildMode || !hasPreview)) {
-        const blueprint = atlas.blocks[block.type];
-        const index = blueprint.faces[dirIndex].atlasIndex;
+        const blueprint = blocks.blockFaceAtlasIndexes[block.type];
+        const index = blueprint[dirIndex];
 
         if (!exteriorFaces.has(key)) {
           exteriorFaces.set(key, {
@@ -199,8 +200,8 @@ export const findExteriorFaces = (
 
       if (hasPreview && !sourceIsPreview) {
         if (!previewFaces.has(key)) {
-          const blueprint = atlas.blocks[previewBlock.type];
-          const index = blueprint.faces[dirIndex].atlasIndex;
+          const blueprint = blocks.blockFaceAtlasIndexes[previewBlock.type];
+          const index = blueprint[dirIndex];
           previewFaces.set(key, {
             textureIndex: index,
             faceIndexes: [],

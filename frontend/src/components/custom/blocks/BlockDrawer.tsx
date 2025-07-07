@@ -5,8 +5,8 @@ import { HexagonOverlay } from "./HexagonOverlay";
 const BLOCK_WIDTH = "4em";
 const BLOCK_HEIGHT = "5rem";
 const HEXAGON_OFFSET = "2rem";
-const VERTICAL_OVERLAP = "-3.5rem";
-const HORIZONTAL_GAP = "-1rem";
+const VERTICAL_OVERLAP = "-1.5rem";
+const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
   const { blocks, selectedBlock, setSelectedBlock } = useCurrentProject();
@@ -35,7 +35,7 @@ export const BlockDrawer = () => {
   let rowIndex = 0;
 
   while (currentIndex < blocks.blockFaceAtlasIndexes.length) {
-    const itemsInRow = rowIndex % 2 === 0 ? 3 : 2;
+    const itemsInRow = rowIndex % 2 === 0 ? 5 : 4;
     const isOddRow = rowIndex % 2 === 1;
     const rowItems = [];
 
