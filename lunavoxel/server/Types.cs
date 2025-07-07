@@ -83,12 +83,12 @@ public static partial class Module
         public int Size;
     }
 
-    [Table(Name = "blocks", Public = true)]
-    public partial class Block
+    [Table(Name = "project_blocks", Public = true)]
+    public partial class ProjectBlocks
     {
-        public string Id;
+        [PrimaryKey]
         public string ProjectId;
-        public Face[] Faces = [];
+        public int[][] BlockFaceAtlasIndexes = []; // 2d array of block faces, each face is an index in the atlas
     }
 
     [Table(Name = "player_cursor", Public = true)]
@@ -140,12 +140,6 @@ public static partial class Module
         public Identity Identity;
         public string? Email;
         public string? Name;
-    }
-
-    [Type]
-    public partial class Face
-    {
-        public int AtlasIndex;
     }
 
     public class BlockType

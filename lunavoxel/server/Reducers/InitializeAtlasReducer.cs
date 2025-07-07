@@ -11,23 +11,13 @@ public static partial class Module
             return;
         }
 
-        var blocks = new Block[64];
-        for (int i = 0; i < blocks.Length; i++)
+        ProjectBlocks blocks = new() { BlockFaceAtlasIndexes = new int[64][] };
+        for (int i = 0; i < blocks.BlockFaceAtlasIndexes.Length; i++)
         {
-            blocks[i] = new Block
-            {
-                Faces =
-                [
-                    new Face { AtlasIndex = i },
-                    new Face { AtlasIndex = i },
-                    new Face { AtlasIndex = i },
-                    new Face { AtlasIndex = i },
-                    new Face { AtlasIndex = i },
-                    new Face { AtlasIndex = i }
-                ]
-            };
-
+            blocks.BlockFaceAtlasIndexes[i] = [i, i, i, i, i, i];
         }
-        ctx.Db.atlas.Insert(new Atlas { ProjectId = projectId, Size = 64, Blocks = blocks, CellSize = 1 });
+
+        ctx.Db.atlas.Insert(new Atlas { ProjectId = projectId, Size = 64, CellSize = 1 });
+        ctx.Db.project_blocks.Insert(blocks);
     }
 }
