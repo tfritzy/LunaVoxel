@@ -5,6 +5,8 @@ import { createVoxelMaterial } from "@/modeling/lib/shader";
 import { faces } from "@/modeling/lib/voxel-constants";
 import { getTextureCoordinates } from "@/modeling/lib/texture-coords";
 
+const frustumSize = 2;
+
 interface BlockPreviewProps {
   blockIndex: number;
   size: "small" | "large";
@@ -102,7 +104,6 @@ export const BlockPreview = ({
     let camera: THREE.Camera;
     if (size === "small") {
       const aspect = width / height;
-      const frustumSize = 2;
       camera = new THREE.OrthographicCamera(
         (-frustumSize * aspect) / 2,
         (frustumSize * aspect) / 2,
@@ -111,7 +112,7 @@ export const BlockPreview = ({
         0.1,
         1000
       );
-      camera.position.set(2, 2, 2);
+      camera.position.set(1, Math.sqrt(2), 1);
     } else {
       camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
       camera.position.set(4, 4, 4);
@@ -163,7 +164,6 @@ export const BlockPreview = ({
       sceneRef.current.camera.updateProjectionMatrix();
     } else if (sceneRef.current.camera instanceof THREE.OrthographicCamera) {
       const aspect = width / height;
-      const frustumSize = 1.2;
       sceneRef.current.camera.left = (-frustumSize * aspect) / 2;
       sceneRef.current.camera.right = (frustumSize * aspect) / 2;
       sceneRef.current.camera.top = frustumSize / 2;
@@ -204,6 +204,9 @@ export const BlockPreview = ({
   }, [atlas, blocks, createCubeGeometry, textureAtlas]);
 
   return (
-    <div ref={containerRef} className={`w-full h-full ${className || ""}`} />
+    <div
+      ref={containerRef}
+      className={`w-full h-full pointer-events-none ${className || ""}`}
+    />
   );
 };

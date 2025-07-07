@@ -8,6 +8,7 @@ import { ProjectHeader } from "@/components/custom/ProjectHeader";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
 import { AtlasDrawer } from "@/components/custom/atlas/AtlasDrawer";
+import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -127,6 +128,8 @@ export const ProjectViewPage = () => {
       <ProjectHeader />
       <div className="h-full flex">
         <div className="flex-1 relative">
+          <BlockDrawer />
+
           <div
             ref={containerRef}
             className="w-full h-full bg-slate-900"
