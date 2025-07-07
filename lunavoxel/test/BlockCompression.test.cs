@@ -1,6 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static Module;
 
 namespace Test
@@ -8,14 +8,14 @@ namespace Test
     [TestClass]
     public class CompressTests
     {
-        private static readonly Block BlueBlock = new(MeshType.Block, "blue");
-        private static readonly Block RedBlock = new(MeshType.RoundBlock, "red");
+        private static readonly BlockType BlueBlock = new(MeshType.Block, "blue");
+        private static readonly BlockType RedBlock = new(MeshType.RoundBlock, "red");
 
         [TestMethod]
         public void Compress_SingleSolidVolume_ReturnsOneRun()
         {
             // ARRANGE: A 2x2x2 volume completely filled with blue blocks.
-            var blocks = new Block?[2, 2, 2];
+            var blocks = new BlockType?[2, 2, 2];
             for (int x = 0; x < 2; x++)
                 for (int y = 0; y < 2; y++)
                     for (int z = 0; z < 2; z++)
@@ -40,7 +40,7 @@ namespace Test
         public void Compress_TwoSeparateBlocks_ReturnsTwoRuns()
         {
             // ARRANGE: Two different blocks at opposite corners.
-            var blocks = new Block?[2, 2, 2];
+            var blocks = new BlockType?[2, 2, 2];
             blocks[0, 0, 0] = BlueBlock;
             blocks[1, 1, 1] = RedBlock;
 
@@ -67,7 +67,7 @@ namespace Test
             //  B B B
             //  B
             //  B
-            var blocks = new Block?[3, 3, 1];
+            var blocks = new BlockType?[3, 3, 1];
             blocks[0, 0, 0] = BlueBlock; // Start of the horizontal bar
             blocks[1, 0, 0] = BlueBlock;
             blocks[2, 0, 0] = BlueBlock;
@@ -94,7 +94,7 @@ namespace Test
         {
             // ARRANGE: A 2x1x1 run with a null in the middle.
             // B [null] B
-            var blocks = new Block?[3, 1, 1];
+            var blocks = new BlockType?[3, 1, 1];
             blocks[0, 0, 0] = BlueBlock;
             blocks[2, 0, 0] = BlueBlock;
 
@@ -115,7 +115,7 @@ namespace Test
         public void Compress_VolumeConservation_TotalRunVolumeEqualsBlockCount()
         {
             // ARRANGE: A complex scene with multiple runs and nulls
-            var blocks = new Block?[4, 4, 4];
+            var blocks = new BlockType?[4, 4, 4];
             blocks[0, 0, 0] = BlueBlock; // 1x1x1 run
             blocks[0, 0, 1] = BlueBlock;
 

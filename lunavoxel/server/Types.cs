@@ -81,7 +81,14 @@ public static partial class Module
         public int Version;
         public int CellSize = -1;
         public int Size;
-        public BlockBlueprint[] Blocks = [];
+    }
+
+    [Table(Name = "blocks", Public = true)]
+    public partial class Block
+    {
+        public string Id;
+        public string ProjectId;
+        public Face[] Faces = [];
     }
 
     [Table(Name = "player_cursor", Public = true)]
@@ -141,24 +148,18 @@ public static partial class Module
         public int AtlasIndex;
     }
 
-    [Type]
-    public partial class BlockBlueprint
-    {
-        public Face[] Faces = [];
-    }
-
-    public class Block
+    public class BlockType
     {
         public int Type;
         public int Rotation;
 
-        public Block(int type, int rotation = 0)
+        public BlockType(int type, int rotation = 0)
         {
             Type = type;
             Rotation = rotation;
         }
 
-        public static Block FromBytes(byte[] data)
+        public static BlockType FromBytes(byte[] data)
         {
             if (data.Length != 2)
                 throw new ArgumentException("Invalid block data length");
@@ -168,7 +169,7 @@ public static partial class Module
             ushort type = (ushort)(combined >> 6);
             byte rotation = (byte)(combined & 0x07);
 
-            return new Block(type, rotation);
+            return new BlockType(type, rotation);
         }
 
         public byte[] ToBytes()

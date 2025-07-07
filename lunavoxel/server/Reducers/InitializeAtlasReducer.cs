@@ -11,10 +11,10 @@ public static partial class Module
             return;
         }
 
-        var blocks = new BlockBlueprint[64];
+        var blocks = new Block[64];
         for (int i = 0; i < blocks.Length; i++)
         {
-            blocks[i] = new BlockBlueprint
+            blocks[i] = new Block
             {
                 Faces =
                 [

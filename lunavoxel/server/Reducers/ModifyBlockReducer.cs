@@ -30,7 +30,7 @@ public static partial class Module
             switch (mode)
             {
                 case BlockModificationMode.Build:
-                    var buildBlock = new Block(blockType, rotation);
+                    var buildBlock = new BlockType(blockType, rotation);
                     var buildBytes = buildBlock.ToBytes();
                     Array.Copy(buildBytes, 0, voxels, index, 2);
                     break;
@@ -42,10 +42,10 @@ public static partial class Module
 
                 case BlockModificationMode.Paint:
                     var existingBytes = new byte[] { voxels[index], voxels[index + 1] };
-                    var existingBlock = Block.FromBytes(existingBytes);
+                    var existingBlock = BlockType.FromBytes(existingBytes);
                     if (existingBlock.Type != 0)
                     {
-                        var paintedBlock = new Block(existingBlock.Type, rotation);
+                        var paintedBlock = new BlockType(existingBlock.Type, rotation);
                         var paintedBytes = paintedBlock.ToBytes();
                         Array.Copy(paintedBytes, 0, voxels, index, 2);
                     }
