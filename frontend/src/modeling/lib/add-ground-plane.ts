@@ -7,10 +7,15 @@ export const addGroundPlane = (
   worldYDim: number,
   worldZDim: number
 ) => {
+  const raycastMultiplier = 100;
+  const raycastXDim = worldXDim * raycastMultiplier;
+  const raycastYDim = worldYDim * raycastMultiplier;
+  const raycastZDim = worldZDim * raycastMultiplier;
+
   const invisibleBoxGeometry = new THREE.BoxGeometry(
-    worldXDim,
-    worldZDim,
-    worldYDim
+    raycastXDim,
+    raycastZDim,
+    raycastYDim
   );
   const index = invisibleBoxGeometry.index;
   if (index) {
@@ -31,7 +36,7 @@ export const addGroundPlane = (
     invisibleBoxGeometry,
     invisibleBoxMaterial
   );
-  invisibleBox.position.set(worldXDim / 2, worldZDim / 2, worldYDim / 2);
+  invisibleBox.position.set(raycastXDim / 2, raycastZDim / 2, raycastYDim / 2);
   invisibleBox.layers.set(layers.raycast);
   invisibleBox.userData.isBoundaryBox = true;
   scene.add(invisibleBox);
@@ -78,69 +83,6 @@ const createWireframeBox = (
   wireframeBox.layers.set(layers.ghost);
   wireframeGeometry.dispose();
   return wireframeBox;
-};
-
-const createOptimizedGridLines = (
-  worldXDim: number,
-  worldYDim: number
-): THREE.LineSegments | null => {
-  const positions: number[] = [];
-  const colors: number[] = [];
-  const lineYPosition = 0.001;
-
-  const lightColor = new THREE.Color(0x333333);
-  const mediumColor = new THREE.Color(0x444444);
-  const heavyColor = new THREE.Color(0x555555);
-  const majorColor = new THREE.Color(0x666666);
-
-  const getLineColor = (index: number): THREE.Color => {
-    if (index % 20 === 0) return majorColor;
-    if (index % 4 === 0) return heavyColor;
-    if (index % 2 === 0) return mediumColor;
-    return lightColor;
-  };
-
-  for (let i = 0; i <= worldXDim; i++) {
-    const color = getLineColor(i);
-
-    positions.push(i, lineYPosition, 0);
-    colors.push(color.r, color.g, color.b);
-
-    positions.push(i, lineYPosition, worldYDim);
-    colors.push(color.r, color.g, color.b);
-  }
-
-  for (let i = 0; i <= worldYDim; i++) {
-    const color = getLineColor(i);
-
-    positions.push(0, lineYPosition, i);
-    colors.push(color.r, color.g, color.b);
-
-    positions.push(worldXDim, lineYPosition, i);
-    colors.push(color.r, color.g, color.b);
-  }
-
-  if (positions.length === 0) {
-    return null;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(positions, 3)
-  );
-  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-
-  const material = new THREE.LineBasicMaterial({
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.8,
-  });
-
-  const gridLines = new THREE.LineSegments(geometry, material);
-  gridLines.layers.set(layers.ghost);
-
-  return gridLines;
 };
 
 const createAxisArrows = (

@@ -5,7 +5,7 @@ import {
   DbConnection,
   Vector3,
 } from "../../module_bindings";
-import { Block } from "../blocks";
+import { Block } from "./blocks";
 
 export const Builder = class {
   public previewBlocks: (Block | undefined)[][][];

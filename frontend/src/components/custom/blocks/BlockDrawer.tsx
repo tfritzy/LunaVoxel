@@ -66,7 +66,7 @@ export const BlockDrawer = () => {
   }
 
   return (
-    <div className="absolute left-0 top-0 h-full bg-background border-r border-border overflow-y-auto p-4">
+    <div className="absolute left-0 top-0 h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4">
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Blocks</h2>
       </div>

@@ -1,7 +1,7 @@
 import { Atlas, BlockModificationMode, ProjectBlocks } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFaces } from "./chunk-mesh";
-import { Block } from "../blocks";
+import { Block } from "./blocks";
 
 export const findExteriorFaces = (
   realBlocks: (Block | undefined)[][][],

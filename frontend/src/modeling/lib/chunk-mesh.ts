@@ -7,7 +7,7 @@ import {
 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
-import { Block } from "../blocks";
+import { Block } from "./blocks";
 import { createVoxelMaterial } from "./shader";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
