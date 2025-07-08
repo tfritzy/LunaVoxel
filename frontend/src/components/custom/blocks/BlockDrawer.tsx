@@ -2,10 +2,10 @@ import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { BlockPreview } from "./BlockPreview";
 import { HexagonOverlay } from "./HexagonOverlay";
 
-const BLOCK_WIDTH = "4em";
+const BLOCK_WIDTH = "3.75em";
 const BLOCK_HEIGHT = "5rem";
-const HEXAGON_OFFSET = "2rem";
-const VERTICAL_OVERLAP = "-1.5rem";
+const HEXAGON_OFFSET = "1.875rem";
+const VERTICAL_OVERLAP = "-1.75rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
@@ -13,9 +13,7 @@ export const BlockDrawer = () => {
 
   const createBlockPreview = (index: number) => (
     <div
-      className={`relative rounded-full pointer-events-none transition-transform duration-200 ${
-        index === selectedBlock ? "-translate-y-2" : ""
-      }`}
+      className="relative rounded-full pointer-events-none"
       key={index}
       style={{
         width: BLOCK_WIDTH,
