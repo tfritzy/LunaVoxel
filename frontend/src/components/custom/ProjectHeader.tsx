@@ -70,22 +70,24 @@ export function ProjectHeader() {
             >
               <Logo />
             </Link>
-            <div className="flex items-center space-x-1">
-              <FileDropdown
-                onNew={handleNewProject}
-                onOpen={handleOpenProject}
-              />
-            </div>
-          </div>
 
-          <div className="flex-1 flex justify-center">
-            {projectId && <ProjectNameInput />}
+            <div>
+              <div className="flex-1 flex justify-center">
+                {projectId && <ProjectNameInput />}
+              </div>
+              <div className="flex items-center space-x-1">
+                <FileDropdown
+                  onNewProject={handleNewProject}
+                  onOpenProject={handleOpenProject}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
             {projectId && <ShareButton />}
             <UserDropdown
-              user={currentUser}
+              currentUser={currentUser}
               onSignIn={handleSignIn}
               onSignOut={handleSignOut}
             />

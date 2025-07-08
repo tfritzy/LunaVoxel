@@ -186,7 +186,17 @@ export class ChunkMesh {
 
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
-          const aoFactor = 1;
+          // const aoFactor = calculateVertexAOFast(
+          //   gridPos.x,
+          //   gridPos.y,
+          //   gridPos.z,
+          //   faceIndex,
+          //   j,
+          //   realBlocks,
+          //   previewBlocks,
+          //   previewMode
+          // );
+          const aoFactor = 1.0;
 
           vertices[vertexOffset] = vertex[0] + posX;
           vertices[vertexOffset + 1] = vertex[1] + posY;

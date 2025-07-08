@@ -1,18 +1,4 @@
-import React from "react";
-
-const DesktopModal = (props: ModalProps) => {
-  return (
-    <div
-      className={`bg-background border border-border fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 backdrop-blur-xl backdrop-brightness-60 rounded-lg shadow-lg drop-shadow-xl max-w-11/12 max-h-3/4 transition-transform duration-300 ${
-        props.isOpen
-          ? "scale-100 opacity-100 pointer-events-auto"
-          : "scale-95 opacity-0 pointer-events-none"
-      }`}
-    >
-      <div className="">{props.children}</div>
-    </div>
-  );
-};
+import React, { useEffect, useRef } from "react";
 
 type ModalProps = {
   isOpen: boolean;
@@ -21,19 +7,42 @@ type ModalProps = {
   disableOutsideClick?: boolean;
 };
 
-export const Modal = (props: ModalProps) => {
+export const Modal = ({
+  isOpen,
+  onClose,
+  children,
+  disableOutsideClick = false,
+}: ModalProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialogNode = dialogRef.current;
+    if (dialogNode) {
+      if (isOpen) {
+        dialogNode.showModal();
+      } else {
+        dialogNode.close();
+      }
+    }
+  }, [isOpen]);
+
+  const handleOutsideClick = (event: React.MouseEvent<HTMLDialogElement>) => {
+    if (disableOutsideClick) return;
+
+    const dialogNode = dialogRef.current;
+    if (dialogNode && event.target === dialogNode) {
+      onClose();
+    }
+  };
+
   return (
-    <div
-      onClick={props.disableOutsideClick ? undefined : props.onClose}
-      className="fixed left-0 top-0 w-full h-full bg-[#00000022] z-50"
-      style={{
-        pointerEvents: props.isOpen ? "all" : "none",
-        opacity: props.isOpen ? 1 : 0,
-      }}
+    <dialog
+      ref={dialogRef}
+      onClose={onClose}
+      onClick={handleOutsideClick}
+      className="bg-background border border-border rounded-lg shadow-lg m-auto backdrop:bg-black backdrop:opacity-20"
     >
-      <div onClick={(event) => event.stopPropagation()}>
-        <DesktopModal {...props} />
-      </div>
-    </div>
+      <div>{children}</div>
+    </dialog>
   );
 };
