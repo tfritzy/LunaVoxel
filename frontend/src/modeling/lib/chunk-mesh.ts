@@ -11,6 +11,7 @@ import { Block } from "./blocks";
 import { createVoxelMaterial } from "./shader";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
+import { calculateVertexAO } from "./ambient-occlusion";
 
 export type VoxelFaces = {
   textureIndex: number;
@@ -39,7 +40,7 @@ export class ChunkMesh {
   setTextureAtlas = (textureAtlas: THREE.Texture) => {
     this.textureAtlas = textureAtlas;
     if (this.material) {
-      this.material.map = textureAtlas;
+      this.material.uniforms.map.value = textureAtlas;
       this.material.needsUpdate = true;
     }
   };
@@ -157,10 +158,12 @@ export class ChunkMesh {
     const indices = new Uint32Array(totalIndices);
     const normals = new Float32Array(totalVertices * 3);
     const uvs = new Float32Array(totalVertices * 2);
+    const ao = new Float32Array(totalVertices);
     let vertexOffset = 0;
     let indexOffset = 0;
     let vertexIndex = 0;
     let uvOffset = 0;
+    let aoOffset = 0;
 
     for (const voxelFace of exteriorFaces.values()) {
       const { textureIndex, gridPos, faceIndexes } = voxelFace;
@@ -186,17 +189,16 @@ export class ChunkMesh {
 
         for (let j = 0; j < 4; j++) {
           const vertex = faceVertices[j];
-          // const aoFactor = calculateVertexAOFast(
-          //   gridPos.x,
-          //   gridPos.y,
-          //   gridPos.z,
-          //   faceIndex,
-          //   j,
-          //   realBlocks,
-          //   previewBlocks,
-          //   previewMode
-          // );
-          const aoFactor = 1.0;
+          const aoFactor = calculateVertexAO(
+            gridPos.x,
+            gridPos.y,
+            gridPos.z,
+            faceIndex,
+            j,
+            realBlocks,
+            previewBlocks,
+            previewMode
+          );
 
           vertices[vertexOffset] = vertex[0] + posX;
           vertices[vertexOffset + 1] = vertex[1] + posY;
@@ -207,13 +209,12 @@ export class ChunkMesh {
 
           uvs[uvOffset] = textureCoords[j * 2];
           uvs[uvOffset + 1] = textureCoords[j * 2 + 1];
-          if (aoFactor < 1.0) {
-            uvs[uvOffset] = uvs[uvOffset] * aoFactor;
-            uvs[uvOffset + 1] = uvs[uvOffset + 1] * aoFactor;
-          }
+
+          ao[aoOffset] = aoFactor;
 
           vertexOffset += 3;
           uvOffset += 2;
+          aoOffset += 1;
           vertexIndex++;
         }
 
@@ -242,10 +243,12 @@ export class ChunkMesh {
     );
     this.geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
     this.geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+    this.geometry.setAttribute("aochannel", new THREE.BufferAttribute(ao, 1));
     this.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.normal.needsUpdate = true;
     this.geometry.attributes.uv.needsUpdate = true;
+    this.geometry.attributes.aochannel.needsUpdate = true;
     if (this.geometry.index) {
       this.geometry.index.needsUpdate = true;
     }

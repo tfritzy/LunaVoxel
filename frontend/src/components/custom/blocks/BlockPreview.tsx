@@ -35,6 +35,7 @@ export const BlockPreview = ({
     const vertices: number[] = [];
     const normals: number[] = [];
     const uvs: number[] = [];
+    const ao: number[] = [];
     const indices: number[] = [];
 
     let vertexIndex = 0;
@@ -61,6 +62,7 @@ export const BlockPreview = ({
         vertices.push(vertex[0], vertex[1], vertex[2]);
         normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
         uvs.push(textureCoords[j * 2], textureCoords[j * 2 + 1]);
+        ao.push(1.0);
 
         vertexIndex++;
       }
@@ -86,6 +88,10 @@ export const BlockPreview = ({
     geometry.setAttribute(
       "uv",
       new THREE.BufferAttribute(new Float32Array(uvs), 2)
+    );
+    geometry.setAttribute(
+      "aochannel",
+      new THREE.BufferAttribute(new Float32Array(ao), 1)
     );
     geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
 

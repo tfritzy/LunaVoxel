@@ -1,4 +1,5 @@
-import { BlockModificationMode, BlockRun, MeshType } from "@/module_bindings";
+import { BlockModificationMode } from "@/module_bindings";
+import { Block } from "./blocks";
 
 const baseOffsets = {
   0: [
@@ -141,16 +142,17 @@ const baseOffsets = {
 };
 
 const AO_CONFIG = {
+  /** The distance in blocks to check for occluders. */
   DISTANCE: 1,
 
-  MAX_OCCLUSION: 0.85,
-  SIDE_OCCLUSION_STRENGTH: 0.5,
-
-  CORNER_WEIGHT: 1,
-  SMOOTH_FALLOFF: true,
-
-  VERTEX_AO_FALLOFF: 0.3,
-  EDGE_BIAS: 0.7,
+  /**
+   * Defines the final AO value based on the number of occluders.
+   * Index 0 = 0 occluders (fully lit, should be 1.0)
+   * Index 1 = 1 occluder
+   * Index 2 = 2 occluders
+   * Index 3 = 3 occluders (or a sharp interior corner)
+   */
+  OCCLUSION_LEVELS: [1.0, 0.95, 0.92, 0.88],
 };
 
 function generateAOLookup(distance: number = AO_CONFIG.DISTANCE) {
@@ -176,8 +178,8 @@ function isSolid(
   x: number,
   y: number,
   z: number,
-  realBlocks: (BlockRun | undefined)[][][],
-  previewBlocks: (MeshType | undefined)[][][],
+  realBlocks: (Block | undefined)[][][],
+  previewBlocks: (Block | undefined)[][][],
   previewMode: BlockModificationMode
 ): boolean {
   if (!realBlocks[x]?.[y]?.[z]) {
@@ -207,74 +209,59 @@ function calculateNeighborOffsets(
 }
 
 const AO_LOOKUP = generateAOLookup();
-
-export function calculateVertexAOFast(
+export function calculateVertexAO(
   blockX: number,
   blockY: number,
   blockZ: number,
   faceIndex: number,
   vertexIndex: number,
-  realBlocks: (BlockRun | undefined)[][][],
-  previewBlocks: (MeshType | undefined)[][][],
+  realBlocks: (Block | undefined)[][][],
+  previewBlocks: (Block | undefined)[][][],
   previewMode: BlockModificationMode
 ): number {
   const checkPositions = AO_LOOKUP[faceIndex][vertexIndex];
+  const side1Pos = checkPositions[0];
+  const side2Pos = checkPositions[1];
+  const cornerPos = checkPositions[2];
 
-  let side1 = false,
-    side2 = false,
-    corner = false;
-
-  side1 = isSolid(
-    blockX + checkPositions[0][0],
-    blockY + checkPositions[0][1],
-    blockZ + checkPositions[0][2],
+  const side1Occluded = isSolid(
+    blockX + side1Pos[0],
+    blockY + side1Pos[1],
+    blockZ + side1Pos[2],
     realBlocks,
     previewBlocks,
     previewMode
   );
 
-  side2 = isSolid(
-    blockX + checkPositions[1][0],
-    blockY + checkPositions[1][1],
-    blockZ + checkPositions[1][2],
+  const side2Occluded = isSolid(
+    blockX + side2Pos[0],
+    blockY + side2Pos[1],
+    blockZ + side2Pos[2],
     realBlocks,
     previewBlocks,
     previewMode
   );
 
-  corner = isSolid(
-    blockX + checkPositions[2][0],
-    blockY + checkPositions[2][1],
-    blockZ + checkPositions[2][2],
+  const cornerOccluded = isSolid(
+    blockX + cornerPos[0],
+    blockY + cornerPos[1],
+    blockZ + cornerPos[2],
     realBlocks,
     previewBlocks,
     previewMode
   );
 
-  let baseOcclusion = 0;
-
-  if (side1 && side2) {
-    baseOcclusion = 1.0 - AO_CONFIG.MAX_OCCLUSION;
-  } else if (AO_CONFIG.SMOOTH_FALLOFF) {
-    const sideCount = (side1 ? 1 : 0) + (side2 ? 1 : 0);
-    const cornerContribution = corner ? AO_CONFIG.CORNER_WEIGHT : 0;
-    baseOcclusion =
-      (sideCount + cornerContribution) * AO_CONFIG.SIDE_OCCLUSION_STRENGTH;
-  } else {
-    const blockedCount =
-      (side1 ? 1 : 0) +
-      (side2 ? 1 : 0) +
-      (corner ? AO_CONFIG.CORNER_WEIGHT : 0);
-    baseOcclusion = blockedCount * AO_CONFIG.SIDE_OCCLUSION_STRENGTH;
+  // The special case for sharp corners maps to the darkest occlusion level.
+  if (side1Occluded && side2Occluded) {
+    return AO_CONFIG.OCCLUSION_LEVELS[3];
   }
 
-  const isCornerVertex = true;
-  const vertexBias = isCornerVertex ? 1.0 : 1.0 - AO_CONFIG.VERTEX_AO_FALLOFF;
+  // Count the total number of occluding blocks.
+  let occluderCount = 0;
+  if (side1Occluded) occluderCount++;
+  if (side2Occluded) occluderCount++;
+  if (cornerOccluded) occluderCount++;
 
-  const edgeFactor =
-    AO_CONFIG.EDGE_BIAS + (1.0 - AO_CONFIG.EDGE_BIAS) * vertexBias;
-
-  const finalOcclusion = baseOcclusion * edgeFactor;
-
-  return Math.max(AO_CONFIG.MAX_OCCLUSION, 1.0 - finalOcclusion);
+  // Return the AO value from the lookup table.
+  return AO_CONFIG.OCCLUSION_LEVELS[occluderCount];
 }
