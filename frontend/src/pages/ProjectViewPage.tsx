@@ -9,6 +9,7 @@ import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
 import { AtlasDrawer } from "@/components/custom/atlas/AtlasDrawer";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
+import { BlockModal } from "@/components/custom/blocks/BlockModal";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -170,13 +171,13 @@ export const ProjectViewPage = () => {
 
           <AtlasDrawer />
 
-          {/* <BlockModal
+          <BlockModal
             isOpen={true}
             onClose={function (): void {
               throw new Error("Function not implemented.");
             }}
             blockIndex={3}
-          /> */}
+          />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { getTextureCoordinates } from "@/modeling/lib/texture-coords";
 
 interface BlockFacePreviewProps {
   faces: number[];
+  showLabels?: boolean;
 }
 
 interface SceneRef {
@@ -16,15 +17,49 @@ interface SceneRef {
   mesh: THREE.Mesh;
   material: THREE.ShaderMaterial;
   controls: any;
+  labels: THREE.Sprite[];
 }
 
 export const BlockFacePreview = ({
   faces: faceTextures,
+  showLabels = false,
 }: BlockFacePreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneRef | null>(null);
 
   const { atlas, textureAtlas } = useCurrentProject();
+
+  const createTextSprite = (text: string, color: string = "#ffffff") => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    const fontSize = 32;
+    canvas.width = 64;
+    canvas.height = 64;
+
+    context.fillStyle = "rgba(0, 0, 0, 0.6)";
+    context.beginPath();
+    context.roundRect(4, 4, 56, 56, 8);
+    context.fill();
+
+    context.fillStyle = color;
+    context.font = `bold ${fontSize}px Arial`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.25, 0.25, 1);
+
+    return sprite;
+  };
 
   const createCubeGeometry = (
     textureIndexes: number[]
@@ -95,6 +130,34 @@ export const BlockFacePreview = ({
     return geometry;
   };
 
+  const createFaceLabels = () => {
+    const faceNames = ["R", "L", "T", "B", "F", "K"];
+    const facePositions = [
+      [0.65, 0, 0], // Right
+      [-0.65, 0, 0], // Left
+      [0, 0.65, 0], // Top
+      [0, -0.65, 0], // Bottom
+      [0, 0, 0.65], // Front
+      [0, 0, -0.65], // Back
+    ];
+
+    const labels: THREE.Sprite[] = [];
+
+    for (let i = 0; i < 6; i++) {
+      const sprite = createTextSprite(faceNames[i]);
+      if (sprite) {
+        sprite.position.set(
+          facePositions[i][0],
+          facePositions[i][1],
+          facePositions[i][2]
+        );
+        labels.push(sprite);
+      }
+    }
+
+    return labels;
+  };
+
   useEffect(() => {
     if (!containerRef.current || !textureAtlas) return;
 
@@ -119,6 +182,9 @@ export const BlockFacePreview = ({
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
+    const labels = showLabels ? createFaceLabels() : [];
+    labels.forEach((label) => scene.add(label));
+
     const initControls = async () => {
       const { OrbitControls } = await import(
         "three/examples/jsm/controls/OrbitControls.js"
@@ -133,7 +199,15 @@ export const BlockFacePreview = ({
       controls.minDistance = 1;
       controls.maxDistance = 50;
 
-      sceneRef.current = { scene, camera, renderer, mesh, material, controls };
+      sceneRef.current = {
+        scene,
+        camera,
+        renderer,
+        mesh,
+        material,
+        controls,
+        labels,
+      };
 
       const animate = () => {
         if (!sceneRef.current) return;
@@ -170,6 +244,12 @@ export const BlockFacePreview = ({
         if (sceneRef.current.controls) {
           sceneRef.current.controls.dispose();
         }
+        sceneRef.current.labels.forEach((label) => {
+          if (label.material.map) {
+            label.material.map.dispose();
+          }
+          label.material.dispose();
+        });
         container.removeChild(sceneRef.current.renderer.domElement);
         sceneRef.current.renderer.dispose();
         geometry.dispose();

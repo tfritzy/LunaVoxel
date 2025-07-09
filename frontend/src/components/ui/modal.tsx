@@ -1,48 +1,138 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-type ModalProps = {
+interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  title: string;
   children: React.ReactNode;
-  disableOutsideClick?: boolean;
-};
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
+  maxHeight?: string;
+  footer?: React.ReactNode;
+}
 
-export const Modal = ({
+export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
+  title,
   children,
-  disableOutsideClick = false,
-}: ModalProps) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  size = "md",
+  maxHeight = "90vh",
+  footer,
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const dialogNode = dialogRef.current;
-    if (dialogNode) {
-      if (isOpen) {
-        dialogNode.showModal();
-      } else {
-        dialogNode.close();
-      }
-    }
-  }, [isOpen]);
+  const sizeClasses = {
+    sm: "w-sm",
+    md: "w-md",
+    lg: "w-lg",
+    xl: "w-xl",
+    "2xl": "w-2xl",
+    "3xl": "w-3xl",
+    "4xl": "w-4xl",
+    "5xl": "w-5xl",
+  };
 
-  const handleOutsideClick = (event: React.MouseEvent<HTMLDialogElement>) => {
-    if (disableOutsideClick) return;
-
-    const dialogNode = dialogRef.current;
-    if (dialogNode && event.target === dialogNode) {
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setShouldRender(false);
       onClose();
+    }, 200);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      handleClose();
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
+
+      if (modalRef.current) {
+        modalRef.current.focus();
+      }
+    } else {
+      setIsVisible(false);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+
+      setTimeout(() => {
+        setShouldRender(false);
+      }, 200);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
+
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      onClick={handleOutsideClick}
-      className="bg-background border border-border rounded-lg shadow-lg m-auto backdrop:bg-black backdrop:opacity-20"
+    <div
+      className={`fixed inset-0 flex items-center justify-center z-50 transition-all duration-200 ease-out ${
+        isVisible ? "bg-black/10" : "bg-black/0"
+      }`}
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
     >
-      <div>{children}</div>
-    </dialog>
+      <div
+        ref={modalRef}
+        className={`max-h-[${maxHeight}] ${
+          sizeClasses[size]
+        } overflow-y-auto transition-all duration-200 ease-out ${
+          isVisible
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-95 translate-y-4"
+        }`}
+        tabIndex={-1}
+      >
+        <div className="bg-background rounded-lg mx-4 shadow-lg border border-border">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <h2
+                id="modal-title"
+                className="text-lg font-semibold text-foreground"
+              >
+                {title}
+              </h2>
+              <Button
+                variant="ghost"
+                onClick={handleClose}
+                aria-label="Close dialog"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+          <div className="px-6 pb-6">{children}</div>
+          {footer && (
+            <div className="flex flex-row justify-between p-6 border-t border-border">
+              {footer}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
