@@ -176,6 +176,11 @@ export const BlockPreview = ({
       sceneRef.current.camera.bottom = -frustumSize / 2;
       sceneRef.current.camera.updateProjectionMatrix();
     }
+
+    sceneRef.current.renderer.render(
+      sceneRef.current.scene,
+      sceneRef.current.camera
+    );
   }, []);
 
   useEffect(() => {
@@ -206,6 +211,15 @@ export const BlockPreview = ({
       const newGeometry = createCubeGeometry();
       sceneRef.current.mesh.geometry.dispose();
       sceneRef.current.mesh.geometry = newGeometry;
+
+      if (sceneRef.current.material.uniforms?.map) {
+        sceneRef.current.material.uniforms.map.value = textureAtlas;
+      }
+
+      sceneRef.current.renderer.render(
+        sceneRef.current.scene,
+        sceneRef.current.camera
+      );
     }
   }, [atlas, blocks, createCubeGeometry, textureAtlas]);
 

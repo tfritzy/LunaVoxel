@@ -81,7 +81,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <Spinner className="size-4" />
           </div>
         )}
-        <div className={cn(pending && "opacity-0")}>{children}</div>
+        {pending ? <div className="invisible">{children}</div> : children}
       </Comp>
     );
   }

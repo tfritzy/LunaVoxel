@@ -1,6 +1,8 @@
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { BlockPreview } from "./BlockPreview";
 import { HexagonOverlay } from "./HexagonOverlay";
+import { useState } from "react";
+import { BlockModal } from "./BlockModal";
 
 const BLOCK_WIDTH = "3.75em";
 const BLOCK_HEIGHT = "5rem";
@@ -9,6 +11,9 @@ const VERTICAL_OVERLAP = "-1.75rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
+  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(
+    null
+  );
   const { blocks, selectedBlock, setSelectedBlock } = useCurrentProject();
 
   const createBlockPreview = (index: number) => (
@@ -71,6 +76,11 @@ export const BlockDrawer = () => {
         <h2 className="text-lg font-semibold">Blocks</h2>
       </div>
       <div className="flex flex-col">{rows}</div>
+      <BlockModal
+        isOpen={editingBlockIndex !== null}
+        onClose={() => setEditingBlockIndex(null)}
+        blockIndex={editingBlockIndex || -1}
+      />
     </div>
   );
 };

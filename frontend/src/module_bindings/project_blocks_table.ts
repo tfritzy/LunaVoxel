@@ -58,22 +58,22 @@ export class ProjectBlocksTableHandle {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `project_id` unique index on the table `project_blocks`,
+   * Access to the `projectId` unique index on the table `project_blocks`,
    * which allows point queries on the field of the same name
    * via the [`ProjectBlocksProjectIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.projectBlocks.project_id().find(...)`.
+   * like `ctx.db.projectBlocks.projectId().find(...)`.
    *
-   * Get a handle on the `project_id` unique index on the table `project_blocks`.
+   * Get a handle on the `projectId` unique index on the table `project_blocks`.
    */
-  project_id = {
-    // Find the subscribed row whose `project_id` column value is equal to `col_val`,
+  projectId = {
+    // Find the subscribed row whose `projectId` column value is equal to `col_val`,
     // if such a row is present in the client cache.
     find: (col_val: string): ProjectBlocks | undefined => {
       for (let row of this.tableCache.iter()) {
-        if (deepEqual(row.project_id, col_val)) {
+        if (deepEqual(row.projectId, col_val)) {
           return row;
         }
       }

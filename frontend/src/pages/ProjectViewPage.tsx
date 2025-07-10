@@ -170,14 +170,6 @@ export const ProjectViewPage = () => {
           )}
 
           <AtlasDrawer />
-
-          <BlockModal
-            isOpen={true}
-            onClose={function (): void {
-              throw new Error("Function not implemented.");
-            }}
-            blockIndex={3}
-          />
         </div>
       </div>
     </div>
