@@ -10,6 +10,8 @@ public static partial class Module
     RemoveColorFromPalette(ReducerContext ctx, string projectId, int colorIndex)
     {
         var palette = ctx.Db.color_palette.ProjectId.Find(projectId);
+        EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
+
         if (palette == null)
         {
             return;

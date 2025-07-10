@@ -1,9 +1,10 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getStorage } from "firebase-admin/storage";
-import { adminApp, spacetimeUrl } from ".";
+import { adminApp } from ".";
 import { createCanvas, loadImage } from "canvas";
 import type { CanvasRenderingContext2D } from "canvas";
+import { callSpacetimeDB } from "./spacetime-client";
 
 interface AddToAtlasRequest {
   projectId: string;
@@ -36,20 +37,10 @@ const callSpacetimeUpdateAtlas = async (
   newSize: number,
   cellSize: number
 ): Promise<void> => {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  const spacetimeHost = spacetimeUrl.value();
-  const isDev = spacetimeHost.includes("localhost");
-  const protocol = isDev ? "http" : "https";
-
-  const response = await fetch(
-    `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/UpdateAtlas`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify([projectId, newSize, cellSize]),
-    }
+  const response = await callSpacetimeDB(
+    "/v1/database/lunavoxel/call/UpdateAtlas",
+    "POST",
+    [projectId, newSize, cellSize]
   );
 
   if (!response.ok) {

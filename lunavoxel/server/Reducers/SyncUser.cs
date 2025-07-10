@@ -5,15 +5,7 @@ public static partial class Module
     [Reducer]
     public static void SyncUser(ReducerContext ctx, string identityHex, string email, string name)
     {
-        var callerIdentity = ctx.Sender.ToString();
-        var isDev = callerIdentity.ToLower() == "c200ba35ecebe43369c673a5a69fdf9e3243f380fc23ac74bf1f4bbdc8a96f7d";
-        var isProd = callerIdentity.ToLower() == "c200cbc423731cb43c1a9185ac9df0ddc76494eef51a95999bc015ba01a8d1e5";
-
-        if (!isDev && !isProd)
-        {
-            Log.Error("Unauthorized user trying to sync user data: " + callerIdentity);
-            throw new UnauthorizedAccessException("Unauthorized user");
-        }
+        EnsureIsAdminUser.Check(ctx);
 
         var identity = Identity.FromHexString(identityHex);
         var user = ctx.Db.user.Identity.Find(identity);

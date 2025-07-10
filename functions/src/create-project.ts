@@ -1,9 +1,10 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getStorage } from "firebase-admin/storage";
-import { adminApp, spacetimeUrl } from ".";
+import { adminApp } from ".";
 import { createCanvas } from "canvas";
 import { validateSpacetimeIdentity } from "./identity-validation";
+import { callSpacetimeDB } from "./spacetime-client";
 
 interface CreateProjectRequest {
   id: string;
@@ -120,23 +121,13 @@ export const createProject = onCall<
       throw new Error("Invalid SpaceTime identity or token");
     }
 
-    const spacetimeHost = spacetimeUrl.value();
-    const isDev = spacetimeHost.includes("localhost");
-    const protocol = isDev ? "http" : "https";
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${spacetimeToken}`,
-    };
-
     logger.info(`Creating project: ${id} - ${name} for user: ${userIdentity}`);
 
-    const createProjectResponse = await fetch(
-      `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/CreateProject`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify([id, name, xDim, yDim, zDim]),
-      }
+    const createProjectResponse = await callSpacetimeDB(
+      "/v1/database/lunavoxel/call/CreateProject",
+      "POST",
+      [id, name, xDim, yDim, zDim],
+      spacetimeToken
     );
 
     if (!createProjectResponse.ok) {
@@ -182,13 +173,11 @@ export const createProject = onCall<
 
     logger.info("Atlas uploaded, updating atlas in SpacetimeDB");
 
-    const updateAtlasResponse = await fetch(
-      `${protocol}://${spacetimeHost}/v1/database/lunavoxel/call/UpdateAtlas`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify([id, gridSize * gridSize, 1]),
-      }
+    const updateAtlasResponse = await callSpacetimeDB(
+      "/v1/database/lunavoxel/call/UpdateAtlas",
+      "POST",
+      [id, gridSize * gridSize, 1],
+      spacetimeToken
     );
 
     if (!updateAtlasResponse.ok) {

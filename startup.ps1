@@ -77,14 +77,14 @@ SPACETIME_TOKEN=$($identityResponse.token)
     $hexIdentity = $decodedToken.hex_identity
     Write-Host "New identity hash: $hexIdentity" -ForegroundColor Yellow
 
-    Write-Step "Step 7: Updating sync user reducer"
-    $reducerPath = "lunavoxel/server/Reducers/SyncUser.cs"
-    if (-not (Test-Path $reducerPath)) { throw "SyncUser.cs not found at $reducerPath" }
+    Write-Step "Step 7: Updating admin user helper"
+    $helperPath = "lunavoxel/server/helpers/EnsureIsAdminUser.cs"
+    if (-not (Test-Path $helperPath)) { throw "EnsureIsAdminUser.cs not found at $helperPath" }
     
-    $reducerContent = Get-Content $reducerPath -Raw
-    $updatedContent = $reducerContent -replace 'var isDev = callerIdentity\.ToLower\(\) == "[^"]*";', "var isDev = callerIdentity.ToLower() == `"$($hexIdentity.ToLower())`";"
-    Set-Content -Path $reducerPath -Value $updatedContent
-    Write-Success "Sync user reducer updated with new identity"
+    $helperContent = Get-Content $helperPath -Raw
+    $updatedContent = $helperContent -replace 'var isDev = callerIdentity\.ToLower\(\) == "[^"]*";', "var isDev = callerIdentity.ToLower() == `"$($hexIdentity.ToLower())`";"
+    Set-Content -Path $helperPath -Value $updatedContent
+    Write-Success "Admin user helper updated with new identity"
 
     Write-Step "Step 8: Updating database without clean flag"
     & spacetime publish --project-path lunavoxel/server lunavoxel
@@ -114,7 +114,8 @@ SPACETIME_TOKEN=$($identityResponse.token)
     Write-Host "New identity token: $($identityResponse.token)" -ForegroundColor Yellow
     Write-Host "Identity hash: $hexIdentity" -ForegroundColor Yellow
 
-} catch {
+}
+catch {
     Write-Error "Script failed: $($_.Exception.Message)"
     exit 1
 }

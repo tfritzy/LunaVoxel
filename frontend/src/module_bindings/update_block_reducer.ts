@@ -31,15 +31,17 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type ReplacePalette = {
+export type UpdateBlock = {
   projectId: string,
-  colors: number[],
+  index: number,
+  atlasFaceIndexes: number[],
+  rotation: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace ReplacePalette {
+export namespace UpdateBlock {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -47,16 +49,18 @@ export namespace ReplacePalette {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("colors", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
+      new ProductTypeElement("index", AlgebraicType.createI32Type()),
+      new ProductTypeElement("atlasFaceIndexes", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
+      new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: ReplacePalette): void {
-    ReplacePalette.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: UpdateBlock): void {
+    UpdateBlock.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): ReplacePalette {
-    return ReplacePalette.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): UpdateBlock {
+    return UpdateBlock.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

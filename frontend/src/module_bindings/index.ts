@@ -54,12 +54,12 @@ import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
-import { ReplacePalette } from "./replace_palette_reducer.ts";
-export { ReplacePalette };
 import { SyncUser } from "./sync_user_reducer.ts";
 export { SyncUser };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
 export { UpdateAtlas };
+import { UpdateBlock } from "./update_block_reducer.ts";
+export { UpdateBlock };
 import { UpdateCursorPos } from "./update_cursor_pos_reducer.ts";
 export { UpdateCursorPos };
 import { UpdateProjectName } from "./update_project_name_reducer.ts";
@@ -197,10 +197,6 @@ const REMOTE_MODULE = {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
     },
-    ReplacePalette: {
-      reducerName: "ReplacePalette",
-      argsType: ReplacePalette.getTypeScriptAlgebraicType(),
-    },
     SyncUser: {
       reducerName: "SyncUser",
       argsType: SyncUser.getTypeScriptAlgebraicType(),
@@ -208,6 +204,10 @@ const REMOTE_MODULE = {
     UpdateAtlas: {
       reducerName: "UpdateAtlas",
       argsType: UpdateAtlas.getTypeScriptAlgebraicType(),
+    },
+    UpdateBlock: {
+      reducerName: "UpdateBlock",
+      argsType: UpdateBlock.getTypeScriptAlgebraicType(),
     },
     UpdateCursorPos: {
       reducerName: "UpdateCursorPos",
@@ -255,9 +255,9 @@ export type Reducer = never
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
-| { name: "ReplacePalette", args: ReplacePalette }
 | { name: "SyncUser", args: SyncUser }
 | { name: "UpdateAtlas", args: UpdateAtlas }
+| { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
 | { name: "UpdateProjectName", args: UpdateProjectName }
 ;
@@ -425,22 +425,6 @@ export class RemoteReducers {
     this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 
-  replacePalette(projectId: string, colors: number[]) {
-    const __args = { projectId, colors };
-    let __writer = new BinaryWriter(1024);
-    ReplacePalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ReplacePalette", __argsBuffer, this.setCallReducerFlags.replacePaletteFlags);
-  }
-
-  onReplacePalette(callback: (ctx: ReducerEventContext, projectId: string, colors: number[]) => void) {
-    this.connection.onReducer("ReplacePalette", callback);
-  }
-
-  removeOnReplacePalette(callback: (ctx: ReducerEventContext, projectId: string, colors: number[]) => void) {
-    this.connection.offReducer("ReplacePalette", callback);
-  }
-
   syncUser(identityHex: string, email: string, name: string) {
     const __args = { identityHex, email, name };
     let __writer = new BinaryWriter(1024);
@@ -471,6 +455,22 @@ export class RemoteReducers {
 
   removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, newSize: number, cellSize: number) => void) {
     this.connection.offReducer("UpdateAtlas", callback);
+  }
+
+  updateBlock(projectId: string, index: number, atlasFaceIndexes: number[], rotation: number) {
+    const __args = { projectId, index, atlasFaceIndexes, rotation };
+    let __writer = new BinaryWriter(1024);
+    UpdateBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("UpdateBlock", __argsBuffer, this.setCallReducerFlags.updateBlockFlags);
+  }
+
+  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[], rotation: number) => void) {
+    this.connection.onReducer("UpdateBlock", callback);
+  }
+
+  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[], rotation: number) => void) {
+    this.connection.offReducer("UpdateBlock", callback);
   }
 
   updateCursorPos(projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) {
@@ -553,11 +553,6 @@ export class SetReducerFlags {
     this.removeColorFromPaletteFlags = flags;
   }
 
-  replacePaletteFlags: CallReducerFlags = 'FullUpdate';
-  replacePalette(flags: CallReducerFlags) {
-    this.replacePaletteFlags = flags;
-  }
-
   syncUserFlags: CallReducerFlags = 'FullUpdate';
   syncUser(flags: CallReducerFlags) {
     this.syncUserFlags = flags;
@@ -566,6 +561,11 @@ export class SetReducerFlags {
   updateAtlasFlags: CallReducerFlags = 'FullUpdate';
   updateAtlas(flags: CallReducerFlags) {
     this.updateAtlasFlags = flags;
+  }
+
+  updateBlockFlags: CallReducerFlags = 'FullUpdate';
+  updateBlock(flags: CallReducerFlags) {
+    this.updateBlockFlags = flags;
   }
 
   updateCursorPosFlags: CallReducerFlags = 'FullUpdate';

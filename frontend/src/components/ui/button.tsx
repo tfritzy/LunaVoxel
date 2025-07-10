@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -34,25 +33,60 @@ const buttonVariants = cva(
   }
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
+const Spinner = ({ className }: { className?: string }) => (
+  <div
+    className={cn(
+      "animate-spin rounded-full border-2 border-current border-t-transparent",
+      className
+    )}
+  />
+);
 
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
+interface ButtonProps
+  extends React.ComponentProps<"button">,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+  pending?: boolean;
 }
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      pending = false,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
+    const Comp = asChild ? Slot : "button";
+
+    return (
+      <Comp
+        ref={ref}
+        data-slot="button"
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          pending && "relative"
+        )}
+        disabled={disabled || pending}
+        {...props}
+      >
+        {pending && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Spinner className="size-4" />
+          </div>
+        )}
+        <div className={cn(pending && "opacity-0")}>{children}</div>
+      </Comp>
+    );
+  }
+);
+
+Button.displayName = "Button";
 
 export { Button, buttonVariants };

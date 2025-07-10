@@ -14,6 +14,8 @@ public static partial class Module
         List<Vector3> positions,
         int rotation)
     {
+        EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
+
         var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
         byte[] voxels = VoxelRLE.Decompress(chunk.Voxels);
 
