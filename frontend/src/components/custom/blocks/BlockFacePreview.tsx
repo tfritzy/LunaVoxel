@@ -265,5 +265,25 @@ export const BlockFacePreview = ({
     }
   }, [faceTextures, atlas.cellSize, atlas.size]);
 
+  useEffect(() => {
+    if (!sceneRef.current) return;
+
+    sceneRef.current.labels.forEach((label) => {
+      sceneRef.current!.scene.remove(label);
+      if (label.material.map) {
+        label.material.map.dispose();
+      }
+      label.material.dispose();
+    });
+
+    if (showLabels) {
+      const newLabels = createFaceLabels();
+      newLabels.forEach((label) => sceneRef.current!.scene.add(label));
+      sceneRef.current.labels = newLabels;
+    } else {
+      sceneRef.current.labels = [];
+    }
+  }, [showLabels]);
+
   return <div ref={containerRef} className="w-full h-full overflow-hidden" />;
 };

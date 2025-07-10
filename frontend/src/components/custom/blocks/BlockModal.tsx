@@ -85,7 +85,7 @@ export const BlockModal = ({
       <div className="w-full h-[60vh] flex flex-col text-foreground">
         <div className="flex flex-1 overflow-hidden">
           <div className="w-lg overflow-y-auto">
-            <div className="p-6 h-full">
+            <div className="pr-6 h-full">
               <div className="flex flex-col h-full space-y-4">
                 <div className="bg-background rounded-lg p-4 border border-border shadow-sm">
                   <div className="flex items-center space-x-3">
@@ -107,14 +107,14 @@ export const BlockModal = ({
 
                 {applyToAllFaces ? (
                   <div className="flex-1 flex flex-col">
-                    <div className="bg-background rounded-lg p-6 border border-border shadow-sm flex-1 flex flex-col items-center space-y-4">
-                      <div className="text-center">
+                    <div className="bg-background rounded-lg p-6 border border-border shadow-sm flex-1 flex flex-col space-y-4">
+                      <div className="">
                         <h3 className="text-lg font-semibold text-foreground mb-2">
-                          Atlas Texture
+                          Single atlas coordinate for all faces
                         </h3>
                         <p className="text-sm text-muted-foreground mb-6">
-                          This texture will be applied to all 6 faces of the
-                          block
+                          This atlas coordinate will be applied to all faces of
+                          the block.
                         </p>
                       </div>
                       <AtlasTextureDropdown
@@ -129,12 +129,12 @@ export const BlockModal = ({
                 ) : (
                   <div className="flex-1 flex flex-col">
                     <div className="bg-background rounded-lg p-6 border border-border shadow-sm flex-1">
-                      <div className="text-center mb-6">
+                      <div className="mb-6">
                         <h3 className="text-lg font-semibold text-foreground mb-2">
-                          Individual Face Textures
+                          Individual coordinate for each face
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          Configure each face of the block separately
+                          Select an atlas coordinate for each face of the block.
                         </p>
                       </div>
 
@@ -224,7 +224,7 @@ export const BlockModal = ({
             </div>
           </div>
 
-          <div className="w-3xl flex flex-col">
+          <div className="w-3xl flex flex-col rounded-lg border border-border">
             <div className="flex-1 flex items-center justify-center">
               <BlockFacePreview
                 faces={selectedFaces}
