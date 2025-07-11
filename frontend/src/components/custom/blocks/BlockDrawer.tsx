@@ -1,8 +1,10 @@
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { BlockPreview } from "./BlockPreview";
 import { HexagonOverlay } from "./HexagonOverlay";
+import { BlockFacePreview } from "./BlockFacePreview";
 import { useState } from "react";
 import { BlockModal } from "./BlockModal";
+import { Button } from "@/components/ui/button";
 
 const BLOCK_WIDTH = "3.75em";
 const BLOCK_HEIGHT = "5rem";
@@ -70,12 +72,49 @@ export const BlockDrawer = () => {
     rowIndex++;
   }
 
+  const selectedBlockFaces =
+    selectedBlock < blocks.blockFaceAtlasIndexes.length
+      ? blocks.blockFaceAtlasIndexes[selectedBlock]
+      : null;
+
   return (
-    <div className="absolute left-0 top-0 h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4">
+    <div className="absolute left-0 top-0 h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col">
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Blocks</h2>
       </div>
-      <div className="flex flex-col">{rows}</div>
+
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="flex flex-col">{rows}</div>
+        </div>
+
+        {selectedBlockFaces && (
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="mb-3">
+              <h3 className="text-sm font-medium">Selected Block</h3>
+            </div>
+
+            <div className="bg-muted/30 rounded-lg border border-border mb-4">
+              <div className="h-32 flex items-center justify-center">
+                <BlockFacePreview
+                  faces={selectedBlockFaces}
+                  showLabels={false}
+                />
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setEditingBlockIndex(selectedBlock)}
+            >
+              Edit Block
+            </Button>
+          </div>
+        )}
+      </div>
+
       <BlockModal
         isOpen={editingBlockIndex !== null}
         onClose={() => setEditingBlockIndex(null)}

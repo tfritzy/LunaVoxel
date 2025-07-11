@@ -18,6 +18,7 @@ interface SceneRef {
   material: THREE.ShaderMaterial;
   controls: any;
   labels: THREE.Sprite[];
+  grid: THREE.LineSegments;
 }
 
 export const BlockFacePreview = ({
@@ -59,6 +60,31 @@ export const BlockFacePreview = ({
     sprite.scale.set(0.25, 0.25, 1);
 
     return sprite;
+  };
+
+  const createGridGeometry = (): THREE.BufferGeometry => {
+    const geometry = new THREE.BufferGeometry();
+    const vertices: number[] = [];
+    const gridSize = 20;
+    const divisions = 40;
+    const step = gridSize / divisions;
+
+    for (let i = 0; i <= divisions; i++) {
+      const pos = i * step - gridSize / 2;
+
+      vertices.push(-gridSize / 2, -0.5, pos);
+      vertices.push(gridSize / 2, -0.5, pos);
+
+      vertices.push(pos, -0.5, -gridSize / 2);
+      vertices.push(pos, -0.5, gridSize / 2);
+    }
+
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array(vertices), 3)
+    );
+
+    return geometry;
   };
 
   const createCubeGeometry = (
@@ -167,7 +193,7 @@ export const BlockFacePreview = ({
 
     const scene = new THREE.Scene();
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
     camera.position.set(4, 4, 4);
     camera.lookAt(0, 0, 0);
 
@@ -182,6 +208,15 @@ export const BlockFacePreview = ({
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
+    const gridGeometry = createGridGeometry();
+    const gridMaterial = new THREE.LineBasicMaterial({
+      color: 0x444444,
+      opacity: 0.3,
+      transparent: true,
+    });
+    const grid = new THREE.LineSegments(gridGeometry, gridMaterial);
+    scene.add(grid);
+
     const labels = showLabels ? createFaceLabels() : [];
     labels.forEach((label) => scene.add(label));
 
@@ -194,8 +229,6 @@ export const BlockFacePreview = ({
       controls.dampingFactor = 0.05;
       controls.enableZoom = true;
       controls.enablePan = false;
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
       controls.minDistance = 1;
       controls.maxDistance = 50;
 
@@ -207,11 +240,12 @@ export const BlockFacePreview = ({
         material,
         controls,
         labels,
+        grid,
       };
 
-      const animate = () => {
+      const animateScene = () => {
         if (!sceneRef.current) return;
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animateScene);
 
         sceneRef.current.controls.update();
 
@@ -221,7 +255,7 @@ export const BlockFacePreview = ({
         );
       };
 
-      animate();
+      animateScene();
     };
 
     initControls();
@@ -250,6 +284,7 @@ export const BlockFacePreview = ({
           }
           label.material.dispose();
         });
+        sceneRef.current.grid.geometry.dispose();
         container.removeChild(sceneRef.current.renderer.domElement);
         sceneRef.current.renderer.dispose();
         geometry.dispose();

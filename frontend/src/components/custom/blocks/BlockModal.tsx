@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { AtlasTextureDropdown } from "./AtlasTextureDropdown";
@@ -29,7 +29,20 @@ export const BlockModal = ({
     }
     return blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0];
   });
+  const [submitPending, setSubmitPending] = useState(false);
   const { connection } = useDatabase();
+
+  useEffect(() => {
+    if (isOpen) {
+      const allSame = blocks.blockFaceAtlasIndexes[blockIndex]?.every(
+        (index) => index === blocks.blockFaceAtlasIndexes[blockIndex][0]
+      );
+      setApplyToAllFaces(allSame);
+      setSelectedFaces(
+        blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
+      );
+    }
+  }, [isOpen, blockIndex, blocks.blockFaceAtlasIndexes]);
 
   const handleFaceChange = (faceIndex: number, textureIndex: number) => {
     if (applyToAllFaces) {
@@ -42,7 +55,9 @@ export const BlockModal = ({
   };
 
   const handleSubmit = () => {
-    connection?.reducers.updateBlock(project.id, blockIndex, selectedFaces, 0);
+    setSubmitPending(true);
+    connection?.reducers.updateBlock(project.id, blockIndex, selectedFaces);
+    setSubmitPending(false);
     onClose();
   };
 
@@ -73,7 +88,7 @@ export const BlockModal = ({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} pending={submitPending}>
               {isNewBlock ? "Create Block" : "Update Block"}
             </Button>
           </div>

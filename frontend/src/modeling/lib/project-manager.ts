@@ -56,15 +56,18 @@ export class ProjectManager {
 
   setAtlas = (atlas: Atlas) => {
     this.atlas = atlas;
+    this.updateChunkMesh();
   };
 
   setBlocks = (blocks: ProjectBlocks) => {
     this.blocks = blocks;
+    this.updateChunkMesh();
   };
 
   setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
     if (textureAtlas) {
       this.chunkMesh.setTextureAtlas(textureAtlas);
+      this.updateChunkMesh();
     }
   };
 
@@ -120,7 +123,7 @@ export class ProjectManager {
   };
 
   private updateChunkMesh = () => {
-    if (!this.currentChunk || !this.atlas) {
+    if (!this.currentChunk || !this.atlas || !this.blocks) {
       console.warn(
         "No current chunk or atlas set, skipping mesh update.",
         this.currentChunk,

@@ -180,10 +180,12 @@ export const findExteriorFaces = (
         enqueue(nx, ny, nz);
       }
 
-      const key = `${nx},${ny},${nz}`;
       if (hasReal && (isBuildMode || !hasPreview)) {
-        const blueprint = blocks.blockFaceAtlasIndexes[block.type];
-        const index = blueprint[dirIndex];
+        const blockTemplate = blocks.blockFaceAtlasIndexes[block.type];
+        const oppositeDirIndex =
+          dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
+        const index = blockTemplate[oppositeDirIndex];
+        const key = `${nx},${ny},${nz},${index}`;
 
         if (!exteriorFaces.has(key)) {
           exteriorFaces.set(key, {
@@ -193,15 +195,17 @@ export const findExteriorFaces = (
           });
         }
 
-        const oppositeDirIndex =
-          dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
         exteriorFaces.get(key)!.faceIndexes.push(oppositeDirIndex);
       }
 
       if (hasPreview && !sourceIsPreview) {
+        const blueprint = blocks.blockFaceAtlasIndexes[previewBlock.type];
+        const oppositeDirIndex =
+          dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
+        const index = blueprint[oppositeDirIndex];
+        const key = `${nx},${ny},${nz},${index}`;
+
         if (!previewFaces.has(key)) {
-          const blueprint = blocks.blockFaceAtlasIndexes[previewBlock.type];
-          const index = blueprint[dirIndex];
           previewFaces.set(key, {
             textureIndex: index,
             faceIndexes: [],
@@ -209,8 +213,6 @@ export const findExteriorFaces = (
           });
         }
 
-        const oppositeDirIndex =
-          dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
         previewFaces.get(key)!.faceIndexes.push(oppositeDirIndex);
       }
     }

@@ -457,19 +457,19 @@ export class RemoteReducers {
     this.connection.offReducer("UpdateAtlas", callback);
   }
 
-  updateBlock(projectId: string, index: number, atlasFaceIndexes: number[], rotation: number) {
-    const __args = { projectId, index, atlasFaceIndexes, rotation };
+  updateBlock(projectId: string, index: number, atlasFaceIndexes: number[]) {
+    const __args = { projectId, index, atlasFaceIndexes };
     let __writer = new BinaryWriter(1024);
     UpdateBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateBlock", __argsBuffer, this.setCallReducerFlags.updateBlockFlags);
   }
 
-  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[], rotation: number) => void) {
+  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[]) => void) {
     this.connection.onReducer("UpdateBlock", callback);
   }
 
-  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[], rotation: number) => void) {
+  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[]) => void) {
     this.connection.offReducer("UpdateBlock", callback);
   }
 

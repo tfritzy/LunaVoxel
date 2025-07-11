@@ -35,7 +35,6 @@ export type UpdateBlock = {
   projectId: string,
   index: number,
   atlasFaceIndexes: number[],
-  rotation: number,
 };
 
 /**
@@ -51,7 +50,6 @@ export namespace UpdateBlock {
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("index", AlgebraicType.createI32Type()),
       new ProductTypeElement("atlasFaceIndexes", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
-      new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
     ]);
   }
 
