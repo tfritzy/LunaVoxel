@@ -11,7 +11,7 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 interface BlockModalProps {
   isOpen: boolean;
   onClose: () => void;
-  blockIndex: number;
+  blockIndex: number | "new";
   isNewBlock?: boolean;
 }
 
@@ -19,14 +19,15 @@ export const BlockModal = ({
   isOpen,
   onClose,
   blockIndex,
-  isNewBlock = false,
 }: BlockModalProps) => {
+  const isNewBlock = blockIndex === "new";
   const { blocks, project } = useCurrentProject();
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
   const [selectedFaces, setSelectedFaces] = useState<number[]>(() => {
-    if (isNewBlock || blockIndex === undefined) {
+    if (isNewBlock) {
       return [0, 0, 0, 0, 0, 0];
     }
+
     return blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0];
   });
   const [submitPending, setSubmitPending] = useState(false);
@@ -34,13 +35,18 @@ export const BlockModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      const allSame = blocks.blockFaceAtlasIndexes[blockIndex]?.every(
-        (index) => index === blocks.blockFaceAtlasIndexes[blockIndex][0]
-      );
-      setApplyToAllFaces(allSame);
-      setSelectedFaces(
-        blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
-      );
+      if (isNewBlock) {
+        setApplyToAllFaces(true);
+        setSelectedFaces([0, 0, 0, 0, 0, 0]);
+      } else {
+        const allSame = blocks.blockFaceAtlasIndexes[blockIndex]?.every(
+          (index) => index === blocks.blockFaceAtlasIndexes[blockIndex][0]
+        );
+        setApplyToAllFaces(allSame);
+        setSelectedFaces(
+          blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
+        );
+      }
     }
   }, [isOpen, blockIndex, blocks.blockFaceAtlasIndexes]);
 
@@ -56,7 +62,13 @@ export const BlockModal = ({
 
   const handleSubmit = () => {
     setSubmitPending(true);
-    connection?.reducers.updateBlock(project.id, blockIndex, selectedFaces);
+
+    if (isNewBlock) {
+      connection?.reducers.addBlock(project.id, selectedFaces);
+    } else {
+      connection?.reducers.updateBlock(project.id, blockIndex, selectedFaces);
+    }
+
     setSubmitPending(false);
     onClose();
   };
@@ -117,7 +129,6 @@ export const BlockModal = ({
                     </label>
                   </div>
                 </div>
-
                 {applyToAllFaces ? (
                   <div className="flex-1 flex flex-col">
                     <div className="bg-background rounded-lg p-6 border border-border shadow-sm flex-1 flex flex-col space-y-4">
@@ -233,6 +244,7 @@ export const BlockModal = ({
                     </div>
                   </div>
                 )}
+                To add more options to the atlas, you can edit the atlas
               </div>
             </div>
           </div>

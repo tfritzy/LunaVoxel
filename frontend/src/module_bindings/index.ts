@@ -32,6 +32,8 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 // Import and reexport all reducer arg types
+import { AddBlock } from "./add_block_reducer.ts";
+export { AddBlock };
 import { ChangePublicAccessToProject } from "./change_public_access_to_project_reducer.ts";
 export { ChangePublicAccessToProject };
 import { ChangeUserAccessToProject } from "./change_user_access_to_project_reducer.ts";
@@ -153,6 +155,10 @@ const REMOTE_MODULE = {
     },
   },
   reducers: {
+    AddBlock: {
+      reducerName: "AddBlock",
+      argsType: AddBlock.getTypeScriptAlgebraicType(),
+    },
     ChangePublicAccessToProject: {
       reducerName: "ChangePublicAccessToProject",
       argsType: ChangePublicAccessToProject.getTypeScriptAlgebraicType(),
@@ -244,6 +250,7 @@ const REMOTE_MODULE = {
 
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
+| { name: "AddBlock", args: AddBlock }
 | { name: "ChangePublicAccessToProject", args: ChangePublicAccessToProject }
 | { name: "ChangeUserAccessToProject", args: ChangeUserAccessToProject }
 | { name: "ClientConnected", args: ClientConnected }
@@ -264,6 +271,22 @@ export type Reducer = never
 
 export class RemoteReducers {
   constructor(private connection: DbConnectionImpl, private setCallReducerFlags: SetReducerFlags) {}
+
+  addBlock(projectId: string, atlasFaceIndexes: number[]) {
+    const __args = { projectId, atlasFaceIndexes };
+    let __writer = new BinaryWriter(1024);
+    AddBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("AddBlock", __argsBuffer, this.setCallReducerFlags.addBlockFlags);
+  }
+
+  onAddBlock(callback: (ctx: ReducerEventContext, projectId: string, atlasFaceIndexes: number[]) => void) {
+    this.connection.onReducer("AddBlock", callback);
+  }
+
+  removeOnAddBlock(callback: (ctx: ReducerEventContext, projectId: string, atlasFaceIndexes: number[]) => void) {
+    this.connection.offReducer("AddBlock", callback);
+  }
 
   changePublicAccessToProject(projectId: string, accessType: AccessType) {
     const __args = { projectId, accessType };
@@ -508,6 +531,11 @@ export class RemoteReducers {
 }
 
 export class SetReducerFlags {
+  addBlockFlags: CallReducerFlags = 'FullUpdate';
+  addBlock(flags: CallReducerFlags) {
+    this.addBlockFlags = flags;
+  }
+
   changePublicAccessToProjectFlags: CallReducerFlags = 'FullUpdate';
   changePublicAccessToProject(flags: CallReducerFlags) {
     this.changePublicAccessToProjectFlags = flags;

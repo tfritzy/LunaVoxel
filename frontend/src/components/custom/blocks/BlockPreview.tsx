@@ -118,7 +118,7 @@ export const BlockPreview = ({
         0.1,
         1000
       );
-      camera.position.set(1, Math.sqrt(2), 1);
+      camera.position.set(1, 1, 1);
     } else {
       camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
       camera.position.set(4, 4, 4);

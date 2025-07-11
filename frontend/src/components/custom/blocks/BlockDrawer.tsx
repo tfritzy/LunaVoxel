@@ -5,6 +5,7 @@ import { BlockFacePreview } from "./BlockFacePreview";
 import { useState } from "react";
 import { BlockModal } from "./BlockModal";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 const BLOCK_WIDTH = "3.75em";
 const BLOCK_HEIGHT = "5rem";
@@ -13,9 +14,9 @@ const VERTICAL_OVERLAP = "-1.75rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
-  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(
-    null
-  );
+  const [editingBlockIndex, setEditingBlockIndex] = useState<
+    number | "new" | null
+  >(null);
   const { blocks, selectedBlock, setSelectedBlock } = useCurrentProject();
 
   const createBlockPreview = (index: number) => (
@@ -35,21 +36,43 @@ export const BlockDrawer = () => {
     </div>
   );
 
+  const createAddNewHex = (index: number) => (
+    <div
+      className="relative rounded-full pointer-events-none"
+      key={`add-${index}`}
+      style={{
+        width: BLOCK_WIDTH,
+        height: BLOCK_HEIGHT,
+      }}
+    >
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Plus className="w-6 h-6 text-muted-foreground" />
+      </div>
+      <HexagonOverlay
+        isSelected={false}
+        onClick={() => {
+          setEditingBlockIndex("new");
+        }}
+      />
+    </div>
+  );
+
   const rows = [];
   let currentIndex = 0;
   let rowIndex = 0;
+  const totalItems = blocks.blockFaceAtlasIndexes.length + 1; // +1 for the add new hex
 
-  while (currentIndex < blocks.blockFaceAtlasIndexes.length) {
+  while (currentIndex < totalItems) {
     const itemsInRow = rowIndex % 2 === 0 ? 5 : 4;
     const isOddRow = rowIndex % 2 === 1;
     const rowItems = [];
 
-    for (
-      let i = 0;
-      i < itemsInRow && currentIndex < blocks.blockFaceAtlasIndexes.length;
-      i++
-    ) {
-      rowItems.push(createBlockPreview(currentIndex));
+    for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
+      if (currentIndex < blocks.blockFaceAtlasIndexes.length) {
+        rowItems.push(createBlockPreview(currentIndex));
+      } else {
+        rowItems.push(createAddNewHex(currentIndex));
+      }
       currentIndex++;
     }
 
@@ -82,27 +105,20 @@ export const BlockDrawer = () => {
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Blocks</h2>
       </div>
-
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="flex flex-col">{rows}</div>
         </div>
-
         {selectedBlockFaces && (
-          <div className="mt-6 pt-4 border-t border-border">
-            <div className="mb-3">
-              <h3 className="text-sm font-medium">Selected Block</h3>
-            </div>
-
+          <div className="">
             <div className="bg-muted/30 rounded-lg border border-border mb-4">
-              <div className="h-32 flex items-center justify-center">
+              <div className="h-48 flex items-center justify-center">
                 <BlockFacePreview
                   faces={selectedBlockFaces}
                   showLabels={false}
                 />
               </div>
             </div>
-
             <Button
               variant="outline"
               size="sm"
@@ -114,11 +130,10 @@ export const BlockDrawer = () => {
           </div>
         )}
       </div>
-
       <BlockModal
         isOpen={editingBlockIndex !== null}
         onClose={() => setEditingBlockIndex(null)}
-        blockIndex={editingBlockIndex || -1}
+        blockIndex={editingBlockIndex || "new"}
       />
     </div>
   );

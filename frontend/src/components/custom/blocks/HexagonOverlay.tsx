@@ -11,7 +11,7 @@ export const HexagonOverlay = ({
         className="absolute inset-0 cursor-pointer hover:stroke-primary/10 pointer-events-auto"
         style={{
           clipPath:
-            "polygon(50% -7%, 96.5% 26.5%, 96.5% 73.8%, 50% 107%, 3% 72.8%, 3% 26.5%)",
+            "polygon(50% -4%, 96.5% 23.1%, 96.5% 77.1%, 50% 104%, 3% 77.1%, 3% 23.1%)",
         }}
         onMouseDown={onClick}
       />
@@ -23,7 +23,7 @@ export const HexagonOverlay = ({
       >
         <polygon
           className="fill-transparent"
-          points="50,-7 96.5,26.5 96.5,73.8 50,107 3,72.8 3,26.5"
+          points="50,-4 96.5,23.1 96.5,77.1 50,104 3,77.1 3,23.1"
           stroke={isSelected ? "white" : "var(--border)"}
           strokeWidth={isSelected ? 3 : 1}
           opacity={isSelected ? 1 : 1}
