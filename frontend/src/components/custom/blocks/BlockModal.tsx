@@ -129,9 +129,9 @@ export const BlockModal = ({
                     </label>
                   </div>
                 </div>
-                {applyToAllFaces ? (
-                  <div className="flex-1 flex flex-col">
-                    <div className="bg-background rounded-lg p-6 border border-border shadow-sm flex-1 flex flex-col space-y-4">
+                <div className="bg-background rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1">
+                  {applyToAllFaces ? (
+                    <div className="grow">
                       <div className="">
                         <h3 className="text-lg font-semibold text-foreground mb-2">
                           Single atlas coordinate for all faces
@@ -149,10 +149,8 @@ export const BlockModal = ({
                         size="lg"
                       />
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col">
-                    <div className="bg-background rounded-lg p-6 border border-border shadow-sm flex-1">
+                  ) : (
+                    <div className="grow">
                       <div className="mb-6">
                         <h3 className="text-lg font-semibold text-foreground mb-2">
                           Individual coordinate for each face
@@ -242,9 +240,15 @@ export const BlockModal = ({
                         <div />
                       </div>
                     </div>
+                  )}
+                  <div className="text-foreground-muted">
+                    To add more texture options, you can{" "}
+                    <button className="text-primary cursor-pointer font-bold hover:underline">
+                      edit
+                    </button>{" "}
+                    the atlas
                   </div>
-                )}
-                To add more options to the atlas, you can edit the atlas
+                </div>
               </div>
             </div>
           </div>

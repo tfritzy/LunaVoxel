@@ -1,5 +1,4 @@
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
 import { FileDropdown } from "./FileDropdown";
 import { UserDropdown } from "./Share/UserDropdown";
 import { useAuth } from "@/firebase/AuthContext";
@@ -7,16 +6,17 @@ import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
-import { ProjectModal } from "./ProjectModal";
 import { ShareButton } from "./Share/ShareButton";
 import { useDatabase } from "@/contexts/DatabaseContext";
+import { AtlasDropdown } from "./AtlasDropdown";
+import { useDialogs } from "@/contexts/DialogContext";
 
 export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
-  const [isProjectListOpen, setIsProjectListOpen] = useState(false);
   const { projectId } = useParams();
   const { connection } = useDatabase();
+  const { setModal } = useDialogs();
 
   const handleSignIn = async () => {
     try {
@@ -44,19 +44,7 @@ export function ProjectHeader() {
   };
 
   const handleOpenProject = () => {
-    setIsProjectListOpen(true);
-  };
-
-  const handleCloseProject = () => {
-    setIsProjectListOpen(false);
-  };
-
-  const visitProject = (projectId: string) => {
-    try {
-      navigate(`/project/${projectId}`);
-    } catch (err) {
-      console.error("Error selecting project:", err);
-    }
+    setModal("project-modal");
   };
 
   return (
@@ -80,6 +68,7 @@ export function ProjectHeader() {
                   onNewProject={handleNewProject}
                   onOpenProject={handleOpenProject}
                 />
+                <AtlasDropdown />
               </div>
             </div>
           </div>
@@ -94,14 +83,6 @@ export function ProjectHeader() {
           </div>
         </div>
       </nav>
-
-      {isProjectListOpen && (
-        <ProjectModal
-          isOpen={isProjectListOpen}
-          onClose={handleCloseProject}
-          onProjectClick={visitProject}
-        />
-      )}
     </>
   );
 }

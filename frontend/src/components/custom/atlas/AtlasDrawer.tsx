@@ -3,7 +3,7 @@ import { Plus, Download } from "lucide-react";
 import { JSX, useMemo, useState } from "react";
 import { EditAtlasSlotModal } from "./EditAtlasSlotModal";
 
-export const AtlasDrawer = () => {
+export const AtlasDrawer = ({ isOpen }: { isOpen: boolean }) => {
   const [editingSlotIndex, setEditingSlotIndex] = useState<
     number | "new" | null
   >(null);
@@ -54,6 +54,8 @@ export const AtlasDrawer = () => {
     );
     return slots;
   }, [atlasSlots]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="absolute right-0 top-0 h-full bg-background border-l border-border overflow-y-auto p-4">

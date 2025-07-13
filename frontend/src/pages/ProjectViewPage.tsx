@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useRef, useEffect, useState, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { AtlasDrawer } from "@/components/custom/atlas/AtlasDrawer";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 import { BlockModal } from "@/components/custom/blocks/BlockModal";
+import { useDialogs } from "@/contexts/DialogContext";
+import { ProjectModal } from "@/components/custom/ProjectModal";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -24,6 +26,8 @@ export const ProjectViewPage = () => {
   });
   const { selectedBlock, project, atlas, textureAtlas, blocks } =
     useCurrentProject();
+  const { modal, rightSideDrawer, setRightSideDrawer } = useDialogs();
+  const navigate = useNavigate();
 
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
@@ -129,6 +133,41 @@ export const ProjectViewPage = () => {
     setCurrentTool(tool);
   };
 
+  const currentDrawer = useMemo(() => {
+    switch (rightSideDrawer) {
+      case "atlas-drawer":
+        return <AtlasDrawer isOpen={true} />;
+      default:
+        return null;
+    }
+  }, [rightSideDrawer]);
+
+  const currentModal = useMemo(() => {
+    switch (modal) {
+      case "block-modal":
+        return (
+          <BlockModal
+            isOpen
+            onClose={() => setRightSideDrawer(null)}
+            blockIndex={selectedBlock}
+          />
+        );
+      case "atlas-modal":
+        return <AtlasDrawer isOpen={true} />;
+      case "project-modal": {
+        return (
+          <ProjectModal
+            isOpen={true}
+            onClose={() => setRightSideDrawer(null)}
+            onProjectClick={() => navigate(`/project/${projectId}`)}
+          />
+        );
+      }
+      default:
+        return null;
+    }
+  }, [modal, navigate, projectId, selectedBlock, setRightSideDrawer]);
+
   return (
     <div>
       <ProjectHeader />
@@ -169,7 +208,9 @@ export const ProjectViewPage = () => {
             />
           )}
 
-          <AtlasDrawer />
+          {currentDrawer}
+
+          {currentModal}
         </div>
       </div>
     </div>

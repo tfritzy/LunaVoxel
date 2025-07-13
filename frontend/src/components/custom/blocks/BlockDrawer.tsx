@@ -2,10 +2,9 @@ import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { BlockPreview } from "./BlockPreview";
 import { HexagonOverlay } from "./HexagonOverlay";
 import { BlockFacePreview } from "./BlockFacePreview";
-import { useState } from "react";
-import { BlockModal } from "./BlockModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useDialogs } from "@/contexts/DialogContext";
 
 const BLOCK_WIDTH = "3.75em";
 const BLOCK_HEIGHT = "5rem";
@@ -14,9 +13,7 @@ const VERTICAL_OVERLAP = "-1.75rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
-  const [editingBlockIndex, setEditingBlockIndex] = useState<
-    number | "new" | null
-  >(null);
+  const { setModal } = useDialogs();
   const { blocks, selectedBlock, setSelectedBlock } = useCurrentProject();
 
   const createBlockPreview = (index: number) => (
@@ -51,7 +48,7 @@ export const BlockDrawer = () => {
       <HexagonOverlay
         isSelected={false}
         onClick={() => {
-          setEditingBlockIndex("new");
+          setModal("block-modal");
         }}
       />
     </div>
@@ -123,18 +120,13 @@ export const BlockDrawer = () => {
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => setEditingBlockIndex(selectedBlock)}
+              onClick={() => setModal("block-modal")}
             >
               Edit Block
             </Button>
           </div>
         )}
       </div>
-      <BlockModal
-        isOpen={editingBlockIndex !== null}
-        onClose={() => setEditingBlockIndex(null)}
-        blockIndex={editingBlockIndex || "new"}
-      />
     </div>
   );
 };
