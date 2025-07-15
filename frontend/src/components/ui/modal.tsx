@@ -88,7 +88,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center z-50 transition-all duration-200 ease-out ${
+      className={`fixed inset-0 flex items-center justify-center z-100 transition-all duration-200 ease-out ${
         isVisible ? "bg-black/10" : "bg-black/0"
       }`}
       onClick={handleBackdropClick}
@@ -127,7 +127,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
           <div className="px-6 pb-6">{children}</div>
           {footer && (
-            <div className="flex flex-row justify-between p-6 border-t border-border">
+            <div className="flex flex-row justify-between px-4 py-3">
               {footer}
             </div>
           )}

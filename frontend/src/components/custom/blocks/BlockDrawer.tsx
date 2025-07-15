@@ -4,7 +4,8 @@ import { HexagonOverlay } from "./HexagonOverlay";
 import { BlockFacePreview } from "./BlockFacePreview";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useDialogs } from "@/contexts/DialogContext";
+import { useState } from "react";
+import { BlockModal } from "./BlockModal";
 
 const BLOCK_WIDTH = "3.75em";
 const BLOCK_HEIGHT = "5rem";
@@ -13,8 +14,10 @@ const VERTICAL_OVERLAP = "-1.75rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
-  const { setModal } = useDialogs();
   const { blocks, selectedBlock, setSelectedBlock } = useCurrentProject();
+  const [editingBlockIndex, setEditingBlockIndex] = useState<
+    number | "new" | null
+  >(null);
 
   const createBlockPreview = (index: number) => (
     <div
@@ -25,7 +28,7 @@ export const BlockDrawer = () => {
         height: BLOCK_HEIGHT,
       }}
     >
-      <BlockPreview key={index} blockIndex={index} size="small" />
+      <BlockPreview key={index} blockIndex={index} />
       <HexagonOverlay
         isSelected={index === selectedBlock}
         onClick={() => setSelectedBlock(index)}
@@ -48,7 +51,7 @@ export const BlockDrawer = () => {
       <HexagonOverlay
         isSelected={false}
         onClick={() => {
-          setModal("block-modal");
+          setEditingBlockIndex("new");
         }}
       />
     </div>
@@ -120,11 +123,21 @@ export const BlockDrawer = () => {
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => setModal("block-modal")}
+              onClick={() => {
+                setEditingBlockIndex(selectedBlock);
+              }}
             >
               Edit Block
             </Button>
           </div>
+        )}
+
+        {editingBlockIndex !== null && (
+          <BlockModal
+            isOpen={editingBlockIndex !== null}
+            onClose={() => setEditingBlockIndex(null)}
+            blockIndex={editingBlockIndex}
+          />
         )}
       </div>
     </div>

@@ -9,23 +9,26 @@ import { callSpacetimeDB } from "./spacetime-client";
 interface AddToAtlasRequest {
   projectId: string;
   texture: string;
-  cellSize: number;
-  atlasSize: number;
+  targetCellPixelSize: number;
+  currentGridSize: number;
+  currentUsedSlots: number;
 }
 
 interface UpdateAtlasIndexRequest {
   projectId: string;
   index: number;
   texture: string;
-  cellSize: number;
-  atlasSize: number;
+  targetCellPixelSize: number;
+  currentGridSize: number;
+  currentUsedSlots: number;
 }
 
 interface DeleteAtlasIndexRequest {
   projectId: string;
   index: number;
-  cellSize: number;
-  atlasSize: number;
+  targetCellPixelSize: number;
+  currentGridSize: number;
+  currentUsedSlots: number;
 }
 
 interface AddToAtlasResponse {
@@ -34,13 +37,14 @@ interface AddToAtlasResponse {
 
 const callSpacetimeUpdateAtlas = async (
   projectId: string,
-  newSize: number,
-  cellSize: number
+  newGridSize: number,
+  newCellPixelWidth: number,
+  newUsedSlots: number
 ): Promise<void> => {
   const response = await callSpacetimeDB(
     "/v1/database/lunavoxel/call/UpdateAtlas",
     "POST",
-    [projectId, newSize, cellSize]
+    [projectId, newGridSize, newCellPixelWidth, newUsedSlots]
   );
 
   if (!response.ok) {
@@ -50,12 +54,31 @@ const callSpacetimeUpdateAtlas = async (
   }
 };
 
-const getAtlasInfo = async (projectId: string, atlasSize: number) => {
+const callSpacetimeDeleteAtlasIndex = async (
+  projectId: string,
+  index: number,
+  newGridSize: number,
+  actualCellPixelWidth: number,
+  newUsedSlots: number
+): Promise<void> => {
+  const response = await callSpacetimeDB(
+    "/v1/database/lunavoxel/call/DeleteAtlasIndex",
+    "POST",
+    [projectId, index, newGridSize, actualCellPixelWidth, newUsedSlots]
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    logger.error("SpacetimeDB update atlas failed:", errorText);
+    throw new Error(`SpacetimeDB error: ${response.status} ${errorText}`);
+  }
+};
+
+const getAtlasInfo = async (projectId: string, currentGridSize: number) => {
   const bucket = getStorage(adminApp).bucket();
   const atlasFile = bucket.file(`atlases/${projectId}.png`);
   let existingAtlas: Buffer | null = null;
-  let currentGridSize = 0;
-  let currentCellSize = 1;
+  let currentCellPixelWidth = 1;
 
   const [exists] = await atlasFile.exists();
   if (exists) {
@@ -64,24 +87,22 @@ const getAtlasInfo = async (projectId: string, atlasSize: number) => {
     const image = (await loadImage(buffer)) as any;
 
     if (image.width === image.height && image.width > 0) {
-      const actualGridSize = Math.ceil(Math.sqrt(atlasSize));
-      currentCellSize = image.width / actualGridSize;
-      currentGridSize = actualGridSize;
+      currentCellPixelWidth = image.width / currentGridSize;
     }
   }
 
-  return { existingAtlas, currentGridSize, currentCellSize, atlasFile };
+  return { existingAtlas, currentCellPixelWidth, atlasFile };
 };
 
 const createAtlasCanvas = async (
   existingAtlas: Buffer | null,
   currentGridSize: number,
-  currentCellSize: number,
+  currentCellPixelWidth: number,
   requiredSlots: number,
-  newCellSize: number
+  newCellPixelWidth: number
 ) => {
   const newGridSize = Math.ceil(Math.sqrt(requiredSlots));
-  const newDimensions = newGridSize * newCellSize;
+  const newDimensions = newGridSize * newCellPixelWidth;
   const canvas = createCanvas(newDimensions, newDimensions);
   const ctx = canvas.getContext("2d");
 
@@ -89,7 +110,7 @@ const createAtlasCanvas = async (
     const existingImage = (await loadImage(existingAtlas)) as any;
     const currentSlots = currentGridSize * currentGridSize;
 
-    if (currentCellSize === 1 && newCellSize > 1) {
+    if (currentCellPixelWidth === 1 && newCellPixelWidth > 1) {
       const tempCanvas = createCanvas(1, 1);
       const tempCtx = tempCanvas.getContext("2d");
 
@@ -101,8 +122,8 @@ const createAtlasCanvas = async (
 
         const newCol = i % newGridSize;
         const newRow = Math.floor(i / newGridSize);
-        const newX = newCol * newCellSize;
-        const newY = newRow * newCellSize;
+        const newX = newCol * newCellPixelWidth;
+        const newY = newRow * newCellPixelWidth;
 
         tempCtx.drawImage(existingImage, oldX, oldY, 1, 1, 0, 0, 1, 1);
         const pixelData = tempCtx.getImageData(0, 0, 1, 1);
@@ -110,44 +131,44 @@ const createAtlasCanvas = async (
         ctx.fillStyle = `rgba(${pixelData.data[0]}, ${pixelData.data[1]}, ${
           pixelData.data[2]
         }, ${pixelData.data[3] / 255})`;
-        ctx.fillRect(newX, newY, newCellSize, newCellSize);
+        ctx.fillRect(newX, newY, newCellPixelWidth, newCellPixelWidth);
       }
     } else if (
-      currentCellSize === newCellSize &&
+      currentCellPixelWidth === newCellPixelWidth &&
       currentGridSize !== newGridSize
     ) {
       for (let i = 0; i < currentSlots; i++) {
         const oldCol = i % currentGridSize;
         const oldRow = Math.floor(i / currentGridSize);
-        const oldX = oldCol * currentCellSize;
-        const oldY = oldRow * currentCellSize;
+        const oldX = oldCol * currentCellPixelWidth;
+        const oldY = oldRow * currentCellPixelWidth;
 
         const newCol = i % newGridSize;
         const newRow = Math.floor(i / newGridSize);
-        const newX = newCol * newCellSize;
-        const newY = newRow * newCellSize;
+        const newX = newCol * newCellPixelWidth;
+        const newY = newRow * newCellPixelWidth;
 
         ctx.drawImage(
           existingImage,
           oldX,
           oldY,
-          currentCellSize,
-          currentCellSize,
+          currentCellPixelWidth,
+          currentCellPixelWidth,
           newX,
           newY,
-          newCellSize,
-          newCellSize
+          newCellPixelWidth,
+          newCellPixelWidth
         );
       }
-    } else if (currentCellSize === newCellSize) {
+    } else if (currentCellPixelWidth === newCellPixelWidth) {
       ctx.drawImage(existingImage, 0, 0);
     } else {
       throw new HttpsError(
         "failed-precondition",
         "Cannot resize atlas with different cell sizes except from 1x1 to larger sizes. Current size: " +
-          currentCellSize +
+          currentCellPixelWidth +
           ", New size: " +
-          newCellSize
+          newCellPixelWidth
       );
     }
   }
@@ -160,15 +181,15 @@ const addTextureToCanvas = async (
   texture: string,
   index: number,
   gridSize: number,
-  cellSize: number
+  cellPixelWidth: number
 ) => {
   const textureImage = (await loadImage(Buffer.from(texture, "base64"))) as any;
   const col = index % gridSize;
   const row = Math.floor(index / gridSize);
-  const x = col * cellSize;
-  const y = row * cellSize;
+  const x = col * cellPixelWidth;
+  const y = row * cellPixelWidth;
 
-  ctx.drawImage(textureImage, x, y, cellSize, cellSize);
+  ctx.drawImage(textureImage, x, y, cellPixelWidth, cellPixelWidth);
 };
 
 const saveAtlasToStorage = async (
@@ -187,28 +208,38 @@ export const addToAtlas = onCall<
   AddToAtlasRequest,
   Promise<AddToAtlasResponse>
 >(async (request) => {
-  const { projectId, texture, cellSize, atlasSize } = request.data;
+  const {
+    projectId,
+    texture,
+    currentGridSize,
+    currentUsedSlots,
+    targetCellPixelSize,
+  } = request.data;
 
-  const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
-    await getAtlasInfo(projectId, atlasSize);
+  const { existingAtlas, atlasFile, currentCellPixelWidth } =
+    await getAtlasInfo(projectId, currentGridSize);
 
-  if (currentCellSize !== 1 && currentCellSize !== cellSize) {
+  if (
+    currentCellPixelWidth !== 1 &&
+    targetCellPixelSize !== currentCellPixelWidth
+  ) {
     throw new HttpsError(
       "invalid-argument",
       "Cannot change cell size except from 1x1 to larger sizes"
     );
   }
 
-  const nextIndex = atlasSize;
+  const nextIndex = currentUsedSlots;
   const requiredSlots = nextIndex + 1;
-  const actualCellSize = currentCellSize === 1 ? cellSize : currentCellSize;
+  const actualCellPixelWidth =
+    currentCellPixelWidth === 1 ? targetCellPixelSize : currentCellPixelWidth;
 
   const { canvas, ctx, newGridSize } = await createAtlasCanvas(
     existingAtlas,
     currentGridSize,
-    currentCellSize,
+    currentCellPixelWidth,
     requiredSlots,
-    actualCellSize
+    actualCellPixelWidth
   );
 
   if (texture) {
@@ -217,41 +248,56 @@ export const addToAtlas = onCall<
       texture,
       nextIndex,
       newGridSize,
-      actualCellSize
+      actualCellPixelWidth
     );
   }
 
   await saveAtlasToStorage(atlasFile, canvas);
 
-  await callSpacetimeUpdateAtlas(projectId, requiredSlots, actualCellSize);
+  await callSpacetimeUpdateAtlas(
+    projectId,
+    newGridSize,
+    actualCellPixelWidth,
+    requiredSlots
+  );
 
   return { index: nextIndex };
 });
 
 export const updateAtlasIndex = onCall<UpdateAtlasIndexRequest, Promise<void>>(
   async (request) => {
-    const { projectId, index, texture, cellSize, atlasSize } = request.data;
+    const {
+      projectId,
+      index,
+      texture,
+      targetCellPixelSize,
+      currentGridSize,
+      currentUsedSlots,
+    } = request.data;
 
-    const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
-      await getAtlasInfo(projectId, atlasSize);
+    const { existingAtlas, currentCellPixelWidth, atlasFile } =
+      await getAtlasInfo(projectId, currentGridSize);
 
-    if (currentCellSize !== 1 && currentCellSize !== cellSize) {
+    if (
+      currentCellPixelWidth !== 1 &&
+      targetCellPixelSize !== currentCellPixelWidth
+    ) {
       throw new HttpsError(
         "invalid-argument",
         "Cannot change cell size except from 1x1 to larger sizes"
       );
     }
 
-    const currentSlots = atlasSize;
-    const requiredSlots = Math.max(currentSlots, index + 1);
-    const actualCellSize = currentCellSize === 1 ? cellSize : currentCellSize;
+    const requiredSlots = Math.max(currentUsedSlots, index + 1);
+    const actualCellPixelWidth =
+      currentCellPixelWidth === 1 ? targetCellPixelSize : currentCellPixelWidth;
 
     const { canvas, ctx, newGridSize } = await createAtlasCanvas(
       existingAtlas,
       currentGridSize,
-      currentCellSize,
+      currentCellPixelWidth,
       requiredSlots,
-      actualCellSize
+      actualCellPixelWidth
     );
 
     if (texture) {
@@ -260,22 +306,33 @@ export const updateAtlasIndex = onCall<UpdateAtlasIndexRequest, Promise<void>>(
         texture,
         index,
         newGridSize,
-        actualCellSize
+        actualCellPixelWidth
       );
     }
 
     await saveAtlasToStorage(atlasFile, canvas);
 
-    await callSpacetimeUpdateAtlas(projectId, requiredSlots, actualCellSize);
+    await callSpacetimeUpdateAtlas(
+      projectId,
+      newGridSize,
+      actualCellPixelWidth,
+      requiredSlots
+    );
   }
 );
 
 export const deleteAtlasIndex = onCall<DeleteAtlasIndexRequest, Promise<void>>(
   async (request) => {
-    const { projectId, index, cellSize, atlasSize } = request.data;
+    const {
+      projectId,
+      index,
+      targetCellPixelSize,
+      currentGridSize,
+      currentUsedSlots,
+    } = request.data;
 
-    const { existingAtlas, currentGridSize, currentCellSize, atlasFile } =
-      await getAtlasInfo(projectId, atlasSize);
+    const { existingAtlas, currentCellPixelWidth, atlasFile } =
+      await getAtlasInfo(projectId, currentGridSize);
 
     if (!existingAtlas) {
       throw new HttpsError(
@@ -284,13 +341,13 @@ export const deleteAtlasIndex = onCall<DeleteAtlasIndexRequest, Promise<void>>(
       );
     }
 
-    if (index >= atlasSize || index < 0) {
+    if (index >= currentUsedSlots || index < 0) {
       throw new HttpsError("invalid-argument", "Index out of bounds");
     }
 
     if (
-      currentCellSize !== cellSize &&
-      !(currentCellSize > 1 && cellSize === 1)
+      currentCellPixelWidth !== targetCellPixelSize &&
+      !(currentCellPixelWidth > 1 && targetCellPixelSize === 1)
     ) {
       throw new HttpsError(
         "invalid-argument",
@@ -298,46 +355,46 @@ export const deleteAtlasIndex = onCall<DeleteAtlasIndexRequest, Promise<void>>(
       );
     }
 
-    const newAtlasSize = atlasSize - 1;
-    const actualCellSize = cellSize;
+    const newUsedSlots = currentUsedSlots - 1;
+    const actualCellPixelWidth = targetCellPixelSize;
 
-    if (newAtlasSize === 0) {
+    if (newUsedSlots === 0) {
       const canvas = createCanvas(0, 0);
       await saveAtlasToStorage(atlasFile, canvas);
-      await callSpacetimeUpdateAtlas(projectId, 0, actualCellSize);
+      await callSpacetimeUpdateAtlas(projectId, 0, actualCellPixelWidth, 0);
       return;
     }
 
     const { canvas, ctx, newGridSize } = await createAtlasCanvas(
       null,
       0,
-      actualCellSize,
-      newAtlasSize,
-      actualCellSize
+      actualCellPixelWidth,
+      newUsedSlots,
+      actualCellPixelWidth
     );
 
     const existingImage = (await loadImage(existingAtlas)) as any;
 
-    if (currentCellSize > 1 && actualCellSize === 1) {
+    if (currentCellPixelWidth > 1 && actualCellPixelWidth === 1) {
       const tempCanvas = createCanvas(1, 1);
       const tempCtx = tempCanvas.getContext("2d");
 
-      for (let i = 0; i < atlasSize; i++) {
+      for (let i = 0; i < currentUsedSlots; i++) {
         if (i === index) {
           continue;
         }
 
         const sourceCol = i % currentGridSize;
         const sourceRow = Math.floor(i / currentGridSize);
-        const sourceX = sourceCol * currentCellSize;
-        const sourceY = sourceRow * currentCellSize;
+        const sourceX = sourceCol * currentCellPixelWidth;
+        const sourceY = sourceRow * currentCellPixelWidth;
 
         tempCtx.drawImage(
           existingImage,
           sourceX,
           sourceY,
-          currentCellSize,
-          currentCellSize,
+          currentCellPixelWidth,
+          currentCellPixelWidth,
           0,
           0,
           1,
@@ -348,46 +405,52 @@ export const deleteAtlasIndex = onCall<DeleteAtlasIndexRequest, Promise<void>>(
         const destIndex = i > index ? i - 1 : i;
         const destCol = destIndex % newGridSize;
         const destRow = Math.floor(destIndex / newGridSize);
-        const destX = destCol * actualCellSize;
-        const destY = destRow * actualCellSize;
+        const destX = destCol * actualCellPixelWidth;
+        const destY = destRow * actualCellPixelWidth;
 
         ctx.fillStyle = `rgba(${pixelData.data[0]}, ${pixelData.data[1]}, ${
           pixelData.data[2]
         }, ${pixelData.data[3] / 255})`;
-        ctx.fillRect(destX, destY, actualCellSize, actualCellSize);
+        ctx.fillRect(destX, destY, actualCellPixelWidth, actualCellPixelWidth);
       }
     } else {
-      for (let i = 0; i < atlasSize; i++) {
+      for (let i = 0; i < currentUsedSlots; i++) {
         if (i === index) {
           continue;
         }
 
         const sourceCol = i % currentGridSize;
         const sourceRow = Math.floor(i / currentGridSize);
-        const sourceX = sourceCol * currentCellSize;
-        const sourceY = sourceRow * currentCellSize;
+        const sourceX = sourceCol * currentCellPixelWidth;
+        const sourceY = sourceRow * currentCellPixelWidth;
 
         const destIndex = i > index ? i - 1 : i;
         const destCol = destIndex % newGridSize;
         const destRow = Math.floor(destIndex / newGridSize);
-        const destX = destCol * actualCellSize;
-        const destY = destRow * actualCellSize;
+        const destX = destCol * actualCellPixelWidth;
+        const destY = destRow * actualCellPixelWidth;
 
         ctx.drawImage(
           existingImage,
           sourceX,
           sourceY,
-          currentCellSize,
-          currentCellSize,
+          currentCellPixelWidth,
+          currentCellPixelWidth,
           destX,
           destY,
-          actualCellSize,
-          actualCellSize
+          actualCellPixelWidth,
+          actualCellPixelWidth
         );
       }
     }
 
-    await callSpacetimeUpdateAtlas(projectId, newAtlasSize, actualCellSize);
+    await callSpacetimeDeleteAtlasIndex(
+      projectId,
+      index,
+      newGridSize,
+      actualCellPixelWidth,
+      newUsedSlots
+    );
     await saveAtlasToStorage(atlasFile, canvas);
   }
 );

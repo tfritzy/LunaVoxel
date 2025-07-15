@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Modal } from "../ui/modal";
 import { ProjectGrid } from "./ProjectsGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -5,16 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface ProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProjectClick: (projectId: string) => void;
 }
 
-export function ProjectModal({
-  isOpen,
-  onClose,
-  onProjectClick,
-}: ProjectModalProps) {
+export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
+  const navigate = useNavigate();
+
   const handleProjectClick = (projectId: string) => {
-    onProjectClick(projectId);
+    navigate(`/projects/${projectId}`);
     onClose();
   };
 

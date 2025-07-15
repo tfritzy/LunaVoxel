@@ -5,7 +5,7 @@ import { TextureDropZone } from "./TextureDropZone";
 import { ColorPicker } from "../ColorPicker";
 import React from "react";
 import { AtlasSlot } from "@/lib/useAtlas";
-import { X, Palette, Image, Loader2, Trash } from "lucide-react";
+import { X, Palette, Image, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { SelectionCard } from "./SelectionCard";
@@ -28,6 +28,12 @@ const createColorTexture = (color: string, size: number): string => {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
+  console.log(
+    "createColorTexture - Created canvas with size:",
+    size,
+    "x",
+    size
+  );
   const ctx = canvas.getContext("2d");
 
   if (!ctx) {
@@ -136,14 +142,17 @@ export const EditAtlasSlotModal = ({
       atlasSlots
         .filter((slot) => slot && slot.index !== index)
         .filter((slot) => !slot.isSolidColor).length === 0;
-    const newSizeCell = willBeNoRemainingTextures ? 1 : atlas.cellSize;
+    const newCellPixelSize = willBeNoRemainingTextures
+      ? 1
+      : atlas.cellPixelWidth;
 
     try {
       await deleteAtlasIndex({
         projectId: project.id,
         index,
-        cellSize: newSizeCell,
-        atlasSize: atlas.size,
+        targetCellPixelSize: newCellPixelSize,
+        currentGridSize: atlas.gridSize,
+        currentUsedSlots: atlas.usedSlots,
       });
     } catch {
       setError("Failed to delete the atlas slot. Please try again.");
@@ -155,7 +164,15 @@ export const EditAtlasSlotModal = ({
     setIsSubmitting(false);
     setShowDeleteConfirmation(false);
     onClose();
-  }, [atlas.cellSize, atlas.size, atlasSlots, index, onClose, project.id]);
+  }, [
+    atlas.cellPixelWidth,
+    atlas.gridSize,
+    atlas.usedSlots,
+    atlasSlots,
+    index,
+    onClose,
+    project.id,
+  ]);
 
   const handleDeleteCancel = () => {
     setShowDeleteConfirmation(false);
@@ -168,12 +185,18 @@ export const EditAtlasSlotModal = ({
     let textureBase64 = "";
 
     if (selectionMode === "color") {
-      const textureSize = atlas.cellSize;
+      const textureSize = atlas.cellPixelWidth;
       textureBase64 = createColorTexture(selectedColor, textureSize);
     } else if (selectionMode === "texture" && textureData) {
       const canvas = document.createElement("canvas");
       canvas.width = textureData.width;
       canvas.height = textureData.height;
+      console.log(
+        "createAtlasCanvas - Created canvas with dimensions:",
+        canvas.width,
+        "x",
+        canvas.height
+      );
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.putImageData(textureData, 0, 0);
@@ -187,8 +210,9 @@ export const EditAtlasSlotModal = ({
         await addToAtlas({
           projectId: project.id,
           texture: textureBase64,
-          cellSize: textureData?.width || atlas.cellSize,
-          atlasSize: atlas.size,
+          targetCellPixelSize: textureData?.width || atlas.cellPixelWidth,
+          currentUsedSlots: atlas.usedSlots,
+          currentGridSize: atlas.gridSize,
         });
       } else {
         const updateAtlasIndex = httpsCallable(functions, "updateAtlasIndex");
@@ -196,8 +220,9 @@ export const EditAtlasSlotModal = ({
           projectId: project.id,
           index,
           texture: textureBase64,
-          cellSize: textureData?.width || atlas.cellSize,
-          atlasSize: atlas.size,
+          targetCellPixelSize: textureData?.width || atlas.cellPixelWidth,
+          currentUsedSlots: atlas.usedSlots,
+          currentGridSize: atlas.gridSize,
         });
       }
     } catch {
@@ -212,8 +237,9 @@ export const EditAtlasSlotModal = ({
     selectionMode,
     textureData,
     onClose,
-    atlas.cellSize,
-    atlas.size,
+    atlas.cellPixelWidth,
+    atlas.usedSlots,
+    atlas.gridSize,
     selectedColor,
     index,
     project.id,
@@ -231,36 +257,33 @@ export const EditAtlasSlotModal = ({
 
   if (showDeleteConfirmation) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} size="xl" title={title}>
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between p-4 pl-6 border-b border-border">
-            <h2 className="text-xl font-semibold">Confirm Delete</h2>
-            <Button
-              onClick={onClose}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex-1 p-6">
-            <p className="text-sm text-muted-foreground">
-              Are you sure you want to delete this atlas slot? This action
-              cannot be undone.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-end space-x-3 p-4 px-6 border-t border-border">
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size="xl"
+        title="Confirm Delete"
+        footer={
+          <div className="flex items-center w-full justify-end space-x-3">
             <Button variant="outline" onClick={handleDeleteCancel}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              {isSubmitting && <Loader2 className="animate-spin h-4 w-4" />}
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              pending={isSubmitting}
+            >
               <Trash className="h-4 w-4" />
               Delete
             </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col min-h-0">
+          <div className="flex-1">
+            <p className="text-sm text-foreground">
+              Are you sure you want to delete this atlas slot? This action
+              cannot be undone.
+            </p>
           </div>
         </div>
       </Modal>
@@ -281,8 +304,11 @@ export const EditAtlasSlotModal = ({
         <Button variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
-          {isSubmitting && <Loader2 className="animate-spin h-4 w-4" />}
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitDisabled}
+          pending={isSubmitting}
+        >
           {submitButtonText}
         </Button>
       </div>
@@ -325,7 +351,7 @@ export const EditAtlasSlotModal = ({
                   imageData={textureData}
                   onImageData={handleImageDataChange}
                   onError={handleError}
-                  cellSize={atlas.cellSize}
+                  pixelWidth={atlas.cellPixelWidth}
                 />
               </SelectionCard>
             </div>

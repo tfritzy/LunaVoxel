@@ -44,6 +44,8 @@ import { ClientDisconnected } from "./client_disconnected_reducer.ts";
 export { ClientDisconnected };
 import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
+import { DeleteAtlasIndex } from "./delete_atlas_index_reducer.ts";
+export { DeleteAtlasIndex };
 import { InitializeAtlas } from "./initialize_atlas_reducer.ts";
 export { InitializeAtlas };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
@@ -179,6 +181,10 @@ const REMOTE_MODULE = {
       reducerName: "CreateProject",
       argsType: CreateProject.getTypeScriptAlgebraicType(),
     },
+    DeleteAtlasIndex: {
+      reducerName: "DeleteAtlasIndex",
+      argsType: DeleteAtlasIndex.getTypeScriptAlgebraicType(),
+    },
     InitializeAtlas: {
       reducerName: "InitializeAtlas",
       argsType: InitializeAtlas.getTypeScriptAlgebraicType(),
@@ -256,6 +262,7 @@ export type Reducer = never
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
+| { name: "DeleteAtlasIndex", args: DeleteAtlasIndex }
 | { name: "InitializeAtlas", args: InitializeAtlas }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
@@ -350,6 +357,22 @@ export class RemoteReducers {
 
   removeOnCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
     this.connection.offReducer("CreateProject", callback);
+  }
+
+  deleteAtlasIndex(projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) {
+    const __args = { projectId, index, gridSize, cellPixelWidth, usedSlots };
+    let __writer = new BinaryWriter(1024);
+    DeleteAtlasIndex.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("DeleteAtlasIndex", __argsBuffer, this.setCallReducerFlags.deleteAtlasIndexFlags);
+  }
+
+  onDeleteAtlasIndex(callback: (ctx: ReducerEventContext, projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
+    this.connection.onReducer("DeleteAtlasIndex", callback);
+  }
+
+  removeOnDeleteAtlasIndex(callback: (ctx: ReducerEventContext, projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
+    this.connection.offReducer("DeleteAtlasIndex", callback);
   }
 
   initializeAtlas(projectId: string) {
@@ -464,19 +487,19 @@ export class RemoteReducers {
     this.connection.offReducer("SyncUser", callback);
   }
 
-  updateAtlas(projectId: string, newSize: number, cellSize: number) {
-    const __args = { projectId, newSize, cellSize };
+  updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
+    const __args = { projectId, gridSize, cellPixelWidth, usedSlots };
     let __writer = new BinaryWriter(1024);
     UpdateAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateAtlas", __argsBuffer, this.setCallReducerFlags.updateAtlasFlags);
   }
 
-  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, newSize: number, cellSize: number) => void) {
+  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
     this.connection.onReducer("UpdateAtlas", callback);
   }
 
-  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, newSize: number, cellSize: number) => void) {
+  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
     this.connection.offReducer("UpdateAtlas", callback);
   }
 
@@ -549,6 +572,11 @@ export class SetReducerFlags {
   createProjectFlags: CallReducerFlags = 'FullUpdate';
   createProject(flags: CallReducerFlags) {
     this.createProjectFlags = flags;
+  }
+
+  deleteAtlasIndexFlags: CallReducerFlags = 'FullUpdate';
+  deleteAtlasIndex(flags: CallReducerFlags) {
+    this.deleteAtlasIndexFlags = flags;
   }
 
   initializeAtlasFlags: CallReducerFlags = 'FullUpdate';

@@ -30,6 +30,8 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastVersionRef = useRef<number>(-1);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   const createThreeTexture = (image: HTMLImageElement): THREE.Texture => {
     const threeTexture = new THREE.Texture(image);
@@ -65,15 +67,36 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     return true;
   };
 
+  const initializeCanvas = (cellSize: number) => {
+    if (!canvasRef.current) {
+      canvasRef.current = document.createElement("canvas");
+      console.log("useAtlas - Created new canvas for atlas texture");
+      ctxRef.current = canvasRef.current.getContext("2d");
+    }
+
+    const canvas = canvasRef.current;
+    const ctx = ctxRef.current;
+
+    if (!ctx) return false;
+
+    if (canvas.width !== cellSize || canvas.height !== cellSize) {
+      canvas.width = cellSize;
+      canvas.height = cellSize;
+      ctx.imageSmoothingEnabled = false;
+    }
+
+    return true;
+  };
+
   const extractSlotsFromImage = async (
     texture: THREE.Texture | null,
     cellSize: number
   ): Promise<AtlasSlot[]> => {
-    const totalSlots = atlas?.size || 0;
+    const totalSlots = atlas?.usedSlots || 0;
     const extractedSlots: AtlasSlot[] = [];
 
-    for (let i = 0; i < totalSlots; i++) {
-      if (!texture?.image || !cellSize) {
+    if (!texture?.image || !cellSize || !initializeCanvas(cellSize)) {
+      for (let i = 0; i < totalSlots; i++) {
         extractedSlots.push({
           index: i,
           textureData: null,
@@ -81,11 +104,16 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
           isEmpty: true,
           isSolidColor: false,
         });
-        continue;
       }
+      return extractedSlots;
+    }
 
-      const image = texture.image as HTMLImageElement;
-      const gridSize = Math.floor(image.width / cellSize);
+    const canvas = canvasRef.current!;
+    const ctx = ctxRef.current!;
+    const image = texture.image as HTMLImageElement;
+    const gridSize = Math.floor(image.width / cellSize);
+
+    for (let i = 0; i < totalSlots; i++) {
       const col = i % gridSize;
       const row = Math.floor(i / gridSize);
       const x = col * cellSize;
@@ -102,22 +130,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         continue;
       }
 
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        extractedSlots.push({
-          index: i,
-          textureData: null,
-          blobUrl: null,
-          isEmpty: true,
-          isSolidColor: false,
-        });
-        continue;
-      }
-
-      canvas.width = cellSize;
-      canvas.height = cellSize;
-      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, cellSize, cellSize);
       ctx.drawImage(image, x, y, cellSize, cellSize, 0, 0, cellSize, cellSize);
 
       const imageData = ctx.getImageData(0, 0, cellSize, cellSize);
@@ -130,7 +143,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
       let blobUrl: string | null = null;
       if (!isEmpty) {
         const blob = await new Promise<Blob | null>((resolve) => {
-          canvas.toBlob(resolve);
+          canvas.toBlob(resolve, "image/png");
         });
         if (blob) {
           blobUrl = URL.createObjectURL(blob);
@@ -189,7 +202,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        const atlasRow = connection.db.atlas.projectId.find(projectId);
+        const atlasRow = connection.db.atlas.project_id.find(projectId);
         if (atlasRow) {
           setAtlas(atlasRow);
           if (atlasRow.version !== lastVersionRef.current) {
@@ -241,7 +254,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     });
 
     if (atlas && texture) {
-      extractSlotsFromImage(texture, atlas.cellSize).then(setAllSlots);
+      extractSlotsFromImage(texture, atlas.cellPixelWidth).then(setAllSlots);
     } else {
       setAllSlots([]);
     }
@@ -254,6 +267,11 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
           URL.revokeObjectURL(slot.blobUrl);
         }
       });
+
+      if (canvasRef.current) {
+        canvasRef.current = null;
+        ctxRef.current = null;
+      }
     };
   }, []);
 
@@ -273,6 +291,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     texture,
     isLoading,
     error,
-    totalSlots: atlas?.size || 0,
+    totalSlots: atlas?.usedSlots || 0,
   };
 };

@@ -173,8 +173,8 @@ export class ChunkMesh {
 
       const textureCoords = getTextureCoordinates(
         textureIndex,
-        Math.sqrt(atlas.size),
-        atlas.cellSize
+        atlas.gridSize,
+        atlas.cellPixelWidth
       );
 
       for (let i = 0; i < faceIndexes.length; i++) {

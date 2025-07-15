@@ -79,8 +79,11 @@ public static partial class Module
         [PrimaryKey]
         public string ProjectId;
         public int Version;
-        public int CellSize = -1;
-        public int Size;
+        public int CellPixelWidth;
+        public int PixelWidth => CellPixelWidth * GridSize;
+        public int GridSize;
+        public int SlotCount => GridSize * GridSize;
+        public int UsedSlots;
     }
 
     [Table(Name = "project_blocks", Public = true)]

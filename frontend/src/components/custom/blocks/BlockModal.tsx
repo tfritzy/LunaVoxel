@@ -5,7 +5,6 @@ import { AtlasTextureDropdown } from "./AtlasTextureDropdown";
 import { BlockFacePreview } from "./BlockFacePreview";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 
 interface BlockModalProps {
@@ -73,10 +72,6 @@ export const BlockModal = ({
     onClose();
   };
 
-  const handleEditAtlas = () => {
-    console.log("Navigate to atlas editor");
-  };
-
   const faceNames = ["Right", "Left", "Top", "Bottom", "Front", "Back"];
   const title = isNewBlock ? "Create New Block" : "Edit Block";
 
@@ -87,15 +82,7 @@ export const BlockModal = ({
       title={title}
       size="5xl"
       footer={
-        <div className="flex justify-between w-full">
-          <Button
-            variant="outline"
-            onClick={handleEditAtlas}
-            className="flex items-center gap-1"
-          >
-            <ExternalLink className="w-3 h-3" />
-            Edit Atlas
-          </Button>
+        <div className="flex justify-end w-full">
           <div className="flex gap-4">
             <Button variant="outline" onClick={onClose}>
               Cancel
@@ -116,9 +103,9 @@ export const BlockModal = ({
                   <div className="flex items-center space-x-3">
                     <Checkbox
                       id="apply-all"
-                      checked={applyToAllFaces}
+                      checked={!applyToAllFaces}
                       onCheckedChange={(checked) =>
-                        setApplyToAllFaces(checked === true)
+                        setApplyToAllFaces(checked === false)
                       }
                     />
                     <label
@@ -242,11 +229,8 @@ export const BlockModal = ({
                     </div>
                   )}
                   <div className="text-foreground-muted">
-                    To add more texture options, you can{" "}
-                    <button className="text-primary cursor-pointer font-bold hover:underline">
-                      edit
-                    </button>{" "}
-                    the atlas
+                    To edit or add more texture options, you need to edit the
+                    texture atlas.
                   </div>
                 </div>
               </div>

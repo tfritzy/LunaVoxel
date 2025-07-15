@@ -176,8 +176,7 @@ export const createProject = onCall<
     const updateAtlasResponse = await callSpacetimeDB(
       "/v1/database/lunavoxel/call/UpdateAtlas",
       "POST",
-      [id, gridSize * gridSize, 1],
-      spacetimeToken
+      [id, gridSize, 1, 64]
     );
 
     if (!updateAtlasResponse.ok) {

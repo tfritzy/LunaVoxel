@@ -33,8 +33,9 @@ import {
 export type Atlas = {
   projectId: string,
   version: number,
-  cellSize: number,
-  size: number,
+  cellPixelWidth: number,
+  gridSize: number,
+  usedSlots: number,
 };
 
 /**
@@ -49,8 +50,9 @@ export namespace Atlas {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("version", AlgebraicType.createI32Type()),
-      new ProductTypeElement("cellSize", AlgebraicType.createI32Type()),
-      new ProductTypeElement("size", AlgebraicType.createI32Type()),
+      new ProductTypeElement("cellPixelWidth", AlgebraicType.createI32Type()),
+      new ProductTypeElement("gridSize", AlgebraicType.createI32Type()),
+      new ProductTypeElement("usedSlots", AlgebraicType.createI32Type()),
     ]);
   }
 

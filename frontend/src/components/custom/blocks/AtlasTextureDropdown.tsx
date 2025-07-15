@@ -19,7 +19,7 @@ export const AtlasTextureDropdown = ({
   onSelect,
   size = "sm",
 }: AtlasTextureDropdownProps) => {
-  const { atlas, atlasSlots } = useCurrentProject();
+  const { atlasSlots } = useCurrentProject();
   const [isOpen, setIsOpen] = useState(false);
 
   const sizeClasses = {
@@ -39,9 +39,11 @@ export const AtlasTextureDropdown = ({
       className="h-12 w-12 p-1"
     >
       <img
-        src={slot.blobUrl}
+        src={slot.blobUrl || ""}
+        draggable={false}
         alt={`Texture ${index}`}
         className="w-full h-full rounded-sm"
+        style={{ imageRendering: "pixelated" }}
       />
     </Button>
   ));
@@ -54,6 +56,7 @@ export const AtlasTextureDropdown = ({
             src={atlasSlots[selectedTexture]?.blobUrl || ""}
             alt={`Selected Texture ${selectedTexture}`}
             className="w-full h-full rounded-sm"
+            style={{ imageRendering: "pixelated" }}
           />
         </Button>
       </PopoverTrigger>

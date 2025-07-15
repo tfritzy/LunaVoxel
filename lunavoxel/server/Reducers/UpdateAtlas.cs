@@ -6,8 +6,9 @@ public static partial class Module
     public static void UpdateAtlas(
         ReducerContext ctx,
         string projectId,
-        int newSize,
-        int cellSize)
+        int gridSize,
+        int cellPixelWidth,
+        int usedSlots)
     {
         if (string.IsNullOrEmpty(projectId))
         {
@@ -17,11 +18,12 @@ public static partial class Module
         var atlas = ctx.Db.atlas.ProjectId.Find(projectId)
             ?? throw new ArgumentException("Atlas not found for the given project ID.");
 
-        EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
+        EnsureIsAdminUser.Check(ctx);
 
         atlas.Version++;
-        atlas.CellSize = cellSize;
-        atlas.Size = newSize;
+        atlas.CellPixelWidth = cellPixelWidth;
+        atlas.GridSize = gridSize;
+        atlas.UsedSlots = usedSlots;
         ctx.Db.atlas.ProjectId.Update(atlas);
     }
 }

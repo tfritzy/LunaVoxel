@@ -1,142 +1,173 @@
 import { BlockModificationMode } from "@/module_bindings";
 import { Block } from "./blocks";
 
+// Updated baseOffsets to match your new faces array vertex ordering
 const baseOffsets = {
+  // Face 0: Right (+X) - vertices: top-back, top-front, bottom-front, bottom-back
   0: [
+    // Vertex 0: top-back [0.49999, 0.49999, -0.49999]
     [
-      [1, -1, 0],
-      [1, 0, -1],
-      [1, -1, -1],
+      [1, 1, 0], // side1: up
+      [1, 0, -1], // side2: back
+      [1, 1, -1], // corner: up-back
     ],
+    // Vertex 1: top-front [0.49999, 0.49999, 0.49999]
     [
-      [1, 1, 0],
-      [1, 0, -1],
-      [1, 1, -1],
+      [1, 1, 0], // side1: up
+      [1, 0, 1], // side2: front
+      [1, 1, 1], // corner: up-front
     ],
+    // Vertex 2: bottom-front [0.49999, -0.49999, 0.49999]
     [
-      [1, 1, 0],
-      [1, 0, 1],
-      [1, 1, 1],
+      [1, -1, 0], // side1: down
+      [1, 0, 1], // side2: front
+      [1, -1, 1], // corner: down-front
     ],
+    // Vertex 3: bottom-back [0.49999, -0.49999, -0.49999]
     [
-      [1, -1, 0],
-      [1, 0, 1],
-      [1, -1, 1],
+      [1, -1, 0], // side1: down
+      [1, 0, -1], // side2: back
+      [1, -1, -1], // corner: down-back
     ],
   ],
 
+  // Face 1: Left (-X) - vertices: top-front, top-back, bottom-back, bottom-front
   1: [
+    // Vertex 0: top-front [-0.49999, 0.49999, 0.49999]
     [
-      [-1, -1, 0],
-      [-1, 0, -1],
-      [-1, -1, -1],
+      [-1, 1, 0], // side1: up
+      [-1, 0, 1], // side2: front
+      [-1, 1, 1], // corner: up-front
     ],
+    // Vertex 1: top-back [-0.49999, 0.49999, -0.49999]
     [
-      [-1, -1, 0],
-      [-1, 0, 1],
-      [-1, -1, 1],
+      [-1, 1, 0], // side1: up
+      [-1, 0, -1], // side2: back
+      [-1, 1, -1], // corner: up-back
     ],
+    // Vertex 2: bottom-back [-0.49999, -0.49999, -0.49999]
     [
-      [-1, 1, 0],
-      [-1, 0, 1],
-      [-1, 1, 1],
+      [-1, -1, 0], // side1: down
+      [-1, 0, -1], // side2: back
+      [-1, -1, -1], // corner: down-back
     ],
+    // Vertex 3: bottom-front [-0.49999, -0.49999, 0.49999]
     [
-      [-1, 1, 0],
-      [-1, 0, -1],
-      [-1, 1, -1],
+      [-1, -1, 0], // side1: down
+      [-1, 0, 1], // side2: front
+      [-1, -1, 1], // corner: down-front
     ],
   ],
 
+  // Face 2: Top (+Y) - vertices: back-left, front-left, front-right, back-right
   2: [
+    // Vertex 0: back-left [-0.49999, 0.49999, -0.49999]
     [
-      [-1, 1, 0],
-      [0, 1, -1],
-      [-1, 1, -1],
+      [-1, 1, 0], // side1: left
+      [0, 1, -1], // side2: back
+      [-1, 1, -1], // corner: left-back
     ],
+    // Vertex 1: front-left [-0.49999, 0.49999, 0.49999]
     [
-      [-1, 1, 0],
-      [0, 1, 1],
-      [-1, 1, 1],
+      [-1, 1, 0], // side1: left
+      [0, 1, 1], // side2: front
+      [-1, 1, 1], // corner: left-front
     ],
+    // Vertex 2: front-right [0.49999, 0.49999, 0.49999]
     [
-      [1, 1, 0],
-      [0, 1, 1],
-      [1, 1, 1],
+      [1, 1, 0], // side1: right
+      [0, 1, 1], // side2: front
+      [1, 1, 1], // corner: right-front
     ],
+    // Vertex 3: back-right [0.49999, 0.49999, -0.49999]
     [
-      [1, 1, 0],
-      [0, 1, -1],
-      [1, 1, -1],
+      [1, 1, 0], // side1: right
+      [0, 1, -1], // side2: back
+      [1, 1, -1], // corner: right-back
     ],
   ],
 
+  // Face 3: Bottom (-Y) - vertices: front-left, back-left, back-right, front-right
   3: [
+    // Vertex 0: front-left [-0.49999, -0.49999, 0.49999]
     [
-      [-1, -1, 0],
-      [0, -1, -1],
-      [-1, -1, -1],
+      [-1, -1, 0], // side1: left
+      [0, -1, 1], // side2: front
+      [-1, -1, 1], // corner: left-front
     ],
+    // Vertex 1: back-left [-0.49999, -0.49999, -0.49999]
     [
-      [1, -1, 0],
-      [0, -1, -1],
-      [1, -1, -1],
+      [-1, -1, 0], // side1: left
+      [0, -1, -1], // side2: back
+      [-1, -1, -1], // corner: left-back
     ],
+    // Vertex 2: back-right [0.49999, -0.49999, -0.49999]
     [
-      [1, -1, 0],
-      [0, -1, 1],
-      [1, -1, 1],
+      [1, -1, 0], // side1: right
+      [0, -1, -1], // side2: back
+      [1, -1, -1], // corner: right-back
     ],
+    // Vertex 3: front-right [0.49999, -0.49999, 0.49999]
     [
-      [-1, -1, 0],
-      [0, -1, 1],
-      [-1, -1, 1],
+      [1, -1, 0], // side1: right
+      [0, -1, 1], // side2: front
+      [1, -1, 1], // corner: right-front
     ],
   ],
 
+  // Face 4: Front (+Z) - vertices: top-right, top-left, bottom-left, bottom-right
   4: [
+    // Vertex 0: top-right [0.49999, 0.49999, 0.49999]
     [
-      [-1, 0, 1],
-      [0, -1, 1],
-      [-1, -1, 1],
+      [1, 0, 1], // side1: right
+      [0, 1, 1], // side2: up
+      [1, 1, 1], // corner: right-up
     ],
+    // Vertex 1: top-left [-0.49999, 0.49999, 0.49999]
     [
-      [1, 0, 1],
-      [0, -1, 1],
-      [1, -1, 1],
+      [-1, 0, 1], // side1: left
+      [0, 1, 1], // side2: up
+      [-1, 1, 1], // corner: left-up
     ],
+    // Vertex 2: bottom-left [-0.49999, -0.49999, 0.49999]
     [
-      [1, 0, 1],
-      [0, 1, 1],
-      [1, 1, 1],
+      [-1, 0, 1], // side1: left
+      [0, -1, 1], // side2: down
+      [-1, -1, 1], // corner: left-down
     ],
+    // Vertex 3: bottom-right [0.49999, -0.49999, 0.49999]
     [
-      [-1, 0, 1],
-      [0, 1, 1],
-      [-1, 1, 1],
+      [1, 0, 1], // side1: right
+      [0, -1, 1], // side2: down
+      [1, -1, 1], // corner: right-down
     ],
   ],
 
+  // Face 5: Back (-Z) - vertices: top-left, top-right, bottom-right, bottom-left
   5: [
+    // Vertex 0: top-left [-0.49999, 0.49999, -0.49999]
     [
-      [-1, 0, -1],
-      [0, -1, -1],
-      [-1, -1, -1],
+      [-1, 0, -1], // side1: left
+      [0, 1, -1], // side2: up
+      [-1, 1, -1], // corner: left-up
     ],
+    // Vertex 1: top-right [0.49999, 0.49999, -0.49999]
     [
-      [-1, 0, -1],
-      [0, 1, -1],
-      [-1, 1, -1],
+      [1, 0, -1], // side1: right
+      [0, 1, -1], // side2: up
+      [1, 1, -1], // corner: right-up
     ],
+    // Vertex 2: bottom-right [0.49999, -0.49999, -0.49999]
     [
-      [1, 0, -1],
-      [0, 1, -1],
-      [1, 1, -1],
+      [1, 0, -1], // side1: right
+      [0, -1, -1], // side2: down
+      [1, -1, -1], // corner: right-down
     ],
+    // Vertex 3: bottom-left [-0.49999, -0.49999, -0.49999]
     [
-      [1, 0, -1],
-      [0, -1, -1],
-      [1, -1, -1],
+      [-1, 0, -1], // side1: left
+      [0, -1, -1], // side2: down
+      [-1, -1, -1], // corner: left-down
     ],
   ],
 };
@@ -152,7 +183,7 @@ const AO_CONFIG = {
    * Index 2 = 2 occluders
    * Index 3 = 3 occluders (or a sharp interior corner)
    */
-  OCCLUSION_LEVELS: [1.0, 0.95, 0.92, 0.88],
+  OCCLUSION_LEVELS: [1.0, 0.92, 0.88, 0.82],
 };
 
 function generateAOLookup(distance: number = AO_CONFIG.DISTANCE) {

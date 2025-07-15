@@ -6,12 +6,12 @@ export const TextureDropZone = ({
   imageData,
   onImageData,
   onError,
-  cellSize,
+  pixelWidth: cellSize,
 }: {
   imageData: ImageData | null;
   onImageData: (data: ImageData | null) => void;
   onError: (error: string) => void;
-  cellSize: number;
+  pixelWidth: number;
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -107,6 +107,12 @@ export const TextureDropZone = ({
     const canvas = document.createElement("canvas");
     canvas.width = imageData.width;
     canvas.height = imageData.height;
+    console.log(
+      "createAtlasCanvas - Created canvas with dimensions:",
+      canvas.width,
+      "x",
+      canvas.height
+    );
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.putImageData(imageData, 0, 0);

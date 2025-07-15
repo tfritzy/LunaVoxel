@@ -31,8 +31,9 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type UpdateAtlas = {
+export type DeleteAtlasIndex = {
   projectId: string,
+  index: number,
   gridSize: number,
   cellPixelWidth: number,
   usedSlots: number,
@@ -41,7 +42,7 @@ export type UpdateAtlas = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace UpdateAtlas {
+export namespace DeleteAtlasIndex {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -49,18 +50,19 @@ export namespace UpdateAtlas {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("index", AlgebraicType.createI32Type()),
       new ProductTypeElement("gridSize", AlgebraicType.createI32Type()),
       new ProductTypeElement("cellPixelWidth", AlgebraicType.createI32Type()),
       new ProductTypeElement("usedSlots", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: UpdateAtlas): void {
-    UpdateAtlas.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: DeleteAtlasIndex): void {
+    DeleteAtlasIndex.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): UpdateAtlas {
-    return UpdateAtlas.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): DeleteAtlasIndex {
+    return DeleteAtlasIndex.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

@@ -18,7 +18,7 @@ public static partial class Module
             blocks.BlockFaceAtlasIndexes[i] = [i, i, i, i, i, i];
         }
 
-        ctx.Db.atlas.Insert(new Atlas { ProjectId = projectId, Size = 64, CellSize = 1 });
+        ctx.Db.atlas.Insert(new Atlas { ProjectId = projectId });
         ctx.Db.project_blocks.Insert(blocks);
     }
 }

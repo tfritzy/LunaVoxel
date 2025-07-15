@@ -3,7 +3,7 @@ import { Plus, Download } from "lucide-react";
 import { JSX, useMemo, useState } from "react";
 import { EditAtlasSlotModal } from "./EditAtlasSlotModal";
 
-export const AtlasDrawer = ({ isOpen }: { isOpen: boolean }) => {
+export const AtlasDrawer = () => {
   const [editingSlotIndex, setEditingSlotIndex] = useState<
     number | "new" | null
   >(null);
@@ -13,6 +13,7 @@ export const AtlasDrawer = ({ isOpen }: { isOpen: boolean }) => {
     if (!textureAtlas?.image) return;
 
     const canvas = document.createElement("canvas");
+    console.log("AtlasDrawer - Created canvas for downloading texture atlas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -55,8 +56,6 @@ export const AtlasDrawer = ({ isOpen }: { isOpen: boolean }) => {
     return slots;
   }, [atlasSlots]);
 
-  if (!isOpen) return null;
-
   return (
     <div className="absolute right-0 top-0 h-full bg-background border-l border-border overflow-y-auto p-4">
       <div className="flex items-center justify-between mb-4">
@@ -75,7 +74,7 @@ export const AtlasDrawer = ({ isOpen }: { isOpen: boolean }) => {
         <div className="flex justify-between">
           <span className="text-muted-foreground">Cell size:</span>
           <span className="font-mono">
-            {atlas.cellSize}×{atlas.cellSize}
+            {atlas.cellPixelWidth}×{atlas.cellPixelWidth}
           </span>
         </div>
         <div className="flex justify-between">
@@ -87,8 +86,7 @@ export const AtlasDrawer = ({ isOpen }: { isOpen: boolean }) => {
         <div className="flex justify-between">
           <span className="text-muted-foreground">Used slots:</span>
           <span className="font-mono">
-            {atlas.size}/
-            {Math.pow(textureAtlas?.image?.width / atlas.cellSize || 0, 2)}
+            {atlas.usedSlots}/{atlas.gridSize * atlas.gridSize}
           </span>
         </div>
       </div>

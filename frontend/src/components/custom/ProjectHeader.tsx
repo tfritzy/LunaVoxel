@@ -9,14 +9,15 @@ import { Logo } from "./Logo";
 import { ShareButton } from "./Share/ShareButton";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { AtlasDropdown } from "./AtlasDropdown";
-import { useDialogs } from "@/contexts/DialogContext";
+import { useState } from "react";
+import { ProjectModal } from "./ProjectModal";
 
 export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { connection } = useDatabase();
-  const { setModal } = useDialogs();
+  const [openProjectOpen, setOpenProjectOpen] = useState(false);
 
   const handleSignIn = async () => {
     try {
@@ -44,7 +45,7 @@ export function ProjectHeader() {
   };
 
   const handleOpenProject = () => {
-    setModal("project-modal");
+    setOpenProjectOpen(true);
   };
 
   return (
@@ -81,6 +82,11 @@ export function ProjectHeader() {
               onSignOut={handleSignOut}
             />
           </div>
+
+          <ProjectModal
+            isOpen={openProjectOpen}
+            onClose={() => setOpenProjectOpen(false)}
+          />
         </div>
       </nav>
     </>

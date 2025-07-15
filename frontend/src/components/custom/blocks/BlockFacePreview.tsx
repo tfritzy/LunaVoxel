@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { createVoxelMaterial } from "@/modeling/lib/shader";
@@ -32,6 +32,7 @@ export const BlockFacePreview = ({
 
   const createTextSprite = (text: string, color: string = "#ffffff") => {
     const canvas = document.createElement("canvas");
+    console.log("createTextSprite - Created canvas for text sprite");
     const context = canvas.getContext("2d");
     if (!context) return null;
 
@@ -87,74 +88,75 @@ export const BlockFacePreview = ({
     return geometry;
   };
 
-  const createCubeGeometry = (
-    textureIndexes: number[]
-  ): THREE.BufferGeometry => {
-    const geometry = new THREE.BufferGeometry();
+  const createCubeGeometry = useCallback(
+    (textureIndexes: number[]): THREE.BufferGeometry => {
+      const geometry = new THREE.BufferGeometry();
 
-    const vertices: number[] = [];
-    const normals: number[] = [];
-    const uvs: number[] = [];
-    const ao: number[] = [];
-    const indices: number[] = [];
+      const vertices: number[] = [];
+      const normals: number[] = [];
+      const uvs: number[] = [];
+      const ao: number[] = [];
+      const indices: number[] = [];
 
-    let vertexIndex = 0;
+      let vertexIndex = 0;
 
-    for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-      const face = faces[faceIndex];
-      const faceVertices = face.vertices;
-      const faceNormal = face.normal;
+      for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+        const face = faces[faceIndex];
+        const faceVertices = face.vertices;
+        const faceNormal = face.normal;
 
-      const textureIndex = textureIndexes[faceIndex];
-      const textureCoords = getTextureCoordinates(
-        textureIndex,
-        Math.sqrt(atlas.size),
-        atlas.cellSize
-      );
+        const textureIndex = textureIndexes[faceIndex];
+        const textureCoords = getTextureCoordinates(
+          textureIndex,
+          atlas.gridSize,
+          atlas.cellPixelWidth
+        );
 
-      const startVertexIndex = vertexIndex;
+        const startVertexIndex = vertexIndex;
 
-      for (let j = 0; j < 4; j++) {
-        const vertex = faceVertices[j];
+        for (let j = 0; j < 4; j++) {
+          const vertex = faceVertices[j];
 
-        vertices.push(vertex[0], vertex[1], vertex[2]);
-        normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
-        uvs.push(textureCoords[j * 2], textureCoords[j * 2 + 1]);
-        ao.push(1.0);
+          vertices.push(vertex[0], vertex[1], vertex[2]);
+          normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
+          uvs.push(textureCoords[j * 2], textureCoords[j * 2 + 1]);
+          ao.push(1.0);
 
-        vertexIndex++;
+          vertexIndex++;
+        }
+
+        indices.push(
+          startVertexIndex,
+          startVertexIndex + 1,
+          startVertexIndex + 2,
+          startVertexIndex,
+          startVertexIndex + 2,
+          startVertexIndex + 3
+        );
       }
 
-      indices.push(
-        startVertexIndex,
-        startVertexIndex + 1,
-        startVertexIndex + 2,
-        startVertexIndex,
-        startVertexIndex + 2,
-        startVertexIndex + 3
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(new Float32Array(vertices), 3)
       );
-    }
+      geometry.setAttribute(
+        "normal",
+        new THREE.BufferAttribute(new Float32Array(normals), 3)
+      );
+      geometry.setAttribute(
+        "uv",
+        new THREE.BufferAttribute(new Float32Array(uvs), 2)
+      );
+      geometry.setAttribute(
+        "aochannel",
+        new THREE.BufferAttribute(new Float32Array(ao), 1)
+      );
+      geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
 
-    geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(new Float32Array(vertices), 3)
-    );
-    geometry.setAttribute(
-      "normal",
-      new THREE.BufferAttribute(new Float32Array(normals), 3)
-    );
-    geometry.setAttribute(
-      "uv",
-      new THREE.BufferAttribute(new Float32Array(uvs), 2)
-    );
-    geometry.setAttribute(
-      "aochannel",
-      new THREE.BufferAttribute(new Float32Array(ao), 1)
-    );
-    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
-
-    return geometry;
-  };
+      return geometry;
+    },
+    [atlas.cellPixelWidth, atlas.gridSize]
+  );
 
   const createFaceLabels = () => {
     const faceNames = ["R", "L", "T", "B", "F", "K"];
@@ -298,7 +300,7 @@ export const BlockFacePreview = ({
       sceneRef.current.mesh.geometry.dispose();
       sceneRef.current.mesh.geometry = newGeometry;
     }
-  }, [faceTextures, atlas.cellSize, atlas.size]);
+  }, [createCubeGeometry, faceTextures]);
 
   useEffect(() => {
     if (!sceneRef.current) return;

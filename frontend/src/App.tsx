@@ -12,7 +12,6 @@ import { ProjectsPage } from "./pages/ProjectsPage";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 import { Toaster } from "sonner";
-import { DialogProvider } from "./contexts/DialogContext";
 
 const getSpacetimeConfig = () => {
   const isDev = import.meta.env.DEV || window.location.hostname === "localhost";
@@ -139,9 +138,7 @@ function AppContent() {
               path="/project/:projectId"
               element={
                 <CurrentProjectProvider>
-                  <DialogProvider>
-                    <ProjectViewPage />
-                  </DialogProvider>
+                  <ProjectViewPage />
                 </CurrentProjectProvider>
               }
             />
