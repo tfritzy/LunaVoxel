@@ -19,7 +19,7 @@ export type VoxelFaces = {
   faceIndexes: number[];
 };
 
-export class ChunkMesh {
+export const ChunkMesh = class {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
@@ -42,6 +42,11 @@ export class ChunkMesh {
     if (this.material) {
       this.material.uniforms.map.value = textureAtlas;
       this.material.needsUpdate = true;
+    }
+    if (this.previewMesh?.material) {
+      (this.previewMesh.material as THREE.ShaderMaterial).uniforms.map.value =
+        textureAtlas;
+      (this.previewMesh.material as THREE.ShaderMaterial).needsUpdate = true;
     }
   };
 
@@ -134,7 +139,7 @@ export class ChunkMesh {
       }
 
       this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode, atlas);
-      this.updatePreviewMesh(previewFaces, buildMode);
+      this.updatePreviewMesh(previewFaces, buildMode, atlas);
     } catch (error) {
       console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
       throw error;
@@ -257,7 +262,8 @@ export class ChunkMesh {
 
   private updatePreviewMesh(
     previewFaces: Map<string, VoxelFaces>,
-    buildMode: BlockModificationMode
+    buildMode: BlockModificationMode,
+    atlas: Atlas
   ): void {
     let totalFaceCount = 0;
     for (const voxelFace of previewFaces.values()) {
@@ -270,17 +276,27 @@ export class ChunkMesh {
     const vertices = new Float32Array(totalVertices * 3);
     const indices = new Uint32Array(totalIndices);
     const normals = new Float32Array(totalVertices * 3);
+    const uvs = new Float32Array(totalVertices * 2);
+    const ao = new Float32Array(totalVertices);
 
     let vertexOffset = 0;
     let indexOffset = 0;
     let vertexIndex = 0;
+    let uvOffset = 0;
+    let aoOffset = 0;
 
     for (const voxelFace of previewFaces.values()) {
-      const { gridPos, faceIndexes } = voxelFace;
+      const { textureIndex, gridPos, faceIndexes } = voxelFace;
 
       const posX = gridPos.x + 0.5;
       const posY = gridPos.y + 0.5;
       const posZ = gridPos.z + 0.5;
+
+      const textureCoords = getTextureCoordinates(
+        textureIndex,
+        atlas.gridSize,
+        atlas.cellPixelWidth
+      );
 
       for (let i = 0; i < faceIndexes.length; i++) {
         const faceIndex = faceIndexes[i];
@@ -304,7 +320,14 @@ export class ChunkMesh {
           normals[vertexOffset + 1] = normalY;
           normals[vertexOffset + 2] = normalZ;
 
+          uvs[uvOffset] = textureCoords[j * 2];
+          uvs[uvOffset + 1] = textureCoords[j * 2 + 1];
+
+          ao[aoOffset] = 1.0;
+
           vertexOffset += 3;
+          uvOffset += 2;
+          aoOffset += 1;
           vertexIndex++;
         }
 
@@ -322,11 +345,9 @@ export class ChunkMesh {
 
     if (!this.previewMesh) {
       const geometry = new THREE.BufferGeometry();
-      const material = new THREE.MeshLambertMaterial({
-        side: THREE.FrontSide,
-        opacity: 0.3,
-        transparent: true,
-      });
+      const material = createVoxelMaterial(this.textureAtlas!, 0.5);
+      material.transparent = true;
+      material.opacity = 0.3;
       this.previewMesh = new THREE.Mesh(geometry, material);
       this.scene.add(this.previewMesh);
     }
@@ -339,13 +360,18 @@ export class ChunkMesh {
       "normal",
       new THREE.BufferAttribute(normals, 3)
     );
+    this.previewMesh?.geometry.setAttribute(
+      "uv",
+      new THREE.BufferAttribute(uvs, 2)
+    );
+    this.previewMesh?.geometry.setAttribute(
+      "aochannel",
+      new THREE.BufferAttribute(ao, 1)
+    );
     this.previewMesh?.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
     this.previewMesh!.visible =
       buildMode.tag === BlockModificationMode.Build.tag;
-    (this.previewMesh.material as THREE.MeshLambertMaterial).color.set(
-      0x5577ff
-    );
     this.previewMesh!.layers.set(
       buildMode.tag === BlockModificationMode.Erase.tag
         ? layers.raycast
@@ -353,6 +379,8 @@ export class ChunkMesh {
     );
     this.previewMesh!.geometry.attributes.position.needsUpdate = true;
     this.previewMesh!.geometry.attributes.normal.needsUpdate = true;
+    this.previewMesh!.geometry.attributes.uv.needsUpdate = true;
+    this.previewMesh!.geometry.attributes.aochannel.needsUpdate = true;
     if (this.previewMesh!.geometry.index) {
       this.previewMesh!.geometry.index.needsUpdate = true;
     }
@@ -383,4 +411,4 @@ export class ChunkMesh {
       this.previewMesh = null;
     }
   }
-}
+};
