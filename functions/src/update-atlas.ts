@@ -35,6 +35,12 @@ interface AddToAtlasResponse {
   index: number;
 }
 
+const getNextPowerOfTwo = (n: number): number => {
+  if (n <= 0) return 1;
+  if (n <= 1) return 1;
+  return Math.pow(2, Math.ceil(Math.log2(n)));
+};
+
 const callSpacetimeUpdateAtlas = async (
   projectId: string,
   newGridSize: number,
@@ -101,7 +107,7 @@ const createAtlasCanvas = async (
   requiredSlots: number,
   newCellPixelWidth: number
 ) => {
-  const newGridSize = Math.ceil(Math.sqrt(requiredSlots));
+  const newGridSize = getNextPowerOfTwo(Math.ceil(Math.sqrt(requiredSlots)));
   const newDimensions = newGridSize * newCellPixelWidth;
   const canvas = createCanvas(newDimensions, newDimensions);
   const ctx = canvas.getContext("2d");

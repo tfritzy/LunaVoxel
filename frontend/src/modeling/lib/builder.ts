@@ -13,7 +13,7 @@ export const Builder = class {
   private projectId: string;
   private dimensions: Vector3;
   private onPreviewUpdate: () => void;
-  private selectedBlock: number;
+  private selectedBlock: number = 1;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -35,6 +35,8 @@ export const Builder = class {
 
   private lastCursorUpdateTime: number = 0;
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
+  private lastSentCursorPos: THREE.Vector3 | null = null;
+  private lastSentCursorNormal: THREE.Vector3 | null = null;
 
   constructor(
     dbConn: DbConnection,
@@ -158,16 +160,29 @@ export const Builder = class {
   ): void {
     const now = Date.now();
     if (now - this.lastCursorUpdateTime >= this.CURSOR_UPDATE_THROTTLE_MS) {
-      this.dbConn.reducers.updateCursorPos(
-        this.projectId,
-        this.dbConn.identity!,
-        faceCenter.x,
-        faceCenter.y,
-        faceCenter.z,
-        worldNormal.x,
-        worldNormal.y,
-        worldNormal.z
-      );
+      const hasPositionChanged =
+        !this.lastSentCursorPos || !this.lastSentCursorPos.equals(faceCenter);
+
+      const hasNormalChanged =
+        !this.lastSentCursorNormal ||
+        !this.lastSentCursorNormal.equals(worldNormal);
+
+      if (hasPositionChanged || hasNormalChanged) {
+        this.dbConn.reducers.updateCursorPos(
+          this.projectId,
+          this.dbConn.identity!,
+          faceCenter.x,
+          faceCenter.y,
+          faceCenter.z,
+          worldNormal.x,
+          worldNormal.y,
+          worldNormal.z
+        );
+
+        this.lastSentCursorPos = faceCenter.clone();
+        this.lastSentCursorNormal = worldNormal.clone();
+      }
+
       this.lastCursorUpdateTime = now;
     }
   }

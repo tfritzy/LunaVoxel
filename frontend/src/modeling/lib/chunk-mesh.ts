@@ -63,8 +63,8 @@ export class ChunkMesh {
     let blockIndex = 0;
 
     while (byteIndex < rleBytes.length) {
-      const runLength = rleBytes[byteIndex];
-      const blockBytes = rleBytes.slice(byteIndex + 1, byteIndex + 3);
+      const runLength = (rleBytes[byteIndex + 1] << 8) | rleBytes[byteIndex];
+      const blockBytes = rleBytes.slice(byteIndex + 2, byteIndex + 4);
 
       const block = this.blockFromBytes(blockBytes);
 
@@ -80,7 +80,7 @@ export class ChunkMesh {
         blockIndex++;
       }
 
-      byteIndex += 3;
+      byteIndex += 4;
     }
 
     return decompressed;

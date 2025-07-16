@@ -94,7 +94,10 @@ export class CameraController {
   }
 
   private onMouseDown(event: MouseEvent): void {
-    if (event.button === 0 && event.shiftKey) {
+    if (
+      (event.button === 0 && event.shiftKey) ||
+      (event.button === 2 && event.ctrlKey)
+    ) {
       event.preventDefault();
       event.stopPropagation();
       this.panMouseDown = true;

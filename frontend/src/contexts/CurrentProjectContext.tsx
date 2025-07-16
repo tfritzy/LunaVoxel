@@ -123,7 +123,7 @@ export const CurrentProjectProvider = ({
   const [project, setProject] = useState<Project | null>(null);
   const { connection } = useDatabase();
   const { projectId } = useParams<{ projectId: string }>();
-  const [selectedBlock, setSelectedBlock] = React.useState<number>(0);
+  const [selectedBlock, setSelectedBlock] = React.useState<number>(1);
   const [projectStatus, setProjectStatus] = useState<
     "loading" | "found" | "not-found" | "poke-attempted"
   >("loading");

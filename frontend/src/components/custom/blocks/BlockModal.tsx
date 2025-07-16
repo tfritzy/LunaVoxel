@@ -1,3 +1,5 @@
+// src/components/BlockModal.tsx
+
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
@@ -11,7 +13,6 @@ interface BlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   blockIndex: number | "new";
-  isNewBlock?: boolean;
 }
 
 export const BlockModal = ({
@@ -22,13 +23,11 @@ export const BlockModal = ({
   const isNewBlock = blockIndex === "new";
   const { blocks, project } = useCurrentProject();
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
-  const [selectedFaces, setSelectedFaces] = useState<number[]>(() => {
-    if (isNewBlock) {
-      return [0, 0, 0, 0, 0, 0];
-    }
-
-    return blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0];
-  });
+  const [selectedFaces, setSelectedFaces] = useState<number[]>(() =>
+    isNewBlock
+      ? [0, 0, 0, 0, 0, 0]
+      : blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
+  );
   const [submitPending, setSubmitPending] = useState(false);
   const { connection } = useDatabase();
 
@@ -38,13 +37,14 @@ export const BlockModal = ({
         setApplyToAllFaces(true);
         setSelectedFaces([0, 0, 0, 0, 0, 0]);
       } else {
-        const allSame = blocks.blockFaceAtlasIndexes[blockIndex]?.every(
-          (index) => index === blocks.blockFaceAtlasIndexes[blockIndex][0]
+        const existingFaces = blocks.blockFaceAtlasIndexes[blockIndex] || [
+          0, 0, 0, 0, 0, 0,
+        ];
+        const allSame = existingFaces.every(
+          (index) => index === existingFaces[0]
         );
         setApplyToAllFaces(allSame);
-        setSelectedFaces(
-          blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
-        );
+        setSelectedFaces(existingFaces);
       }
     }
   }, [isOpen, blockIndex, blocks.blockFaceAtlasIndexes]);
@@ -59,21 +59,44 @@ export const BlockModal = ({
     }
   };
 
+  const handleApplyToAllChange = (checked: boolean | "indeterminate") => {
+    const isApplyingAll = checked === false;
+    setApplyToAllFaces(isApplyingAll);
+    if (isApplyingAll) {
+      setSelectedFaces(Array(6).fill(selectedFaces[0]));
+    }
+  };
+
   const handleSubmit = () => {
     setSubmitPending(true);
-
     if (isNewBlock) {
       connection?.reducers.addBlock(project.id, selectedFaces);
     } else {
-      connection?.reducers.updateBlock(project.id, blockIndex, selectedFaces);
+      connection?.reducers.updateBlock(
+        project.id,
+        blockIndex as number,
+        selectedFaces
+      );
     }
-
     setSubmitPending(false);
     onClose();
   };
 
   const faceNames = ["Right", "Left", "Top", "Bottom", "Front", "Back"];
   const title = isNewBlock ? "Create New Block" : "Edit Block";
+
+  const renderFaceSelector = (faceIndex: number) => (
+    <div className="space-y-1 items-center flex flex-col">
+      <label className="text-xs font-medium text-center block text-muted-foreground">
+        {faceNames[faceIndex]}
+      </label>
+      <AtlasTextureDropdown
+        selectedTexture={selectedFaces[faceIndex]}
+        onSelect={(textureIndex) => handleFaceChange(faceIndex, textureIndex)}
+        isLinked={applyToAllFaces}
+      />
+    </div>
+  );
 
   return (
     <Modal
@@ -104,131 +127,49 @@ export const BlockModal = ({
                     <Checkbox
                       id="apply-all"
                       checked={!applyToAllFaces}
-                      onCheckedChange={(checked) =>
-                        setApplyToAllFaces(checked === false)
-                      }
+                      onCheckedChange={handleApplyToAllChange}
                     />
                     <label
                       htmlFor="apply-all"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      className="text-sm font-medium leading-none cursor-pointer"
                     >
                       Specify face mappings individually
                     </label>
                   </div>
                 </div>
+
                 <div className="bg-background rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1">
-                  {applyToAllFaces ? (
-                    <div className="grow">
-                      <div className="">
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                          Single atlas coordinate for all faces
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                          This atlas coordinate will be applied to all faces of
-                          the block.
-                        </p>
-                      </div>
-                      <AtlasTextureDropdown
-                        selectedTexture={selectedFaces[0]}
-                        onSelect={(textureIndex) =>
-                          handleFaceChange(0, textureIndex)
-                        }
-                        size="lg"
-                      />
-                    </div>
-                  ) : (
-                    <div className="grow">
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                          Individual coordinate for each face
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Select an atlas coordinate for each face of the block.
-                        </p>
-                      </div>
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      {applyToAllFaces
+                        ? "Single atlas coordinate for all faces"
+                        : "Individual coordinate for each face"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {applyToAllFaces
+                        ? "Select a texture to apply to all linked faces."
+                        : "Select a mapping for each face of the block."}
+                    </p>
+                  </div>
 
-                      <div className="grid grid-cols-4 gap-4">
-                        <div />
-                        <div className="space-y-1 items-center flex flex-col">
-                          <label className="text-xs font-medium text-center block text-muted-foreground">
-                            {faceNames[2]}
-                          </label>
-                          <AtlasTextureDropdown
-                            selectedTexture={selectedFaces[2]}
-                            onSelect={(textureIndex) =>
-                              handleFaceChange(2, textureIndex)
-                            }
-                          />
-                        </div>
-                        <div />
-                        <div />
+                  <div className="grid grid-cols-4 gap-4 items-center">
+                    <div />
+                    {renderFaceSelector(2)}
+                    <div />
+                    <div />
 
-                        <div className="space-y-1 items-center flex flex-col">
-                          <label className="text-xs font-medium text-center block text-muted-foreground">
-                            {faceNames[1]}
-                          </label>
-                          <AtlasTextureDropdown
-                            selectedTexture={selectedFaces[1]}
-                            onSelect={(textureIndex) =>
-                              handleFaceChange(1, textureIndex)
-                            }
-                          />
-                        </div>
+                    {renderFaceSelector(1)}
+                    {renderFaceSelector(4)}
+                    {renderFaceSelector(0)}
+                    {renderFaceSelector(5)}
 
-                        <div className="space-y-1 items-center flex flex-col">
-                          <label className="text-xs font-medium text-center block text-muted-foreground">
-                            {faceNames[4]}
-                          </label>
-                          <AtlasTextureDropdown
-                            selectedTexture={selectedFaces[4]}
-                            onSelect={(textureIndex) =>
-                              handleFaceChange(4, textureIndex)
-                            }
-                          />
-                        </div>
+                    <div />
+                    {renderFaceSelector(3)}
+                    <div />
+                    <div />
+                  </div>
 
-                        <div className="space-y-1 items-center flex flex-col">
-                          <label className="text-xs font-medium text-center block text-muted-foreground">
-                            {faceNames[0]}
-                          </label>
-                          <AtlasTextureDropdown
-                            selectedTexture={selectedFaces[0]}
-                            onSelect={(textureIndex) =>
-                              handleFaceChange(0, textureIndex)
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-1 items-center flex flex-col">
-                          <label className="text-xs font-medium text-center block text-muted-foreground">
-                            {faceNames[5]}
-                          </label>
-                          <AtlasTextureDropdown
-                            selectedTexture={selectedFaces[5]}
-                            onSelect={(textureIndex) =>
-                              handleFaceChange(5, textureIndex)
-                            }
-                          />
-                        </div>
-
-                        <div />
-                        <div className="space-y-1 items-center flex flex-col">
-                          <label className="text-xs font-medium text-center block text-muted-foreground">
-                            {faceNames[3]}
-                          </label>
-                          <AtlasTextureDropdown
-                            selectedTexture={selectedFaces[3]}
-                            onSelect={(textureIndex) =>
-                              handleFaceChange(3, textureIndex)
-                            }
-                          />
-                        </div>
-                        <div />
-                        <div />
-                      </div>
-                    </div>
-                  )}
-                  <div className="text-foreground-muted">
+                  <div className="text-foreground-muted mt-auto pt-6">
                     To edit or add more texture options, you need to edit the
                     texture atlas.
                   </div>
@@ -236,7 +177,6 @@ export const BlockModal = ({
               </div>
             </div>
           </div>
-
           <div className="w-3xl flex flex-col rounded-lg border border-border">
             <div className="flex-1 flex items-center justify-center">
               <BlockFacePreview

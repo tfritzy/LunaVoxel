@@ -22,13 +22,14 @@ public static class VoxelRLE
             while (j < voxelData.Length - 1 &&
                    voxelData[j] == byte1 &&
                    voxelData[j + 1] == byte2 &&
-                   runLength < 255)
+                   runLength < 65535)
             {
                 runLength++;
                 j += 2;
             }
 
-            compressed.Add((byte)runLength);
+            compressed.Add((byte)(runLength & 0xFF));
+            compressed.Add((byte)((runLength >> 8) & 0xFF));
             compressed.Add(byte1);
             compressed.Add(byte2);
 
@@ -40,16 +41,16 @@ public static class VoxelRLE
 
     public static byte[] Decompress(byte[] compressedData)
     {
-        if (compressedData.Length % 3 != 0)
-            throw new ArgumentException("Compressed data must be in groups of 3 bytes (count, byte1, byte2)");
+        if (compressedData.Length % 4 != 0)
+            throw new ArgumentException("Compressed data must be in groups of 4 bytes (2 bytes for count, 2 bytes for voxel)");
 
         var decompressed = new List<byte>();
 
-        for (int i = 0; i < compressedData.Length; i += 3)
+        for (int i = 0; i < compressedData.Length; i += 4)
         {
-            byte runLength = compressedData[i];
-            byte byte1 = compressedData[i + 1];
-            byte byte2 = compressedData[i + 2];
+            int runLength = compressedData[i] | (compressedData[i + 1] << 8);
+            byte byte1 = compressedData[i + 2];
+            byte byte2 = compressedData[i + 3];
 
             for (int j = 0; j < runLength; j++)
             {
