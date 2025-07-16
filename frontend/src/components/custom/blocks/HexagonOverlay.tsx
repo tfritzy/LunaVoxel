@@ -24,8 +24,8 @@ export const HexagonOverlay = ({
         <polygon
           className="fill-transparent"
           points="50,-4 96.5,23.1 96.5,77.1 50,104 3,77.1 3,23.1"
-          stroke={isSelected ? "white" : "var(--border)"}
-          strokeWidth={isSelected ? 3 : 1}
+          stroke={isSelected ? "white" : "var(--background)"}
+          strokeWidth={isSelected ? 3 : 5}
           opacity={isSelected ? 1 : 1}
         />
       </svg>

@@ -36,7 +36,7 @@ export const AtlasDrawer = () => {
         src={slot.blobUrl || ""}
         alt={`Atlas Slot ${slot.index}`}
         key={slot.index}
-        className="w-12 h-12 object-cover cursor-pointer hover:brightness-125"
+        className="w-6 h-6 object-cover cursor-pointer hover:brightness-125"
         style={{ imageRendering: "pixelated" }}
       />
     ));
@@ -46,9 +46,9 @@ export const AtlasDrawer = () => {
         onClick={() => setEditingSlotIndex("new")}
         key="new"
       >
-        <div className="w-12 h-12 bg-muted flex items-center justify-center">
+        <div className="w-6 h-6 bg-muted flex items-center justify-center">
           <span className="text-xs text-muted-foreground">
-            <Plus className="w-8 h-8" />
+            <Plus className="w-4 h-4" />
           </span>
         </div>
       </button>
@@ -91,9 +91,9 @@ export const AtlasDrawer = () => {
         </div>
       </div>
 
-      <div className="relative grid grid-cols-4">
+      <div className="relative grid grid-cols-8">
         {entries}
-        <div className="absolute inset-0 pointer-events-none grid grid-cols-4 border-white/25 border-l-[.5px] border-t-[.5px]">
+        <div className="absolute inset-0 pointer-events-none grid grid-cols-8 border-white/25 border-l-[.5px] border-t-[.5px]">
           {Array.from({ length: entries.length }, (_, i) => (
             <div
               key={i}
