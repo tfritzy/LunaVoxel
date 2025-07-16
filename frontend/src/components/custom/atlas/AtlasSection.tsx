@@ -3,7 +3,7 @@ import { Plus, Download } from "lucide-react";
 import { JSX, useMemo, useState } from "react";
 import { EditAtlasSlotModal } from "./EditAtlasSlotModal";
 
-export const AtlasDrawer = () => {
+export const AtlasSection = () => {
   const [editingSlotIndex, setEditingSlotIndex] = useState<
     number | "new" | null
   >(null);
@@ -13,7 +13,6 @@ export const AtlasDrawer = () => {
     if (!textureAtlas?.image) return;
 
     const canvas = document.createElement("canvas");
-    console.log("AtlasDrawer - Created canvas for downloading texture atlas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -57,7 +56,7 @@ export const AtlasDrawer = () => {
   }, [atlasSlots]);
 
   return (
-    <div className="absolute right-0 top-0 h-full bg-background border-l border-border overflow-y-auto p-4">
+    <>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Texture Atlas</h2>
         <button
@@ -109,6 +108,6 @@ export const AtlasDrawer = () => {
           onClose={() => setEditingSlotIndex(null)}
         />
       )}
-    </div>
+    </>
   );
 };

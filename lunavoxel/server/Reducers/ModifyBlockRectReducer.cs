@@ -17,14 +17,14 @@ public static partial class Module
         int z2,
         int rotation)
     {
-        var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
+        var layer = ctx.Db.layer.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No layer for this project");
         List<Vector3> positions = [];
-        int startX = Math.Max(0, Math.Min(Math.Min(x1, x2), chunk.xDim - 1));
-        int endX = Math.Min(chunk.xDim - 1, Math.Max(Math.Max(x1, x2), 0));
-        int startY = Math.Max(0, Math.Min(Math.Min(y1, y2), chunk.yDim - 1));
-        int endY = Math.Min(chunk.yDim - 1, Math.Max(Math.Max(y1, y2), 0));
-        int startZ = Math.Max(0, Math.Min(Math.Min(z1, z2), chunk.zDim - 1));
-        int endZ = Math.Min(chunk.zDim - 1, Math.Max(Math.Max(z1, z2), 0));
+        int startX = Math.Max(0, Math.Min(Math.Min(x1, x2), layer.xDim - 1));
+        int endX = Math.Min(layer.xDim - 1, Math.Max(Math.Max(x1, x2), 0));
+        int startY = Math.Max(0, Math.Min(Math.Min(y1, y2), layer.yDim - 1));
+        int endY = Math.Min(layer.yDim - 1, Math.Max(Math.Max(y1, y2), 0));
+        int startZ = Math.Max(0, Math.Min(Math.Min(z1, z2), layer.zDim - 1));
+        int endZ = Math.Min(layer.zDim - 1, Math.Max(Math.Max(z1, z2), 0));
         for (int x = startX; x <= endX; x++)
         {
             for (int y = startY; y <= endY; y++)

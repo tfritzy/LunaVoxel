@@ -2,25 +2,25 @@ import * as THREE from "three";
 import {
   Atlas,
   BlockModificationMode,
-  Chunk,
   DbConnection,
   EventContext,
+  Layer,
   Project,
   ProjectBlocks,
 } from "../../module_bindings";
-import { ChunkMesh } from "./chunk-mesh";
+import { LayerMesh } from "./layer-mesh";
 import { CursorManager, PlayerCursor } from "./cursor-manager";
 import { Builder } from "./builder";
 
 export class ProjectManager {
   private scene: THREE.Scene;
-  private chunkMesh: ChunkMesh;
+  private layerMesh;
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
   private currentUpdateController: AbortController | null = null;
   private builder;
-  private currentChunk: Chunk | null = null;
+  private currentLayer: Layer | null = null;
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
 
@@ -34,7 +34,7 @@ export class ProjectManager {
     this.dbConn = dbConn;
     this.scene = scene;
     this.project = project;
-    this.chunkMesh = new ChunkMesh(scene);
+    this.layerMesh = new LayerMesh(scene);
     this.cursorManager = new CursorManager(scene, project.id);
     this.setupEvents();
     this.builder = new Builder(
@@ -46,7 +46,7 @@ export class ProjectManager {
       container,
       this.onPreviewUpdate
     );
-    this.setupChunks();
+    this.setupLayers();
     this.setupCursors();
   }
 
@@ -56,34 +56,34 @@ export class ProjectManager {
 
   setAtlas = (atlas: Atlas) => {
     this.atlas = atlas;
-    this.updateChunkMesh();
+    this.updateLayerMesh();
   };
 
   setBlocks = (blocks: ProjectBlocks) => {
     this.blocks = blocks;
-    this.updateChunkMesh();
+    this.updateLayerMesh();
   };
 
   setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
     if (textureAtlas) {
-      this.chunkMesh.setTextureAtlas(textureAtlas);
-      this.updateChunkMesh();
+      this.layerMesh.setTextureAtlas(textureAtlas);
+      this.updateLayerMesh();
     }
   };
 
   setupEvents = () => {
-    this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
+    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
     this.dbConn.db.playerCursor.onUpdate(this.onCursorUpdate);
     this.dbConn.db.playerCursor.onInsert(this.onCursorInsert);
     this.dbConn.db.playerCursor.onDelete(this.onCursorDelete);
   };
 
-  setupChunks = async () => {
-    for (const chunk of this.dbConn.db.chunk.tableCache.iter()) {
-      const c = chunk as Chunk;
-      if (c.projectId !== this.project.id) continue;
-      this.currentChunk = c;
-      await this.updateChunkMesh();
+  setupLayers = async () => {
+    for (const layer of this.dbConn.db.layer.tableCache.iter()) {
+      const l = layer as Layer;
+      if (l.projectId !== this.project.id) continue;
+      this.currentLayer = l;
+      await this.updateLayerMesh();
     }
   };
 
@@ -92,12 +92,12 @@ export class ProjectManager {
   };
 
   onPreviewUpdate = () => {
-    this.updateChunkMesh();
+    this.updateLayerMesh();
   };
 
-  onChunkUpdate = (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => {
-    this.currentChunk = newRow;
-    this.updateChunkMesh();
+  onLayerUpdate = (ctx: EventContext, oldRow: Layer, newRow: Layer) => {
+    this.currentLayer = newRow;
+    this.updateLayerMesh();
   };
 
   onCursorUpdate = (
@@ -122,19 +122,19 @@ export class ProjectManager {
     }
   };
 
-  private updateChunkMesh = () => {
-    if (!this.currentChunk || !this.atlas || !this.blocks) {
+  private updateLayerMesh = () => {
+    if (!this.currentLayer || !this.atlas || !this.blocks) {
       console.warn(
-        "No current chunk or atlas set, skipping mesh update.",
-        this.currentChunk,
+        "No current layer or atlas set, skipping mesh update.",
+        this.currentLayer,
         this.atlas
       );
       return;
     }
 
     this.currentUpdateController = new AbortController();
-    this.chunkMesh.update(
-      this.currentChunk,
+    this.layerMesh.update(
+      this.currentLayer,
       this.builder.previewBlocks,
       this.builder.getTool(),
       this.atlas,
@@ -152,9 +152,9 @@ export class ProjectManager {
       this.currentUpdateController = null;
     }
     this.builder.dispose();
-    this.chunkMesh.dispose();
+    this.layerMesh.dispose();
     this.cursorManager.dispose();
-    this.dbConn.db.chunk.removeOnUpdate(this.onChunkUpdate);
+    this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.playerCursor.removeOnUpdate(this.onCursorUpdate);
     this.dbConn.db.playerCursor.removeOnInsert(this.onCursorInsert);
     this.dbConn.db.playerCursor.removeOnDelete(this.onCursorDelete);

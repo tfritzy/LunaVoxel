@@ -107,9 +107,9 @@ public static partial class Module
         public Vector3Float Normal;
     }
 
-    [Table(Name = "chunk", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "chunk_project", Columns = new[] { nameof(ProjectId) })]
-    public partial class Chunk
+    [Table(Name = "layer", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "layer_project", Columns = new[] { nameof(ProjectId) })]
+    public partial class Layer
     {
         [PrimaryKey]
         public string Id;
@@ -117,19 +117,19 @@ public static partial class Module
         public int xDim;
         public int yDim;
         public int zDim;
-        public int Layer;
+        public int Index;
         public byte[] Voxels = [];
 
-        public static Chunk Build(string projectId, int xDim, int yDim, int zDim, int layer)
+        public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
         {
-            return new Chunk
+            return new Layer
             {
-                Id = $"{projectId}_{layer}",
+                Id = $"{projectId}_{index}",
                 ProjectId = projectId,
                 xDim = xDim,
                 yDim = yDim,
                 zDim = zDim,
-                Layer = layer,
+                Index = index,
                 Voxels = VoxelRLE.Compress(new byte[xDim * yDim * zDim * 2])
             };
         }

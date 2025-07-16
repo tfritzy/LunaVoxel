@@ -40,7 +40,20 @@ export const BlockPreview = ({ blockIndex }: BlockPreviewProps) => {
   if (isLoading) {
     return (
       <div className={"w-full h-full flex items-center justify-center"}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-border"></div>
+        <svg
+          width="42"
+          height="42"
+          viewBox="0 0 32 32"
+          className="animate-pulse"
+        >
+          <polygon
+            points="16,2 28,9 28,23 16,30 4,23 4,9"
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-border"
+          />
+        </svg>
       </div>
     );
   }

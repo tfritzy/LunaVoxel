@@ -7,10 +7,10 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { BlockModal } from "./BlockModal";
 
-const BLOCK_WIDTH = "3.75em";
-const BLOCK_HEIGHT = "5rem";
-const HEXAGON_OFFSET = "1.875rem";
-const VERTICAL_OVERLAP = "-1.75rem";
+const BLOCK_WIDTH = "3em";
+const BLOCK_HEIGHT = "4rem";
+const HORIZONTAL_OFFSET = "1.5rem";
+const VERTICAL_OVERLAP = "-1.5rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
@@ -63,7 +63,7 @@ export const BlockDrawer = () => {
   const totalItems = blocks.blockFaceAtlasIndexes.length + 1; // +1 for the add new hex
 
   while (currentIndex < totalItems) {
-    const itemsInRow = rowIndex % 2 === 0 ? 5 : 4;
+    const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
     const isOddRow = rowIndex % 2 === 1;
     const rowItems = [];
 
@@ -79,10 +79,10 @@ export const BlockDrawer = () => {
     rows.push(
       <div
         key={rowIndex}
-        className="flex relative pointer-events-none"
+        className="flex pointer-events-none"
         style={{
           transform: isOddRow
-            ? `translateX(${HEXAGON_OFFSET})`
+            ? `translateX(${HORIZONTAL_OFFSET})`
             : "translateX(0)",
           marginTop: rowIndex === 0 ? "0" : VERTICAL_OVERLAP,
           marginLeft: `-${HORIZONTAL_GAP}`,

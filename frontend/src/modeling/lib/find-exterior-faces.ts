@@ -1,6 +1,6 @@
 import { Atlas, BlockModificationMode, ProjectBlocks } from "@/module_bindings";
 import * as THREE from "three";
-import { VoxelFaces } from "./chunk-mesh";
+import { VoxelFaces } from "./layer-mesh";
 import { Block } from "./blocks";
 
 export const findExteriorFaces = (
@@ -92,7 +92,7 @@ export const findExteriorFaces = (
 
     if (queueEnd >= queueCapacity) {
       console.warn(
-        `[ChunkMesh] Flood fill queue capacity exceeded, skipping (${x}, ${y}, ${z})`
+        `[LayerMesh] Flood fill queue capacity exceeded, skipping (${x}, ${y}, ${z})`
       );
       return;
     }

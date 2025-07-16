@@ -5,112 +5,99 @@
 /* tslint:disable */
 // @ts-nocheck
 import {
-  AlgebraicType,
-  AlgebraicValue,
-  BinaryReader,
   BinaryWriter,
   CallReducerFlags,
-  ConnectionId,
   DbConnectionBuilder,
   DbConnectionImpl,
-  DbContext,
   ErrorContextInterface,
   Event,
   EventContextInterface,
   Identity,
-  ProductType,
-  ProductTypeElement,
   ReducerEventContextInterface,
   SubscriptionBuilderImpl,
   SubscriptionEventContextInterface,
-  SumType,
-  SumTypeVariant,
-  TableCache,
-  TimeDuration,
-  Timestamp,
-  deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
 // Import and reexport all reducer arg types
 import { AddBlock } from "./add_block_reducer.ts";
-export { AddBlock };
 import { ChangePublicAccessToProject } from "./change_public_access_to_project_reducer.ts";
-export { ChangePublicAccessToProject };
 import { ChangeUserAccessToProject } from "./change_user_access_to_project_reducer.ts";
-export { ChangeUserAccessToProject };
 import { ClientConnected } from "./client_connected_reducer.ts";
-export { ClientConnected };
 import { ClientDisconnected } from "./client_disconnected_reducer.ts";
-export { ClientDisconnected };
 import { CreateProject } from "./create_project_reducer.ts";
-export { CreateProject };
 import { DeleteAtlasIndex } from "./delete_atlas_index_reducer.ts";
-export { DeleteAtlasIndex };
 import { InitializeAtlas } from "./initialize_atlas_reducer.ts";
-export { InitializeAtlas };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
-export { InviteToProject };
 import { ModifyBlock } from "./modify_block_reducer.ts";
-export { ModifyBlock };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
-export { ModifyBlockRect };
 import { PokeProject } from "./poke_project_reducer.ts";
-export { PokeProject };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
-export { RemoveColorFromPalette };
 import { SyncUser } from "./sync_user_reducer.ts";
-export { SyncUser };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
-export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
-export { UpdateBlock };
 import { UpdateCursorPos } from "./update_cursor_pos_reducer.ts";
-export { UpdateCursorPos };
 import { UpdateProjectName } from "./update_project_name_reducer.ts";
+export { AddBlock };
+export { ChangePublicAccessToProject };
+export { ChangeUserAccessToProject };
+export { ClientConnected };
+export { ClientDisconnected };
+export { CreateProject };
+export { DeleteAtlasIndex };
+export { InitializeAtlas };
+export { InviteToProject };
+export { ModifyBlock };
+export { ModifyBlockRect };
+export { PokeProject };
+export { RemoveColorFromPalette };
+export { SyncUser };
+export { UpdateAtlas };
+export { UpdateBlock };
+export { UpdateCursorPos };
 export { UpdateProjectName };
 
 // Import and reexport all table handle types
 import { AtlasTableHandle } from "./atlas_table.ts";
-export { AtlasTableHandle };
-import { ChunkTableHandle } from "./chunk_table.ts";
-export { ChunkTableHandle };
 import { ColorPaletteTableHandle } from "./color_palette_table.ts";
-export { ColorPaletteTableHandle };
+import { LayerTableHandle } from "./layer_table.ts";
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
-export { PlayerCursorTableHandle };
 import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
-export { ProjectBlocksTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
-export { ProjectsTableHandle };
 import { UserTableHandle } from "./user_table.ts";
-export { UserTableHandle };
 import { UserProjectsTableHandle } from "./user_projects_table.ts";
+export { AtlasTableHandle };
+export { ColorPaletteTableHandle };
+export { LayerTableHandle };
+export { PlayerCursorTableHandle };
+export { ProjectBlocksTableHandle };
+export { ProjectsTableHandle };
+export { UserTableHandle };
 export { UserProjectsTableHandle };
 
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
-export { AccessType };
 import { Atlas } from "./atlas_type.ts";
-export { Atlas };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
-export { BlockModificationMode };
-import { Chunk } from "./chunk_type.ts";
-export { Chunk };
 import { ColorPalette } from "./color_palette_type.ts";
-export { ColorPalette };
+import { Layer } from "./layer_type.ts";
 import { PlayerCursor } from "./player_cursor_type.ts";
-export { PlayerCursor };
 import { Project } from "./project_type.ts";
-export { Project };
 import { ProjectBlocks } from "./project_blocks_type.ts";
-export { ProjectBlocks };
 import { User } from "./user_type.ts";
-export { User };
 import { UserProject } from "./user_project_type.ts";
-export { UserProject };
 import { Vector3 } from "./vector_3_type.ts";
-export { Vector3 };
 import { Vector3Float } from "./vector_3_float_type.ts";
+export { AccessType };
+export { Atlas };
+export { BlockModificationMode };
+export { ColorPalette };
+export { Layer };
+export { PlayerCursor };
+export { Project };
+export { ProjectBlocks };
+export { User };
+export { UserProject };
+export { Vector3 };
 export { Vector3Float };
 
 const REMOTE_MODULE = {
@@ -120,15 +107,15 @@ const REMOTE_MODULE = {
       rowType: Atlas.getTypeScriptAlgebraicType(),
       primaryKey: "projectId",
     },
-    chunk: {
-      tableName: "chunk",
-      rowType: Chunk.getTypeScriptAlgebraicType(),
-      primaryKey: "id",
-    },
     color_palette: {
       tableName: "color_palette",
       rowType: ColorPalette.getTypeScriptAlgebraicType(),
       primaryKey: "projectId",
+    },
+    layer: {
+      tableName: "layer",
+      rowType: Layer.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
     },
     player_cursor: {
       tableName: "player_cursor",
@@ -240,90 +227,156 @@ const REMOTE_MODULE = {
   eventContextConstructor: (imp: DbConnectionImpl, event: Event<Reducer>) => {
     return {
       ...(imp as DbConnection),
-      event
-    }
+      event,
+    };
   },
   dbViewConstructor: (imp: DbConnectionImpl) => {
     return new RemoteTables(imp);
   },
-  reducersConstructor: (imp: DbConnectionImpl, setReducerFlags: SetReducerFlags) => {
+  reducersConstructor: (
+    imp: DbConnectionImpl,
+    setReducerFlags: SetReducerFlags
+  ) => {
     return new RemoteReducers(imp, setReducerFlags);
   },
   setReducerFlagsConstructor: () => {
     return new SetReducerFlags();
-  }
-}
+  },
+};
 
 // A type representing all the possible variants of a reducer.
-export type Reducer = never
-| { name: "AddBlock", args: AddBlock }
-| { name: "ChangePublicAccessToProject", args: ChangePublicAccessToProject }
-| { name: "ChangeUserAccessToProject", args: ChangeUserAccessToProject }
-| { name: "ClientConnected", args: ClientConnected }
-| { name: "ClientDisconnected", args: ClientDisconnected }
-| { name: "CreateProject", args: CreateProject }
-| { name: "DeleteAtlasIndex", args: DeleteAtlasIndex }
-| { name: "InitializeAtlas", args: InitializeAtlas }
-| { name: "InviteToProject", args: InviteToProject }
-| { name: "ModifyBlock", args: ModifyBlock }
-| { name: "ModifyBlockRect", args: ModifyBlockRect }
-| { name: "PokeProject", args: PokeProject }
-| { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
-| { name: "SyncUser", args: SyncUser }
-| { name: "UpdateAtlas", args: UpdateAtlas }
-| { name: "UpdateBlock", args: UpdateBlock }
-| { name: "UpdateCursorPos", args: UpdateCursorPos }
-| { name: "UpdateProjectName", args: UpdateProjectName }
-;
+export type Reducer =
+  | never
+  | { name: "AddBlock"; args: AddBlock }
+  | { name: "ChangePublicAccessToProject"; args: ChangePublicAccessToProject }
+  | { name: "ChangeUserAccessToProject"; args: ChangeUserAccessToProject }
+  | { name: "ClientConnected"; args: ClientConnected }
+  | { name: "ClientDisconnected"; args: ClientDisconnected }
+  | { name: "CreateProject"; args: CreateProject }
+  | { name: "DeleteAtlasIndex"; args: DeleteAtlasIndex }
+  | { name: "InitializeAtlas"; args: InitializeAtlas }
+  | { name: "InviteToProject"; args: InviteToProject }
+  | { name: "ModifyBlock"; args: ModifyBlock }
+  | { name: "ModifyBlockRect"; args: ModifyBlockRect }
+  | { name: "PokeProject"; args: PokeProject }
+  | { name: "RemoveColorFromPalette"; args: RemoveColorFromPalette }
+  | { name: "SyncUser"; args: SyncUser }
+  | { name: "UpdateAtlas"; args: UpdateAtlas }
+  | { name: "UpdateBlock"; args: UpdateBlock }
+  | { name: "UpdateCursorPos"; args: UpdateCursorPos }
+  | { name: "UpdateProjectName"; args: UpdateProjectName };
 
 export class RemoteReducers {
-  constructor(private connection: DbConnectionImpl, private setCallReducerFlags: SetReducerFlags) {}
+  constructor(
+    private connection: DbConnectionImpl,
+    private setCallReducerFlags: SetReducerFlags
+  ) {}
 
   addBlock(projectId: string, atlasFaceIndexes: number[]) {
     const __args = { projectId, atlasFaceIndexes };
     let __writer = new BinaryWriter(1024);
     AddBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("AddBlock", __argsBuffer, this.setCallReducerFlags.addBlockFlags);
+    this.connection.callReducer(
+      "AddBlock",
+      __argsBuffer,
+      this.setCallReducerFlags.addBlockFlags
+    );
   }
 
-  onAddBlock(callback: (ctx: ReducerEventContext, projectId: string, atlasFaceIndexes: number[]) => void) {
+  onAddBlock(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      atlasFaceIndexes: number[]
+    ) => void
+  ) {
     this.connection.onReducer("AddBlock", callback);
   }
 
-  removeOnAddBlock(callback: (ctx: ReducerEventContext, projectId: string, atlasFaceIndexes: number[]) => void) {
+  removeOnAddBlock(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      atlasFaceIndexes: number[]
+    ) => void
+  ) {
     this.connection.offReducer("AddBlock", callback);
   }
 
   changePublicAccessToProject(projectId: string, accessType: AccessType) {
     const __args = { projectId, accessType };
     let __writer = new BinaryWriter(1024);
-    ChangePublicAccessToProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    ChangePublicAccessToProject.getTypeScriptAlgebraicType().serialize(
+      __writer,
+      __args
+    );
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ChangePublicAccessToProject", __argsBuffer, this.setCallReducerFlags.changePublicAccessToProjectFlags);
+    this.connection.callReducer(
+      "ChangePublicAccessToProject",
+      __argsBuffer,
+      this.setCallReducerFlags.changePublicAccessToProjectFlags
+    );
   }
 
-  onChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: AccessType) => void) {
+  onChangePublicAccessToProject(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      accessType: AccessType
+    ) => void
+  ) {
     this.connection.onReducer("ChangePublicAccessToProject", callback);
   }
 
-  removeOnChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: AccessType) => void) {
+  removeOnChangePublicAccessToProject(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      accessType: AccessType
+    ) => void
+  ) {
     this.connection.offReducer("ChangePublicAccessToProject", callback);
   }
 
-  changeUserAccessToProject(projectId: string, email: string, accessType: AccessType) {
+  changeUserAccessToProject(
+    projectId: string,
+    email: string,
+    accessType: AccessType
+  ) {
     const __args = { projectId, email, accessType };
     let __writer = new BinaryWriter(1024);
-    ChangeUserAccessToProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    ChangeUserAccessToProject.getTypeScriptAlgebraicType().serialize(
+      __writer,
+      __args
+    );
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ChangeUserAccessToProject", __argsBuffer, this.setCallReducerFlags.changeUserAccessToProjectFlags);
+    this.connection.callReducer(
+      "ChangeUserAccessToProject",
+      __argsBuffer,
+      this.setCallReducerFlags.changeUserAccessToProjectFlags
+    );
   }
 
-  onChangeUserAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+  onChangeUserAccessToProject(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      email: string,
+      accessType: AccessType
+    ) => void
+  ) {
     this.connection.onReducer("ChangeUserAccessToProject", callback);
   }
 
-  removeOnChangeUserAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+  removeOnChangeUserAccessToProject(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      email: string,
+      accessType: AccessType
+    ) => void
+  ) {
     this.connection.offReducer("ChangeUserAccessToProject", callback);
   }
 
@@ -343,35 +396,91 @@ export class RemoteReducers {
     this.connection.offReducer("ClientDisconnected", callback);
   }
 
-  createProject(id: string, name: string, xDim: number, yDim: number, zDim: number) {
+  createProject(
+    id: string,
+    name: string,
+    xDim: number,
+    yDim: number,
+    zDim: number
+  ) {
     const __args = { id, name, xDim, yDim, zDim };
     let __writer = new BinaryWriter(1024);
     CreateProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("CreateProject", __argsBuffer, this.setCallReducerFlags.createProjectFlags);
+    this.connection.callReducer(
+      "CreateProject",
+      __argsBuffer,
+      this.setCallReducerFlags.createProjectFlags
+    );
   }
 
-  onCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
+  onCreateProject(
+    callback: (
+      ctx: ReducerEventContext,
+      id: string,
+      name: string,
+      xDim: number,
+      yDim: number,
+      zDim: number
+    ) => void
+  ) {
     this.connection.onReducer("CreateProject", callback);
   }
 
-  removeOnCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
+  removeOnCreateProject(
+    callback: (
+      ctx: ReducerEventContext,
+      id: string,
+      name: string,
+      xDim: number,
+      yDim: number,
+      zDim: number
+    ) => void
+  ) {
     this.connection.offReducer("CreateProject", callback);
   }
 
-  deleteAtlasIndex(projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) {
+  deleteAtlasIndex(
+    projectId: string,
+    index: number,
+    gridSize: number,
+    cellPixelWidth: number,
+    usedSlots: number
+  ) {
     const __args = { projectId, index, gridSize, cellPixelWidth, usedSlots };
     let __writer = new BinaryWriter(1024);
     DeleteAtlasIndex.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("DeleteAtlasIndex", __argsBuffer, this.setCallReducerFlags.deleteAtlasIndexFlags);
+    this.connection.callReducer(
+      "DeleteAtlasIndex",
+      __argsBuffer,
+      this.setCallReducerFlags.deleteAtlasIndexFlags
+    );
   }
 
-  onDeleteAtlasIndex(callback: (ctx: ReducerEventContext, projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
+  onDeleteAtlasIndex(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      index: number,
+      gridSize: number,
+      cellPixelWidth: number,
+      usedSlots: number
+    ) => void
+  ) {
     this.connection.onReducer("DeleteAtlasIndex", callback);
   }
 
-  removeOnDeleteAtlasIndex(callback: (ctx: ReducerEventContext, projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
+  removeOnDeleteAtlasIndex(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      index: number,
+      gridSize: number,
+      cellPixelWidth: number,
+      usedSlots: number
+    ) => void
+  ) {
     this.connection.offReducer("DeleteAtlasIndex", callback);
   }
 
@@ -380,14 +489,22 @@ export class RemoteReducers {
     let __writer = new BinaryWriter(1024);
     InitializeAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("InitializeAtlas", __argsBuffer, this.setCallReducerFlags.initializeAtlasFlags);
+    this.connection.callReducer(
+      "InitializeAtlas",
+      __argsBuffer,
+      this.setCallReducerFlags.initializeAtlasFlags
+    );
   }
 
-  onInitializeAtlas(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+  onInitializeAtlas(
+    callback: (ctx: ReducerEventContext, projectId: string) => void
+  ) {
     this.connection.onReducer("InitializeAtlas", callback);
   }
 
-  removeOnInitializeAtlas(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+  removeOnInitializeAtlas(
+    callback: (ctx: ReducerEventContext, projectId: string) => void
+  ) {
     this.connection.offReducer("InitializeAtlas", callback);
   }
 
@@ -396,46 +513,135 @@ export class RemoteReducers {
     let __writer = new BinaryWriter(1024);
     InviteToProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("InviteToProject", __argsBuffer, this.setCallReducerFlags.inviteToProjectFlags);
+    this.connection.callReducer(
+      "InviteToProject",
+      __argsBuffer,
+      this.setCallReducerFlags.inviteToProjectFlags
+    );
   }
 
-  onInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+  onInviteToProject(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      email: string,
+      accessType: AccessType
+    ) => void
+  ) {
     this.connection.onReducer("InviteToProject", callback);
   }
 
-  removeOnInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+  removeOnInviteToProject(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      email: string,
+      accessType: AccessType
+    ) => void
+  ) {
     this.connection.offReducer("InviteToProject", callback);
   }
 
-  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) {
+  modifyBlock(
+    projectId: string,
+    mode: BlockModificationMode,
+    blockType: number,
+    positions: Vector3[],
+    rotation: number
+  ) {
     const __args = { projectId, mode, blockType, positions, rotation };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
+    this.connection.callReducer(
+      "ModifyBlock",
+      __argsBuffer,
+      this.setCallReducerFlags.modifyBlockFlags
+    );
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) => void) {
+  onModifyBlock(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      mode: BlockModificationMode,
+      blockType: number,
+      positions: Vector3[],
+      rotation: number
+    ) => void
+  ) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) => void) {
+  removeOnModifyBlock(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      mode: BlockModificationMode,
+      blockType: number,
+      positions: Vector3[],
+      rotation: number
+    ) => void
+  ) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) {
+  modifyBlockRect(
+    projectId: string,
+    mode: BlockModificationMode,
+    type: number,
+    x1: number,
+    y1: number,
+    z1: number,
+    x2: number,
+    y2: number,
+    z2: number,
+    rotation: number
+  ) {
     const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, rotation };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
+    this.connection.callReducer(
+      "ModifyBlockRect",
+      __argsBuffer,
+      this.setCallReducerFlags.modifyBlockRectFlags
+    );
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) => void) {
+  onModifyBlockRect(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      mode: BlockModificationMode,
+      type: number,
+      x1: number,
+      y1: number,
+      z1: number,
+      x2: number,
+      y2: number,
+      z2: number,
+      rotation: number
+    ) => void
+  ) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) => void) {
+  removeOnModifyBlockRect(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      mode: BlockModificationMode,
+      type: number,
+      x1: number,
+      y1: number,
+      z1: number,
+      x2: number,
+      y2: number,
+      z2: number,
+      rotation: number
+    ) => void
+  ) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
@@ -444,30 +650,57 @@ export class RemoteReducers {
     let __writer = new BinaryWriter(1024);
     PokeProject.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("PokeProject", __argsBuffer, this.setCallReducerFlags.pokeProjectFlags);
+    this.connection.callReducer(
+      "PokeProject",
+      __argsBuffer,
+      this.setCallReducerFlags.pokeProjectFlags
+    );
   }
 
-  onPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+  onPokeProject(
+    callback: (ctx: ReducerEventContext, projectId: string) => void
+  ) {
     this.connection.onReducer("PokeProject", callback);
   }
 
-  removeOnPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+  removeOnPokeProject(
+    callback: (ctx: ReducerEventContext, projectId: string) => void
+  ) {
     this.connection.offReducer("PokeProject", callback);
   }
 
   removeColorFromPalette(projectId: string, colorIndex: number) {
     const __args = { projectId, colorIndex };
     let __writer = new BinaryWriter(1024);
-    RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(
+      __writer,
+      __args
+    );
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("RemoveColorFromPalette", __argsBuffer, this.setCallReducerFlags.removeColorFromPaletteFlags);
+    this.connection.callReducer(
+      "RemoveColorFromPalette",
+      __argsBuffer,
+      this.setCallReducerFlags.removeColorFromPaletteFlags
+    );
   }
 
-  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, projectId: string, colorIndex: number) => void) {
+  onRemoveColorFromPalette(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      colorIndex: number
+    ) => void
+  ) {
     this.connection.onReducer("RemoveColorFromPalette", callback);
   }
 
-  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, projectId: string, colorIndex: number) => void) {
+  removeOnRemoveColorFromPalette(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      colorIndex: number
+    ) => void
+  ) {
     this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 
@@ -476,30 +709,73 @@ export class RemoteReducers {
     let __writer = new BinaryWriter(1024);
     SyncUser.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("SyncUser", __argsBuffer, this.setCallReducerFlags.syncUserFlags);
+    this.connection.callReducer(
+      "SyncUser",
+      __argsBuffer,
+      this.setCallReducerFlags.syncUserFlags
+    );
   }
 
-  onSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
+  onSyncUser(
+    callback: (
+      ctx: ReducerEventContext,
+      identityHex: string,
+      email: string,
+      name: string
+    ) => void
+  ) {
     this.connection.onReducer("SyncUser", callback);
   }
 
-  removeOnSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
+  removeOnSyncUser(
+    callback: (
+      ctx: ReducerEventContext,
+      identityHex: string,
+      email: string,
+      name: string
+    ) => void
+  ) {
     this.connection.offReducer("SyncUser", callback);
   }
 
-  updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
+  updateAtlas(
+    projectId: string,
+    gridSize: number,
+    cellPixelWidth: number,
+    usedSlots: number
+  ) {
     const __args = { projectId, gridSize, cellPixelWidth, usedSlots };
     let __writer = new BinaryWriter(1024);
     UpdateAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("UpdateAtlas", __argsBuffer, this.setCallReducerFlags.updateAtlasFlags);
+    this.connection.callReducer(
+      "UpdateAtlas",
+      __argsBuffer,
+      this.setCallReducerFlags.updateAtlasFlags
+    );
   }
 
-  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
+  onUpdateAtlas(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      gridSize: number,
+      cellPixelWidth: number,
+      usedSlots: number
+    ) => void
+  ) {
     this.connection.onReducer("UpdateAtlas", callback);
   }
 
-  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
+  removeOnUpdateAtlas(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      gridSize: number,
+      cellPixelWidth: number,
+      usedSlots: number
+    ) => void
+  ) {
     this.connection.offReducer("UpdateAtlas", callback);
   }
 
@@ -508,30 +784,85 @@ export class RemoteReducers {
     let __writer = new BinaryWriter(1024);
     UpdateBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("UpdateBlock", __argsBuffer, this.setCallReducerFlags.updateBlockFlags);
+    this.connection.callReducer(
+      "UpdateBlock",
+      __argsBuffer,
+      this.setCallReducerFlags.updateBlockFlags
+    );
   }
 
-  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[]) => void) {
+  onUpdateBlock(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      index: number,
+      atlasFaceIndexes: number[]
+    ) => void
+  ) {
     this.connection.onReducer("UpdateBlock", callback);
   }
 
-  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[]) => void) {
+  removeOnUpdateBlock(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      index: number,
+      atlasFaceIndexes: number[]
+    ) => void
+  ) {
     this.connection.offReducer("UpdateBlock", callback);
   }
 
-  updateCursorPos(projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) {
+  updateCursorPos(
+    projectId: string,
+    identity: Identity,
+    x: number,
+    y: number,
+    z: number,
+    nx: number,
+    ny: number,
+    nz: number
+  ) {
     const __args = { projectId, identity, x, y, z, nx, ny, nz };
     let __writer = new BinaryWriter(1024);
     UpdateCursorPos.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("UpdateCursorPos", __argsBuffer, this.setCallReducerFlags.updateCursorPosFlags);
+    this.connection.callReducer(
+      "UpdateCursorPos",
+      __argsBuffer,
+      this.setCallReducerFlags.updateCursorPosFlags
+    );
   }
 
-  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) => void) {
+  onUpdateCursorPos(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      identity: Identity,
+      x: number,
+      y: number,
+      z: number,
+      nx: number,
+      ny: number,
+      nz: number
+    ) => void
+  ) {
     this.connection.onReducer("UpdateCursorPos", callback);
   }
 
-  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: Identity, x: number, y: number, z: number, nx: number, ny: number, nz: number) => void) {
+  removeOnUpdateCursorPos(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      identity: Identity,
+      x: number,
+      y: number,
+      z: number,
+      nx: number,
+      ny: number,
+      nz: number
+    ) => void
+  ) {
     this.connection.offReducer("UpdateCursorPos", callback);
   }
 
@@ -540,150 +871,230 @@ export class RemoteReducers {
     let __writer = new BinaryWriter(1024);
     UpdateProjectName.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("UpdateProjectName", __argsBuffer, this.setCallReducerFlags.updateProjectNameFlags);
+    this.connection.callReducer(
+      "UpdateProjectName",
+      __argsBuffer,
+      this.setCallReducerFlags.updateProjectNameFlags
+    );
   }
 
-  onUpdateProjectName(callback: (ctx: ReducerEventContext, projectId: string, name: string) => void) {
+  onUpdateProjectName(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      name: string
+    ) => void
+  ) {
     this.connection.onReducer("UpdateProjectName", callback);
   }
 
-  removeOnUpdateProjectName(callback: (ctx: ReducerEventContext, projectId: string, name: string) => void) {
+  removeOnUpdateProjectName(
+    callback: (
+      ctx: ReducerEventContext,
+      projectId: string,
+      name: string
+    ) => void
+  ) {
     this.connection.offReducer("UpdateProjectName", callback);
   }
-
 }
 
 export class SetReducerFlags {
-  addBlockFlags: CallReducerFlags = 'FullUpdate';
+  addBlockFlags: CallReducerFlags = "FullUpdate";
   addBlock(flags: CallReducerFlags) {
     this.addBlockFlags = flags;
   }
 
-  changePublicAccessToProjectFlags: CallReducerFlags = 'FullUpdate';
+  changePublicAccessToProjectFlags: CallReducerFlags = "FullUpdate";
   changePublicAccessToProject(flags: CallReducerFlags) {
     this.changePublicAccessToProjectFlags = flags;
   }
 
-  changeUserAccessToProjectFlags: CallReducerFlags = 'FullUpdate';
+  changeUserAccessToProjectFlags: CallReducerFlags = "FullUpdate";
   changeUserAccessToProject(flags: CallReducerFlags) {
     this.changeUserAccessToProjectFlags = flags;
   }
 
-  createProjectFlags: CallReducerFlags = 'FullUpdate';
+  createProjectFlags: CallReducerFlags = "FullUpdate";
   createProject(flags: CallReducerFlags) {
     this.createProjectFlags = flags;
   }
 
-  deleteAtlasIndexFlags: CallReducerFlags = 'FullUpdate';
+  deleteAtlasIndexFlags: CallReducerFlags = "FullUpdate";
   deleteAtlasIndex(flags: CallReducerFlags) {
     this.deleteAtlasIndexFlags = flags;
   }
 
-  initializeAtlasFlags: CallReducerFlags = 'FullUpdate';
+  initializeAtlasFlags: CallReducerFlags = "FullUpdate";
   initializeAtlas(flags: CallReducerFlags) {
     this.initializeAtlasFlags = flags;
   }
 
-  inviteToProjectFlags: CallReducerFlags = 'FullUpdate';
+  inviteToProjectFlags: CallReducerFlags = "FullUpdate";
   inviteToProject(flags: CallReducerFlags) {
     this.inviteToProjectFlags = flags;
   }
 
-  modifyBlockFlags: CallReducerFlags = 'FullUpdate';
+  modifyBlockFlags: CallReducerFlags = "FullUpdate";
   modifyBlock(flags: CallReducerFlags) {
     this.modifyBlockFlags = flags;
   }
 
-  modifyBlockRectFlags: CallReducerFlags = 'FullUpdate';
+  modifyBlockRectFlags: CallReducerFlags = "FullUpdate";
   modifyBlockRect(flags: CallReducerFlags) {
     this.modifyBlockRectFlags = flags;
   }
 
-  pokeProjectFlags: CallReducerFlags = 'FullUpdate';
+  pokeProjectFlags: CallReducerFlags = "FullUpdate";
   pokeProject(flags: CallReducerFlags) {
     this.pokeProjectFlags = flags;
   }
 
-  removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
+  removeColorFromPaletteFlags: CallReducerFlags = "FullUpdate";
   removeColorFromPalette(flags: CallReducerFlags) {
     this.removeColorFromPaletteFlags = flags;
   }
 
-  syncUserFlags: CallReducerFlags = 'FullUpdate';
+  syncUserFlags: CallReducerFlags = "FullUpdate";
   syncUser(flags: CallReducerFlags) {
     this.syncUserFlags = flags;
   }
 
-  updateAtlasFlags: CallReducerFlags = 'FullUpdate';
+  updateAtlasFlags: CallReducerFlags = "FullUpdate";
   updateAtlas(flags: CallReducerFlags) {
     this.updateAtlasFlags = flags;
   }
 
-  updateBlockFlags: CallReducerFlags = 'FullUpdate';
+  updateBlockFlags: CallReducerFlags = "FullUpdate";
   updateBlock(flags: CallReducerFlags) {
     this.updateBlockFlags = flags;
   }
 
-  updateCursorPosFlags: CallReducerFlags = 'FullUpdate';
+  updateCursorPosFlags: CallReducerFlags = "FullUpdate";
   updateCursorPos(flags: CallReducerFlags) {
     this.updateCursorPosFlags = flags;
   }
 
-  updateProjectNameFlags: CallReducerFlags = 'FullUpdate';
+  updateProjectNameFlags: CallReducerFlags = "FullUpdate";
   updateProjectName(flags: CallReducerFlags) {
     this.updateProjectNameFlags = flags;
   }
-
 }
 
 export class RemoteTables {
   constructor(private connection: DbConnectionImpl) {}
 
   get atlas(): AtlasTableHandle {
-    return new AtlasTableHandle(this.connection.clientCache.getOrCreateTable<Atlas>(REMOTE_MODULE.tables.atlas));
-  }
-
-  get chunk(): ChunkTableHandle {
-    return new ChunkTableHandle(this.connection.clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.chunk));
+    return new AtlasTableHandle(
+      this.connection.clientCache.getOrCreateTable<Atlas>(
+        REMOTE_MODULE.tables.atlas
+      )
+    );
   }
 
   get colorPalette(): ColorPaletteTableHandle {
-    return new ColorPaletteTableHandle(this.connection.clientCache.getOrCreateTable<ColorPalette>(REMOTE_MODULE.tables.color_palette));
+    return new ColorPaletteTableHandle(
+      this.connection.clientCache.getOrCreateTable<ColorPalette>(
+        REMOTE_MODULE.tables.color_palette
+      )
+    );
+  }
+
+  get layer(): LayerTableHandle {
+    return new LayerTableHandle(
+      this.connection.clientCache.getOrCreateTable<Layer>(
+        REMOTE_MODULE.tables.layer
+      )
+    );
   }
 
   get playerCursor(): PlayerCursorTableHandle {
-    return new PlayerCursorTableHandle(this.connection.clientCache.getOrCreateTable<PlayerCursor>(REMOTE_MODULE.tables.player_cursor));
+    return new PlayerCursorTableHandle(
+      this.connection.clientCache.getOrCreateTable<PlayerCursor>(
+        REMOTE_MODULE.tables.player_cursor
+      )
+    );
   }
 
   get projectBlocks(): ProjectBlocksTableHandle {
-    return new ProjectBlocksTableHandle(this.connection.clientCache.getOrCreateTable<ProjectBlocks>(REMOTE_MODULE.tables.project_blocks));
+    return new ProjectBlocksTableHandle(
+      this.connection.clientCache.getOrCreateTable<ProjectBlocks>(
+        REMOTE_MODULE.tables.project_blocks
+      )
+    );
   }
 
   get projects(): ProjectsTableHandle {
-    return new ProjectsTableHandle(this.connection.clientCache.getOrCreateTable<Project>(REMOTE_MODULE.tables.projects));
+    return new ProjectsTableHandle(
+      this.connection.clientCache.getOrCreateTable<Project>(
+        REMOTE_MODULE.tables.projects
+      )
+    );
   }
 
   get user(): UserTableHandle {
-    return new UserTableHandle(this.connection.clientCache.getOrCreateTable<User>(REMOTE_MODULE.tables.user));
+    return new UserTableHandle(
+      this.connection.clientCache.getOrCreateTable<User>(
+        REMOTE_MODULE.tables.user
+      )
+    );
   }
 
   get userProjects(): UserProjectsTableHandle {
-    return new UserProjectsTableHandle(this.connection.clientCache.getOrCreateTable<UserProject>(REMOTE_MODULE.tables.user_projects));
+    return new UserProjectsTableHandle(
+      this.connection.clientCache.getOrCreateTable<UserProject>(
+        REMOTE_MODULE.tables.user_projects
+      )
+    );
   }
 }
 
-export class SubscriptionBuilder extends SubscriptionBuilderImpl<RemoteTables, RemoteReducers, SetReducerFlags> { }
+export class SubscriptionBuilder extends SubscriptionBuilderImpl<
+  RemoteTables,
+  RemoteReducers,
+  SetReducerFlags
+> {}
 
-export class DbConnection extends DbConnectionImpl<RemoteTables, RemoteReducers, SetReducerFlags> {
-  static builder = (): DbConnectionBuilder<DbConnection, ErrorContext, SubscriptionEventContext> => {
-    return new DbConnectionBuilder<DbConnection, ErrorContext, SubscriptionEventContext>(REMOTE_MODULE, (imp: DbConnectionImpl) => imp as DbConnection);
-  }
+export class DbConnection extends DbConnectionImpl<
+  RemoteTables,
+  RemoteReducers,
+  SetReducerFlags
+> {
+  static builder = (): DbConnectionBuilder<
+    DbConnection,
+    ErrorContext,
+    SubscriptionEventContext
+  > => {
+    return new DbConnectionBuilder<
+      DbConnection,
+      ErrorContext,
+      SubscriptionEventContext
+    >(REMOTE_MODULE, (imp: DbConnectionImpl) => imp as DbConnection);
+  };
   subscriptionBuilder = (): SubscriptionBuilder => {
     return new SubscriptionBuilder(this);
-  }
+  };
 }
 
-export type EventContext = EventContextInterface<RemoteTables, RemoteReducers, SetReducerFlags, Reducer>;
-export type ReducerEventContext = ReducerEventContextInterface<RemoteTables, RemoteReducers, SetReducerFlags, Reducer>;
-export type SubscriptionEventContext = SubscriptionEventContextInterface<RemoteTables, RemoteReducers, SetReducerFlags>;
-export type ErrorContext = ErrorContextInterface<RemoteTables, RemoteReducers, SetReducerFlags>;
+export type EventContext = EventContextInterface<
+  RemoteTables,
+  RemoteReducers,
+  SetReducerFlags,
+  Reducer
+>;
+export type ReducerEventContext = ReducerEventContextInterface<
+  RemoteTables,
+  RemoteReducers,
+  SetReducerFlags,
+  Reducer
+>;
+export type SubscriptionEventContext = SubscriptionEventContextInterface<
+  RemoteTables,
+  RemoteReducers,
+  SetReducerFlags
+>;
+export type ErrorContext = ErrorContextInterface<
+  RemoteTables,
+  RemoteReducers,
+  SetReducerFlags
+>;

@@ -7,15 +7,15 @@ import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
 import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
-import { AtlasDrawer } from "@/components/custom/atlas/AtlasDrawer";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
+import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { connection } = useDatabase();
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
-  const [chunksLoading, setChunksLoading] = useState(true);
+  const [layersLoading, setLayersLoading] = useState(true);
   const [cursorsLoading, setCursorsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
@@ -31,20 +31,20 @@ export const ProjectViewPage = () => {
   useEffect(() => {
     if (!projectId || !connection) return;
 
-    setChunksLoading(true);
+    setLayersLoading(true);
     setCursorsLoading(true);
 
-    const chunksSub = connection
+    const layersSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
-        setChunksLoading(false);
+        setLayersLoading(false);
       })
       .onError((err) => {
-        console.error("Error subscribing to chunks:", err);
-        setError(`Error loading chunks: ${err}`);
-        setChunksLoading(false);
+        console.error("Error subscribing to layers:", err);
+        setError(`Error loading layers: ${err}`);
+        setLayersLoading(false);
       })
-      .subscribe([`SELECT * FROM chunk WHERE ProjectId='${projectId}'`]);
+      .subscribe([`SELECT * FROM layer WHERE ProjectId='${projectId}'`]);
 
     const cursorsSub = connection
       .subscriptionBuilder()
@@ -60,9 +60,9 @@ export const ProjectViewPage = () => {
       ]);
 
     return () => {
-      chunksSub.unsubscribe();
+      layersSub.unsubscribe();
       cursorsSub.unsubscribe();
-      setChunksLoading(true);
+      setLayersLoading(true);
       setCursorsLoading(true);
 
       if (engineRef.current) {
@@ -73,7 +73,7 @@ export const ProjectViewPage = () => {
   }, [projectId, connection]);
 
   useEffect(() => {
-    if (chunksLoading || cursorsLoading || !connection) return;
+    if (layersLoading || cursorsLoading || !connection) return;
 
     if (engineRef.current) {
       engineRef.current.dispose();
@@ -98,7 +98,23 @@ export const ProjectViewPage = () => {
         engineRef.current = null;
       }
     };
-  }, [chunksLoading, cursorsLoading, connection, project, projectId]);
+  }, [layersLoading, cursorsLoading, connection, project, projectId]);
+
+  useEffect(() => {
+    if (!engineRef.current || !containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (engineRef.current) {
+        engineRef.current.handleContainerResize();
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [layersLoading, cursorsLoading]);
 
   useEffect(() => {
     if (engineRef.current) {
@@ -137,18 +153,18 @@ export const ProjectViewPage = () => {
 
           <div
             ref={containerRef}
-            className="w-full h-full bg-slate-900"
+            className="h-full"
             style={{ height: "calc(100vh - 64px)" }}
           />
 
-          {(chunksLoading || cursorsLoading) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+          {(layersLoading || cursorsLoading) && (
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-white">Loading...</div>
             </div>
           )}
 
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-white">
                 <div className="mb-4">{error}</div>
                 <Button
@@ -161,14 +177,14 @@ export const ProjectViewPage = () => {
             </div>
           )}
 
-          {!chunksLoading && !cursorsLoading && !error && (
+          {!layersLoading && !cursorsLoading && !error && (
             <FloatingToolbar
               currentTool={currentTool}
               onToolChange={handleToolChange}
             />
           )}
 
-          <AtlasDrawer />
+          <RightSideDrawer />
         </div>
       </div>
     </div>

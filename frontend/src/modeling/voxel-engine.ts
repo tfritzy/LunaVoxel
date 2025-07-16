@@ -67,7 +67,15 @@ export class VoxelEngine {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
+
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.minWidth = "0";
+    renderer.domElement.style.minHeight = "0";
+    renderer.domElement.style.maxWidth = "100%";
+    renderer.domElement.style.maxHeight = "100%";
+
     container.appendChild(renderer.domElement);
     return renderer;
   }
@@ -110,6 +118,10 @@ export class VoxelEngine {
     camera.lookAt(floorCenter);
 
     return camera;
+  }
+
+  public handleContainerResize(): void {
+    this.handleResize();
   }
 
   private setupPerformanceMonitoring(): void {

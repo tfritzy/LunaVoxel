@@ -30,23 +30,23 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Chunk } from "./chunk_type";
+import { Layer } from "./layer_type";
 import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
- * Table handle for the table `chunk`.
+ * Table handle for the table `layer`.
  *
- * Obtain a handle from the [`chunk`] property on [`RemoteTables`],
- * like `ctx.db.chunk`.
+ * Obtain a handle from the [`layer`] property on [`RemoteTables`],
+ * like `ctx.db.layer`.
  *
  * Users are encouraged not to explicitly reference this type,
  * but to directly chain method calls,
- * like `ctx.db.chunk.on_insert(...)`.
+ * like `ctx.db.layer.on_insert(...)`.
  */
-export class ChunkTableHandle {
-  tableCache: TableCache<Chunk>;
+export class LayerTableHandle {
+  tableCache: TableCache<Layer>;
 
-  constructor(tableCache: TableCache<Chunk>) {
+  constructor(tableCache: TableCache<Layer>) {
     this.tableCache = tableCache;
   }
 
@@ -54,24 +54,24 @@ export class ChunkTableHandle {
     return this.tableCache.count();
   }
 
-  iter(): Iterable<Chunk> {
+  iter(): Iterable<Layer> {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `id` unique index on the table `chunk`,
+   * Access to the `id` unique index on the table `layer`,
    * which allows point queries on the field of the same name
-   * via the [`ChunkIdUnique.find`] method.
+   * via the [`LayerIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.chunk.id().find(...)`.
+   * like `ctx.db.layer.id().find(...)`.
    *
-   * Get a handle on the `id` unique index on the table `chunk`.
+   * Get a handle on the `id` unique index on the table `layer`.
    */
   id = {
     // Find the subscribed row whose `id` column value is equal to `col_val`,
     // if such a row is present in the client cache.
-    find: (col_val: string): Chunk | undefined => {
+    find: (col_val: string): Layer | undefined => {
       for (let row of this.tableCache.iter()) {
         if (deepEqual(row.id, col_val)) {
           return row;
@@ -80,27 +80,27 @@ export class ChunkTableHandle {
     },
   };
 
-  onInsert = (cb: (ctx: EventContext, row: Chunk) => void) => {
+  onInsert = (cb: (ctx: EventContext, row: Layer) => void) => {
     return this.tableCache.onInsert(cb);
   }
 
-  removeOnInsert = (cb: (ctx: EventContext, row: Chunk) => void) => {
+  removeOnInsert = (cb: (ctx: EventContext, row: Layer) => void) => {
     return this.tableCache.removeOnInsert(cb);
   }
 
-  onDelete = (cb: (ctx: EventContext, row: Chunk) => void) => {
+  onDelete = (cb: (ctx: EventContext, row: Layer) => void) => {
     return this.tableCache.onDelete(cb);
   }
 
-  removeOnDelete = (cb: (ctx: EventContext, row: Chunk) => void) => {
+  removeOnDelete = (cb: (ctx: EventContext, row: Layer) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
 
   // Updates are only defined for tables with primary keys.
-  onUpdate = (cb: (ctx: EventContext, oldRow: Chunk, newRow: Chunk) => void) => {
+  onUpdate = (cb: (ctx: EventContext, oldRow: Layer, newRow: Layer) => void) => {
     return this.tableCache.onUpdate(cb);
   }
 
-  removeOnUpdate = (cb: (ctx: EventContext, onRow: Chunk, newRow: Chunk) => void) => {
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: Layer, newRow: Layer) => void) => {
     return this.tableCache.removeOnUpdate(cb);
   }}

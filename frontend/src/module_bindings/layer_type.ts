@@ -30,20 +30,20 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-export type Chunk = {
+export type Layer = {
   id: string,
   projectId: string,
   xDim: number,
   yDim: number,
   zDim: number,
-  layer: number,
+  index: number,
   voxels: Uint8Array,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace Chunk {
+export namespace Layer {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -55,17 +55,17 @@ export namespace Chunk {
       new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("zDim", AlgebraicType.createI32Type()),
-      new ProductTypeElement("layer", AlgebraicType.createI32Type()),
+      new ProductTypeElement("index", AlgebraicType.createI32Type()),
       new ProductTypeElement("voxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Chunk): void {
-    Chunk.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Layer): void {
+    Layer.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Chunk {
-    return Chunk.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Layer {
+    return Layer.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

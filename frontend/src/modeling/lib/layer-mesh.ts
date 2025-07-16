@@ -2,7 +2,7 @@ import * as THREE from "three";
 import {
   Atlas,
   BlockModificationMode,
-  Chunk,
+  Layer,
   ProjectBlocks,
 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
@@ -19,7 +19,7 @@ export type VoxelFaces = {
   faceIndexes: number[];
 };
 
-export const ChunkMesh = class {
+export const LayerMesh = class {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
@@ -100,7 +100,7 @@ export const ChunkMesh = class {
   }
 
   update = (
-    newChunk: Chunk,
+    newLayer: Layer,
     previewBlocks: (Block | undefined)[][][],
     buildMode: BlockModificationMode,
     atlas: Atlas,
@@ -110,10 +110,10 @@ export const ChunkMesh = class {
 
     try {
       const realBlocks = this.decompressBlocks(
-        newChunk.voxels,
-        newChunk.xDim,
-        newChunk.yDim,
-        newChunk.zDim
+        newLayer.voxels,
+        newLayer.xDim,
+        newLayer.yDim,
+        newLayer.zDim
       );
       if (updateId !== this.currentUpdateId) {
         return;
@@ -128,9 +128,9 @@ export const ChunkMesh = class {
         atlas,
         blocks,
         {
-          xDim: newChunk.xDim,
-          yDim: newChunk.yDim,
-          zDim: newChunk.zDim,
+          xDim: newLayer.xDim,
+          yDim: newLayer.yDim,
+          zDim: newLayer.zDim,
         }
       );
 
@@ -141,7 +141,7 @@ export const ChunkMesh = class {
       this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode, atlas);
       this.updatePreviewMesh(previewFaces, buildMode, atlas);
     } catch (error) {
-      console.error(`[ChunkMesh] Update ${updateId} failed:`, error);
+      console.error(`[LayerMesh] Update ${updateId} failed:`, error);
       throw error;
     }
   };

@@ -16,18 +16,18 @@ public static partial class Module
     {
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
-        var chunk = ctx.Db.chunk.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No chunk for this project");
-        byte[] voxels = VoxelRLE.Decompress(chunk.Voxels);
+        var layer = ctx.Db.layer.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No layer for this project");
+        byte[] voxels = VoxelRLE.Decompress(layer.Voxels);
 
         foreach (var position in positions)
         {
             int x = position.X, y = position.Y, z = position.Z;
-            if (x < 0 || x >= chunk.xDim || y < 0 || y >= chunk.yDim || z < 0 || z >= chunk.zDim)
+            if (x < 0 || x >= layer.xDim || y < 0 || y >= layer.yDim || z < 0 || z >= layer.zDim)
             {
                 continue;
             }
 
-            int index = (x * chunk.yDim * chunk.zDim + y * chunk.zDim + z) * 2;
+            int index = (x * layer.yDim * layer.zDim + y * layer.zDim + z) * 2;
 
             switch (mode)
             {
@@ -55,7 +55,7 @@ public static partial class Module
             }
         }
 
-        chunk.Voxels = VoxelRLE.Compress(voxels);
-        ctx.Db.chunk.Id.Update(chunk);
+        layer.Voxels = VoxelRLE.Compress(voxels);
+        ctx.Db.layer.Id.Update(layer);
     }
 }
