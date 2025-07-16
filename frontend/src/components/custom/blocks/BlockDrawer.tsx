@@ -28,7 +28,7 @@ export const BlockDrawer = () => {
         height: BLOCK_HEIGHT,
       }}
     >
-      <BlockPreview key={index} blockIndex={index} />
+      <BlockPreview key={index} blockIndex={index - 1} />
       <HexagonOverlay
         isSelected={index === selectedBlock}
         onClick={() => setSelectedBlock(index)}
@@ -69,7 +69,7 @@ export const BlockDrawer = () => {
 
     for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
       if (currentIndex < blocks.blockFaceAtlasIndexes.length) {
-        rowItems.push(createBlockPreview(currentIndex));
+        rowItems.push(createBlockPreview(currentIndex + 1));
       } else {
         rowItems.push(createAddNewHex(currentIndex));
       }

@@ -181,7 +181,9 @@ export const findExteriorFaces = (
       }
 
       if (hasReal && (isBuildMode || !hasPreview)) {
-        const blockTemplate = blocks.blockFaceAtlasIndexes[block.type];
+        // blocks are 1 indexed because 0 is reserved for air
+        const blockTemplate = blocks.blockFaceAtlasIndexes[block.type - 1];
+
         const oppositeDirIndex =
           dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
         const index = blockTemplate[oppositeDirIndex];
@@ -199,7 +201,9 @@ export const findExteriorFaces = (
       }
 
       if (hasPreview && !sourceIsPreview) {
-        const blueprint = blocks.blockFaceAtlasIndexes[previewBlock.type];
+        // blocks are 1 indexed because 0 is reserved for air
+        const blueprint = blocks.blockFaceAtlasIndexes[previewBlock.type - 1];
+
         const oppositeDirIndex =
           dirIndex % 2 === 0 ? dirIndex + 1 : dirIndex - 1;
         const index = blueprint[oppositeDirIndex];
