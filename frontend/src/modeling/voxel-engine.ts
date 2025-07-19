@@ -138,14 +138,14 @@ export class VoxelEngine {
     rendererStatsElement.style.borderRadius = "4px";
     this.container.appendChild(rendererStatsElement);
 
-    // let frameCount: number = 0;
-    // let lastFpsTime: number = performance.now();
-    // let fps: number = 0;
+    let frameCount: number = 0;
+    let lastFpsTime: number = performance.now();
+    let fps: number = 0;
     let frameTime: number = 0;
     let lastFrameStart: number = 0;
     let minFrameTime: number = Infinity;
     let maxFrameTime: number = 0;
-    // let avgFrameTime: number = 0;
+    let avgFrameTime: number = 0;
     const frameTimeHistory: number[] = [];
     const HISTORY_SIZE: number = 60;
 
@@ -162,25 +162,22 @@ export class VoxelEngine {
         if (frameTimeHistory.length > HISTORY_SIZE) {
           frameTimeHistory.shift();
         }
-
-        // avgFrameTime =
-        //   frameTimeHistory.reduce((a: number, b: number) => a + b, 0) /
-        //   frameTimeHistory.length;
       }
       lastFrameStart = now;
 
-      // frameCount++;
-      // if (now - lastFpsTime >= 1000) {
-      //   // fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
-      //   frameCount = 0;
-      //   lastFpsTime = now;
+      frameCount++;
+      if (now - lastFpsTime >= 1000) {
+        fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+        frameCount = 0;
+        lastFpsTime = now;
 
-      //   minFrameTime = Infinity;
-      //   maxFrameTime = 0;
-      // }
+        minFrameTime = Infinity;
+        maxFrameTime = 0;
+      }
 
       const info = this.renderer.info;
       rendererStatsElement.innerHTML = `
+      <div>Fps: ${fps}</div>
       <div>Draw calls: ${info.render.calls}</div>
       <div>Triangles: ${info.render.triangles.toLocaleString()}</div>
       <div>Geometries: ${info.memory.geometries}</div>

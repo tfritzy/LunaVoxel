@@ -1,16 +1,109 @@
-// Similar to a photoshop layer row, this component represents a single layer in the UI.
-// It has a name, can be toggled visibility, reordered, deleted, and locked.
-export function LayerRow({ index }: { index: number }) {
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { Layer } from "@/module_bindings";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Trash,
+  LockKeyhole,
+  MoreVertical,
+} from "lucide-react";
+
+interface LayerRowProps {
+  layer: Layer;
+  isSelected: boolean;
+  onSelect: () => void;
+  onDelete: (layer: Layer) => void;
+  isVisible?: boolean;
+  isLocked?: boolean;
+}
+
+export const LayerRow = ({
+  layer,
+  isSelected,
+  onSelect,
+  onDelete,
+  isVisible = true,
+  isLocked = false,
+}: LayerRowProps) => {
+  const getLayerName = () => {
+    return `Layer ${layer.index}`;
+  };
+
+  const handleDelete = (event: React.MouseEvent) => {
+    onDelete(layer);
+    event.stopPropagation();
+  };
+
   return (
-    <div className="layer-row">
-      <span>{layer.name}</span>
-      <button onClick={handleToggleVisibility}>
-        {layer.visible ? "Hide" : "Show"}
+    <div
+      className={cn(
+        "relative flex border-l-2 items-center py-2 pl-2 rounded-xs text-sm hover:bg-muted cursor-pointer select-none transition-colors",
+        isSelected ? "bg-accent/10 border-accent" : "border-muted"
+      )}
+      onClick={onSelect}
+    >
+      <button className="rounded flex-shrink-0 cursor-pointer">
+        {isVisible ? (
+          <Eye className="w-4 h-4 text-muted-foreground hover:text-accent" />
+        ) : (
+          <EyeOff className="w-4 h-4 text-muted-foreground hover:text-accent" />
+        )}
       </button>
-      <button onClick={handleToggleLock}>
-        {layer.locked ? "Unlock" : "Lock"}
+
+      <button className="px-2 mr-2">
+        <LockKeyhole className="w-4 h-4 text-muted-foreground" />
       </button>
-      <button onClick={handleDeleteLayer}>Delete</button>
+
+      <div className="flex items-center min-w-0 flex-1">
+        <div className="flex-shrink-0">
+          <div className="relative">
+            {isLocked && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-background rounded-full border border-border flex items-center justify-center">
+                <Lock className="w-2 h-2 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <div
+                className={`
+                  font-medium truncate
+                  ${isVisible ? "text-foreground" : "text-muted-foreground/70"}
+                `}
+              >
+                {getLayerName()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center ml-2 flex-shrink-0">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDelete} className="">
+              <Trash className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
-}
+};
