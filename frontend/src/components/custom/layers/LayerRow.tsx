@@ -10,12 +10,10 @@ import { Layer } from "@/module_bindings";
 import {
   Eye,
   EyeOff,
-  Lock,
   Trash,
   LockKeyhole,
   MoreVertical,
-  Unlock,
-  UnlockIcon,
+  UnlockKeyhole,
 } from "lucide-react";
 
 interface LayerRowProps {
@@ -69,15 +67,15 @@ export const LayerRow = ({
         {layer.visible ? (
           <Eye className="w-4 h-4 text-muted-foreground hover:text-accent" />
         ) : (
-          <EyeOff className="w-4 h-4 text-muted-foreground hover:text-accent" />
+          <EyeOff className="w-4 h-4 text-muted-foreground/20 hover:text-accent" />
         )}
       </button>
 
       <button className="px-2 mr-2" onClick={handleToggleLocked}>
         {layer.locked ? (
-          <Lock className="w-4 h-4 text-muted-foreground" />
+          <LockKeyhole className="w-4 h-4 text-muted-foreground/20" />
         ) : (
-          <UnlockIcon className="w-4 h-4 text-muted-foreground/20" />
+          <UnlockKeyhole className="w-4 h-4 text-muted-foreground" />
         )}
       </button>
 

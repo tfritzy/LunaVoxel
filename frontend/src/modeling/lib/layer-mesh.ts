@@ -91,6 +91,46 @@ export const LayerMesh = class {
     return decompressed;
   }
 
+  private addLayerToBlocks(
+    blocks: (Block | undefined)[][][],
+    layer: Layer,
+    xDim: number,
+    yDim: number,
+    zDim: number
+  ): void {
+    if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
+      return;
+    }
+
+    let byteIndex = 0;
+    let blockIndex = 0;
+
+    while (byteIndex < layer.voxels.length) {
+      const runLength =
+        (layer.voxels[byteIndex + 1] << 8) | layer.voxels[byteIndex];
+      const blockBytes = layer.voxels.slice(byteIndex + 2, byteIndex + 4);
+      const block = this.blockFromBytes(blockBytes);
+
+      if (block.type !== 0) {
+        for (let i = 0; i < runLength; i++) {
+          const x = Math.floor(blockIndex / (yDim * zDim));
+          const y = Math.floor((blockIndex % (yDim * zDim)) / zDim);
+          const z = blockIndex % zDim;
+
+          if (x < xDim && y < yDim && z < zDim && !blocks[x][y][z]) {
+            blocks[x][y][z] = block;
+          }
+
+          blockIndex++;
+        }
+      } else {
+        blockIndex += runLength;
+      }
+
+      byteIndex += 4;
+    }
+  }
+
   private blockFromBytes(bytes: Uint8Array): Block {
     const combined = (bytes[0] << 8) | bytes[1];
     const type = combined >> 6;
@@ -100,7 +140,7 @@ export const LayerMesh = class {
   }
 
   update = (
-    newLayer: Layer,
+    layerList: Layer[],
     previewBlocks: (Block | undefined)[][][],
     buildMode: BlockModificationMode,
     atlas: Atlas,
@@ -108,15 +148,65 @@ export const LayerMesh = class {
   ) => {
     const updateId = ++this.currentUpdateId;
 
+    if (layerList.length === 0) {
+      return;
+    }
+
     try {
-      const realBlocks = this.decompressBlocks(
-        newLayer.voxels,
-        newLayer.xDim,
-        newLayer.yDim,
-        newLayer.zDim
-      );
-      if (updateId !== this.currentUpdateId) {
-        return;
+      const visibleLayers = layerList.filter((layer) => layer.visible);
+
+      let realBlocks: (Block | undefined)[][][];
+      let dimensions: { xDim: number; yDim: number; zDim: number };
+
+      if (visibleLayers.length === 0) {
+        dimensions =
+          layerList.length > 0
+            ? {
+                xDim: layerList[0].xDim,
+                yDim: layerList[0].yDim,
+                zDim: layerList[0].zDim,
+              }
+            : { xDim: 0, yDim: 0, zDim: 0 };
+
+        realBlocks = Array(dimensions.xDim)
+          .fill(null)
+          .map(() =>
+            Array(dimensions.yDim)
+              .fill(null)
+              .map(() => Array(dimensions.zDim).fill(undefined))
+          );
+      } else {
+        const firstLayer = visibleLayers[0];
+        dimensions = {
+          xDim: firstLayer.xDim,
+          yDim: firstLayer.yDim,
+          zDim: firstLayer.zDim,
+        };
+
+        realBlocks = this.decompressBlocks(
+          firstLayer.voxels,
+          firstLayer.xDim,
+          firstLayer.yDim,
+          firstLayer.zDim
+        );
+
+        if (updateId !== this.currentUpdateId) {
+          return;
+        }
+
+        for (let i = 1; i < visibleLayers.length; i++) {
+          this.addLayerToBlocks(
+            realBlocks,
+            visibleLayers[i],
+            dimensions.xDim,
+            dimensions.yDim,
+            dimensions.zDim
+          );
+
+          if (updateId !== this.currentUpdateId) {
+            return;
+          }
+        }
       }
 
       this.cacheVersion++;
@@ -127,11 +217,7 @@ export const LayerMesh = class {
         buildMode,
         atlas,
         blocks,
-        {
-          xDim: newLayer.xDim,
-          yDim: newLayer.yDim,
-          zDim: newLayer.zDim,
-        }
+        dimensions
       );
 
       if (updateId !== this.currentUpdateId) {

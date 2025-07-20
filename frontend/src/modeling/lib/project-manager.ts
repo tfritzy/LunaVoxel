@@ -20,7 +20,7 @@ export class ProjectManager {
   private dbConn: DbConnection;
   private project: Project;
   private currentUpdateController: AbortController | null = null;
-  private currentLayer: Layer | null = null;
+  private layers: Layer[] = [];
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
 
@@ -72,19 +72,21 @@ export class ProjectManager {
   };
 
   setupEvents = () => {
-    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
     this.dbConn.db.playerCursor.onUpdate(this.onCursorUpdate);
     this.dbConn.db.playerCursor.onInsert(this.onCursorInsert);
     this.dbConn.db.playerCursor.onDelete(this.onCursorDelete);
   };
 
   setupLayers = async () => {
-    for (const layer of this.dbConn.db.layer.tableCache.iter()) {
-      const l = layer as Layer;
-      if (l.projectId !== this.project.id) continue;
-      this.currentLayer = l;
-      await this.updateLayerMesh();
-    }
+    this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[]).filter(
+      (l) => l.projectId === this.project.id
+    );
+    await this.updateLayerMesh();
+  };
+
+  updateLayers = async (layers: Layer[]) => {
+    this.layers = layers;
+    await this.updateLayerMesh();
   };
 
   setupCursors = () => {
@@ -92,11 +94,6 @@ export class ProjectManager {
   };
 
   onPreviewUpdate = () => {
-    this.updateLayerMesh();
-  };
-
-  onLayerUpdate = (ctx: EventContext, oldRow: Layer, newRow: Layer) => {
-    this.currentLayer = newRow;
     this.updateLayerMesh();
   };
 
@@ -123,18 +120,13 @@ export class ProjectManager {
   };
 
   private updateLayerMesh = () => {
-    if (!this.currentLayer || !this.atlas || !this.blocks) {
-      console.warn(
-        "No current layer or atlas set, skipping mesh update.",
-        this.currentLayer,
-        this.atlas
-      );
+    if (!this.atlas || !this.blocks) {
       return;
     }
 
     this.currentUpdateController = new AbortController();
     this.layerMesh.update(
-      this.currentLayer,
+      this.layers,
       this.builder.previewBlocks,
       this.builder.getTool(),
       this.atlas,
@@ -154,7 +146,6 @@ export class ProjectManager {
     this.builder.dispose();
     this.layerMesh.dispose();
     this.cursorManager.dispose();
-    this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.playerCursor.removeOnUpdate(this.onCursorUpdate);
     this.dbConn.db.playerCursor.removeOnInsert(this.onCursorInsert);
     this.dbConn.db.playerCursor.removeOnDelete(this.onCursorDelete);

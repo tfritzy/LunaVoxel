@@ -21,8 +21,15 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const { selectedBlock, project, atlas, textureAtlas, blocks, selectedLayer } =
-    useCurrentProject();
+  const {
+    selectedBlock,
+    project,
+    atlas,
+    textureAtlas,
+    blocks,
+    layers,
+    selectedLayer,
+  } = useCurrentProject();
 
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
@@ -31,6 +38,11 @@ export const ProjectViewPage = () => {
   useEffect(() => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(selectedLayer);
   }, [selectedLayer]);
+
+  useEffect(() => {
+    console.log("update layers");
+    engineRef.current?.projectManager?.updateLayers(layers);
+  }, [layers]);
 
   useEffect(() => {
     if (!projectId || !connection) return;
