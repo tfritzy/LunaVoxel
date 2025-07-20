@@ -15,9 +15,10 @@ public static partial class Module
         int x2,
         int y2,
         int z2,
-        int rotation)
+        int rotation,
+        int layerIndex)
     {
-        var layer = ctx.Db.layer.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No layer for this project");
+        var layer = ctx.Db.layer.Id.Find($"{projectId}_{layerIndex}") ?? throw new ArgumentException("No layer for this project");
         List<Vector3> positions = [];
         int startX = Math.Max(0, Math.Min(Math.Min(x1, x2), layer.xDim - 1));
         int endX = Math.Min(layer.xDim - 1, Math.Max(Math.Max(x1, x2), 0));
@@ -35,6 +36,7 @@ public static partial class Module
                 }
             }
         }
-        ModifyBlock(ctx, projectId, mode, type, positions, rotation);
+
+        ModifyBlock(ctx, projectId, mode, type, positions, rotation, layerIndex);
     }
 }

@@ -119,6 +119,8 @@ public static partial class Module
         public int zDim;
         public int Index;
         public byte[] Voxels = [];
+        public bool Visible;
+        public bool Locked;
 
         public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
         {
@@ -130,7 +132,9 @@ public static partial class Module
                 yDim = yDim,
                 zDim = zDim,
                 Index = index,
-                Voxels = VoxelRLE.Compress(new byte[xDim * yDim * zDim * 2])
+                Voxels = VoxelRLE.Compress(new byte[xDim * yDim * zDim * 2]),
+                Visible = true,
+                Locked = false
             };
         }
     }

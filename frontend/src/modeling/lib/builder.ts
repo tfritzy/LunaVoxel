@@ -14,6 +14,7 @@ export const Builder = class {
   private dimensions: Vector3;
   private onPreviewUpdate: () => void;
   private selectedBlock: number = 1;
+  private selectedLayer: number = 0;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -76,6 +77,10 @@ export const Builder = class {
 
   public setSelectedBlock(block: number): void {
     this.selectedBlock = block;
+  }
+
+  public setSelectedLayer(layer: number): void {
+    this.selectedLayer = layer;
   }
 
   public updateCamera(camera: THREE.Camera): void {
@@ -347,6 +352,8 @@ export const Builder = class {
   ): void {
     if (!this.dbConn.isActive) return;
 
+    this.clearPreviewBlocks();
+
     this.dbConn.reducers.modifyBlockRect(
       this.projectId,
       tool,
@@ -357,7 +364,8 @@ export const Builder = class {
       endPos.x,
       endPos.y,
       endPos.z,
-      0
+      0,
+      this.selectedLayer
     );
   }
 

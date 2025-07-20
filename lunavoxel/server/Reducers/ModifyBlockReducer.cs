@@ -12,11 +12,15 @@ public static partial class Module
         BlockModificationMode mode,
         int blockType,
         List<Vector3> positions,
-        int rotation)
+        int rotation,
+        int layerIndex)
     {
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
-        var layer = ctx.Db.layer.Id.Find($"{projectId}_0") ?? throw new ArgumentException("No layer for this project");
+        var layer = ctx.Db.layer.Id.Find($"{projectId}_{layerIndex}") ?? throw new ArgumentException("No layer for this project");
+
+        if (layer.Locked) return;
+
         byte[] voxels = VoxelRLE.Decompress(layer.Voxels);
 
         foreach (var position in positions)

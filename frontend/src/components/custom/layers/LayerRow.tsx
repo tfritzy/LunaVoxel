@@ -14,6 +14,8 @@ import {
   Trash,
   LockKeyhole,
   MoreVertical,
+  Unlock,
+  UnlockIcon,
 } from "lucide-react";
 
 interface LayerRowProps {
@@ -21,8 +23,8 @@ interface LayerRowProps {
   isSelected: boolean;
   onSelect: () => void;
   onDelete: (layer: Layer) => void;
-  isVisible?: boolean;
-  isLocked?: boolean;
+  onToggleVisibility: (layer: Layer) => void;
+  onToggleLocked: (layer: Layer) => void;
 }
 
 export const LayerRow = ({
@@ -30,8 +32,8 @@ export const LayerRow = ({
   isSelected,
   onSelect,
   onDelete,
-  isVisible = true,
-  isLocked = false,
+  onToggleVisibility,
+  onToggleLocked,
 }: LayerRowProps) => {
   const getLayerName = () => {
     return `Layer ${layer.index}`;
@@ -39,6 +41,16 @@ export const LayerRow = ({
 
   const handleDelete = (event: React.MouseEvent) => {
     onDelete(layer);
+    event.stopPropagation();
+  };
+
+  const handleToggleVisibility = (event: React.MouseEvent) => {
+    onToggleVisibility(layer);
+    event.stopPropagation();
+  };
+
+  const handleToggleLocked = (event: React.MouseEvent) => {
+    onToggleLocked(layer);
     event.stopPropagation();
   };
 
@@ -50,36 +62,37 @@ export const LayerRow = ({
       )}
       onClick={onSelect}
     >
-      <button className="rounded flex-shrink-0 cursor-pointer">
-        {isVisible ? (
+      <button
+        className="rounded flex-shrink-0 cursor-pointer"
+        onClick={handleToggleVisibility}
+      >
+        {layer.visible ? (
           <Eye className="w-4 h-4 text-muted-foreground hover:text-accent" />
         ) : (
           <EyeOff className="w-4 h-4 text-muted-foreground hover:text-accent" />
         )}
       </button>
 
-      <button className="px-2 mr-2">
-        <LockKeyhole className="w-4 h-4 text-muted-foreground" />
+      <button className="px-2 mr-2" onClick={handleToggleLocked}>
+        {layer.locked ? (
+          <Lock className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <UnlockIcon className="w-4 h-4 text-muted-foreground/20" />
+        )}
       </button>
 
       <div className="flex items-center min-w-0 flex-1">
-        <div className="flex-shrink-0">
-          <div className="relative">
-            {isLocked && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-background rounded-full border border-border flex items-center justify-center">
-                <Lock className="w-2 h-2 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <div
                 className={`
                   font-medium truncate
-                  ${isVisible ? "text-foreground" : "text-muted-foreground/70"}
+                  ${
+                    layer.visible
+                      ? "text-foreground"
+                      : "text-muted-foreground/70"
+                  }
                 `}
               >
                 {getLayerName()}

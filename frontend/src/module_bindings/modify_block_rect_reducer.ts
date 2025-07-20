@@ -44,6 +44,7 @@ export type ModifyBlockRect = {
   y2: number,
   z2: number,
   rotation: number,
+  layerIndex: number,
 };
 
 /**
@@ -66,6 +67,7 @@ export namespace ModifyBlockRect {
       new ProductTypeElement("y2", AlgebraicType.createI32Type()),
       new ProductTypeElement("z2", AlgebraicType.createI32Type()),
       new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
+      new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
     ]);
   }
 

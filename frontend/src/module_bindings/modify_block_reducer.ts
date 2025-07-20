@@ -40,6 +40,7 @@ export type ModifyBlock = {
   blockType: number,
   positions: __Vector3[],
   rotation: number,
+  layerIndex: number,
 };
 
 /**
@@ -57,6 +58,7 @@ export namespace ModifyBlock {
       new ProductTypeElement("blockType", AlgebraicType.createI32Type()),
       new ProductTypeElement("positions", AlgebraicType.createArrayType(__Vector3.getTypeScriptAlgebraicType())),
       new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
+      new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
     ]);
   }
 

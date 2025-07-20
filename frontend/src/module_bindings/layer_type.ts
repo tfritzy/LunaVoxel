@@ -38,6 +38,8 @@ export type Layer = {
   zDim: number,
   index: number,
   voxels: Uint8Array,
+  visible: boolean,
+  locked: boolean,
 };
 
 /**
@@ -57,6 +59,8 @@ export namespace Layer {
       new ProductTypeElement("zDim", AlgebraicType.createI32Type()),
       new ProductTypeElement("index", AlgebraicType.createI32Type()),
       new ProductTypeElement("voxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
+      new ProductTypeElement("visible", AlgebraicType.createBoolType()),
+      new ProductTypeElement("locked", AlgebraicType.createBoolType()),
     ]);
   }
 

@@ -64,6 +64,10 @@ import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { SyncUser } from "./sync_user_reducer.ts";
 export { SyncUser };
+import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
+export { ToggleLayerLock };
+import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
+export { ToggleLayerVisibility };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
 export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
@@ -225,6 +229,14 @@ const REMOTE_MODULE = {
       reducerName: "SyncUser",
       argsType: SyncUser.getTypeScriptAlgebraicType(),
     },
+    ToggleLayerLock: {
+      reducerName: "ToggleLayerLock",
+      argsType: ToggleLayerLock.getTypeScriptAlgebraicType(),
+    },
+    ToggleLayerVisibility: {
+      reducerName: "ToggleLayerVisibility",
+      argsType: ToggleLayerVisibility.getTypeScriptAlgebraicType(),
+    },
     UpdateAtlas: {
       reducerName: "UpdateAtlas",
       argsType: UpdateAtlas.getTypeScriptAlgebraicType(),
@@ -284,6 +296,8 @@ export type Reducer = never
 | { name: "PokeProject", args: PokeProject }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "SyncUser", args: SyncUser }
+| { name: "ToggleLayerLock", args: ToggleLayerLock }
+| { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
 | { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
@@ -453,35 +467,35 @@ export class RemoteReducers {
     this.connection.offReducer("InviteToProject", callback);
   }
 
-  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) {
-    const __args = { projectId, mode, blockType, positions, rotation };
+  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) {
+    const __args = { projectId, mode, blockType, positions, rotation, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) {
-    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, rotation };
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) {
+    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, rotation, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
@@ -531,6 +545,38 @@ export class RemoteReducers {
 
   removeOnSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
     this.connection.offReducer("SyncUser", callback);
+  }
+
+  toggleLayerLock(layerId: string) {
+    const __args = { layerId };
+    let __writer = new BinaryWriter(1024);
+    ToggleLayerLock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ToggleLayerLock", __argsBuffer, this.setCallReducerFlags.toggleLayerLockFlags);
+  }
+
+  onToggleLayerLock(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.onReducer("ToggleLayerLock", callback);
+  }
+
+  removeOnToggleLayerLock(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.offReducer("ToggleLayerLock", callback);
+  }
+
+  toggleLayerVisibility(layerId: string) {
+    const __args = { layerId };
+    let __writer = new BinaryWriter(1024);
+    ToggleLayerVisibility.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ToggleLayerVisibility", __argsBuffer, this.setCallReducerFlags.toggleLayerVisibilityFlags);
+  }
+
+  onToggleLayerVisibility(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.onReducer("ToggleLayerVisibility", callback);
+  }
+
+  removeOnToggleLayerVisibility(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.offReducer("ToggleLayerVisibility", callback);
   }
 
   updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
@@ -668,6 +714,16 @@ export class SetReducerFlags {
   syncUserFlags: CallReducerFlags = 'FullUpdate';
   syncUser(flags: CallReducerFlags) {
     this.syncUserFlags = flags;
+  }
+
+  toggleLayerLockFlags: CallReducerFlags = 'FullUpdate';
+  toggleLayerLock(flags: CallReducerFlags) {
+    this.toggleLayerLockFlags = flags;
+  }
+
+  toggleLayerVisibilityFlags: CallReducerFlags = 'FullUpdate';
+  toggleLayerVisibility(flags: CallReducerFlags) {
+    this.toggleLayerVisibilityFlags = flags;
   }
 
   updateAtlasFlags: CallReducerFlags = 'FullUpdate';

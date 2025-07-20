@@ -19,7 +19,7 @@ export type VoxelFaces = {
   faceIndexes: number[];
 };
 
-export const LayerMesh = class {
+export const `LayerMesh` = class {
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;

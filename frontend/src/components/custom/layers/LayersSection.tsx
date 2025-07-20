@@ -17,23 +17,31 @@ export function LayersSection() {
 
   const onDelete = React.useCallback(
     (layer: Layer) => {
-      console.log("delete layer");
-      console.log(layers);
       connection?.reducers.deleteLayer(layer.id);
 
-      console.log("selected layer", layer.index);
       if (selectedLayer === layer.index) {
-        console.log("match");
-        if (layers[0]) {
-          console.log("exists and delete", layers[0].index);
-          setSelectedLayer(layers[0].index);
+        const nextFirst = layers.find((l) => l.index !== layer.index);
+        if (nextFirst) {
+          setSelectedLayer(nextFirst.index);
         }
       }
     },
     [connection?.reducers, layers, selectedLayer, setSelectedLayer]
   );
 
-  console.log("selected layer", selectedLayer);
+  const toggleVisibility = React.useCallback(
+    (layer: Layer) => {
+      connection?.reducers.toggleLayerVisibility(layer.id);
+    },
+    [connection?.reducers]
+  );
+
+  const toggleLocked = React.useCallback(
+    (layer: Layer) => {
+      connection?.reducers.toggleLayerLock(layer.id);
+    },
+    [connection?.reducers]
+  );
 
   return (
     <div className="">
@@ -52,6 +60,8 @@ export function LayersSection() {
             isSelected={selectedLayer === l.index}
             onSelect={() => setSelectedLayer(l.index)}
             onDelete={onDelete}
+            onToggleVisibility={toggleVisibility}
+            onToggleLocked={toggleLocked}
           />
         ))}
       </div>

@@ -13,13 +13,13 @@ import { CursorManager, PlayerCursor } from "./cursor-manager";
 import { Builder } from "./builder";
 
 export class ProjectManager {
+  public builder;
   private scene: THREE.Scene;
   private layerMesh;
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
   private currentUpdateController: AbortController | null = null;
-  private builder;
   private currentLayer: Layer | null = null;
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
