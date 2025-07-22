@@ -1,6 +1,5 @@
 using SpacetimeDB;
 using System.Linq;
-
 public static partial class Module
 {
     [Reducer]
@@ -8,9 +7,23 @@ public static partial class Module
     {
         var layer = ctx.Db.layer.Id.Find(id)
             ?? throw new ArgumentException("Layer not found");
-
         EnsureAccessToProject.Check(ctx, layer.ProjectId, ctx.Sender);
+        var layers = ctx.Db.layer.layer_project.Filter(layer.ProjectId)
+            .ToList();
 
-        ctx.Db.layer.Delete(layer);
+        layers.Sort((l1, l2) => l1.Index - l2.Index);
+
+        ctx.Db.layer.Id.Delete(id);
+
+        var remainingLayers = layers.Where(l => l.Id != id).ToList();
+        for (int i = 0; i < remainingLayers.Count; i++)
+        {
+            var layerToUpdate = remainingLayers[i];
+            if (layerToUpdate.Index != i)
+            {
+                layerToUpdate.Index = i;
+                ctx.Db.layer.Id.Update(layerToUpdate);
+            }
+        }
     }
 }

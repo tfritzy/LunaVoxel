@@ -49,11 +49,8 @@ export const LayersSection = () => {
     (layer: Layer) => {
       connection?.reducers.deleteLayer(layer.id);
 
-      if (selectedLayer === layer.index) {
-        const nextFirst = layers.find((l) => l.index !== layer.index);
-        if (nextFirst) {
-          setSelectedLayer(nextFirst.index);
-        }
+      if (selectedLayer >= layers.length - 1) {
+        setSelectedLayer(selectedLayer - 1);
       }
     },
     [connection?.reducers, layers, selectedLayer, setSelectedLayer]
@@ -96,7 +93,7 @@ export const LayersSection = () => {
 
   return (
     <div className="">
-      <div className="w-full flex flex-row justify-between items-center mb-4">
+      <div className="w-full flex flex-row justify-between items-center mb-4 pl-4 pt-4">
         <h2 className="text-lg font-semibold">Layers</h2>
         <Button variant="ghost" onClick={addLayer}>
           <Plus />
@@ -113,7 +110,7 @@ export const LayersSection = () => {
           items={layerIds}
           strategy={verticalListSortingStrategy}
         >
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col">
             {layers.map((l) => (
               <SortableLayerRow
                 layer={l}

@@ -59,14 +59,14 @@ export const LayerRow = ({
   return (
     <div
       className={cn(
-        "relative flex border-l-3 items-center py-2 pl-2 rounded-xs text-sm hover:bg-muted cursor-grab active:cursor-grabbing select-none transition-colors",
-        isSelected ? "bg-accent/10 border-accent" : "border-muted",
+        "relative flex border-l-4 items-center py-2 px-1 pl-2 text-sm hover:bg-muted cursor-grab active:cursor-grabbing select-none transition-colors",
+        isSelected ? "bg-accent/8 border-accent" : "border-muted",
         isDragging && "scale-105 shadow-lg"
       )}
       onClick={onSelect}
     >
       <button
-        className="rounded flex-shrink-0 cursor-pointer p-1"
+        className="rounded flex-shrink-0 cursor-pointer p-1.5 bg-accent/5 mr-1"
         onClick={handleToggleVisibility}
         onPointerDown={stopDragPropagation}
       >
@@ -78,14 +78,14 @@ export const LayerRow = ({
       </button>
 
       <button
-        className="px-2 mr-2 cursor-pointer p-1"
+        className="px-2 mr-2 cursor-pointer p-1.5 bg-accent/5 rounded"
         onClick={handleToggleLocked}
         onPointerDown={stopDragPropagation}
       >
         {layer.locked ? (
-          <LockKeyhole className="w-4 h-4 text-muted-foreground/20" />
+          <LockKeyhole className="w-4 h-4 text-muted-foreground" />
         ) : (
-          <UnlockKeyhole className="w-4 h-4 text-muted-foreground" />
+          <UnlockKeyhole className="w-4 h-4 text-muted-foreground/20" />
         )}
       </button>
 

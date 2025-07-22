@@ -10,7 +10,7 @@ export const RightSideDrawer = () => {
 
       <div className="border-b border-border" />
 
-      <div className="p-4">
+      <div className="">
         <LayersSection />
       </div>
     </div>

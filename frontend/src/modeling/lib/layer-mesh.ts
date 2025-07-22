@@ -148,10 +148,6 @@ export const LayerMesh = class {
   ) => {
     const updateId = ++this.currentUpdateId;
 
-    if (layerList.length === 0) {
-      return;
-    }
-
     try {
       const visibleLayers = layerList.filter((layer) => layer.visible);
 
