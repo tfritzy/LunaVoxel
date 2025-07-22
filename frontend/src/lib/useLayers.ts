@@ -18,7 +18,7 @@ export const useLayers = (
         const projectLayers = Array.from(connection.db.layer.tableCache.iter())
           .filter((layer: Layer) => layer.projectId === projectId)
           .sort((a: Layer, b: Layer) => a.index - b.index);
-        
+
         setLayers(projectLayers);
         setIsLoading(false);
       })
@@ -27,9 +27,7 @@ export const useLayers = (
         setError("Failed to subscribe to layers");
         setIsLoading(false);
       })
-      .subscribe([
-        `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
-      ]);
+      .subscribe([`SELECT * FROM layer WHERE ProjectId='${projectId}'`]);
 
     const onLayerUpdate = (
       ctx: EventContext,
@@ -38,9 +36,9 @@ export const useLayers = (
     ) => {
       if (newLayer.projectId === projectId) {
         setLayers((prev) =>
-          prev.map((layer) =>
-            layer.id === newLayer.id ? newLayer : layer
-          ).sort((a, b) => a.index - b.index)
+          prev
+            .map((layer) => (layer.id === newLayer.id ? newLayer : layer))
+            .sort((a, b) => a.index - b.index)
         );
       }
     };
@@ -56,7 +54,7 @@ export const useLayers = (
         });
       }
     };
-    
+
     const onLayerDelete = (ctx: EventContext, deletedLayer: Layer) => {
       if (deletedLayer.projectId === projectId) {
         setLayers((prev) =>
@@ -79,6 +77,7 @@ export const useLayers = (
 
   return {
     layers,
+    setLayers,
     isLoading,
     error,
   };

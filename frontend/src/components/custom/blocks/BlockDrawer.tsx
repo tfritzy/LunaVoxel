@@ -96,8 +96,8 @@ export const BlockDrawer = () => {
   }
 
   const selectedBlockFaces =
-    selectedBlock < blocks.blockFaceAtlasIndexes.length
-      ? blocks.blockFaceAtlasIndexes[selectedBlock]
+    selectedBlock <= blocks.blockFaceAtlasIndexes.length
+      ? blocks.blockFaceAtlasIndexes[selectedBlock - 1]
       : null;
 
   return (

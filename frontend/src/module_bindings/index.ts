@@ -62,6 +62,8 @@ import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
+import { ReorderLayers } from "./reorder_layers_reducer.ts";
+export { ReorderLayers };
 import { SyncUser } from "./sync_user_reducer.ts";
 export { SyncUser };
 import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
@@ -225,6 +227,10 @@ const REMOTE_MODULE = {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
     },
+    ReorderLayers: {
+      reducerName: "ReorderLayers",
+      argsType: ReorderLayers.getTypeScriptAlgebraicType(),
+    },
     SyncUser: {
       reducerName: "SyncUser",
       argsType: SyncUser.getTypeScriptAlgebraicType(),
@@ -295,6 +301,7 @@ export type Reducer = never
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
+| { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
@@ -531,6 +538,22 @@ export class RemoteReducers {
     this.connection.offReducer("RemoveColorFromPalette", callback);
   }
 
+  reorderLayers(projectId: string, newOrder: string[]) {
+    const __args = { projectId, newOrder };
+    let __writer = new BinaryWriter(1024);
+    ReorderLayers.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ReorderLayers", __argsBuffer, this.setCallReducerFlags.reorderLayersFlags);
+  }
+
+  onReorderLayers(callback: (ctx: ReducerEventContext, projectId: string, newOrder: string[]) => void) {
+    this.connection.onReducer("ReorderLayers", callback);
+  }
+
+  removeOnReorderLayers(callback: (ctx: ReducerEventContext, projectId: string, newOrder: string[]) => void) {
+    this.connection.offReducer("ReorderLayers", callback);
+  }
+
   syncUser(identityHex: string, email: string, name: string) {
     const __args = { identityHex, email, name };
     let __writer = new BinaryWriter(1024);
@@ -709,6 +732,11 @@ export class SetReducerFlags {
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
   removeColorFromPalette(flags: CallReducerFlags) {
     this.removeColorFromPaletteFlags = flags;
+  }
+
+  reorderLayersFlags: CallReducerFlags = 'FullUpdate';
+  reorderLayers(flags: CallReducerFlags) {
+    this.reorderLayersFlags = flags;
   }
 
   syncUserFlags: CallReducerFlags = 'FullUpdate';

@@ -18,7 +18,8 @@ public static partial class Module
         int rotation,
         int layerIndex)
     {
-        var layer = ctx.Db.layer.Id.Find($"{projectId}_{layerIndex}") ?? throw new ArgumentException("No layer for this project");
+        var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
+             ?? throw new ArgumentException("No layer for this project");
         List<Vector3> positions = [];
         int startX = Math.Max(0, Math.Min(Math.Min(x1, x2), layer.xDim - 1));
         int endX = Math.Min(layer.xDim - 1, Math.Max(Math.Max(x1, x2), 0));

@@ -40,7 +40,7 @@ export const ProjectViewPage = () => {
   }, [selectedLayer]);
 
   useEffect(() => {
-    console.log("update layers");
+    console.log(JSON.stringify(layers.map((l) => [l.id, l.index])));
     engineRef.current?.projectManager?.updateLayers(layers);
   }, [layers]);
 

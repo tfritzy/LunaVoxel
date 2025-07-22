@@ -22,6 +22,7 @@ interface CurrentProjectContextType {
   textureAtlas: THREE.Texture | null;
   blocks: ProjectBlocks;
   layers: Layer[];
+  setLayers: (layers: Layer[]) => void;
   selectedBlock: number;
   setSelectedBlock: (block: number) => void;
   selectedLayer: number;
@@ -60,7 +61,7 @@ export const CurrentProjectProvider = ({
   const [pokeAttempted, setPokeAttempted] = useState(false);
   const { atlas, slots, texture } = useAtlas(projectId || "");
   const { blocks } = useBlocks(connection, projectId || "");
-  const { layers } = useLayers(connection, projectId || "");
+  const { layers, setLayers } = useLayers(connection, projectId || "");
 
   const retryProjectLoad = () => {
     setProjectStatus("loading");
@@ -146,14 +147,15 @@ export const CurrentProjectProvider = ({
         atlas,
         atlasSlots: slots,
         textureAtlas: texture,
-        layers: layers,
+        layers,
+        setLayers,
         selectedBlock,
         setSelectedBlock,
         selectedLayer,
         setSelectedLayer,
         projectStatus,
         retryProjectLoad,
-        blocks: blocks,
+        blocks,
       }}
     >
       {children}

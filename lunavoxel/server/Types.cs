@@ -109,6 +109,7 @@ public static partial class Module
 
     [Table(Name = "layer", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "layer_project", Columns = new[] { nameof(ProjectId) })]
+    [SpacetimeDB.Index.BTree(Name = "project_index", Columns = new[] { nameof(ProjectId), nameof(Index) })]
     public partial class Layer
     {
         [PrimaryKey]
@@ -121,12 +122,13 @@ public static partial class Module
         public byte[] Voxels = [];
         public bool Visible;
         public bool Locked;
+        public string Name;
 
         public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
         {
             return new Layer
             {
-                Id = $"{projectId}_{index}",
+                Id = IdGenerator.Generate("lyr"),
                 ProjectId = projectId,
                 xDim = xDim,
                 yDim = yDim,
@@ -134,7 +136,8 @@ public static partial class Module
                 Index = index,
                 Voxels = VoxelRLE.Compress(new byte[xDim * yDim * zDim * 2]),
                 Visible = true,
-                Locked = false
+                Locked = false,
+                Name = $"Layer {index}"
             };
         }
     }

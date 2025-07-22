@@ -30,50 +30,34 @@ import {
   Timestamp,
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
-export type Layer = {
-  id: string,
+
+export type ReorderLayers = {
   projectId: string,
-  xDim: number,
-  yDim: number,
-  zDim: number,
-  index: number,
-  voxels: Uint8Array,
-  visible: boolean,
-  locked: boolean,
-  name: string,
+  newOrder: string[],
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace Layer {
+export namespace ReorderLayers {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("xDim", AlgebraicType.createI32Type()),
-      new ProductTypeElement("yDim", AlgebraicType.createI32Type()),
-      new ProductTypeElement("zDim", AlgebraicType.createI32Type()),
-      new ProductTypeElement("index", AlgebraicType.createI32Type()),
-      new ProductTypeElement("voxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
-      new ProductTypeElement("visible", AlgebraicType.createBoolType()),
-      new ProductTypeElement("locked", AlgebraicType.createBoolType()),
-      new ProductTypeElement("name", AlgebraicType.createStringType()),
+      new ProductTypeElement("newOrder", AlgebraicType.createArrayType(AlgebraicType.createStringType())),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Layer): void {
-    Layer.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ReorderLayers): void {
+    ReorderLayers.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Layer {
-    return Layer.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ReorderLayers {
+    return ReorderLayers.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
-
 

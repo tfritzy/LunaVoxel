@@ -17,7 +17,8 @@ public static partial class Module
     {
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
-        var layer = ctx.Db.layer.Id.Find($"{projectId}_{layerIndex}") ?? throw new ArgumentException("No layer for this project");
+        var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
+            ?? throw new ArgumentException("No layer for this project");
 
         if (layer.Locked) return;
 

@@ -23,6 +23,7 @@ interface LayerRowProps {
   onDelete: (layer: Layer) => void;
   onToggleVisibility: (layer: Layer) => void;
   onToggleLocked: (layer: Layer) => void;
+  isDragging?: boolean;
 }
 
 export const LayerRow = ({
@@ -32,11 +33,8 @@ export const LayerRow = ({
   onDelete,
   onToggleVisibility,
   onToggleLocked,
+  isDragging = false,
 }: LayerRowProps) => {
-  const getLayerName = () => {
-    return `Layer ${layer.index}`;
-  };
-
   const handleDelete = (event: React.MouseEvent) => {
     onDelete(layer);
     event.stopPropagation();
@@ -52,17 +50,25 @@ export const LayerRow = ({
     event.stopPropagation();
   };
 
+  const stopDragPropagation = (
+    event: React.MouseEvent | React.PointerEvent
+  ) => {
+    event.stopPropagation();
+  };
+
   return (
     <div
       className={cn(
-        "relative flex border-l-2 items-center py-2 pl-2 rounded-xs text-sm hover:bg-muted cursor-pointer select-none transition-colors",
-        isSelected ? "bg-accent/10 border-accent" : "border-muted"
+        "relative flex border-l-3 items-center py-2 pl-2 rounded-xs text-sm hover:bg-muted cursor-grab active:cursor-grabbing select-none transition-colors",
+        isSelected ? "bg-accent/10 border-accent" : "border-muted",
+        isDragging && "scale-105 shadow-lg"
       )}
       onClick={onSelect}
     >
       <button
-        className="rounded flex-shrink-0 cursor-pointer"
+        className="rounded flex-shrink-0 cursor-pointer p-1"
         onClick={handleToggleVisibility}
+        onPointerDown={stopDragPropagation}
       >
         {layer.visible ? (
           <Eye className="w-4 h-4 text-muted-foreground hover:text-accent" />
@@ -71,7 +77,11 @@ export const LayerRow = ({
         )}
       </button>
 
-      <button className="px-2 mr-2" onClick={handleToggleLocked}>
+      <button
+        className="px-2 mr-2 cursor-pointer p-1"
+        onClick={handleToggleLocked}
+        onPointerDown={stopDragPropagation}
+      >
         {layer.locked ? (
           <LockKeyhole className="w-4 h-4 text-muted-foreground/20" />
         ) : (
@@ -93,7 +103,7 @@ export const LayerRow = ({
                   }
                 `}
               >
-                {getLayerName()}
+                {layer.name}
               </div>
             </div>
           </div>
@@ -103,7 +113,12 @@ export const LayerRow = ({
       <div className="flex items-center ml-2 flex-shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onPointerDown={stopDragPropagation}
+            >
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
