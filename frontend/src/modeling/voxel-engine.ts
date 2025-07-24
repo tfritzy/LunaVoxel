@@ -64,7 +64,10 @@ export class VoxelEngine {
   }
 
   private setupRenderer(container: HTMLElement): THREE.WebGLRenderer {
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+    });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
 

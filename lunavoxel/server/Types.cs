@@ -142,6 +142,41 @@ public static partial class Module
         }
     }
 
+    [Table(Name = "layer_history_entry", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "author_head", Columns = new[] { nameof(Author), nameof(IsHead) })]
+    [SpacetimeDB.Index.BTree(Name = "project", Columns = new[] { nameof(ProjectId) })]
+    public partial class LayerHistoryEntry
+    {
+        [PrimaryKey]
+        public string Id;
+        public string ProjectId;
+        public Identity Author;
+        public int Version;
+        public bool IsHead;
+        public string LayerId;
+        public byte[] Voxels = [];
+
+        public static LayerHistoryEntry Build(
+            string projectId,
+            Identity author,
+            string layerId,
+            int version,
+            byte[] voxels,
+            bool isHead)
+        {
+            return new LayerHistoryEntry
+            {
+                Id = IdGenerator.Generate("lhe"),
+                ProjectId = projectId,
+                Author = author,
+                Version = version,
+                IsHead = isHead,
+                LayerId = layerId,
+                Voxels = voxels
+            };
+        }
+    }
+
     [Table(Name = "user", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "email", Columns = new[] { nameof(Email) })]
     public partial class User

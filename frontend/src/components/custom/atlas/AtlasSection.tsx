@@ -70,21 +70,14 @@ export const AtlasSection = () => {
       </div>
 
       <div className="space-y-1 mb-4 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Cell size:</span>
-          <span className="font-mono">
+        <div className="mb-3 text-xs text-muted-foreground font-mono flex gap-4">
+          <span>
             {atlas.cellPixelWidth}×{atlas.cellPixelWidth}
           </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Atlas size:</span>
-          <span className="font-mono">
+          <span>
             {textureAtlas?.image?.width || 0}×{textureAtlas?.image?.height || 0}
           </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Used slots:</span>
-          <span className="font-mono">
+          <span>
             {atlas.usedSlots}/{atlas.gridSize * atlas.gridSize}
           </span>
         </div>

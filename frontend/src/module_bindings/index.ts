@@ -86,6 +86,8 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { LayerTableHandle } from "./layer_table.ts";
 export { LayerTableHandle };
+import { LayerHistoryEntryTableHandle } from "./layer_history_entry_table.ts";
+export { LayerHistoryEntryTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
 export { PlayerCursorTableHandle };
 import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
@@ -108,6 +110,8 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { Layer } from "./layer_type.ts";
 export { Layer };
+import { LayerHistoryEntry } from "./layer_history_entry_type.ts";
+export { LayerHistoryEntry };
 import { PlayerCursor } from "./player_cursor_type.ts";
 export { PlayerCursor };
 import { Project } from "./project_type.ts";
@@ -138,6 +142,11 @@ const REMOTE_MODULE = {
     layer: {
       tableName: "layer",
       rowType: Layer.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
+    },
+    layer_history_entry: {
+      tableName: "layer_history_entry",
+      rowType: LayerHistoryEntry.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
     player_cursor: {
@@ -789,6 +798,10 @@ export class RemoteTables {
 
   get layer(): LayerTableHandle {
     return new LayerTableHandle(this.connection.clientCache.getOrCreateTable<Layer>(REMOTE_MODULE.tables.layer));
+  }
+
+  get layerHistoryEntry(): LayerHistoryEntryTableHandle {
+    return new LayerHistoryEntryTableHandle(this.connection.clientCache.getOrCreateTable<LayerHistoryEntry>(REMOTE_MODULE.tables.layer_history_entry));
   }
 
   get playerCursor(): PlayerCursorTableHandle {
