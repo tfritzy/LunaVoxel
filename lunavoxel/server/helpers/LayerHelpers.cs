@@ -13,13 +13,16 @@ public static class LayerHelpers
         }
 
         ctx.Db.layer.Insert(layer);
-        ctx.Db.layer_history_entry.Insert(LayerHistoryEntry.Build(
+
+        var history = LayerHistoryEntry.Build(
             layer.ProjectId,
             ctx.Sender,
             layer.Id,
             layer.Voxels,
             layer.Voxels,
             true
-        ));
+        );
+        history.IsBaseState = true;
+        ctx.Db.layer_history_entry.Insert(history);
     }
 }

@@ -46,7 +46,7 @@ public static class UndoRedo
         var entries = ctx.Db.layer_history_entry.project.Filter(projectId).ToList();
         entries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
 
-        var authorEdits = entries.FindAll(e => e.Author == author);
+        var authorEdits = entries.FindAll(e => e.Author == author || e.IsBaseState);
         var headIndex = authorEdits.FindIndex(e => e.IsHead);
         if (headIndex <= 0)
         {

@@ -159,6 +159,7 @@ public static partial class Module
         public string LayerId;
         public byte[] BeforeVoxels = [];
         public byte[] DiffVoxels = [];
+        public bool IsBaseState;
 
         public static LayerHistoryEntry Build(
             string projectId,
