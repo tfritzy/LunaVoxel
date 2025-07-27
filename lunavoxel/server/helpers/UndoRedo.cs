@@ -47,7 +47,7 @@ public static class UndoRedo
         entries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
 
         var authorEdits = entries.FindAll(e => e.Author == author || e.IsBaseState);
-        var headIndex = authorEdits.FindIndex(e => e.IsHead);
+        var headIndex = authorEdits.FindLastIndex(e => e.IsHead);
         if (headIndex <= 0)
         {
             return;
