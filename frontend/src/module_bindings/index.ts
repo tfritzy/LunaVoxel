@@ -70,6 +70,8 @@ import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
 export { ToggleLayerLock };
 import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
 export { ToggleLayerVisibility };
+import { Undo } from "./undo_reducer.ts";
+export { Undo };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
 export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
@@ -252,6 +254,10 @@ const REMOTE_MODULE = {
       reducerName: "ToggleLayerVisibility",
       argsType: ToggleLayerVisibility.getTypeScriptAlgebraicType(),
     },
+    Undo: {
+      reducerName: "Undo",
+      argsType: Undo.getTypeScriptAlgebraicType(),
+    },
     UpdateAtlas: {
       reducerName: "UpdateAtlas",
       argsType: UpdateAtlas.getTypeScriptAlgebraicType(),
@@ -314,6 +320,7 @@ export type Reducer = never
 | { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
+| { name: "Undo", args: Undo }
 | { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
@@ -611,6 +618,22 @@ export class RemoteReducers {
     this.connection.offReducer("ToggleLayerVisibility", callback);
   }
 
+  undo(projectId: string) {
+    const __args = { projectId };
+    let __writer = new BinaryWriter(1024);
+    Undo.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("Undo", __argsBuffer, this.setCallReducerFlags.undoFlags);
+  }
+
+  onUndo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("Undo", callback);
+  }
+
+  removeOnUndo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("Undo", callback);
+  }
+
   updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
     const __args = { projectId, gridSize, cellPixelWidth, usedSlots };
     let __writer = new BinaryWriter(1024);
@@ -761,6 +784,11 @@ export class SetReducerFlags {
   toggleLayerVisibilityFlags: CallReducerFlags = 'FullUpdate';
   toggleLayerVisibility(flags: CallReducerFlags) {
     this.toggleLayerVisibilityFlags = flags;
+  }
+
+  undoFlags: CallReducerFlags = 'FullUpdate';
+  undo(flags: CallReducerFlags) {
+    this.undoFlags = flags;
   }
 
   updateAtlasFlags: CallReducerFlags = 'FullUpdate';

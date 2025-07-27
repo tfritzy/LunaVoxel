@@ -28,6 +28,6 @@ public static partial class Module
             nextIndex
         );
 
-        ctx.Db.layer.Insert(newLayer);
+        LayerHelpers.Add(ctx, newLayer);
     }
 }

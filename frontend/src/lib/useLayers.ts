@@ -5,6 +5,7 @@ export const useLayers = (
   connection: DbConnection | null,
   projectId: string
 ) => {
+  const [selectedLayer, setSelectedLayer] = useState<number>(0);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export const useLayers = (
           if (exists) {
             return prev;
           }
+          setSelectedLayer(newLayer.index);
           return [...prev, newLayer].sort((a, b) => a.index - b.index);
         });
       }
@@ -80,5 +82,7 @@ export const useLayers = (
     setLayers,
     isLoading,
     error,
+    selectedLayer,
+    setSelectedLayer,
   };
 };

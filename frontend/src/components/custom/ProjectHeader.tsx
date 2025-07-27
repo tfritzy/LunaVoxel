@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { FileDropdown } from "./FileDropdown";
+import { EditDropdown } from "./EditDropdown";
 import { UserDropdown } from "./Share/UserDropdown";
 import { useAuth } from "@/firebase/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -69,6 +70,7 @@ export function ProjectHeader() {
                   onNewProject={handleNewProject}
                   onOpenProject={handleOpenProject}
                 />
+                {projectId && <EditDropdown />}
                 <AtlasDropdown />
               </div>
             </div>

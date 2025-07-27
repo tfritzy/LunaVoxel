@@ -15,6 +15,64 @@ write_error() {
     echo -e "\e[31mError: $1\e[0m"
 }
 
+# Workspace for development services (change this if you want a different workspace)
+DEV_WORKSPACE=2
+
+open_in_new_terminal() {
+    local title="$1"
+    local command="$2"
+    local working_dir="${3:-$PWD}"
+    
+    # Switch to dev workspace first
+    hyprctl dispatch workspace $DEV_WORKSPACE >/dev/null 2>&1
+    
+    # Common Arch Linux terminals (in order of preference)
+    if command -v alacritty >/dev/null 2>&1; then
+        alacritty --working-directory "$working_dir" --title "$title" -e bash -c "$command; echo 'Press Enter to close...'; read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v kitty >/dev/null 2>&1; then
+        kitty --directory "$working_dir" --title "$title" bash -c "$command; echo 'Press Enter to close...'; read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v wezterm >/dev/null 2>&1; then
+        wezterm start --cwd "$working_dir" -- bash -c "$command; echo 'Press Enter to close...'; read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v foot >/dev/null 2>&1; then
+        foot --working-directory="$working_dir" --title="$title" bash -c "$command; echo 'Press Enter to close...'; read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v st >/dev/null 2>&1; then
+        st -d "$working_dir" -t "$title" -e bash -c "$command; echo 'Press Enter to close...'; read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v konsole >/dev/null 2>&1; then
+        konsole --new-tab --workdir "$working_dir" --title "$title" -e bash -c "$command; echo 'Press Enter to close...'; read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v gnome-terminal >/dev/null 2>&1; then
+        gnome-terminal --tab --title="$title" --working-directory="$working_dir" -- bash -c "$command; echo 'Press Enter to close...'; read; exit" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v terminator >/dev/null 2>&1; then
+        terminator --new-tab --title="$title" --working-directory="$working_dir" -e "bash -c '$command; echo Press Enter to close...; read'" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    elif command -v xterm >/dev/null 2>&1; then
+        xterm -T "$title" -e "cd '$working_dir' && $command && echo 'Press Enter to close...' && read" &
+        sleep 0.5
+        hyprctl dispatch movetoworkspacesilent $DEV_WORKSPACE >/dev/null 2>&1
+    else
+        write_error "No suitable terminal emulator found. Running $title in background..."
+        cd "$working_dir"
+        eval "$command" &
+        cd - >/dev/null
+        return 1
+    fi
+    return 0
+}
+
 decode_jwt() {
     local token="$1"
     IFS='.' read -ra parts <<< "$token"
@@ -47,14 +105,11 @@ trap cleanup EXIT
 cd "$PROJECT_ROOT"
 
 write_step "Step 1: Starting SpaceTimeDB"
-gnome-terminal --tab --title="SpaceTimeDB" -- bash -c "spacetime start; exec bash" 2>/dev/null || \
-xterm -T "SpaceTimeDB" -e "spacetime start; bash" 2>/dev/null || \
-osascript -e 'tell app "Terminal" to do script "spacetime start"' 2>/dev/null || {
-    echo "Starting SpaceTimeDB in background..."
-    spacetime start &
-    SPACETIME_PID=$!
-}
-write_success "SpaceTimeDB started"
+if open_in_new_terminal "SpaceTimeDB" "spacetime start"; then
+    write_success "SpaceTimeDB started in new terminal"
+else
+    write_success "SpaceTimeDB started in background"
+fi
 
 echo -e "\e[33mWaiting for SpaceTimeDB to initialize...\e[0m"
 sleep 5
@@ -112,28 +167,30 @@ cd ..
 write_success "Functions built successfully"
 
 write_step "Step 10: Starting Firebase emulators"
-gnome-terminal --tab --title="Firebase Emulators" -- bash -c "firebase emulators:start; exec bash" 2>/dev/null || \
-xterm -T "Firebase Emulators" -e "firebase emulators:start; bash" 2>/dev/null || \
-osascript -e 'tell app "Terminal" to do script "firebase emulators:start"' 2>/dev/null || {
-    echo "Starting Firebase emulators in background..."
-    firebase emulators:start &
-    FIREBASE_PID=$!
-}
-write_success "Firebase emulators started"
+if open_in_new_terminal "Firebase Emulators" "firebase emulators:start" "$PWD"; then
+    write_success "Firebase emulators started in new terminal"
+else
+    write_success "Firebase emulators started in background"
+fi
 sleep 3
 
 write_step "Step 11: Starting frontend development server"
-cd frontend
-gnome-terminal --tab --title="Frontend Dev Server" -- bash -c "npm run dev; exec bash" 2>/dev/null || \
-xterm -T "Frontend Dev Server" -e "npm run dev; bash" 2>/dev/null || \
-osascript -e 'tell app "Terminal" to do script "cd frontend && npm run dev"' 2>/dev/null || {
-    echo "Starting frontend development server in background..."
-    npm run dev &
-    FRONTEND_PID=$!
-}
-cd ..
-write_success "Frontend development server started"
+if open_in_new_terminal "Frontend Dev Server" "npm run dev" "$PWD/frontend"; then
+    write_success "Frontend development server started in new terminal"
+else
+    write_success "Frontend development server started in background"
+fi
 
 echo -e "\e[32mProject startup complete!\e[0m"
 echo -e "\e[33mNew identity token: $token\e[0m"
 echo -e "\e[33mIdentity hash: $hex_identity\e[0m"
+echo -e "\e[33mAll services launched in workspace $DEV_WORKSPACE\e[0m"
+
+echo -e "\e[36m=== Service Status ===\e[0m"
+echo -e "\e[32m✓ SpaceTimeDB\e[0m - Running in workspace $DEV_WORKSPACE"
+echo -e "\e[32m✓ Firebase Emulators\e[0m - Running in workspace $DEV_WORKSPACE" 
+echo -e "\e[32m✓ Frontend Dev Server\e[0m - Running in workspace $DEV_WORKSPACE"
+echo -e "\e[36m======================\e[0m"
+
+echo -e "\e[33mTip: Switch to workspace $DEV_WORKSPACE to see all your dev services\e[0m"
+echo -e "\e[33mTip: Use Ctrl+C in each terminal window to stop individual services\e[0m"

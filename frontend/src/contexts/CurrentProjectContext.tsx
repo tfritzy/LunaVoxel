@@ -54,14 +54,16 @@ export const CurrentProjectProvider = ({
   const { connection } = useDatabase();
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedBlock, setSelectedBlock] = React.useState<number>(1);
-  const [selectedLayer, setSelectedLayer] = React.useState<number>(0);
   const [projectStatus, setProjectStatus] = useState<
     "loading" | "found" | "not-found" | "poke-attempted"
   >("loading");
   const [pokeAttempted, setPokeAttempted] = useState(false);
   const { atlas, slots, texture } = useAtlas(projectId || "");
   const { blocks } = useBlocks(connection, projectId || "");
-  const { layers, setLayers } = useLayers(connection, projectId || "");
+  const { layers, setLayers, selectedLayer, setSelectedLayer } = useLayers(
+    connection,
+    projectId || ""
+  );
 
   const retryProjectLoad = () => {
     setProjectStatus("loading");

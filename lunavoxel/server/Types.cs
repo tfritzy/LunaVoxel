@@ -145,23 +145,27 @@ public static partial class Module
     [Table(Name = "layer_history_entry", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "author_head", Columns = new[] { nameof(Author), nameof(IsHead) })]
     [SpacetimeDB.Index.BTree(Name = "project", Columns = new[] { nameof(ProjectId) })]
+    [SpacetimeDB.Index.BTree(Name = "author_undone", Columns = new[] { nameof(Author), nameof(IsUndone) })]
     public partial class LayerHistoryEntry
     {
         [PrimaryKey]
         public string Id;
         public string ProjectId;
         public Identity Author;
-        public int Version;
-        public bool IsHead;
+        [AutoInc]
+        public ulong Version;
+        public bool IsHead; // Is the current edit the author is on.
+        public bool IsUndone; // Is not being applied to the scene.
         public string LayerId;
-        public byte[] Voxels = [];
+        public byte[] BeforeVoxels = [];
+        public byte[] DiffVoxels = [];
 
         public static LayerHistoryEntry Build(
             string projectId,
             Identity author,
             string layerId,
-            int version,
-            byte[] voxels,
+            byte[] beforeVoxels,
+            byte[] diffVoxels,
             bool isHead)
         {
             return new LayerHistoryEntry
@@ -169,10 +173,12 @@ public static partial class Module
                 Id = IdGenerator.Generate("lhe"),
                 ProjectId = projectId,
                 Author = author,
-                Version = version,
+                Version = 0,
                 IsHead = isHead,
                 LayerId = layerId,
-                Voxels = voxels
+                BeforeVoxels = beforeVoxels,
+                DiffVoxels = diffVoxels,
+                IsUndone = false,
             };
         }
     }

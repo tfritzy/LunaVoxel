@@ -60,7 +60,11 @@ public static partial class Module
             }
         }
 
-        layer.Voxels = VoxelRLE.Compress(voxels);
+        var compressedAfter = VoxelRLE.Compress(voxels);
+        UndoRedo.AddEntry(ctx, projectId, layer.Id, layer.Voxels, compressedAfter);
+
+        layer.Voxels = compressedAfter;
         ctx.Db.layer.Id.Update(layer);
+
     }
 }

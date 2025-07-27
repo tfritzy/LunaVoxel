@@ -36,8 +36,10 @@ export type LayerHistoryEntry = {
   author: Identity,
   version: number,
   isHead: boolean,
+  isUndone: boolean,
   layerId: string,
-  voxels: Uint8Array,
+  beforeVoxels: Uint8Array,
+  diffVoxels: Uint8Array,
 };
 
 /**
@@ -55,8 +57,10 @@ export namespace LayerHistoryEntry {
       new ProductTypeElement("author", AlgebraicType.createIdentityType()),
       new ProductTypeElement("version", AlgebraicType.createI32Type()),
       new ProductTypeElement("isHead", AlgebraicType.createBoolType()),
+      new ProductTypeElement("isUndone", AlgebraicType.createBoolType()),
       new ProductTypeElement("layerId", AlgebraicType.createStringType()),
-      new ProductTypeElement("voxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
+      new ProductTypeElement("beforeVoxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
+      new ProductTypeElement("diffVoxels", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
     ]);
   }
 
