@@ -102,13 +102,11 @@ export class CameraController {
       event.stopPropagation();
       this.panMouseDown = true;
       this.isPanning = false;
-      this.domElement.style.cursor = "move";
     } else if (event.button === 2) {
       event.preventDefault();
       event.stopPropagation();
       this.rotateMouseDown = true;
       this.isDragging = false;
-      this.domElement.style.cursor = "grabbing";
     }
 
     this.lastMouseX = event.clientX;
@@ -124,7 +122,6 @@ export class CameraController {
       this.panMouseDown = false;
       this.isDragging = false;
       this.isPanning = false;
-      this.domElement.style.cursor = "auto";
     }
   }
 

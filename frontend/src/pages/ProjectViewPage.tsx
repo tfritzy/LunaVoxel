@@ -9,6 +9,7 @@ import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { Button } from "@/components/ui/button";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
+import { useCustomCursor } from "@/lib/useCustomCursor";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -30,6 +31,8 @@ export const ProjectViewPage = () => {
     layers,
     selectedLayer,
   } = useCurrentProject();
+
+  const customCursor = useCustomCursor(currentTool);
 
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
@@ -169,7 +172,10 @@ export const ProjectViewPage = () => {
           <div
             ref={containerRef}
             className="h-full"
-            style={{ height: "calc(100vh - 64px)" }}
+            style={{
+              height: "calc(100vh - 64px)",
+              cursor: customCursor
+            }}
           />
 
           {(layersLoading || cursorsLoading) && (
