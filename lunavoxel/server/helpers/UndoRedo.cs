@@ -36,25 +36,27 @@ public static class UndoRedo
             headEntry.IsHead = false;
             ctx.Db.layer_history_entry.Id.Update(headEntry);
         }
-
-        // clean up excess versions
     }
 
     public static void Undo(ReducerContext ctx, string projectId)
     {
         var author = ctx.Sender;
+        var oldHead = ctx.Db.layer_history_entry.author_head.Filter((author, true)).FirstOrDefault();
+        if (oldHead == null)
+        {
+            return;
+        }
+
         var entries = ctx.Db.layer_history_entry.project.Filter(projectId).ToList();
         entries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
 
         var authorEdits = entries.FindAll(e => e.Author == author || e.IsBaseState);
-        var headIndex = authorEdits.FindLastIndex(e => e.IsHead);
+        var headIndex = authorEdits.FindIndex(e => e.Id == oldHead.Id);
         if (headIndex <= 0)
         {
             return;
         }
 
-        var newHeadIndex = headIndex - 1;
-        var oldHead = authorEdits[headIndex];
         var newHead = authorEdits[headIndex - 1];
         oldHead.IsHead = false;
         oldHead.IsUndone = true;
@@ -68,29 +70,107 @@ public static class UndoRedo
         var editsOfLayer = entries.FindAll(e => e.LayerId == oldHead.LayerId);
         var oldHeadIndex = editsOfLayer.FindIndex(e => e.Id == oldHead.Id);
         var diff = VoxelDataToDictionary(VoxelRLE.Decompress(oldHead.DiffVoxels));
+        RemoveDiffFromFutureEdits(ctx, editsOfLayer, oldHeadIndex + 1, diff, oldHeadVoxels);
 
-        for (int i = oldHeadIndex + 1; i < editsOfLayer.Count; i++)
+        var newHighestEdit = editsOfLayer.FindLast(e => !e.IsUndone);
+        var currentLayerState = ctx.Db.layer.Id.Find(oldHead.LayerId);
+        if (currentLayerState == null) return;
+
+        if (newHighestEdit != null)
         {
-            var edit = editsOfLayer[i];
-            if (edit.Author == author)
+            currentLayerState.Voxels = ApplyDiff(
+                VoxelRLE.Decompress(newHighestEdit.BeforeVoxels),
+                VoxelRLE.Decompress(newHighestEdit.DiffVoxels));
+        }
+        else
+        {
+            currentLayerState.Voxels = oldHead.BeforeVoxels;
+        }
+
+
+        ctx.Db.layer.Id.Update(currentLayerState);
+    }
+
+    public static void Redo(ReducerContext ctx, string projectId)
+    {
+        var author = ctx.Sender;
+        var currentHead = ctx.Db.layer_history_entry.author_head.Filter((author, true)).FirstOrDefault();
+        if (currentHead == null)
+        {
+            return;
+        }
+
+        var undoneEntries = ctx.Db.layer_history_entry.author_undone.Filter((author, true)).ToList();
+        if (undoneEntries.Count == 0)
+        {
+            return;
+        }
+
+        undoneEntries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
+        var nextEntry = undoneEntries.First();
+
+        currentHead.IsHead = false;
+        nextEntry.IsHead = true;
+        nextEntry.IsUndone = false;
+
+        ctx.Db.layer_history_entry.Id.Update(currentHead);
+        ctx.Db.layer_history_entry.Id.Update(nextEntry);
+
+        var entries = ctx.Db.layer_history_entry.project.Filter(projectId).ToList();
+        var editsOfLayer = entries.FindAll(e => e.LayerId == nextEntry.LayerId);
+        var nextEntryIndex = editsOfLayer.FindIndex(e => e.Id == nextEntry.Id);
+        var diff = VoxelDataToDictionary(VoxelRLE.Decompress(nextEntry.DiffVoxels));
+        var nextEntryBeforeVoxels = VoxelRLE.Decompress(nextEntry.BeforeVoxels);
+
+        AddDiffToFutureEdits(ctx, editsOfLayer, nextEntryIndex + 1, diff, nextEntryBeforeVoxels);
+
+        var currentLayerState = ctx.Db.layer.Id.Find(nextEntry.LayerId);
+        if (currentLayerState == null) return;
+
+        var newLayerVoxels = ApplyDiff(
+            VoxelRLE.Decompress(nextEntry.BeforeVoxels),
+            VoxelRLE.Decompress(nextEntry.DiffVoxels));
+
+        currentLayerState.Voxels = VoxelRLE.Compress(newLayerVoxels);
+        ctx.Db.layer.Id.Update(currentLayerState);
+    }
+
+    private static void RemoveDiffFromFutureEdits(
+        ReducerContext ctx,
+        List<LayerHistoryEntry> edits,
+        int startIndex,
+        Dictionary<int, byte[]> diff,
+        byte[] oldHeadVoxels)
+    {
+        for (int i = startIndex; i < edits.Count; i++)
+        {
+            var edit = edits[i];
+            if (edit.Author == ctx.Sender)
             {
                 continue;
             }
 
-            var expandedLayerData = VoxelRLE.Decompress(edit.BeforeVoxels);
             bool wasChanged = false;
             var itemsToRemove = new List<int>();
+            byte[] expandedLayerData = null;
 
             foreach (var kvp in diff)
             {
                 var byteIndex = kvp.Key;
                 var voxelData = kvp.Value;
+                var voxelIndex = byteIndex / 2;
 
-                if (byteIndex + 1 < expandedLayerData.Length)
+                try
                 {
-                    if (expandedLayerData[byteIndex] == voxelData[0]
-                        && expandedLayerData[byteIndex + 1] == voxelData[1])
+                    var currentVoxel = VoxelRLE.GetVoxelAt(edit.BeforeVoxels, voxelIndex);
+
+                    if (currentVoxel[0] == voxelData[0] && currentVoxel[1] == voxelData[1])
                     {
+                        if (expandedLayerData == null)
+                        {
+                            expandedLayerData = VoxelRLE.Decompress(edit.BeforeVoxels);
+                        }
+
                         expandedLayerData[byteIndex] = oldHeadVoxels[byteIndex];
                         expandedLayerData[byteIndex + 1] = oldHeadVoxels[byteIndex + 1];
                         wasChanged = true;
@@ -100,7 +180,7 @@ public static class UndoRedo
                         itemsToRemove.Add(byteIndex);
                     }
                 }
-                else
+                catch (ArgumentOutOfRangeException)
                 {
                     itemsToRemove.Add(byteIndex);
                 }
@@ -117,14 +197,60 @@ public static class UndoRedo
                 ctx.Db.layer_history_entry.Id.Update(edit);
             }
         }
+    }
 
-        var newHighestEdit = editsOfLayer.FindLast(e => !e.IsUndone);
-        var currentLayerState = ctx.Db.layer.Id.Find(oldHead.LayerId);
-        if (currentLayerState == null) return;
-        currentLayerState.Voxels = VoxelRLE.Compress(ApplyDiff(
-            VoxelRLE.Decompress(newHighestEdit.BeforeVoxels),
-            VoxelRLE.Decompress(newHighestEdit.DiffVoxels)));
-        ctx.Db.layer.Id.Update(currentLayerState);
+    private static void AddDiffToFutureEdits(
+        ReducerContext ctx,
+        List<LayerHistoryEntry> edits,
+        int startIndex,
+        Dictionary<int, byte[]> diff,
+        byte[] redoneEntryBeforeVoxels)
+    {
+        for (int i = startIndex; i < edits.Count; i++)
+        {
+            var edit = edits[i];
+            if (edit.Author == ctx.Sender)
+            {
+                continue;
+            }
+
+            bool wasChanged = false;
+            byte[] expandedLayerData = null;
+
+            foreach (var kvp in diff)
+            {
+                var byteIndex = kvp.Key;
+                var voxelData = kvp.Value;
+                var voxelIndex = byteIndex / 2;
+
+                try
+                {
+                    var currentVoxel = VoxelRLE.GetVoxelAt(edit.BeforeVoxels, voxelIndex);
+
+                    if (currentVoxel[0] == redoneEntryBeforeVoxels[byteIndex] &&
+                        currentVoxel[1] == redoneEntryBeforeVoxels[byteIndex + 1])
+                    {
+                        if (expandedLayerData == null)
+                        {
+                            expandedLayerData = VoxelRLE.Decompress(edit.BeforeVoxels);
+                        }
+
+                        expandedLayerData[byteIndex] = voxelData[0];
+                        expandedLayerData[byteIndex + 1] = voxelData[1];
+                        wasChanged = true;
+                    }
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                }
+            }
+
+            if (wasChanged)
+            {
+                edit.BeforeVoxels = VoxelRLE.Compress(expandedLayerData);
+                ctx.Db.layer_history_entry.Id.Update(edit);
+            }
+        }
     }
 
     public static byte[] XorExpandedLayers(byte[] layer1, byte[] layer2)
@@ -157,8 +283,7 @@ public static class UndoRedo
 
     public static Dictionary<int, byte[]> VoxelDataToDictionary(byte[] voxelData)
     {
-        if (voxelData == null)
-            throw new ArgumentNullException(nameof(voxelData));
+        ArgumentNullException.ThrowIfNull(voxelData);
 
         if (voxelData.Length % 2 != 0)
             throw new ArgumentException("Voxel data length must be divisible by 2");

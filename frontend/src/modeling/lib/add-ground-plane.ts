@@ -12,44 +12,15 @@ export const addGroundPlane = (
   const raycastYDim = worldYDim * raycastMultiplier;
   const raycastZDim = worldZDim * raycastMultiplier;
 
-  const invisibleBoxGeometry = new THREE.BoxGeometry(
-    raycastXDim,
-    raycastZDim,
-    raycastYDim
-  );
-  const index = invisibleBoxGeometry.index;
-  if (index) {
-    const indexArray = index.array;
-    for (let i = 0; i < indexArray.length; i += 3) {
-      const temp = indexArray[i + 1];
-      indexArray[i + 1] = indexArray[i + 2];
-      indexArray[i + 2] = temp;
-    }
-    index.needsUpdate = true;
-  }
-  const invisibleBoxMaterial = new THREE.MeshBasicMaterial({
-    transparent: true,
-    opacity: 0,
-    side: THREE.FrontSide,
+  const boundaryPlanes = createBoundaryPlanes(raycastXDim, raycastYDim, raycastZDim);
+  boundaryPlanes.forEach(plane => {
+    scene.add(plane);
   });
-  const invisibleBox = new THREE.Mesh(
-    invisibleBoxGeometry,
-    invisibleBoxMaterial
-  );
-  invisibleBox.position.set(raycastXDim / 2, raycastZDim / 2, raycastYDim / 2);
-  invisibleBox.layers.set(layers.raycast);
-  invisibleBox.userData.isBoundaryBox = true;
-  scene.add(invisibleBox);
 
   const wireframeBox = createWireframeBox(worldXDim, worldYDim, worldZDim);
   if (wireframeBox) {
     scene.add(wireframeBox);
   }
-
-  // const gridLines = createOptimizedGridLines(worldXDim, worldYDim);
-  // if (gridLines) {
-  //   scene.add(gridLines);
-  // }
 
   const axisArrows = createAxisArrows(worldXDim, worldYDim);
   if (axisArrows) {
@@ -57,10 +28,84 @@ export const addGroundPlane = (
   }
 
   return {
-    invisibleBox,
+    boundaryPlanes,
     wireframeBox,
     axisArrows,
   };
+};
+
+const createBoundaryPlanes = (
+  raycastXDim: number,
+  raycastYDim: number,
+  raycastZDim: number
+): THREE.Mesh[] => {
+  const planes: THREE.Mesh[] = [];
+  const material = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    side: THREE.FrontSide,
+    color: 0xff0000,
+  });
+
+  const worldXDim = raycastXDim / 100;
+  const worldYDim = raycastYDim / 100;
+  const worldZDim = raycastZDim / 100;
+
+  const frontGeometry = new THREE.PlaneGeometry(raycastXDim, raycastZDim);
+  const frontPlane = new THREE.Mesh(frontGeometry, material.clone());
+  frontPlane.rotation.y = 2 * Math.PI;
+  frontPlane.position.set(worldXDim / 2, worldZDim / 2, 0);
+  frontPlane.layers.set(layers.raycast);
+  frontPlane.userData.isBoundaryPlane = true;
+  frontPlane.userData.side = 'front';
+  planes.push(frontPlane);
+
+  const backGeometry = new THREE.PlaneGeometry(raycastXDim, raycastZDim);
+  const backPlane = new THREE.Mesh(backGeometry, material.clone());
+  backPlane.rotation.y = -Math.PI;
+  backPlane.position.set(worldXDim / 2, worldZDim / 2, worldYDim);
+  backPlane.layers.set(layers.raycast);
+  backPlane.userData.isBoundaryPlane = true;
+  backPlane.userData.side = 'back';
+  planes.push(backPlane);
+
+  const leftGeometry = new THREE.PlaneGeometry(raycastYDim, raycastZDim);
+  const leftPlane = new THREE.Mesh(leftGeometry, material.clone());
+  leftPlane.rotation.y = Math.PI / 2;
+  leftPlane.position.set(0, worldZDim / 2, worldYDim / 2);
+  leftPlane.layers.set(layers.raycast);
+  leftPlane.userData.isBoundaryPlane = true;
+  leftPlane.userData.side = 'left';
+  planes.push(leftPlane);
+
+  const rightGeometry = new THREE.PlaneGeometry(raycastYDim, raycastZDim);
+  const rightPlane = new THREE.Mesh(rightGeometry, material.clone());
+  rightPlane.rotation.y = -Math.PI / 2;
+  rightPlane.position.set(worldXDim, worldZDim / 2, worldYDim / 2);
+  rightPlane.layers.set(layers.raycast);
+  rightPlane.userData.isBoundaryPlane = true;
+  rightPlane.userData.side = 'right';
+  planes.push(rightPlane);
+
+  const bottomGeometry = new THREE.PlaneGeometry(raycastXDim, raycastYDim);
+  const bottomPlane = new THREE.Mesh(bottomGeometry, material.clone());
+  bottomPlane.rotation.x = -Math.PI / 2;
+  bottomPlane.position.set(worldXDim / 2, .000001, worldYDim / 2);
+  bottomPlane.layers.set(layers.raycast);
+  bottomPlane.userData.isBoundaryPlane = true;
+  bottomPlane.userData.side = 'bottom';
+  planes.push(bottomPlane);
+
+  const topGeometry = new THREE.PlaneGeometry(raycastXDim, raycastYDim);
+  const topPlane = new THREE.Mesh(topGeometry, material.clone());
+  topPlane.rotation.x = Math.PI / 2;
+  topPlane.position.set(worldXDim / 2, worldZDim - .000001, worldYDim / 2);
+  topPlane.layers.set(layers.raycast);
+  topPlane.userData.isBoundaryPlane = true;
+  topPlane.userData.side = 'top';
+  planes.push(topPlane);
+
+  return planes;
 };
 
 const createWireframeBox = (

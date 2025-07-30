@@ -79,6 +79,7 @@ export const CurrentProjectProvider = ({
     const projectSub = connection
       .subscriptionBuilder()
       .onApplied(() => {
+        connection.reducers.pokeProject(projectId);
         const newProject = (
           connection.db.projects.tableCache.iter() as Project[]
         ).find((p) => p.id === projectId);

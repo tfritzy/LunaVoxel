@@ -209,47 +209,38 @@ export const Builder = class {
         const worldNormal = face.normal.clone();
         worldNormal.transformDirection(intersection.object.matrixWorld);
         worldNormal.normalize();
+        const faceCenter = intersectionPoint;
 
-        const faceCenter = new THREE.Vector3(
-          gridPos.x + 0.5,
-          gridPos.y + 0.5,
-          gridPos.z + 0.5
-        );
-
-        const absNormal = new THREE.Vector3(
-          Math.abs(worldNormal.x),
-          Math.abs(worldNormal.y),
-          Math.abs(worldNormal.z)
-        );
-        if (absNormal.x > absNormal.y && absNormal.x > absNormal.z) {
-          faceCenter.x = gridPos.x + (worldNormal.x > 0 ? 1 : 0);
-        } else if (absNormal.y > absNormal.x && absNormal.y > absNormal.z) {
-          faceCenter.y = gridPos.y + (worldNormal.y > 0 ? 1 : 0);
-        } else {
-          faceCenter.z = gridPos.z + (worldNormal.z > 0 ? 1 : 0);
+        if (Math.abs(worldNormal.x) < .1) {
+          faceCenter.x = Math.floor(faceCenter.x) + .5;
         }
+
+        if (Math.abs(worldNormal.y) < .1) {
+          faceCenter.y = Math.floor(faceCenter.y) + .5;
+        }
+
+        if (Math.abs(worldNormal.z) < .1) {
+          faceCenter.z = Math.floor(faceCenter.z) + .5;
+        }
+
         this.throttledUpdateCursorPos(faceCenter, worldNormal);
       }
 
-      if (intersection.object.userData.isBoundaryBox) {
+      if (
+        this.currentTool.tag === "Erase" ||
+        this.currentTool.tag === "Paint"
+      ) {
+        const normal = intersection.face?.normal.multiplyScalar(-0.1);
+        if (normal) {
+          return this.floorVector3(intersectionPoint.add(normal));
+        }
         return gridPos;
       } else {
-        if (
-          this.currentTool.tag === "Erase" ||
-          this.currentTool.tag === "Paint"
-        ) {
-          const normal = intersection.face?.normal.multiplyScalar(-0.1);
-          if (normal) {
-            return this.floorVector3(intersectionPoint.add(normal));
-          }
-          return gridPos;
-        } else {
-          const normal = intersection.face?.normal.multiplyScalar(0.1);
-          if (normal) {
-            return this.floorVector3(intersectionPoint.add(normal));
-          }
-          return gridPos;
+        const normal = intersection.face?.normal.multiplyScalar(0.1);
+        if (normal) {
+          return this.floorVector3(intersectionPoint.add(normal));
         }
+        return gridPos;
       }
     }
 

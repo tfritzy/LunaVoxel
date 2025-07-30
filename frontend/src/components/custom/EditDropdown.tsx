@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Undo2 } from "lucide-react";
+import { Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useDatabase } from "@/contexts/DatabaseContext";
 
-export function EditDropdown() {
+export const EditDropdown = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { connection } = useDatabase();
 
@@ -20,22 +20,32 @@ export function EditDropdown() {
     connection.reducers.undo(projectId);
   };
 
+  const handleRedo = () => {
+    if (!projectId || !connection) return;
+    connection.reducers.redo(projectId);
+  };
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key === "z" &&
-        !event.shiftKey
-      ) {
+      const isModifierPressed = event.ctrlKey || event.metaKey;
+
+      if (isModifierPressed && event.key.toLowerCase() === "z") {
         event.preventDefault();
-        handleUndo();
+        event.stopPropagation();
+
+        if (event.shiftKey) {
+          console.log("redo");
+          handleRedo();
+        } else {
+          console.log("undo");
+          handleUndo();
+        }
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, { capture: true });
     };
   }, [projectId, connection]);
 
@@ -52,7 +62,12 @@ export function EditDropdown() {
           Undo
           <DropdownMenuShortcut>⌘Z</DropdownMenuShortcut>
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleRedo}>
+          <Redo2 className="mr-2 h-4 w-4" />
+          Redo
+          <DropdownMenuShortcut>⌘⇧Z</DropdownMenuShortcut>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};

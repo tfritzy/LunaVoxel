@@ -69,19 +69,6 @@ export const AtlasSection = () => {
         </button>
       </div>
 
-      <div className="space-y-1 mb-4 text-sm">
-        <div className="mb-3 text-xs text-muted-foreground font-mono flex gap-4">
-          <span>
-            {atlas.cellPixelWidth}×{atlas.cellPixelWidth}
-          </span>
-          <span>
-            {textureAtlas?.image?.width || 0}×{textureAtlas?.image?.height || 0}
-          </span>
-          <span>
-            {atlas.usedSlots}/{atlas.gridSize * atlas.gridSize}
-          </span>
-        </div>
-      </div>
 
       <div className="relative grid grid-cols-8">
         {entries}

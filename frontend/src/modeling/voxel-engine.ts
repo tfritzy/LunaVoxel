@@ -79,6 +79,11 @@ export class VoxelEngine {
     renderer.domElement.style.maxWidth = "100%";
     renderer.domElement.style.maxHeight = "100%";
 
+    renderer.domElement.draggable = false;
+    renderer.domElement.style.userSelect = "none";
+    renderer.domElement.style.webkitUserSelect = "none";
+    renderer.domElement.style.pointerEvents = "auto";
+    
     container.appendChild(renderer.domElement);
     return renderer;
   }

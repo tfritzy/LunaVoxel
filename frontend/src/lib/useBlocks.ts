@@ -16,7 +16,7 @@ export const useBlocks = (
       .subscriptionBuilder()
       .onApplied(() => {
         const blocksRow =
-          connection.db.projectBlocks.project_id.find(projectId);
+          connection.db.projectBlocks.projectId.find(projectId);
         if (blocksRow) {
           setBlocks(blocksRow);
         }

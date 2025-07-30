@@ -33,14 +33,14 @@ import {
   type SubscriptionEventContextInterface,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type PokeProject = {
+export type Redo = {
   projectId: string,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace PokeProject {
+export namespace Redo {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -51,12 +51,12 @@ export namespace PokeProject {
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: PokeProject): void {
-    PokeProject.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Redo): void {
+    Redo.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): PokeProject {
-    return PokeProject.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Redo {
+    return Redo.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

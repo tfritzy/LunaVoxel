@@ -5,10 +5,10 @@ public static partial class Module
 {
 #pragma warning disable STDB_UNSTABLE
 
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-        "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender"
-    );
+    // [SpacetimeDB.ClientVisibilityFilter]
+    // public static readonly Filter PROJECT_FILTER = new Filter.Sql(
+    //     "SELECT p.* FROM projects p JOIN user_projects up ON p.Id = up.ProjectId WHERE up.User = :sender"
+    // );
 
     [Table(Name = "projects", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited",

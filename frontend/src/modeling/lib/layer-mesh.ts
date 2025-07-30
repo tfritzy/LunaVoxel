@@ -427,9 +427,7 @@ export const LayerMesh = class {
 
     if (!this.previewMesh) {
       const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(this.textureAtlas!, 0.5);
-      material.transparent = true;
-      material.opacity = 0.3;
+      const material = createVoxelMaterial(this.textureAtlas!, 1);
       this.previewMesh = new THREE.Mesh(geometry, material);
       this.scene.add(this.previewMesh);
     }
