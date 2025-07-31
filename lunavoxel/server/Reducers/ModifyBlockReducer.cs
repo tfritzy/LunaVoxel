@@ -65,6 +65,5 @@ public static partial class Module
 
         layer.Voxels = compressedAfter;
         ctx.Db.layer.Id.Update(layer);
-
     }
 }

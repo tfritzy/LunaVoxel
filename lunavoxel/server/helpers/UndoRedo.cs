@@ -41,22 +41,18 @@ public static class UndoRedo
     public static void Undo(ReducerContext ctx, string projectId)
     {
         var author = ctx.Sender;
-        var oldHead = ctx.Db.layer_history_entry.author_head.Filter((author, true)).FirstOrDefault();
-        if (oldHead == null)
-        {
-            return;
-        }
-
         var entries = ctx.Db.layer_history_entry.project.Filter(projectId).ToList();
         entries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
 
         var authorEdits = entries.FindAll(e => e.Author == author || e.IsBaseState);
-        var headIndex = authorEdits.FindIndex(e => e.Id == oldHead.Id);
+        var headIndex = authorEdits.FindLastIndex(e => e.IsHead);
         if (headIndex <= 0)
         {
             return;
         }
 
+        var newHeadIndex = headIndex - 1;
+        var oldHead = authorEdits[headIndex];
         var newHead = authorEdits[headIndex - 1];
         oldHead.IsHead = false;
         oldHead.IsUndone = true;
@@ -76,39 +72,43 @@ public static class UndoRedo
         var currentLayerState = ctx.Db.layer.Id.Find(oldHead.LayerId);
         if (currentLayerState == null) return;
 
+        byte[] newLayerVoxels;
         if (newHighestEdit != null)
         {
-            currentLayerState.Voxels = ApplyDiff(
+            newLayerVoxels = ApplyDiff(
                 VoxelRLE.Decompress(newHighestEdit.BeforeVoxels),
                 VoxelRLE.Decompress(newHighestEdit.DiffVoxels));
         }
         else
         {
-            currentLayerState.Voxels = oldHead.BeforeVoxels;
+            newLayerVoxels = VoxelRLE.Decompress(oldHead.BeforeVoxels);
         }
 
-
+        currentLayerState.Voxels = VoxelRLE.Compress(newLayerVoxels);
         ctx.Db.layer.Id.Update(currentLayerState);
     }
 
     public static void Redo(ReducerContext ctx, string projectId)
     {
         var author = ctx.Sender;
-        var currentHead = ctx.Db.layer_history_entry.author_head.Filter((author, true)).FirstOrDefault();
-        if (currentHead == null)
+        var entries = ctx.Db.layer_history_entry.project.Filter(projectId).ToList();
+        entries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
+
+        var authorEdits = entries.FindAll(e => e.Author == author || e.IsBaseState);
+        var headIndex = authorEdits.FindLastIndex(e => e.IsHead);
+
+        if (headIndex < 0 || headIndex >= authorEdits.Count - 1)
         {
             return;
         }
 
-        var undoneEntries = ctx.Db.layer_history_entry.author_undone.Filter((author, true)).ToList();
-        if (undoneEntries.Count == 0)
+        var nextEntry = authorEdits[headIndex + 1];
+        if (!nextEntry.IsUndone)
         {
             return;
         }
 
-        undoneEntries.Sort((l1, l2) => l1.Version.CompareTo(l2.Version));
-        var nextEntry = undoneEntries.First();
-
+        var currentHead = authorEdits[headIndex];
         currentHead.IsHead = false;
         nextEntry.IsHead = true;
         nextEntry.IsUndone = false;
@@ -116,7 +116,6 @@ public static class UndoRedo
         ctx.Db.layer_history_entry.Id.Update(currentHead);
         ctx.Db.layer_history_entry.Id.Update(nextEntry);
 
-        var entries = ctx.Db.layer_history_entry.project.Filter(projectId).ToList();
         var editsOfLayer = entries.FindAll(e => e.LayerId == nextEntry.LayerId);
         var nextEntryIndex = editsOfLayer.FindIndex(e => e.Id == nextEntry.Id);
         var diff = VoxelDataToDictionary(VoxelRLE.Decompress(nextEntry.DiffVoxels));

@@ -80,12 +80,12 @@ public static class VoxelRLE
         for (int i = 0; i < compressedData.Length; i += 4)
         {
             int runLength = compressedData[i] | (compressedData[i + 1] << 8);
-            
+
             if (voxelIndex < currentVoxelIndex + runLength)
             {
                 return new byte[] { compressedData[i + 2], compressedData[i + 3] };
             }
-            
+
             currentVoxelIndex += runLength;
         }
 
