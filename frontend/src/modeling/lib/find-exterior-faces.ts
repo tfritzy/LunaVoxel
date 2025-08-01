@@ -128,6 +128,7 @@ export const findExteriorFaces = (
 
   const isEraseMode = previewMode.tag === BlockModificationMode.Erase.tag;
   const isBuildMode = previewMode.tag === BlockModificationMode.Build.tag;
+  const isPaintMode = previewMode.tag === BlockModificationMode.Paint.tag;
 
   const borderSpacing = 4;
   for (let x = minX; x <= maxX; x += borderSpacing) {
@@ -158,7 +159,10 @@ export const findExteriorFaces = (
     if (visited[visitedIndex] === 1) continue;
     visited[visitedIndex] = 1;
 
-    const sourceIsPreview = !!getPreviewBlock(x, y, z);
+    let sourceIsPreview = !!getPreviewBlock(x, y, z);
+    if (isPaintMode && sourceIsPreview && !isSolid(x, y, z)) {
+      sourceIsPreview = false;
+    }
 
     for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
       const dir = directions[dirIndex];
@@ -173,7 +177,7 @@ export const findExteriorFaces = (
 
       if (
         isInExplorationBounds(nx, ny, nz) &&
-        (isAir(nx, ny, nz) || (isEraseMode && hasPreview)) &&
+        (isAir(nx, ny, nz) || (isEraseMode && hasPreview) || (isPaintMode && hasPreview && !hasReal)) &&
         !isVisited(nx, ny, nz) &&
         !isQueued(nx, ny, nz)
       ) {
@@ -201,6 +205,10 @@ export const findExteriorFaces = (
       }
 
       if (hasPreview && !sourceIsPreview) {
+        if (isPaintMode && !hasReal) {
+          continue;
+        }
+
         // blocks are 1 indexed because 0 is reserved for air
         const blueprint = blocks.blockFaceAtlasIndexes[previewBlock.type - 1];
 

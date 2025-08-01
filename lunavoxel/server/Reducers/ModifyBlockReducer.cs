@@ -52,7 +52,7 @@ public static partial class Module
                     var existingBlock = BlockType.FromBytes(existingBytes);
                     if (existingBlock.Type != 0)
                     {
-                        var paintedBlock = new BlockType(existingBlock.Type, rotation);
+                        var paintedBlock = new BlockType(blockType, rotation);
                         var paintedBytes = paintedBlock.ToBytes();
                         Array.Copy(paintedBytes, 0, voxels, index, 2);
                     }

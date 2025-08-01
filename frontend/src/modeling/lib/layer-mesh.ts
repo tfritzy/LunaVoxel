@@ -158,10 +158,10 @@ export const LayerMesh = class {
         dimensions =
           layerList.length > 0
             ? {
-                xDim: layerList[0].xDim,
-                yDim: layerList[0].yDim,
-                zDim: layerList[0].zDim,
-              }
+              xDim: layerList[0].xDim,
+              yDim: layerList[0].yDim,
+              zDim: layerList[0].zDim,
+            }
             : { xDim: 0, yDim: 0, zDim: 0 };
 
         realBlocks = Array(dimensions.xDim)
@@ -451,9 +451,9 @@ export const LayerMesh = class {
     this.previewMesh?.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
     this.previewMesh!.visible =
-      buildMode.tag === BlockModificationMode.Build.tag;
+      buildMode.tag === BlockModificationMode.Build.tag || buildMode.tag === BlockModificationMode.Paint.tag;
     this.previewMesh!.layers.set(
-      buildMode.tag === BlockModificationMode.Erase.tag
+      buildMode.tag === BlockModificationMode.Erase.tag || buildMode.tag === BlockModificationMode.Paint.tag
         ? layers.raycast
         : layers.ghost
     );
