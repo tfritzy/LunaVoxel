@@ -1,4 +1,5 @@
-import { Eraser, Hexagon, Paintbrush } from "lucide-react";
+import { useEffect } from "react";
+import { Hexagon, Eraser, Paintbrush, PlusSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlockModificationMode } from "@/module_bindings";
 
@@ -7,43 +8,85 @@ interface FloatingToolbarProps {
   onToolChange: (tool: BlockModificationMode) => void;
 }
 
-export function FloatingToolbar({
+export const FloatingToolbar = ({
   currentTool,
   onToolChange,
-}: FloatingToolbarProps) {
+}: FloatingToolbarProps) => {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (event.key.toLowerCase()) {
+        case 'a':
+          onToolChange({ tag: "Build" });
+          break;
+        case 'e':
+          onToolChange({ tag: "Erase" });
+          break;
+        case 't':
+          onToolChange({ tag: "Paint" });
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onToolChange]);
+
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="flex items-center backdrop-blur-md backdrop-brightness-80 gap-2 rounded-md px-2 py-2 shadow-lg">
+    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="flex items-center gap-1">
         <Button
-          variant={currentTool.tag === "Build" ? "default" : "outline"}
           onClick={() => onToolChange({ tag: "Build" })}
-          className="rounded-md p-0"
-          title="Build Tool"
+          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${currentTool.tag === "Build"
+            ? "border-accent text-accent"
+            : "border-secondary text-secondary"
+            }`}
+          title="Attach Tool (A)"
         >
-          Attach
-          <Hexagon className="h-4 w-4" />
+          <PlusSquare className="min-w-8 min-h-8" />
+          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">
+            A
+          </div>
         </Button>
 
         <Button
-          variant={currentTool.tag === "Erase" ? "default" : "outline"}
           onClick={() => onToolChange({ tag: "Erase" })}
-          className="rounded-md p-0"
-          title="Erase Tool"
+          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${currentTool.tag === "Erase"
+            ? "border-accent text-accent"
+            : "border-secondary text-secondary"
+            }`}
+          title="Erase Tool (E)"
         >
-          Erase
-          <Eraser className="h-4 w-4" />
+          <Eraser className="min-w-8 min-h-8" />
+          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">
+            E
+          </div>
         </Button>
 
         <Button
-          variant={currentTool.tag === "Paint" ? "default" : "outline"}
           onClick={() => onToolChange({ tag: "Paint" })}
-          className="rounded-md p-0"
-          title="Paint Tool"
+          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${currentTool.tag === "Paint"
+            ? "border-accent text-accent"
+            : "border-secondary text-secondary"
+            }`}
+          title="Paint Tool (T)"
         >
-          Paint
-          <Paintbrush className="h-4 w-4" />
+          <Paintbrush className="min-w-8 min-h-8" />
+          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">
+            T
+          </div>
         </Button>
+
+        {Array.from({ length: 5 }, (_, i) => (
+          <div
+            key={i}
+            className="w-16 h-16 border-2 border-secondary bg-background"
+          />
+        ))}
       </div>
     </div>
   );
-}
+};

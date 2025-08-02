@@ -2,40 +2,64 @@
 @import "tw-animate-css";
 
 :root {
-  --background: hsl(240 21% 15%); /* Catppuccin Mocha Base */
-  --foreground: hsl(226 64% 88%); /* Catppuccin Mocha Text */
-  
-  --muted: hsl(237 16% 23%); /* Catppuccin Mocha Surface0 */
-  --muted-foreground: hsl(228 24% 72%); /* Catppuccin Mocha Subtext0 */
-  
-  --popover: hsl(240 21% 12%); /* Catppuccin Mocha Mantle */
-  --popover-foreground: hsl(226 64% 88%); /* Catppuccin Mocha Text */
-  
-  --card: hsl(237 16% 23%); /* Catppuccin Mocha Surface0 */
-  --card-foreground: hsl(226 64% 88%); /* Catppuccin Mocha Text */
-  
-  --border: hsl(234 13% 31%); /* Catppuccin Mocha Surface1 */
-  --input: hsl(233 12% 39%); /* Catppuccin Mocha Surface2 */
-  
-  --primary: hsl(217 92% 76%); /* Catppuccin Mocha Blue */
-  --primary-foreground: hsl(240 21% 15%); /* Catppuccin Mocha Base */
- 
-  --secondary: hsl(234 13% 31%); /* Catppuccin Mocha Surface1 */
-  --secondary-foreground: hsl(226 64% 88%); /* Catppuccin Mocha Text */
-  
-  --accent: hsl(267 84% 81%); /* Catppuccin Mocha Mauve */
-  --accent-foreground: hsl(240 21% 15%); /* Catppuccin Mocha Base */
-  
-  --destructive: hsl(343 81% 75%); /* Catppuccin Mocha Red */
-  --destructive-foreground: hsl(0 100% 100%); /* White */
-  
-  --ring: hsl(217 92% 76%); /* Catppuccin Mocha Blue */
+  --background: hsl(240 21% 15%);
+  /* Catppuccin Mocha Base */
+  --foreground: hsl(226 64% 88%);
+  /* Catppuccin Mocha Text */
 
-  --chart-1: hsl(217 92% 76%); /* Mocha Blue */
-  --chart-2: hsl(115 54% 76%); /* Mocha Green */
-  --chart-3: hsl(23 92% 75%);  /* Mocha Peach */
-  --chart-4: hsl(267 84% 81%); /* Mocha Mauve */
-  --chart-5: hsl(343 81% 75%); /* Mocha Red */
+  --muted: hsl(237 16% 23%);
+  /* Catppuccin Mocha Surface0 */
+  --muted-foreground: hsl(228 24% 72%);
+  /* Catppuccin Mocha Subtext0 */
+
+  --popover: hsl(240 21% 12%);
+  /* Catppuccin Mocha Mantle */
+  --popover-foreground: hsl(226 64% 88%);
+  /* Catppuccin Mocha Text */
+
+  --card: hsl(237 16% 23%);
+  /* Catppuccin Mocha Surface0 */
+  --card-foreground: hsl(226 64% 88%);
+  /* Catppuccin Mocha Text */
+
+  --border: hsl(234 13% 31%);
+  /* Catppuccin Mocha Surface1 */
+  --input: hsl(233 12% 39%);
+  /* Catppuccin Mocha Surface2 */
+
+  --primary: hsl(217 92% 76%);
+  /* Catppuccin Mocha Blue */
+  --primary-foreground: hsl(240 21% 15%);
+  /* Catppuccin Mocha Base */
+
+  --secondary: hsl(234 13% 31%);
+  /* Catppuccin Mocha Surface1 */
+  --secondary-foreground: hsl(226 64% 88%);
+  /* Catppuccin Mocha Text */
+
+  --accent: hsl(267 84% 81%);
+  /* Catppuccin Mocha Mauve */
+  --accent-foreground: hsl(240 21% 15%);
+  /* Catppuccin Mocha Base */
+
+  --destructive: hsl(343 81% 75%);
+  /* Catppuccin Mocha Red */
+  --destructive-foreground: hsl(0 100% 100%);
+  /* White */
+
+  --ring: hsl(217 92% 76%);
+  /* Catppuccin Mocha Blue */
+
+  --chart-1: hsl(217 92% 76%);
+  /* Mocha Blue */
+  --chart-2: hsl(115 54% 76%);
+  /* Mocha Green */
+  --chart-3: hsl(23 92% 75%);
+  /* Mocha Peach */
+  --chart-4: hsl(267 84% 81%);
+  /* Mocha Mauve */
+  --chart-5: hsl(343 81% 75%);
+  /* Mocha Red */
 }
 
 @theme inline {
@@ -107,6 +131,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
