@@ -22,7 +22,7 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Open Project" size="5xl">
-      <div className="sm:max-w-[1200px] min-h-[80vh] max-h-[90vh] w-[70vw] flex flex-col">
+      <div className="min-h-[80vh] max-h-[90vh] flex flex-col">
         <div className="flex-1 min-h-0">
           <Tabs defaultValue="recent" className="h-full flex flex-col">
             <div className="px-6 pt-4 border-b border-border">

@@ -27,10 +27,16 @@ export const addGroundPlane = (
     scene.add(axisArrows);
   }
 
+  const gridLines = createGridLines(worldXDim, worldYDim);
+  if (gridLines) {
+    scene.add(gridLines);
+  }
+
   return {
     boundaryPlanes,
     wireframeBox,
     axisArrows,
+    gridLines,
   };
 };
 
@@ -196,4 +202,36 @@ const createAxisArrows = (
   arrowGroup.add(zArrow);
 
   return arrowGroup;
+};
+
+const createGridLines = (
+  worldXDim: number,
+  worldYDim: number
+): THREE.LineSegments | null => {
+  const gridGeometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+
+  for (let x = 0; x <= worldXDim; x += 1) {
+    vertices.push(x, 0, 0);
+    vertices.push(x, 0, worldYDim);
+  }
+
+  for (let z = 0; z <= worldYDim; z += 1) {
+    vertices.push(0, 0, z);
+    vertices.push(worldXDim, 0, z);
+  }
+
+  gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+  const gridMaterial = new THREE.LineBasicMaterial({
+    color: 0x444444,
+    transparent: true,
+    opacity: 0.3
+  });
+
+  const gridLines = new THREE.LineSegments(gridGeometry, gridMaterial);
+  gridLines.position.set(0, 0.001, 0);
+  gridLines.layers.set(layers.ghost);
+
+  return gridLines;
 };

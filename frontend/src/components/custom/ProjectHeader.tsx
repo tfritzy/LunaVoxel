@@ -9,7 +9,6 @@ import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { ShareButton } from "./Share/ShareButton";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { AtlasDropdown } from "./AtlasDropdown";
 import { useState } from "react";
 import { ProjectModal } from "./ProjectModal";
 
@@ -51,7 +50,7 @@ export function ProjectHeader() {
 
   return (
     <>
-      <nav className="h-16 w-full bg-background border-b border-border relative z-10">
+      <nav className="h-18 w-full bg-background border-b border-border relative z-10">
         <div className="w-full h-full py-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-4">
             <Link
@@ -71,7 +70,6 @@ export function ProjectHeader() {
                   onOpenProject={handleOpenProject}
                 />
                 {projectId && <EditDropdown />}
-                <AtlasDropdown />
               </div>
             </div>
           </div>

@@ -284,7 +284,6 @@ export const Builder = class {
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    this.clearPreviewBlocks();
     this.modifyBlock(this.currentTool, startPos, endPos);
 
     this.isMouseDown = false;
@@ -304,6 +303,7 @@ export const Builder = class {
   }
 
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
+
     this.clearPreviewBlocks();
 
     const minX = Math.min(startPos.x, endPos.x);

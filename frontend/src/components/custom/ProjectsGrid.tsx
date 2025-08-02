@@ -190,7 +190,7 @@ export function ProjectGrid({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         {filteredProjects.length === 0 ? (
           <EmptyState
             onCreateProject={
