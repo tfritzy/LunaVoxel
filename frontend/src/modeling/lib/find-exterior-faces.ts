@@ -1,7 +1,10 @@
-import { Atlas, BlockModificationMode, ProjectBlocks } from "@/module_bindings";
+import { Atlas, BlockModificationMode, ProjectBlocks, Vector3 } from "@/module_bindings";
 import * as THREE from "three";
-import { VoxelFaces } from "./layer-mesh";
 import { Block } from "./blocks";
+import { faces } from "./voxel-constants";
+import { getTextureCoordinates } from "./texture-coords";
+import { calculateVertexAO } from "./ambient-occlusion";
+import { MeshArrays } from "./mesh-arrays";
 
 export const findExteriorFaces = (
   realBlocks: (Block | undefined)[][][],
@@ -9,16 +12,10 @@ export const findExteriorFaces = (
   previewMode: BlockModificationMode,
   atlas: Atlas,
   blocks: ProjectBlocks,
-  dimensions: { xDim: number; yDim: number; zDim: number }
-): {
-  meshFaces: Map<string, VoxelFaces>;
-  previewFaces: Map<string, VoxelFaces>;
-} => {
-  const { xDim, yDim, zDim } = dimensions;
-
-  const getBlock = (x: number, y: number, z: number): Block | undefined => {
-    return realBlocks[x]?.[y]?.[z];
-  };
+  dimensions: Vector3,
+  meshArrays: MeshArrays,
+  previewMeshArrays: MeshArrays
+): void => {
 
   const getPreviewBlock = (x: number, y: number, z: number): Block | undefined => {
     return previewBlocks?.[x]?.[y]?.[z];
@@ -37,21 +34,22 @@ export const findExteriorFaces = (
   const isBuildMode = previewMode.tag === BlockModificationMode.Build.tag;
   const isPaintMode = previewMode.tag === BlockModificationMode.Paint.tag;
 
-  const exteriorFacesMap = new Map<string, VoxelFaces>();
-  const previewFacesMap = new Map<string, VoxelFaces>();
-
-  const exteriorFacesList: Array<{ key: string; textureIndex: number; faceIndex: number; gridPos: THREE.Vector3 }> = [];
-  const previewFacesList: Array<{ key: string; textureIndex: number; faceIndex: number; gridPos: THREE.Vector3 }> = [];
+  meshArrays.reset();
+  previewMeshArrays.reset();
 
   const start = performance.now();
 
-  for (let x = 0; x < xDim; x++) {
-    for (let y = 0; y < yDim; y++) {
-      for (let z = 0; z < zDim; z++) {
-        const block = getBlock(x, y, z);
-        const previewBlock = getPreviewBlock(x, y, z);
+  for (let x = 0; x < dimensions.x; x++) {
+    for (let y = 0; y < dimensions.y; y++) {
+      for (let z = 0; z < dimensions.z; z++) {
+        const block = realBlocks[x]?.[y]?.[z];
+        const previewBlock = previewBlocks?.[x]?.[y]?.[z];
         const hasReal = !!block;
         const hasPreview = !!previewBlock;
+
+        const posX = x + 0.5;
+        const posY = y + 0.5;
+        const posZ = z + 0.5;
 
         if (hasReal && (isBuildMode || !hasPreview)) {
           const blockTemplate = blocks.blockFaceAtlasIndexes[block.type - 1];
@@ -62,8 +60,8 @@ export const findExteriorFaces = (
             const ny = y + dir[1];
             const nz = z + dir[2];
 
-            const neighborBlock = getBlock(nx, ny, nz);
-            const neighborPreview = getPreviewBlock(nx, ny, nz);
+            const neighborBlock = realBlocks[nx]?.[ny]?.[nz];
+            const neighborPreview = previewBlocks?.[nx]?.[ny]?.[nz];
             const neighborHasReal = !!neighborBlock;
             const neighborHasPreview = !!neighborPreview;
 
@@ -73,15 +71,48 @@ export const findExteriorFaces = (
               (isPaintMode && neighborHasPreview && !neighborHasReal);
 
             if (shouldShowFace) {
-              const index = blockTemplate[dirIndex];
-              const key = `${x},${y},${z},${index}`;
+              const textureIndex = blockTemplate[dirIndex];
+              const textureCoords = getTextureCoordinates(
+                textureIndex,
+                atlas.gridSize,
+                atlas.cellPixelWidth
+              );
 
-              exteriorFacesList.push({
-                key,
-                textureIndex: index,
-                faceIndex: dirIndex,
-                gridPos: new THREE.Vector3(x, y, z)
-              });
+              const face = faces[dirIndex];
+              const faceVertices = face.vertices;
+              const faceNormal = face.normal;
+              const normalX = faceNormal[0];
+              const normalY = faceNormal[1];
+              const normalZ = faceNormal[2];
+
+              const startVertexIndex = meshArrays.vertexCount;
+
+              for (let j = 0; j < 4; j++) {
+                const vertex = faceVertices[j];
+                const aoFactor = calculateVertexAO(
+                  x,
+                  y,
+                  z,
+                  dirIndex,
+                  j,
+                  realBlocks,
+                  previewBlocks,
+                  previewMode
+                );
+
+                meshArrays.pushVertex(vertex[0] + posX, vertex[1] + posY, vertex[2] + posZ);
+                meshArrays.pushNormal(normalX, normalY, normalZ);
+                meshArrays.pushUV(textureCoords[j * 2], textureCoords[j * 2 + 1]);
+                meshArrays.pushAO(aoFactor);
+                meshArrays.incrementVertex();
+              }
+
+              meshArrays.pushIndex(startVertexIndex);
+              meshArrays.pushIndex(startVertexIndex + 1);
+              meshArrays.pushIndex(startVertexIndex + 2);
+              meshArrays.pushIndex(startVertexIndex);
+              meshArrays.pushIndex(startVertexIndex + 2);
+              meshArrays.pushIndex(startVertexIndex + 3);
             }
           }
         }
@@ -99,7 +130,7 @@ export const findExteriorFaces = (
             const ny = y + dir[1];
             const nz = z + dir[2];
 
-            const neighborBlock = getBlock(nx, ny, nz);
+            const neighborBlock = realBlocks[nx]?.[ny]?.[nz];
             const neighborPreview = getPreviewBlock(nx, ny, nz);
             const neighborHasReal = !!neighborBlock;
             const neighborHasPreview = !!neighborPreview;
@@ -110,15 +141,38 @@ export const findExteriorFaces = (
               (isPaintMode && neighborHasPreview && !neighborHasReal);
 
             if (shouldShowFace) {
-              const index = blueprint[dirIndex];
-              const key = `${x},${y},${z},${index}`;
+              const textureIndex = blueprint[dirIndex];
+              const textureCoords = getTextureCoordinates(
+                textureIndex,
+                atlas.gridSize,
+                atlas.cellPixelWidth
+              );
 
-              previewFacesList.push({
-                key,
-                textureIndex: index,
-                faceIndex: dirIndex,
-                gridPos: new THREE.Vector3(x, y, z)
-              });
+              const face = faces[dirIndex];
+              const faceVertices = face.vertices;
+              const faceNormal = face.normal;
+              const normalX = faceNormal[0];
+              const normalY = faceNormal[1];
+              const normalZ = faceNormal[2];
+
+              const startVertexIndex = previewMeshArrays.vertexCount;
+
+              for (let j = 0; j < 4; j++) {
+                const vertex = faceVertices[j];
+
+                previewMeshArrays.pushVertex(vertex[0] + posX, vertex[1] + posY, vertex[2] + posZ);
+                previewMeshArrays.pushNormal(normalX, normalY, normalZ);
+                previewMeshArrays.pushUV(textureCoords[j * 2], textureCoords[j * 2 + 1]);
+                previewMeshArrays.pushAO(1.0);
+                previewMeshArrays.incrementVertex();
+              }
+
+              previewMeshArrays.pushIndex(startVertexIndex);
+              previewMeshArrays.pushIndex(startVertexIndex + 1);
+              previewMeshArrays.pushIndex(startVertexIndex + 2);
+              previewMeshArrays.pushIndex(startVertexIndex);
+              previewMeshArrays.pushIndex(startVertexIndex + 2);
+              previewMeshArrays.pushIndex(startVertexIndex + 3);
             }
           }
         }
@@ -126,39 +180,12 @@ export const findExteriorFaces = (
     }
   }
 
-  for (const face of exteriorFacesList) {
-    let voxelFaces = exteriorFacesMap.get(face.key);
-    if (!voxelFaces) {
-      voxelFaces = {
-        textureIndex: face.textureIndex,
-        faceIndexes: [],
-        gridPos: face.gridPos,
-      };
-      exteriorFacesMap.set(face.key, voxelFaces);
-    }
-    voxelFaces.faceIndexes.push(face.faceIndex);
-  }
-
-  for (const face of previewFacesList) {
-    let voxelFaces = previewFacesMap.get(face.key);
-    if (!voxelFaces) {
-      voxelFaces = {
-        textureIndex: face.textureIndex,
-        faceIndexes: [],
-        gridPos: face.gridPos,
-      };
-      previewFacesMap.set(face.key, voxelFaces);
-    }
-    voxelFaces.faceIndexes.push(face.faceIndex);
-  }
-
   const totalTime = performance.now() - start;
 
   console.log('[findExteriorFaces] Optimized profile:', {
     totalTime: totalTime.toFixed(2) + 'ms',
-    dimensions: `${xDim}x${yDim}x${zDim}`,
-    facesGenerated: exteriorFacesMap.size + previewFacesMap.size,
+    dimensions: `${dimensions.x}x${dimensions.y}x${dimensions.z}`,
+    meshVertices: meshArrays.vertexCount,
+    previewVertices: previewMeshArrays.vertexCount,
   });
-
-  return { meshFaces: exteriorFacesMap, previewFaces: previewFacesMap };
 };

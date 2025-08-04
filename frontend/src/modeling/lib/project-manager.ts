@@ -33,7 +33,7 @@ export class ProjectManager {
     this.dbConn = dbConn;
     this.scene = scene;
     this.project = project;
-    this.layerMesh = new LayerMesh(scene);
+    this.layerMesh = new LayerMesh(scene, project.dimensions);
     this.cursorManager = new CursorManager(scene, project.id);
     this.setupEvents();
     this.builder = new Builder(
@@ -127,8 +127,8 @@ export class ProjectManager {
       this.layers,
       this.builder.previewBlocks,
       this.builder.getTool(),
+      this.blocks,
       this.atlas,
-      this.blocks
     );
   };
 

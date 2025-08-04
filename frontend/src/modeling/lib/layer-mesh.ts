@@ -4,6 +4,7 @@ import {
   BlockModificationMode,
   Layer,
   ProjectBlocks,
+  Vector3,
 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { layers } from "./layers";
@@ -12,6 +13,7 @@ import { createVoxelMaterial } from "./shader";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { calculateVertexAO } from "./ambient-occlusion";
+import { MeshArrays } from "./mesh-arrays";
 
 export type VoxelFaces = {
   textureIndex: number;
@@ -28,13 +30,42 @@ export const LayerMesh = class {
   private previewMesh: THREE.Mesh | null = null;
   private currentUpdateId: number = 0;
   private cacheVersion: number = 0;
+  private meshArrays: MeshArrays;
+  private previewMeshArrays: MeshArrays;
+  private realBlocks: (Block | undefined)[][][];
+  private previewBlocks: (Block | undefined)[][][];
+  private dimensions: Vector3;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, dimensions: Vector3) {
     this.scene = scene;
     this.mesh = null;
     this.geometry = null;
     this.material = null;
     this.previewMesh = null;
+    this.dimensions = dimensions;
+
+    const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+    const maxVertices = maxFaces * 4;
+    const maxIndices = maxFaces * 6;
+
+    this.meshArrays = new MeshArrays(maxVertices, maxIndices);
+    this.previewMeshArrays = new MeshArrays(maxVertices, maxIndices);
+
+    this.realBlocks = Array(dimensions.x)
+      .fill(null)
+      .map(() =>
+        Array(dimensions.y)
+          .fill(null)
+          .map(() => Array(dimensions.z).fill(undefined))
+      );
+
+    this.previewBlocks = Array(dimensions.x)
+      .fill(null)
+      .map(() =>
+        Array(dimensions.y)
+          .fill(null)
+          .map(() => Array(dimensions.z).fill(undefined))
+      );
   }
 
   setTextureAtlas = (textureAtlas: THREE.Texture) => {
@@ -50,91 +81,91 @@ export const LayerMesh = class {
     }
   };
 
-  decompressBlocks(
+  private clearBlocks(blocks: (Block | undefined)[][][]): void {
+    const { x: xDim, y: yDim, z: zDim } = this.dimensions;
+    for (let x = 0; x < xDim; x++) {
+      for (let y = 0; y < yDim; y++) {
+        for (let z = 0; z < zDim; z++) {
+          blocks[x][y][z] = undefined;
+        }
+      }
+    }
+  }
+
+  private decompressBlocksInto(
     rleBytes: Uint8Array,
-    xDim: number,
-    yDim: number,
-    zDim: number
-  ): (Block | undefined)[][][] {
-    // Pre-calculate dimensional constants to avoid repeated multiplication
+    blocks: (Block | undefined)[][][]
+  ): void {
+    const { x: xDim, y: yDim, z: zDim } = this.dimensions;
     const yzDim = yDim * zDim;
 
-    const decompressed: (Block | undefined)[][][] = Array(xDim)
-      .fill(null)
-      .map(() =>
-        Array(yDim)
-          .fill(null)
-          .map(() => Array(zDim).fill(undefined))
-      );
+    this.clearBlocks(blocks);
 
     let byteIndex = 0;
     let blockIndex = 0;
 
     while (byteIndex < rleBytes.length) {
-      // Direct byte access instead of `slice`
       const runLength = (rleBytes[byteIndex + 1] << 8) | rleBytes[byteIndex];
-
-      // Create the Block object once per run
-      // Assuming blockFromBytes can handle direct byte indices
       const block = this.blockFromBytes(rleBytes, byteIndex + 2);
-
-      // Determine the block to assign once
       const blockToAssign = block.type === 0 ? undefined : block;
 
-      // Use a single, unrolled loop to assign blocks
-      for (let i = 0; i < runLength; i++) {
-        // Calculate coordinates using fast integer division and modulo
-        const currentBlockIndex = blockIndex + i;
-
-        const x = (currentBlockIndex / yzDim) | 0; // Integer division
-        const y = ((currentBlockIndex % yzDim) / zDim) | 0;
-        const z = currentBlockIndex % zDim;
-
-        // Check boundaries to prevent out-of-bounds access
-        // This is a good practice, but you might remove it if you are certain
-        // the blockIndex will never exceed the total number of blocks.
+      const endIndex = blockIndex + runLength;
+      while (blockIndex < endIndex) {
+        const x = Math.floor(blockIndex / yzDim);
+        const y = Math.floor((blockIndex % yzDim) / zDim);
+        const z = blockIndex % zDim;
         if (x < xDim && y < yDim && z < zDim) {
-          decompressed[x][y][z] = blockToAssign;
+          blocks[x][y][z] = blockToAssign;
         }
+        blockIndex++;
       }
 
-      blockIndex += runLength;
-      byteIndex += 4; // Move to the next RLE entry
+      byteIndex += 4;
     }
+  }
 
-    return decompressed;
+  private copyBlocksArray(
+    source: (Block | undefined)[][][],
+    target: (Block | undefined)[][][]
+  ): void {
+    const { x: xDim, y: yDim, z: zDim } = this.dimensions;
+    for (let x = 0; x < xDim; x++) {
+      for (let y = 0; y < yDim; y++) {
+        for (let z = 0; z < zDim; z++) {
+          target[x][y][z] = source[x]?.[y]?.[z];
+        }
+      }
+    }
   }
 
   private addLayerToBlocks(
-    blocks: (Block | undefined)[][][],
     layer: Layer,
-    xDim: number,
-    yDim: number,
-    zDim: number
+    blocks: (Block | undefined)[][][]
   ): void {
+    const { x: xDim, y: yDim, z: zDim } = this.dimensions;
+
     if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
       return;
     }
 
+    const yzDim = yDim * zDim;
     let byteIndex = 0;
     let blockIndex = 0;
 
     while (byteIndex < layer.voxels.length) {
-      const runLength =
-        (layer.voxels[byteIndex + 1] << 8) | layer.voxels[byteIndex];
-      const blockBytes = layer.voxels.slice(byteIndex + 2, byteIndex + 4);
-      const block = this.blockFromBytes(blockBytes, byteIndex + 2);
+      const runLength = (layer.voxels[byteIndex + 1] << 8) | layer.voxels[byteIndex];
+      const block = this.blockFromBytes(layer.voxels, byteIndex + 2);
 
       if (block.type !== 0) {
-        for (let i = 0; i < runLength; i++) {
-          const x = Math.floor(blockIndex / (yDim * zDim));
-          const y = Math.floor((blockIndex % (yDim * zDim)) / zDim);
+        const endIndex = blockIndex + runLength;
+        while (blockIndex < endIndex) {
+          const x = Math.floor(blockIndex / yzDim);
+          const y = Math.floor((blockIndex % yzDim) / zDim);
           const z = blockIndex % zDim;
 
           if (x < xDim && y < yDim && z < zDim && !blocks[x][y][z]) {
             blocks[x][y][z] = block;
           }
-
           blockIndex++;
         }
       } else {
@@ -153,182 +184,62 @@ export const LayerMesh = class {
     return { type, rotation };
   }
 
-  update = (
-    layerList: Layer[],
+  update = async (
+    layers: Layer[],
     previewBlocks: (Block | undefined)[][][],
     buildMode: BlockModificationMode,
-    atlas: Atlas,
-    blocks: ProjectBlocks
+    blocks: ProjectBlocks,
+    atlas: Atlas
   ) => {
     const updateId = ++this.currentUpdateId;
 
     try {
-      const visibleLayers = layerList.filter((layer) => layer.visible);
-
-      let realBlocks: (Block | undefined)[][][];
-      let dimensions: { xDim: number; yDim: number; zDim: number };
+      const visibleLayers = layers.filter((layer) => layer.visible);
 
       if (visibleLayers.length === 0) {
-        dimensions =
-          layerList.length > 0
-            ? {
-              xDim: layerList[0].xDim,
-              yDim: layerList[0].yDim,
-              zDim: layerList[0].zDim,
-            }
-            : { xDim: 0, yDim: 0, zDim: 0 };
-
-        realBlocks = Array(dimensions.xDim)
-          .fill(null)
-          .map(() =>
-            Array(dimensions.yDim)
-              .fill(null)
-              .map(() => Array(dimensions.zDim).fill(undefined))
-          );
+        this.clearBlocks(this.realBlocks);
       } else {
         const firstLayer = visibleLayers[0];
-        dimensions = {
-          xDim: firstLayer.xDim,
-          yDim: firstLayer.yDim,
-          zDim: firstLayer.zDim,
-        };
+        this.decompressBlocksInto(firstLayer.voxels, this.realBlocks);
 
-        realBlocks = this.decompressBlocks(
-          firstLayer.voxels,
-          firstLayer.xDim,
-          firstLayer.yDim,
-          firstLayer.zDim
-        );
-
-        if (updateId !== this.currentUpdateId) {
-          return;
-        }
+        if (updateId !== this.currentUpdateId) return;
 
         for (let i = 1; i < visibleLayers.length; i++) {
-          this.addLayerToBlocks(
-            realBlocks,
-            visibleLayers[i],
-            dimensions.xDim,
-            dimensions.yDim,
-            dimensions.zDim
-          );
-
-          if (updateId !== this.currentUpdateId) {
-            return;
-          }
+          this.addLayerToBlocks(visibleLayers[i], this.realBlocks);
+          if (updateId !== this.currentUpdateId) return;
         }
       }
 
-      this.cacheVersion++;
+      this.copyBlocksArray(previewBlocks, this.previewBlocks);
 
-      const { meshFaces, previewFaces } = findExteriorFaces(
-        realBlocks,
-        previewBlocks,
+      if (updateId !== this.currentUpdateId) return;
+
+      findExteriorFaces(
+        this.realBlocks,
+        this.previewBlocks,
         buildMode,
         atlas,
         blocks,
-        dimensions
+        this.dimensions,
+        this.meshArrays,
+        this.previewMeshArrays
       );
 
-      if (updateId !== this.currentUpdateId) {
-        return;
-      }
+      if (updateId !== this.currentUpdateId) return;
 
-      this.updateMesh(meshFaces, realBlocks, previewBlocks, buildMode, atlas);
-      this.updatePreviewMesh(previewFaces, buildMode, atlas);
+      this.updateMesh(this.realBlocks, this.previewBlocks, buildMode, atlas);
+      this.updatePreviewMesh(buildMode, atlas);
     } catch (error) {
       console.error(`[LayerMesh] Update ${updateId} failed:`, error);
       throw error;
     }
   };
-
   private updateMesh(
-    exteriorFaces: Map<string, VoxelFaces>,
     realBlocks: (Block | undefined)[][][],
     previewBlocks: (Block | undefined)[][][],
     previewMode: BlockModificationMode,
     atlas: Atlas
   ): void {
-    let totalFaceCount = 0;
-    for (const voxelFace of exteriorFaces.values()) {
-      totalFaceCount += voxelFace.faceIndexes.length;
-    }
-    const totalVertices = totalFaceCount * 4;
-    const totalIndices = totalFaceCount * 6;
-    const vertices = new Float32Array(totalVertices * 3);
-    const indices = new Uint32Array(totalIndices);
-    const normals = new Float32Array(totalVertices * 3);
-    const uvs = new Float32Array(totalVertices * 2);
-    const ao = new Float32Array(totalVertices);
-    let vertexOffset = 0;
-    let indexOffset = 0;
-    let vertexIndex = 0;
-    let uvOffset = 0;
-    let aoOffset = 0;
-
-    for (const voxelFace of exteriorFaces.values()) {
-      const { textureIndex, gridPos, faceIndexes } = voxelFace;
-      const posX = gridPos.x + 0.5;
-      const posY = gridPos.y + 0.5;
-      const posZ = gridPos.z + 0.5;
-
-      const textureCoords = getTextureCoordinates(
-        textureIndex,
-        atlas.gridSize,
-        atlas.cellPixelWidth
-      );
-
-      for (let i = 0; i < faceIndexes.length; i++) {
-        const faceIndex = faceIndexes[i];
-        const face = faces[faceIndex];
-        const faceVertices = face.vertices;
-        const faceNormal = face.normal;
-        const normalX = faceNormal[0];
-        const normalY = faceNormal[1];
-        const normalZ = faceNormal[2];
-        const startVertexIndex = vertexIndex;
-
-        for (let j = 0; j < 4; j++) {
-          const vertex = faceVertices[j];
-          const aoFactor = calculateVertexAO(
-            gridPos.x,
-            gridPos.y,
-            gridPos.z,
-            faceIndex,
-            j,
-            realBlocks,
-            previewBlocks,
-            previewMode
-          );
-
-          vertices[vertexOffset] = vertex[0] + posX;
-          vertices[vertexOffset + 1] = vertex[1] + posY;
-          vertices[vertexOffset + 2] = vertex[2] + posZ;
-          normals[vertexOffset] = normalX;
-          normals[vertexOffset + 1] = normalY;
-          normals[vertexOffset + 2] = normalZ;
-
-          uvs[uvOffset] = textureCoords[j * 2];
-          uvs[uvOffset + 1] = textureCoords[j * 2 + 1];
-
-          ao[aoOffset] = aoFactor;
-
-          vertexOffset += 3;
-          uvOffset += 2;
-          aoOffset += 1;
-          vertexIndex++;
-        }
-
-        indices[indexOffset] = startVertexIndex;
-        indices[indexOffset + 1] = startVertexIndex + 1;
-        indices[indexOffset + 2] = startVertexIndex + 2;
-        indices[indexOffset + 3] = startVertexIndex;
-        indices[indexOffset + 4] = startVertexIndex + 2;
-        indices[indexOffset + 5] = startVertexIndex + 3;
-        indexOffset += 6;
-      }
-    }
-
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
       this.material = createVoxelMaterial(this.textureAtlas!);
@@ -340,12 +251,12 @@ export const LayerMesh = class {
 
     this.geometry.setAttribute(
       "position",
-      new THREE.BufferAttribute(vertices, 3)
+      new THREE.BufferAttribute(this.meshArrays.getVertices(), 3)
     );
-    this.geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
-    this.geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
-    this.geometry.setAttribute("aochannel", new THREE.BufferAttribute(ao, 1));
-    this.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+    this.geometry.setAttribute("normal", new THREE.BufferAttribute(this.meshArrays.getNormals(), 3));
+    this.geometry.setAttribute("uv", new THREE.BufferAttribute(this.meshArrays.getUVs(), 2));
+    this.geometry.setAttribute("aochannel", new THREE.BufferAttribute(this.meshArrays.getAO(), 1));
+    this.geometry.setIndex(new THREE.BufferAttribute(this.meshArrays.getIndices(), 1));
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.normal.needsUpdate = true;
     this.geometry.attributes.uv.needsUpdate = true;
@@ -353,92 +264,24 @@ export const LayerMesh = class {
     if (this.geometry.index) {
       this.geometry.index.needsUpdate = true;
     }
-    this.geometry.computeBoundingSphere();
+
+    const center = new THREE.Vector3(
+      this.dimensions.x / 2,
+      this.dimensions.y / 2,
+      this.dimensions.z / 2
+    );
+    const radius = Math.sqrt(
+      (this.dimensions.x / 2) ** 2 +
+      (this.dimensions.y / 2) ** 2 +
+      (this.dimensions.z / 2) ** 2
+    );
+    this.geometry.boundingSphere = new THREE.Sphere(center, radius);
   }
 
   private updatePreviewMesh(
-    previewFaces: Map<string, VoxelFaces>,
     buildMode: BlockModificationMode,
     atlas: Atlas
   ): void {
-    let totalFaceCount = 0;
-    for (const voxelFace of previewFaces.values()) {
-      totalFaceCount += voxelFace.faceIndexes.length;
-    }
-
-    const totalVertices = totalFaceCount * 4;
-    const totalIndices = totalFaceCount * 6;
-
-    const vertices = new Float32Array(totalVertices * 3);
-    const indices = new Uint32Array(totalIndices);
-    const normals = new Float32Array(totalVertices * 3);
-    const uvs = new Float32Array(totalVertices * 2);
-    const ao = new Float32Array(totalVertices);
-
-    let vertexOffset = 0;
-    let indexOffset = 0;
-    let vertexIndex = 0;
-    let uvOffset = 0;
-    let aoOffset = 0;
-
-    for (const voxelFace of previewFaces.values()) {
-      const { textureIndex, gridPos, faceIndexes } = voxelFace;
-
-      const posX = gridPos.x + 0.5;
-      const posY = gridPos.y + 0.5;
-      const posZ = gridPos.z + 0.5;
-
-      const textureCoords = getTextureCoordinates(
-        textureIndex,
-        atlas.gridSize,
-        atlas.cellPixelWidth
-      );
-
-      for (let i = 0; i < faceIndexes.length; i++) {
-        const faceIndex = faceIndexes[i];
-        const face = faces[faceIndex];
-        const faceVertices = face.vertices;
-        const faceNormal = face.normal;
-        const normalX = faceNormal[0];
-        const normalY = faceNormal[1];
-        const normalZ = faceNormal[2];
-
-        const startVertexIndex = vertexIndex;
-
-        for (let j = 0; j < 4; j++) {
-          const vertex = faceVertices[j];
-
-          vertices[vertexOffset] = vertex[0] + posX;
-          vertices[vertexOffset + 1] = vertex[1] + posY;
-          vertices[vertexOffset + 2] = vertex[2] + posZ;
-
-          normals[vertexOffset] = normalX;
-          normals[vertexOffset + 1] = normalY;
-          normals[vertexOffset + 2] = normalZ;
-
-          uvs[uvOffset] = textureCoords[j * 2];
-          uvs[uvOffset + 1] = textureCoords[j * 2 + 1];
-
-          ao[aoOffset] = 1.0;
-
-          vertexOffset += 3;
-          uvOffset += 2;
-          aoOffset += 1;
-          vertexIndex++;
-        }
-
-        indices[indexOffset] = startVertexIndex;
-        indices[indexOffset + 1] = startVertexIndex + 1;
-        indices[indexOffset + 2] = startVertexIndex + 2;
-
-        indices[indexOffset + 3] = startVertexIndex;
-        indices[indexOffset + 4] = startVertexIndex + 2;
-        indices[indexOffset + 5] = startVertexIndex + 3;
-
-        indexOffset += 6;
-      }
-    }
-
     if (!this.previewMesh) {
       const geometry = new THREE.BufferGeometry();
       const material = createVoxelMaterial(this.textureAtlas!, 1);
@@ -448,21 +291,21 @@ export const LayerMesh = class {
 
     this.previewMesh?.geometry.setAttribute(
       "position",
-      new THREE.BufferAttribute(vertices, 3)
+      new THREE.BufferAttribute(this.previewMeshArrays.getVertices(), 3)
     );
     this.previewMesh?.geometry.setAttribute(
       "normal",
-      new THREE.BufferAttribute(normals, 3)
+      new THREE.BufferAttribute(this.previewMeshArrays.getNormals(), 3)
     );
     this.previewMesh?.geometry.setAttribute(
       "uv",
-      new THREE.BufferAttribute(uvs, 2)
+      new THREE.BufferAttribute(this.previewMeshArrays.getUVs(), 2)
     );
     this.previewMesh?.geometry.setAttribute(
       "aochannel",
-      new THREE.BufferAttribute(ao, 1)
+      new THREE.BufferAttribute(this.previewMeshArrays.getAO(), 1)
     );
-    this.previewMesh?.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+    this.previewMesh?.geometry.setIndex(new THREE.BufferAttribute(this.previewMeshArrays.getIndices(), 1));
 
     this.previewMesh!.visible =
       buildMode.tag === BlockModificationMode.Build.tag || buildMode.tag === BlockModificationMode.Paint.tag;
@@ -479,7 +322,17 @@ export const LayerMesh = class {
       this.previewMesh!.geometry.index.needsUpdate = true;
     }
 
-    this.previewMesh?.geometry.computeBoundingSphere();
+    const center = new THREE.Vector3(
+      this.dimensions.x / 2,
+      this.dimensions.y / 2,
+      this.dimensions.z / 2
+    );
+    const radius = Math.sqrt(
+      (this.dimensions.x / 2) ** 2 +
+      (this.dimensions.y / 2) ** 2 +
+      (this.dimensions.z / 2) ** 2
+    );
+    this.previewMesh!.geometry.boundingSphere = new THREE.Sphere(center, radius);
   }
 
   dispose() {
