@@ -56,6 +56,9 @@ export const LayerMesh = class {
     yDim: number,
     zDim: number
   ): (Block | undefined)[][][] {
+    // Pre-calculate dimensional constants to avoid repeated multiplication
+    const yzDim = yDim * zDim;
+
     const decompressed: (Block | undefined)[][][] = Array(xDim)
       .fill(null)
       .map(() =>
@@ -68,24 +71,35 @@ export const LayerMesh = class {
     let blockIndex = 0;
 
     while (byteIndex < rleBytes.length) {
+      // Direct byte access instead of `slice`
       const runLength = (rleBytes[byteIndex + 1] << 8) | rleBytes[byteIndex];
-      const blockBytes = rleBytes.slice(byteIndex + 2, byteIndex + 4);
 
-      const block = this.blockFromBytes(blockBytes);
+      // Create the Block object once per run
+      // Assuming blockFromBytes can handle direct byte indices
+      const block = this.blockFromBytes(rleBytes, byteIndex + 2);
 
+      // Determine the block to assign once
+      const blockToAssign = block.type === 0 ? undefined : block;
+
+      // Use a single, unrolled loop to assign blocks
       for (let i = 0; i < runLength; i++) {
-        const x = Math.floor(blockIndex / (yDim * zDim));
-        const y = Math.floor((blockIndex % (yDim * zDim)) / zDim);
-        const z = blockIndex % zDim;
+        // Calculate coordinates using fast integer division and modulo
+        const currentBlockIndex = blockIndex + i;
 
+        const x = (currentBlockIndex / yzDim) | 0; // Integer division
+        const y = ((currentBlockIndex % yzDim) / zDim) | 0;
+        const z = currentBlockIndex % zDim;
+
+        // Check boundaries to prevent out-of-bounds access
+        // This is a good practice, but you might remove it if you are certain
+        // the blockIndex will never exceed the total number of blocks.
         if (x < xDim && y < yDim && z < zDim) {
-          decompressed[x][y][z] = block.type === 0 ? undefined : block;
+          decompressed[x][y][z] = blockToAssign;
         }
-
-        blockIndex++;
       }
 
-      byteIndex += 4;
+      blockIndex += runLength;
+      byteIndex += 4; // Move to the next RLE entry
     }
 
     return decompressed;
@@ -109,7 +123,7 @@ export const LayerMesh = class {
       const runLength =
         (layer.voxels[byteIndex + 1] << 8) | layer.voxels[byteIndex];
       const blockBytes = layer.voxels.slice(byteIndex + 2, byteIndex + 4);
-      const block = this.blockFromBytes(blockBytes);
+      const block = this.blockFromBytes(blockBytes, byteIndex + 2);
 
       if (block.type !== 0) {
         for (let i = 0; i < runLength; i++) {
@@ -131,8 +145,8 @@ export const LayerMesh = class {
     }
   }
 
-  private blockFromBytes(bytes: Uint8Array): Block {
-    const combined = (bytes[0] << 8) | bytes[1];
+  private blockFromBytes(bytes: Uint8Array, offset: number): Block {
+    const combined = (bytes[offset] << 8) | bytes[offset + 1];
     const type = combined >> 6;
     const rotation = combined & 0x07;
 

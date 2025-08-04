@@ -1,8 +1,11 @@
 import { BlockModificationMode } from "@/module_bindings";
 import { Block } from "./blocks";
 
-// Updated baseOffsets to match your new faces array vertex ordering
-const baseOffsets = {
+type FaceOffsets = {
+  [faceIndex: number]: [number, number, number][][];
+};
+
+const baseOffsets: FaceOffsets = {
   // Face 0: Right (+X) - vertices: top-back, top-front, bottom-front, bottom-back
   0: [
     // Vertex 0: top-back [0.49999, 0.49999, -0.49999]
@@ -232,7 +235,7 @@ function calculateNeighborOffsets(
   distance: number
 ): number[][] {
   const baseOffset = baseOffsets[faceIndex][vertexIndex];
-  return baseOffset.map((offset) => [
+  return baseOffset.map((offset: [number, number, number]) => [
     offset[0] * distance,
     offset[1] * distance,
     offset[2] * distance,
@@ -240,7 +243,7 @@ function calculateNeighborOffsets(
 }
 
 const AO_LOOKUP = generateAOLookup();
-export function calculateVertexAO(
+export const calculateVertexAO = (
   blockX: number,
   blockY: number,
   blockZ: number,
@@ -249,7 +252,7 @@ export function calculateVertexAO(
   realBlocks: (Block | undefined)[][][],
   previewBlocks: (Block | undefined)[][][],
   previewMode: BlockModificationMode
-): number {
+): number => {
   const checkPositions = AO_LOOKUP[faceIndex][vertexIndex];
   const side1Pos = checkPositions[0];
   const side2Pos = checkPositions[1];
@@ -295,4 +298,4 @@ export function calculateVertexAO(
 
   // Return the AO value from the lookup table.
   return AO_CONFIG.OCCLUSION_LEVELS[occluderCount];
-}
+};

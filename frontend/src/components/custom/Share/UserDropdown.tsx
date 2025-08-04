@@ -49,11 +49,6 @@ export function UserDropdown({
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem className="flex items-center gap-2">
-          <User className="w-4 h-4" />
-          Profile
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={onSignOut}
           className="flex items-center gap-2"

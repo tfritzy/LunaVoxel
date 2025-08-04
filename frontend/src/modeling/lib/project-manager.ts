@@ -19,7 +19,6 @@ export class ProjectManager {
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
-  private currentUpdateController: AbortController | null = null;
   private layers: Layer[] = [];
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
@@ -124,7 +123,6 @@ export class ProjectManager {
       return;
     }
 
-    this.currentUpdateController = new AbortController();
     this.layerMesh.update(
       this.layers,
       this.builder.previewBlocks,
@@ -139,10 +137,6 @@ export class ProjectManager {
   }
 
   dispose(): void {
-    if (this.currentUpdateController) {
-      this.currentUpdateController.abort();
-      this.currentUpdateController = null;
-    }
     this.builder.dispose();
     this.layerMesh.dispose();
     this.cursorManager.dispose();
