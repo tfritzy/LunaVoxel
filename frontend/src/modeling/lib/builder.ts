@@ -121,6 +121,7 @@ export const Builder = class {
 
   private onMouseMove(event: MouseEvent): void {
     this.updateMousePosition(event);
+
     const gridPos = this.checkIntersection();
 
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
@@ -211,16 +212,16 @@ export const Builder = class {
         worldNormal.normalize();
         const faceCenter = intersectionPoint;
 
-        if (Math.abs(worldNormal.x) < .1) {
-          faceCenter.x = Math.floor(faceCenter.x) + .5;
+        if (Math.abs(worldNormal.x) < 0.1) {
+          faceCenter.x = Math.floor(faceCenter.x) + 0.5;
         }
 
-        if (Math.abs(worldNormal.y) < .1) {
-          faceCenter.y = Math.floor(faceCenter.y) + .5;
+        if (Math.abs(worldNormal.y) < 0.1) {
+          faceCenter.y = Math.floor(faceCenter.y) + 0.5;
         }
 
-        if (Math.abs(worldNormal.z) < .1) {
-          faceCenter.z = Math.floor(faceCenter.z) + .5;
+        if (Math.abs(worldNormal.z) < 0.1) {
+          faceCenter.z = Math.floor(faceCenter.z) + 0.5;
         }
 
         this.throttledUpdateCursorPos(faceCenter, worldNormal);
@@ -303,7 +304,6 @@ export const Builder = class {
   }
 
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
-
     this.clearPreviewBlocks();
 
     const minX = Math.min(startPos.x, endPos.x);
