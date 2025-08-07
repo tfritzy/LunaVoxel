@@ -26,8 +26,6 @@ export const findExteriorFaces = (
   meshArrays.reset();
   previewMeshArrays.reset();
 
-  const start = performance.now();
-
   const maxDim = Math.max(dimensions.x, dimensions.y, dimensions.z);
   const maskSize = maxDim * maxDim;
   const realMask = new Int16Array(maskSize);
@@ -96,7 +94,7 @@ export const findExteriorFaces = (
               }
             }
 
-            if (previewBlock && !(isPaintMode && !block)) {
+            if (previewBlock && !((isPaintMode || isEraseMode) && !block)) {
               const nx = x + (axis === 0 ? dir : 0);
               const ny = y + (axis === 1 ? dir : 0);
               const nz = z + (axis === 2 ? dir : 0);
@@ -162,14 +160,6 @@ export const findExteriorFaces = (
       }
     }
   }
-
-  const totalTime = performance.now() - start;
-  console.log("[findExteriorFacesGreedy] Profile:", {
-    totalTime: totalTime.toFixed(2) + "ms",
-    dimensions: `${dimensions.x}x${dimensions.y}x${dimensions.z}`,
-    meshVertices: meshArrays.vertexCount,
-    previewVertices: previewMeshArrays.vertexCount,
-  });
 };
 
 const generateGreedyMesh = (
