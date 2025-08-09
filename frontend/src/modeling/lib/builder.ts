@@ -8,7 +8,7 @@ import {
 import { Block } from "./blocks";
 
 export const Builder = class {
-  public previewBlocks: (Block | undefined)[][][];
+  public previewBlocks: Uint16Array;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
@@ -61,7 +61,7 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewBlocks = this.initializePreviewBlocks();
+    this.previewBlocks = new Uint16Array(dimensions.x * dimensions.y * dimensions.z);
 
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
@@ -69,6 +69,16 @@ export const Builder = class {
     this.boundContextMenu = this.onContextMenu.bind(this);
 
     this.addEventListeners();
+  }
+
+  private getBlockIndex(x: number, y: number, z: number): number {
+    return x * this.dimensions.y * this.dimensions.z + y * this.dimensions.z + z;
+  }
+
+  private setPreviewBlock(x: number, y: number, z: number, blockType: number, rotation: number = 0): void {
+    const blockIndex = this.getBlockIndex(x, y, z);
+    const blockValue = (blockType << 6) | 0x08 | (rotation & 0x07);
+    this.previewBlocks[blockIndex] = blockValue;
   }
 
   public setTool(tool: BlockModificationMode): void {
@@ -89,20 +99,6 @@ export const Builder = class {
 
   public getTool(): BlockModificationMode {
     return this.currentTool;
-  }
-
-  private initializePreviewBlocks(): (Block | undefined)[][][] {
-    const previewBlocks: (Block | undefined)[][][] = [];
-    for (let x = 0; x <= this.dimensions.x; x++) {
-      previewBlocks[x] = [];
-      for (let y = 0; y <= this.dimensions.y; y++) {
-        previewBlocks[x][y] = [];
-        for (let z = 0; z <= this.dimensions.z; z++) {
-          previewBlocks[x][y][z] = undefined;
-        }
-      }
-    }
-    return previewBlocks;
   }
 
   private addEventListeners(): void {
@@ -294,13 +290,7 @@ export const Builder = class {
   }
 
   private clearPreviewBlocks(): void {
-    for (let x = 0; x <= this.dimensions.x; x++) {
-      for (let y = 0; y <= this.dimensions.y; y++) {
-        for (let z = 0; z <= this.dimensions.z; z++) {
-          this.previewBlocks[x][y][z] = undefined;
-        }
-      }
-    }
+    this.previewBlocks.fill(0);
   }
 
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
@@ -318,16 +308,13 @@ export const Builder = class {
         for (let z = minZ; z <= maxZ; z++) {
           if (
             x >= 0 &&
-            x <= this.dimensions.x &&
+            x < this.dimensions.x &&
             y >= 0 &&
-            y <= this.dimensions.y &&
+            y < this.dimensions.y &&
             z >= 0 &&
-            z <= this.dimensions.z
+            z < this.dimensions.z
           ) {
-            this.previewBlocks[x][y][z] = {
-              rotation: 0,
-              type: this.selectedBlock,
-            };
+            this.setPreviewBlock(x, y, z, this.selectedBlock);
           }
         }
       }

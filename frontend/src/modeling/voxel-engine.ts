@@ -83,7 +83,7 @@ export class VoxelEngine {
     renderer.domElement.style.userSelect = "none";
     renderer.domElement.style.webkitUserSelect = "none";
     renderer.domElement.style.pointerEvents = "auto";
-    
+
     container.appendChild(renderer.domElement);
     return renderer;
   }

@@ -4,18 +4,28 @@ import {
   ProjectBlocks,
   Vector3,
 } from "@/module_bindings";
-import { Block } from "./blocks";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 
+const getBlockType = (blockValue: number): number => {
+  return (blockValue >> 6) & 0x3FF;
+};
+
+const isBlockPresent = (blockValue: number): boolean => {
+  return blockValue !== 0;
+};
+
+const isPreview = (blockValue: number): boolean => {
+  return (blockValue & 0x08) !== 0;
+};
+
 export const findExteriorFaces = (
-  realBlocks: (Block | undefined)[][][],
-  previewBlocks: (Block | undefined)[][][],
+  chunkData: Uint16Array[][],
   previewMode: BlockModificationMode,
   atlas: Atlas,
-  blocks: ProjectBlocks,
-  dimensions: Vector3,
+  projectBlocks: ProjectBlocks,
+  chunkDimensions: Vector3,
   meshArrays: MeshArrays,
   previewMeshArrays: MeshArrays
 ): void => {
@@ -26,22 +36,28 @@ export const findExteriorFaces = (
   meshArrays.reset();
   previewMeshArrays.reset();
 
-  const maxDim = Math.max(dimensions.x, dimensions.y, dimensions.z);
-  const maskSize = maxDim * maxDim;
+  const maskSize = Math.max(chunkDimensions.x, chunkDimensions.y, chunkDimensions.z) ** 2;
   const realMask = new Int16Array(maskSize);
   const previewMask = new Int16Array(maskSize);
   const processed = new Uint8Array(maskSize);
+
+  const getNeighborBlock = (x: number, y: number, z: number): number | null => {
+    if (x >= 0 && x < chunkDimensions.x &&
+      y >= 0 && y < chunkDimensions.y &&
+      z >= 0 && z < chunkDimensions.z) {
+      return chunkData[x][y][z];
+    }
+
+    return 0;
+  };
 
   for (let axis = 0; axis < 3; axis++) {
     const u = (axis + 1) % 3;
     const v = (axis + 2) % 3;
 
-    const axisSize =
-      axis === 0 ? dimensions.x : axis === 1 ? dimensions.y : dimensions.z;
-    const uSize =
-      u === 0 ? dimensions.x : u === 1 ? dimensions.y : dimensions.z;
-    const vSize =
-      v === 0 ? dimensions.x : v === 1 ? dimensions.y : dimensions.z;
+    const axisSize = axis === 0 ? chunkDimensions.x : axis === 1 ? chunkDimensions.y : chunkDimensions.z;
+    const uSize = u === 0 ? chunkDimensions.x : u === 1 ? chunkDimensions.y : chunkDimensions.z;
+    const vSize = v === 0 ? chunkDimensions.x : v === 1 ? chunkDimensions.y : chunkDimensions.z;
 
     for (let dir = -1; dir <= 1; dir += 2) {
       const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
@@ -58,71 +74,43 @@ export const findExteriorFaces = (
             const y = axis === 1 ? d : u === 1 ? iu : iv;
             const z = axis === 2 ? d : u === 2 ? iu : iv;
 
-            const block = realBlocks[x]?.[y]?.[z];
-            const previewBlock = previewBlocks?.[x]?.[y]?.[z];
+            const blockValue = chunkData[x][y][z];
+            const blockPresent = isBlockPresent(blockValue);
+            const blockIsPreview = isPreview(blockValue);
+            const blockType = getBlockType(blockValue);
 
-            if (block) {
-              const nx = x + (axis === 0 ? dir : 0);
-              const ny = y + (axis === 1 ? dir : 0);
-              const nz = z + (axis === 2 ? dir : 0);
+            const nx = x + (axis === 0 ? dir : 0);
+            const ny = y + (axis === 1 ? dir : 0);
+            const nz = z + (axis === 2 ? dir : 0);
+            const neighborValue = getNeighborBlock(nx, ny, nz);
 
-              if (
-                nx < 0 ||
-                nx >= dimensions.x ||
-                ny < 0 ||
-                ny >= dimensions.y ||
-                nz < 0 ||
-                nz >= dimensions.z
-              ) {
-                if (isBuildMode || !previewBlock) {
-                  realMask[maskIndex] =
-                    blocks.blockFaceAtlasIndexes[block.type - 1][faceDir];
-                }
+            if (blockPresent) {
+              let shouldShowFace = false;
+
+              if (neighborValue === null) {
+                shouldShowFace = true;
               } else {
-                const neighborBlock = realBlocks[nx][ny][nz];
-                const neighborPreview = previewBlocks?.[nx]?.[ny]?.[nz];
+                const neighborPresent = isBlockPresent(neighborValue);
+                const neighborIsPreview = isPreview(neighborValue);
 
-                const shouldShowFace =
-                  !neighborBlock ||
-                  (isEraseMode && neighborPreview) ||
-                  (isPaintMode && neighborPreview && !neighborBlock);
-
-                if (shouldShowFace && (isBuildMode || !previewBlock)) {
-                  realMask[maskIndex] =
-                    blocks.blockFaceAtlasIndexes[block.type - 1][faceDir];
-                }
+                shouldShowFace = !neighborPresent ||
+                  (isEraseMode && neighborIsPreview) ||
+                  (isPaintMode && neighborIsPreview && !neighborPresent);
               }
-            }
 
-            if (previewBlock && !((isPaintMode || isEraseMode) && !block)) {
-              const nx = x + (axis === 0 ? dir : 0);
-              const ny = y + (axis === 1 ? dir : 0);
-              const nz = z + (axis === 2 ? dir : 0);
+              if (shouldShowFace) {
+                const textureIndex = projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
 
-              if (
-                nx < 0 ||
-                nx >= dimensions.x ||
-                ny < 0 ||
-                ny >= dimensions.y ||
-                nz < 0 ||
-                nz >= dimensions.z
-              ) {
-                previewMask[maskIndex] =
-                  blocks.blockFaceAtlasIndexes[previewBlock.type - 1][faceDir];
-              } else {
-                const neighborBlock = realBlocks[nx]?.[ny]?.[nz];
-                const neighborPreview = previewBlocks?.[nx]?.[ny]?.[nz];
-
-                const shouldShowFace =
-                  !neighborBlock ||
-                  (isEraseMode && neighborPreview) ||
-                  (isPaintMode && neighborPreview && !neighborBlock);
-
-                if (shouldShowFace) {
-                  previewMask[maskIndex] =
-                    blocks.blockFaceAtlasIndexes[previewBlock.type - 1][
-                      faceDir
-                    ];
+                if (blockIsPreview) {
+                  if (isPaintMode && !isPreview) {
+                    previewMask[maskIndex] = textureIndex;
+                  } else if (isEraseMode && !blockIsPreview) {
+                    // Don't show preview - nothing to erase
+                  } else {
+                    previewMask[maskIndex] = textureIndex;
+                  }
+                } else {
+                  realMask[maskIndex] = textureIndex;
                 }
               }
             }
@@ -179,7 +167,7 @@ const generateGreedyMesh = (
   processed.fill(0, 0, width * height);
 
   for (let j = 0; j < height; j++) {
-    for (let i = 0; i < width; ) {
+    for (let i = 0; i < width;) {
       const maskIndex = i + j * width;
 
       if (processed[maskIndex] || mask[maskIndex] < 0) {

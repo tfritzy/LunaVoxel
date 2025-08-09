@@ -126,7 +126,7 @@ const createWireframeBox = (
   );
   const edges = new THREE.EdgesGeometry(wireframeGeometry);
   const wireframeMaterial = new THREE.LineBasicMaterial({
-    color: 0x363636,
+    color: 0x606060,
     transparent: false,
   });
   const wireframeBox = new THREE.LineSegments(edges, wireframeMaterial);
@@ -224,7 +224,7 @@ const createGridLines = (
   gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
   const gridMaterial = new THREE.LineBasicMaterial({
-    color: 0x444444,
+    color: 0x606060,
     transparent: true,
     opacity: 0.3
   });

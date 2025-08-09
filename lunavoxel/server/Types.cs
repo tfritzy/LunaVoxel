@@ -119,6 +119,10 @@ public static partial class Module
         public int yDim;
         public int zDim;
         public int Index;
+        // Format
+        // Byte 1: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
+        // Byte 2: [TYPE_1][TYPE_0][IS_PREVIEW][UNUSED][UNUSED][ROT_2][ROT_1][ROT_0]
+        // note: Is preview is only used client side
         public byte[] Voxels = [];
         public bool Visible;
         public bool Locked;

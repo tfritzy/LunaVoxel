@@ -120,26 +120,17 @@ export class ProjectManager {
     if (!this.atlas || !this.blocks) return;
 
     const start = performance.now();
-    if (real) {
-      this.chunkManager.updateReal(
-        this.layers,
-        this.builder.getTool(),
-        this.blocks,
-        this.atlas
-      );
-    } else {
-      this.chunkManager.updatePreview(
-        this.builder.previewBlocks,
-        this.builder.getTool(),
-        this.blocks,
-        this.atlas
-      );
-    }
+
+    this.chunkManager.update(
+      this.layers,
+      this.builder.previewBlocks,
+      this.builder.getTool(),
+      this.blocks,
+      this.atlas
+    );
 
     const end = performance.now();
-    console.log(
-      `${real ? "Real" : "Preview"} ChunkManager update time: ${end - start} ms`
-    );
+    console.log(`ChunkManager update time: ${end - start} ms`);
   };
 
   public setTool(tool: BlockModificationMode): void {

@@ -6,7 +6,6 @@ import {
   Vector3,
 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
-import { Block } from "./blocks";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
@@ -23,29 +22,65 @@ export class ChunkMesh {
 
   private meshArrays: MeshArrays;
   private previewMeshArrays: MeshArrays;
-  private dimensions: Vector3;
   private chunkX: number;
+  private chunkY: number;
   private chunkZ: number;
+  private chunkDimensions: Vector3;
+  private worldDimensions: Vector3;
+  private voxelData: Uint16Array[][];
 
   constructor(
     scene: THREE.Scene,
     chunkX: number,
+    chunkY: number,
     chunkZ: number,
-    worldHeight: number,
+    chunkDimensions: Vector3,
+    worldDimensions: Vector3,
     textureAtlas: THREE.Texture | null = null
   ) {
     this.scene = scene;
     this.chunkX = chunkX;
+    this.chunkY = chunkY;
     this.chunkZ = chunkZ;
+    this.chunkDimensions = chunkDimensions;
+    this.worldDimensions = worldDimensions;
     this.textureAtlas = textureAtlas;
-    this.dimensions = { x: CHUNK_SIZE, y: worldHeight, z: CHUNK_SIZE };
 
-    const maxFaces = CHUNK_SIZE * worldHeight * CHUNK_SIZE * 6;
+    const maxFaces = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z * 6;
     const maxVertices = maxFaces * 4;
     const maxIndices = maxFaces * 6;
 
     this.meshArrays = new MeshArrays(maxVertices, maxIndices);
     this.previewMeshArrays = new MeshArrays(maxVertices, maxIndices);
+
+    this.voxelData = [];
+    for (let x = 0; x < chunkDimensions.x; x++) {
+      this.voxelData[x] = [];
+      for (let y = 0; y < chunkDimensions.y; y++) {
+        this.voxelData[x][y] = new Uint16Array(chunkDimensions.z);
+      }
+    }
+  }
+
+  getChunkDimensions(): Vector3 {
+    return this.chunkDimensions;
+  }
+
+  setVoxel(x: number, y: number, z: number, value: number): void {
+    if (x >= 0 && x < this.chunkDimensions.x &&
+      y >= 0 && y < this.chunkDimensions.y &&
+      z >= 0 && z < this.chunkDimensions.z) {
+      this.voxelData[x][y][z] = value;
+    }
+  }
+
+  getVoxel(x: number, y: number, z: number): number {
+    if (x >= 0 && x < this.chunkDimensions.x &&
+      y >= 0 && y < this.chunkDimensions.y &&
+      z >= 0 && z < this.chunkDimensions.z) {
+      return this.voxelData[x][y][z];
+    }
+    return 0;
   }
 
   setTextureAtlas = (textureAtlas: THREE.Texture) => {
@@ -62,8 +97,6 @@ export class ChunkMesh {
   };
 
   update = (
-    chunkRealBlocks: (Block | undefined)[][][],
-    chunkPreviewBlocks: (Block | undefined)[][][],
     buildMode: BlockModificationMode,
     blocks: ProjectBlocks,
     atlas: Atlas
@@ -71,12 +104,11 @@ export class ChunkMesh {
     if (!this.textureAtlas) return;
 
     findExteriorFaces(
-      chunkRealBlocks,
-      chunkPreviewBlocks,
+      this.voxelData,
       buildMode,
       atlas,
       blocks,
-      this.dimensions,
+      this.chunkDimensions,
       this.meshArrays,
       this.previewMeshArrays
     );
@@ -95,9 +127,11 @@ export class ChunkMesh {
       this.mesh.castShadow = true;
       this.mesh.receiveShadow = true;
 
-      const worldOffsetX = this.chunkX * CHUNK_SIZE;
-      const worldOffsetZ = this.chunkZ * CHUNK_SIZE;
-      this.mesh.position.set(worldOffsetX, 0, worldOffsetZ);
+      this.mesh.position.set(
+        this.chunkX * CHUNK_SIZE,
+        this.chunkY * CHUNK_SIZE,
+        this.chunkZ * CHUNK_SIZE
+      );
 
       this.scene.add(this.mesh);
     }
@@ -131,14 +165,14 @@ export class ChunkMesh {
     }
 
     const center = new THREE.Vector3(
-      CHUNK_SIZE / 2,
-      this.dimensions.y / 2,
-      CHUNK_SIZE / 2
+      this.chunkDimensions.x / 2,
+      this.chunkDimensions.y / 2,
+      this.chunkDimensions.z / 2
     );
     const radius = Math.sqrt(
-      (CHUNK_SIZE / 2) ** 2 +
-        (this.dimensions.y / 2) ** 2 +
-        (CHUNK_SIZE / 2) ** 2
+      (this.chunkDimensions.x / 2) ** 2 +
+      (this.chunkDimensions.y / 2) ** 2 +
+      (this.chunkDimensions.z / 2) ** 2
     );
     this.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
@@ -151,9 +185,11 @@ export class ChunkMesh {
       const material = createVoxelMaterial(this.textureAtlas, 1);
       this.previewMesh = new THREE.Mesh(geometry, material);
 
-      const worldOffsetX = this.chunkX * CHUNK_SIZE;
-      const worldOffsetZ = this.chunkZ * CHUNK_SIZE;
-      this.previewMesh.position.set(worldOffsetX, 0, worldOffsetZ);
+      this.previewMesh.position.set(
+        this.chunkX * CHUNK_SIZE,
+        this.chunkY * CHUNK_SIZE,
+        this.chunkZ * CHUNK_SIZE
+      );
 
       this.scene.add(this.previewMesh);
     }
@@ -196,14 +232,14 @@ export class ChunkMesh {
     }
 
     const center = new THREE.Vector3(
-      CHUNK_SIZE / 2,
-      this.dimensions.y / 2,
-      CHUNK_SIZE / 2
+      this.chunkDimensions.x / 2,
+      this.chunkDimensions.y / 2,
+      this.chunkDimensions.z / 2
     );
     const radius = Math.sqrt(
-      (CHUNK_SIZE / 2) ** 2 +
-        (this.dimensions.y / 2) ** 2 +
-        (CHUNK_SIZE / 2) ** 2
+      (this.chunkDimensions.x / 2) ** 2 +
+      (this.chunkDimensions.y / 2) ** 2 +
+      (this.chunkDimensions.z / 2) ** 2
     );
     this.previewMesh.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
