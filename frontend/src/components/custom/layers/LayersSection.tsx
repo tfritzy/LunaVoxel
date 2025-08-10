@@ -1,4 +1,3 @@
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { SortableLayerRow } from "./SortableLayerRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -24,11 +23,16 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
+import {
+  useLayersContext,
+  useProjectMeta,
+} from "@/contexts/CurrentProjectContext";
 
 export const LayersSection = () => {
   const { connection } = useDatabase();
-  const { layers, setLayers, project, selectedLayer, setSelectedLayer } =
-    useCurrentProject();
+  const { layers, setLayers, selectedLayer, setSelectedLayer } =
+    useLayersContext();
+  const { project } = useProjectMeta();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

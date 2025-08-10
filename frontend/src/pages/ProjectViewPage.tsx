@@ -5,8 +5,12 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
 import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
-import { Button } from "@/components/ui/button";
+import {
+  useProjectMeta,
+  useAtlasContext,
+  useBlocksContext,
+  useLayersContext,
+} from "@/contexts/CurrentProjectContext";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
 import { useCustomCursor } from "@/lib/useCustomCursor";
@@ -20,15 +24,10 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const {
-    selectedBlock,
-    project,
-    atlas,
-    textureAtlas,
-    blocks,
-    layers,
-    selectedLayer,
-  } = useCurrentProject();
+  const { selectedBlock, blocks } = useBlocksContext();
+  const { project } = useProjectMeta();
+  const { atlas, textureAtlas } = useAtlasContext();
+  const { layers, selectedLayer } = useLayersContext();
 
   const customCursor = useCustomCursor(currentTool);
 

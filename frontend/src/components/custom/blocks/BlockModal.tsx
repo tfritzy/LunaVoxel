@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
+import {
+  useBlocksContext,
+  useProjectMeta,
+} from "@/contexts/CurrentProjectContext";
 import { AtlasTextureDropdown } from "./AtlasTextureDropdown";
 import { BlockFacePreview } from "./BlockFacePreview";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,7 +24,8 @@ export const BlockModal = ({
   blockIndex,
 }: BlockModalProps) => {
   const isNewBlock = blockIndex === "new";
-  const { blocks, project } = useCurrentProject();
+  const { blocks } = useBlocksContext();
+  const { project } = useProjectMeta();
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
   const [selectedFaces, setSelectedFaces] = useState<number[]>(() =>
     isNewBlock

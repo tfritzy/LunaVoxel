@@ -1,5 +1,4 @@
 import { Modal } from "@/components/ui/modal";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { useEffect, useState } from "react";
 import { TextureDropZone } from "./TextureDropZone";
 import { ColorPicker } from "../ColorPicker";
@@ -10,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { SelectionCard } from "./SelectionCard";
 import { functions } from "@/firebase/firebase";
+import {
+  useAtlasContext,
+  useProjectMeta,
+} from "@/contexts/CurrentProjectContext";
 
 type SelectionMode = "color" | "texture";
 
@@ -76,7 +79,8 @@ export const EditAtlasSlotModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { atlas, atlasSlots, project } = useCurrentProject();
+  const { project } = useProjectMeta();
+  const { atlas, atlasSlots } = useAtlasContext();
   const [selectedColor, setSelectedColor] = useState<string>("#ffffff");
   const [textureData, setTextureData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("color");

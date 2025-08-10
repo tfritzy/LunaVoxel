@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
+import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { createVoxelMaterial } from "@/modeling/lib/shader";
 import { faces } from "@/modeling/lib/voxel-constants";
 import { getTextureCoordinates } from "@/modeling/lib/texture-coords";
@@ -28,7 +28,7 @@ export const BlockFacePreview = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneRef | null>(null);
 
-  const { atlas, textureAtlas } = useCurrentProject();
+  const { atlas, textureAtlas } = useAtlasContext();
 
   const createTextSprite = (text: string, color: string = "#ffffff") => {
     const canvas = document.createElement("canvas");

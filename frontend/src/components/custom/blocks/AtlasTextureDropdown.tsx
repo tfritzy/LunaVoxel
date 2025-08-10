@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
+import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import {
   Popover,
   PopoverContent,
@@ -22,7 +22,7 @@ export const AtlasTextureDropdown = ({
   size = "sm",
   isLinked = false,
 }: AtlasTextureDropdownProps) => {
-  const { atlasSlots } = useCurrentProject();
+  const { atlasSlots } = useAtlasContext();
   const [isOpen, setIsOpen] = useState(false);
 
   const sizeClasses = {

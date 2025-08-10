@@ -5,7 +5,14 @@ import {
   Project,
   ProjectBlocks,
 } from "@/module_bindings";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { useDatabase } from "./DatabaseContext";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/firebase/AuthContext";
@@ -15,34 +22,71 @@ import * as THREE from "three";
 import { useBlocks } from "@/lib/useBlocks";
 import { useLayers } from "@/lib/useLayers";
 
-interface CurrentProjectContextType {
+// Granular context value interfaces
+interface ProjectMetaContextType {
   project: Project;
-  atlas: Atlas;
-  atlasSlots: AtlasSlot[];
-  textureAtlas: THREE.Texture | null;
-  blocks: ProjectBlocks;
-  layers: Layer[];
-  setLayers: (layers: Layer[]) => void;
-  selectedBlock: number;
-  setSelectedBlock: (block: number) => void;
-  selectedLayer: number;
-  setSelectedLayer: (layer: number) => void;
   projectStatus: "loading" | "found" | "not-found" | "poke-attempted";
   retryProjectLoad: () => void;
 }
+interface AtlasContextType {
+  atlas: Atlas;
+  atlasSlots: AtlasSlot[];
+  textureAtlas: THREE.Texture | null;
+}
+interface BlocksContextType {
+  blocks: ProjectBlocks;
+  selectedBlock: number;
+  setSelectedBlock: (block: number) => void;
+}
+interface LayersContextType {
+  layers: Layer[];
+  setLayers: (layers: Layer[]) => void;
+  selectedLayer: number;
+  setSelectedLayer: (layer: number) => void;
+}
 
-const ProjectContext = createContext<CurrentProjectContextType | undefined>(
+const ProjectMetaContext = createContext<ProjectMetaContextType | undefined>(
   undefined
 );
+const AtlasContext = createContext<AtlasContextType | undefined>(undefined);
+const BlocksContext = createContext<BlocksContextType | undefined>(undefined);
+const LayersContext = createContext<LayersContextType | undefined>(undefined);
 
-export const useCurrentProject = () => {
-  const context = useContext(ProjectContext);
-  if (context === undefined) {
+// eslint-disable-next-line react-refresh/only-export-components
+export const useProjectMeta = () => {
+  const ctx = useContext(ProjectMetaContext);
+  if (!ctx)
     throw new Error(
-      "useCurrentProject must be used within a CurrentProjectProvider"
+      "useProjectMeta must be used within CurrentProjectProvider"
     );
-  }
-  return context;
+  return ctx;
+};
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAtlasContext = () => {
+  const ctx = useContext(AtlasContext);
+  if (!ctx)
+    throw new Error(
+      "useAtlasContext must be used within CurrentProjectProvider"
+    );
+  return ctx;
+};
+// eslint-disable-next-line react-refresh/only-export-components
+export const useBlocksContext = () => {
+  const ctx = useContext(BlocksContext);
+  if (!ctx)
+    throw new Error(
+      "useBlocksContext must be used within CurrentProjectProvider"
+    );
+  return ctx;
+};
+// eslint-disable-next-line react-refresh/only-export-components
+export const useLayersContext = () => {
+  const ctx = useContext(LayersContext);
+  if (!ctx)
+    throw new Error(
+      "useLayersContext must be used within CurrentProjectProvider"
+    );
+  return ctx;
 };
 
 export const CurrentProjectProvider = ({
@@ -65,11 +109,11 @@ export const CurrentProjectProvider = ({
     projectId || ""
   );
 
-  const retryProjectLoad = () => {
+  const retryProjectLoad = useCallback(() => {
     setProjectStatus("loading");
     setPokeAttempted(false);
     setProject(null);
-  };
+  }, []);
 
   useEffect(() => {
     if (!connection?.identity || !projectId) return;
@@ -131,38 +175,56 @@ export const CurrentProjectProvider = ({
     };
   }, [connection, projectId, pokeAttempted]);
 
-  if (projectStatus === "loading" || projectStatus === "poke-attempted") {
-    return <LoadingState status={projectStatus} />;
-  }
+  // Compute readiness flags BEFORE early returns but AFTER all hooks
+  const isLoading =
+    projectStatus === "loading" || projectStatus === "poke-attempted";
+  const isNotFound = projectStatus === "not-found";
+  const ready = !!(project && atlas && blocks);
 
-  if (projectStatus === "not-found") {
-    return <NotFoundState retryProjectLoad={retryProjectLoad} />;
-  }
+  const projectMetaValue = useMemo<ProjectMetaContextType | null>(
+    () =>
+      !ready ? null : { project: project!, projectStatus, retryProjectLoad },
+    [ready, project, projectStatus, retryProjectLoad]
+  );
+  const atlasValue = useMemo<AtlasContextType | null>(
+    () =>
+      !ready
+        ? null
+        : { atlas: atlas!, atlasSlots: slots, textureAtlas: texture },
+    [ready, atlas, slots, texture]
+  );
+  const blocksValue = useMemo<BlocksContextType | null>(
+    () =>
+      !ready ? null : { blocks: blocks!, selectedBlock, setSelectedBlock },
+    [ready, blocks, selectedBlock]
+  );
+  const layersValue = useMemo<LayersContextType | null>(
+    () =>
+      !ready ? null : { layers, setLayers, selectedLayer, setSelectedLayer },
+    [ready, layers, setLayers, selectedLayer, setSelectedLayer]
+  );
 
-  if (!project || !atlas || !blocks) {
+  if (isLoading) return <LoadingState status={projectStatus} />;
+  if (isNotFound) return <NotFoundState retryProjectLoad={retryProjectLoad} />;
+  if (
+    !ready ||
+    !projectMetaValue ||
+    !atlasValue ||
+    !blocksValue ||
+    !layersValue
+  )
     return <LoadingState status="loading" />;
-  }
 
   return (
-    <ProjectContext.Provider
-      value={{
-        project,
-        atlas,
-        atlasSlots: slots,
-        textureAtlas: texture,
-        layers,
-        setLayers,
-        selectedBlock,
-        setSelectedBlock,
-        selectedLayer,
-        setSelectedLayer,
-        projectStatus,
-        retryProjectLoad,
-        blocks,
-      }}
-    >
-      {children}
-    </ProjectContext.Provider>
+    <ProjectMetaContext.Provider value={projectMetaValue}>
+      <AtlasContext.Provider value={atlasValue}>
+        <BlocksContext.Provider value={blocksValue}>
+          <LayersContext.Provider value={layersValue}>
+            {children}
+          </LayersContext.Provider>
+        </BlocksContext.Provider>
+      </AtlasContext.Provider>
+    </ProjectMetaContext.Provider>
   );
 };
 

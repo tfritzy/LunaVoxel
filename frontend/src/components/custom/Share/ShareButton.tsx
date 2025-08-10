@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Users } from "lucide-react";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { ShareModal } from "./ShareModal";
 import { Button } from "@/components/ui/button";
+import { useProjectMeta } from "@/contexts/CurrentProjectContext";
 
 export function ShareButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const { project } = useCurrentProject();
+  const { project } = useProjectMeta();
 
   return (
     <>

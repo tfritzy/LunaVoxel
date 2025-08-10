@@ -1,5 +1,5 @@
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { useBlockTextures } from "@/lib/useBlockTextures";
+import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { FileWarning } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -13,7 +13,7 @@ export const BlockPreview = ({ blockIndex }: BlockPreviewProps) => {
   });
   const [textureUrl, setTextureUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { textureAtlas } = useCurrentProject();
+  const { textureAtlas } = useAtlasContext();
 
   useEffect(() => {
     if (!isReady) {

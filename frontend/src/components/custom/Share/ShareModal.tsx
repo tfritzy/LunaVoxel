@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "lucide-react";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
+import { useProjectMeta } from "@/contexts/CurrentProjectContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { EventContext, UserProject } from "@/module_bindings";
 import { InviteForm } from "./InviteForm";
@@ -17,7 +17,7 @@ interface ShareModalProps {
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
-  const { project } = useCurrentProject();
+  const { project } = useProjectMeta();
   const { connection } = useDatabase();
   const [userProjects, setUserProjects] = useState<UserProject[]>([]);
   const [showTopBorder, setShowTopBorder] = useState(false);

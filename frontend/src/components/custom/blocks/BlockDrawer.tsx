@@ -1,4 +1,3 @@
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
 import { BlockPreview } from "./BlockPreview";
 import { HexagonOverlay } from "./HexagonOverlay";
 import { BlockFacePreview } from "./BlockFacePreview";
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { BlockModal } from "./BlockModal";
+import { useBlocksContext } from "@/contexts/CurrentProjectContext";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4rem";
@@ -14,7 +14,7 @@ const VERTICAL_OVERLAP = "-1.5rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = () => {
-  const { blocks, selectedBlock, setSelectedBlock } = useCurrentProject();
+  const { blocks, selectedBlock, setSelectedBlock } = useBlocksContext();
   const [editingBlockIndex, setEditingBlockIndex] = useState<
     number | "new" | null
   >(null);

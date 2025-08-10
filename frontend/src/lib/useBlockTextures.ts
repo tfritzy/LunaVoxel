@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
+import {
+  useAtlasContext,
+  useBlocksContext,
+} from "@/contexts/CurrentProjectContext";
 import {
   getBlockTextureRenderer,
   releaseBlockTextureRenderer,
@@ -10,7 +13,9 @@ interface UseBlockTexturesOptions {
 }
 
 export const useBlockTextures = (options: UseBlockTexturesOptions = {}) => {
-  const { atlas, textureAtlas, blocks } = useCurrentProject();
+  const { atlas, textureAtlas } = useAtlasContext();
+  const { blocks } = useBlocksContext();
+
   const rendererRef = useRef<ReturnType<typeof getBlockTextureRenderer> | null>(
     null
   );

@@ -1,4 +1,4 @@
-import { useCurrentProject } from "@/contexts/CurrentProjectContext";
+import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { Plus, Download } from "lucide-react";
 import { JSX, useMemo, useState } from "react";
 import { EditAtlasSlotModal } from "./EditAtlasSlotModal";
@@ -7,7 +7,7 @@ export const AtlasSection = () => {
   const [editingSlotIndex, setEditingSlotIndex] = useState<
     number | "new" | null
   >(null);
-  const { atlasSlots, atlas, textureAtlas } = useCurrentProject();
+  const { textureAtlas, atlasSlots } = useAtlasContext();
 
   const handleDownload = () => {
     if (!textureAtlas?.image) return;
@@ -68,7 +68,6 @@ export const AtlasSection = () => {
           <Download className="w-4 h-4" />
         </button>
       </div>
-
 
       <div className="relative grid grid-cols-8">
         {entries}
