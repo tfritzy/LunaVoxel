@@ -105,26 +105,24 @@ export class ChunkManager {
   }
 
   private decompressBlocksInto(
-    rleBytes: Uint8Array,
+    compressedData: number[],
     blocks: Uint16Array
   ): void {
-    let byteIndex = 0;
+    let dataIndex = 0;
     let blockIndex = 0;
 
-    while (byteIndex < rleBytes.length) {
-      const runLength = (rleBytes[byteIndex + 1] << 8) | rleBytes[byteIndex];
-      const blockByte1 = rleBytes[byteIndex + 2];
-      const blockByte2 = rleBytes[byteIndex + 3];
-      const combined = (blockByte1 << 8) | blockByte2;
+    while (dataIndex < compressedData.length) {
+      const runLength = compressedData[dataIndex];
+      const value = compressedData[dataIndex + 1];
 
       const endIndex = blockIndex + runLength;
 
       while (blockIndex < endIndex) {
-        blocks[blockIndex] = combined;
+        blocks[blockIndex] = value & 0xFFFF;
         blockIndex++;
       }
 
-      byteIndex += 4;
+      dataIndex += 2;
     }
   }
 
@@ -132,33 +130,17 @@ export class ChunkManager {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
     if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
+      console.warn("Layer dimensions don't match world dimensions");
       return;
     }
 
-    let byteIndex = 0;
-    let blockIndex = 0;
+    const tempBlocks = new Uint16Array(xDim * yDim * zDim);
+    this.decompressBlocksInto(layer.voxels, tempBlocks);
 
-    while (byteIndex < layer.voxels.length) {
-      const runLength =
-        (layer.voxels[byteIndex + 1] << 8) | layer.voxels[byteIndex];
-      const blockByte1 = layer.voxels[byteIndex + 2];
-      const blockByte2 = layer.voxels[byteIndex + 3];
-      const combined = (blockByte1 << 8) | blockByte2;
-      const blockType = combined >> 6;
-
-      if (blockType !== 0) {
-        const endIndex = blockIndex + runLength;
-        while (blockIndex < endIndex) {
-          if (blocks[blockIndex] === 0) {
-            blocks[blockIndex] = combined;
-          }
-          blockIndex++;
-        }
-      } else {
-        blockIndex += runLength;
+    for (let i = 0; i < blocks.length; i++) {
+      if (tempBlocks[i] !== 0) {
+        blocks[i] = tempBlocks[i];
       }
-
-      byteIndex += 4;
     }
   }
 

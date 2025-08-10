@@ -123,7 +123,7 @@ public static partial class Module
         // Byte 1: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
         // Byte 2: [TYPE_1][TYPE_0][IS_PREVIEW][UNUSED][UNUSED][ROT_2][ROT_1][ROT_0]
         // note: Is preview is only used client side
-        public byte[] Voxels = [];
+        public short[] Voxels = [];
         public bool Visible;
         public bool Locked;
         public string Name;
@@ -138,7 +138,7 @@ public static partial class Module
                 yDim = yDim,
                 zDim = zDim,
                 Index = index,
-                Voxels = VoxelRLE.Compress(new byte[xDim * yDim * zDim * 2]),
+                Voxels = VoxelRLE.Compress(new short[xDim * yDim * zDim]),
                 Visible = true,
                 Locked = false,
                 Name = $"Layer {index}"
@@ -161,16 +161,16 @@ public static partial class Module
         public bool IsHead; // Is the current edit the author is on.
         public bool IsUndone; // Is not being applied to the scene.
         public string LayerId;
-        public byte[] BeforeVoxels = [];
-        public byte[] DiffVoxels = [];
+        public short[] BeforeVoxels = [];
+        public short[] DiffVoxels = [];
         public bool IsBaseState;
 
         public static LayerHistoryEntry Build(
             string projectId,
             Identity author,
             string layerId,
-            byte[] beforeVoxels,
-            byte[] diffVoxels,
+            short[] beforeVoxels,
+            short[] diffVoxels,
             bool isHead)
         {
             return new LayerHistoryEntry
@@ -209,28 +209,18 @@ public static partial class Module
             Rotation = rotation;
         }
 
-        public static BlockType FromBytes(byte[] data)
+        public static BlockType FromShort(short data)
         {
-            if (data.Length != 2)
-                throw new ArgumentException("Invalid block data length");
-
-            ushort combined = (ushort)((data[0] << 8) | data[1]);
-
+            ushort combined = (ushort)data;
             ushort type = (ushort)(combined >> 6);
             byte rotation = (byte)(combined & 0x07);
-
             return new BlockType(type, rotation);
         }
 
-        public byte[] ToBytes()
+        public short ToShort()
         {
             ushort combined = (ushort)((Type << 6) | (Rotation & 0x07));
-
-            return
-            [
-                (byte)(combined >> 8),
-                (byte)(combined & 0xFF)
-            ];
+            return (short)combined;
         }
     }
 

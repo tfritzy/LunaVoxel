@@ -7,8 +7,8 @@ public static class UndoRedo
         ReducerContext ctx,
         string projectId,
         string layerId,
-        byte[] beforeVoxels,
-        byte[] afterVoxels)
+        short[] beforeVoxels,
+        short[] afterVoxels)
     {
         var author = ctx.Sender;
         var headEntry = ctx.Db.layer_history_entry.author_head.Filter((author, true)).FirstOrDefault();
@@ -64,6 +64,7 @@ public static class UndoRedo
         var oldHeadVoxels = VoxelRLE.Decompress(oldHead.BeforeVoxels);
 
         var editsOfLayer = entries.FindAll(e => e.LayerId == oldHead.LayerId);
+
         var oldHeadIndex = editsOfLayer.FindIndex(e => e.Id == oldHead.Id);
         var diff = VoxelDataToDictionary(VoxelRLE.Decompress(oldHead.DiffVoxels));
         RemoveDiffFromFutureEdits(ctx, editsOfLayer, oldHeadIndex + 1, diff, oldHeadVoxels);
@@ -72,7 +73,7 @@ public static class UndoRedo
         var currentLayerState = ctx.Db.layer.Id.Find(oldHead.LayerId);
         if (currentLayerState == null) return;
 
-        byte[] newLayerVoxels;
+        short[] newLayerVoxels;
         if (newHighestEdit != null)
         {
             newLayerVoxels = ApplyDiff(
@@ -138,8 +139,8 @@ public static class UndoRedo
         ReducerContext ctx,
         List<LayerHistoryEntry> edits,
         int startIndex,
-        Dictionary<int, byte[]> diff,
-        byte[] oldHeadVoxels)
+        Dictionary<int, short> diff,
+        short[] oldHeadVoxels)
     {
         for (int i = startIndex; i < edits.Count; i++)
         {
@@ -151,37 +152,35 @@ public static class UndoRedo
 
             bool wasChanged = false;
             var itemsToRemove = new List<int>();
-            byte[] expandedLayerData = null;
+            short[] expandedLayerData = null;
 
             foreach (var kvp in diff)
             {
-                var byteIndex = kvp.Key;
+                var voxelIndex = kvp.Key;
                 var voxelData = kvp.Value;
-                var voxelIndex = byteIndex / 2;
 
                 try
                 {
                     var currentVoxel = VoxelRLE.GetVoxelAt(edit.BeforeVoxels, voxelIndex);
 
-                    if (currentVoxel[0] == voxelData[0] && currentVoxel[1] == voxelData[1])
+                    if (currentVoxel == voxelData)
                     {
                         if (expandedLayerData == null)
                         {
                             expandedLayerData = VoxelRLE.Decompress(edit.BeforeVoxels);
                         }
 
-                        expandedLayerData[byteIndex] = oldHeadVoxels[byteIndex];
-                        expandedLayerData[byteIndex + 1] = oldHeadVoxels[byteIndex + 1];
+                        expandedLayerData[voxelIndex] = oldHeadVoxels[voxelIndex];
                         wasChanged = true;
                     }
                     else
                     {
-                        itemsToRemove.Add(byteIndex);
+                        itemsToRemove.Add(voxelIndex);
                     }
                 }
                 catch (ArgumentOutOfRangeException)
                 {
-                    itemsToRemove.Add(byteIndex);
+                    itemsToRemove.Add(voxelIndex);
                 }
             }
 
@@ -202,8 +201,8 @@ public static class UndoRedo
         ReducerContext ctx,
         List<LayerHistoryEntry> edits,
         int startIndex,
-        Dictionary<int, byte[]> diff,
-        byte[] redoneEntryBeforeVoxels)
+        Dictionary<int, short> diff,
+        short[] redoneEntryBeforeVoxels)
     {
         for (int i = startIndex; i < edits.Count; i++)
         {
@@ -214,28 +213,25 @@ public static class UndoRedo
             }
 
             bool wasChanged = false;
-            byte[] expandedLayerData = null;
+            short[] expandedLayerData = null;
 
             foreach (var kvp in diff)
             {
-                var byteIndex = kvp.Key;
+                var voxelIndex = kvp.Key;
                 var voxelData = kvp.Value;
-                var voxelIndex = byteIndex / 2;
 
                 try
                 {
                     var currentVoxel = VoxelRLE.GetVoxelAt(edit.BeforeVoxels, voxelIndex);
 
-                    if (currentVoxel[0] == redoneEntryBeforeVoxels[byteIndex] &&
-                        currentVoxel[1] == redoneEntryBeforeVoxels[byteIndex + 1])
+                    if (currentVoxel == redoneEntryBeforeVoxels[voxelIndex])
                     {
                         if (expandedLayerData == null)
                         {
                             expandedLayerData = VoxelRLE.Decompress(edit.BeforeVoxels);
                         }
 
-                        expandedLayerData[byteIndex] = voxelData[0];
-                        expandedLayerData[byteIndex + 1] = voxelData[1];
+                        expandedLayerData[voxelIndex] = voxelData;
                         wasChanged = true;
                     }
                 }
@@ -252,7 +248,7 @@ public static class UndoRedo
         }
     }
 
-    public static byte[] XorExpandedLayers(byte[] layer1, byte[] layer2)
+    public static short[] XorExpandedLayers(short[] layer1, short[] layer2)
     {
         if (layer1 == null || layer2 == null)
             throw new ArgumentNullException();
@@ -260,47 +256,39 @@ public static class UndoRedo
         if (layer1.Length != layer2.Length)
             throw new ArgumentException("Layers must have the same length");
 
-        if (layer1.Length % 2 != 0)
-            throw new ArgumentException("Layer length must be divisible by 2");
+        var result = new short[layer1.Length];
 
-        var result = new byte[layer1.Length];
-
-        for (int i = 0; i < layer1.Length; i += 2)
+        for (int i = 0; i < layer1.Length; i++)
         {
-            byte xor1 = (byte)(layer1[i] ^ layer2[i]);
-            byte xor2 = (byte)(layer1[i + 1] ^ layer2[i + 1]);
+            short xor = (short)(layer1[i] ^ layer2[i]);
 
-            if (xor1 != 0 || xor2 != 0)
+            if (xor != 0)
             {
                 result[i] = layer2[i];
-                result[i + 1] = layer2[i + 1];
             }
         }
 
         return result;
     }
 
-    public static Dictionary<int, byte[]> VoxelDataToDictionary(byte[] voxelData)
+    public static Dictionary<int, short> VoxelDataToDictionary(short[] voxelData)
     {
         ArgumentNullException.ThrowIfNull(voxelData);
 
-        if (voxelData.Length % 2 != 0)
-            throw new ArgumentException("Voxel data length must be divisible by 2");
+        var result = new Dictionary<int, short>();
 
-        var result = new Dictionary<int, byte[]>();
-
-        for (int i = 0; i < voxelData.Length; i += 2)
+        for (int i = 0; i < voxelData.Length; i++)
         {
-            if (voxelData[i] != 0 || voxelData[i + 1] != 0)
+            if (voxelData[i] != 0)
             {
-                result[i] = new byte[] { voxelData[i], voxelData[i + 1] };
+                result[i] = voxelData[i];
             }
         }
 
         return result;
     }
 
-    public static byte[] ApplyDiff(byte[] beforeVoxels, byte[] diff)
+    public static short[] ApplyDiff(short[] beforeVoxels, short[] diff)
     {
         if (beforeVoxels == null || diff == null)
             throw new ArgumentNullException();
@@ -308,15 +296,14 @@ public static class UndoRedo
         if (beforeVoxels.Length != diff.Length)
             throw new ArgumentException("Before voxels and diff must have the same length");
 
-        var result = new byte[beforeVoxels.Length];
+        var result = new short[beforeVoxels.Length];
         Array.Copy(beforeVoxels, result, beforeVoxels.Length);
 
-        for (int i = 0; i < diff.Length; i += 2)
+        for (int i = 0; i < diff.Length; i++)
         {
-            if (diff[i] != 0 || diff[i + 1] != 0)
+            if (diff[i] != 0)
             {
                 result[i] = diff[i];
-                result[i + 1] = diff[i + 1];
             }
         }
 

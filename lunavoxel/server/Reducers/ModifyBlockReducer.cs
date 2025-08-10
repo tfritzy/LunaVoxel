@@ -22,7 +22,7 @@ public static partial class Module
 
         if (layer.Locked) return;
 
-        byte[] voxels = VoxelRLE.Decompress(layer.Voxels);
+        short[] voxels = VoxelRLE.Decompress(layer.Voxels);
 
         foreach (var position in positions)
         {
@@ -32,29 +32,25 @@ public static partial class Module
                 continue;
             }
 
-            int index = (x * layer.yDim * layer.zDim + y * layer.zDim + z) * 2;
+            int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
 
             switch (mode)
             {
                 case BlockModificationMode.Build:
                     var buildBlock = new BlockType(blockType, rotation);
-                    var buildBytes = buildBlock.ToBytes();
-                    Array.Copy(buildBytes, 0, voxels, index, 2);
+                    voxels[index] = buildBlock.ToShort();
                     break;
 
                 case BlockModificationMode.Erase:
                     voxels[index] = 0;
-                    voxels[index + 1] = 0;
                     break;
 
                 case BlockModificationMode.Paint:
-                    var existingBytes = new byte[] { voxels[index], voxels[index + 1] };
-                    var existingBlock = BlockType.FromBytes(existingBytes);
+                    var existingBlock = BlockType.FromShort(voxels[index]);
                     if (existingBlock.Type != 0)
                     {
                         var paintedBlock = new BlockType(blockType, rotation);
-                        var paintedBytes = paintedBlock.ToBytes();
-                        Array.Copy(paintedBytes, 0, voxels, index, 2);
+                        voxels[index] = paintedBlock.ToShort();
                     }
                     break;
             }
