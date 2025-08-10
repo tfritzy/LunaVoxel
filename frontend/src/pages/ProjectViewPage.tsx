@@ -1,16 +1,11 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
 import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
-import {
-  useProjectMeta,
-  useAtlasContext,
-  useBlocksContext,
-  useLayersContext,
-} from "@/contexts/CurrentProjectContext";
+import { useProjectMeta, useAtlasContext, useBlocksContext } from "@/contexts/CurrentProjectContext";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
 import { useCustomCursor } from "@/lib/useCustomCursor";
@@ -21,27 +16,20 @@ export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [cursorsLoading, setCursorsLoading] = useState(true);
-  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
-    tag: "Build",
-  });
+  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({ tag: "Build" });
   const { selectedBlock, blocks } = useBlocksContext();
   const { project } = useProjectMeta();
   const { atlas, textureAtlas } = useAtlasContext();
-  const { layers, selectedLayer } = useLayersContext();
 
   const customCursor = useCustomCursor(currentTool);
+
+  const handleLayerSelect = useCallback((layerIndex: number) => {
+    engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
+  }, []);
 
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
   }, [selectedBlock]);
-
-  useEffect(() => {
-    engineRef.current?.projectManager?.builder.setSelectedLayer(selectedLayer);
-  }, [selectedLayer]);
-
-  useEffect(() => {
-    engineRef.current?.projectManager?.updateLayers(layers);
-  }, [layers]);
 
   useEffect(() => {
     if (!projectId || !connection) return;
@@ -57,9 +45,7 @@ export const ProjectViewPage = () => {
         console.error("Error subscribing to cursors:", err);
         setCursorsLoading(false);
       })
-      .subscribe([
-        `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
-      ]);
+      .subscribe([`SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`]);
 
     return () => {
       cursorsSub.unsubscribe();
@@ -155,20 +141,14 @@ export const ProjectViewPage = () => {
           <div
             ref={containerRef}
             className="h-full"
-            style={{
-              height: "calc(100vh - 64px)",
-              cursor: customCursor,
-            }}
+            style={{ height: "calc(100vh - 64px)", cursor: customCursor }}
           />
 
           {!cursorsLoading && (
-            <FloatingToolbar
-              currentTool={currentTool}
-              onToolChange={handleToolChange}
-            />
+            <FloatingToolbar currentTool={currentTool} onToolChange={handleToolChange} />
           )}
 
-          <RightSideDrawer />
+          <RightSideDrawer onSelectLayer={handleLayerSelect} />
         </div>
       </div>
     </div>

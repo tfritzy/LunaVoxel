@@ -2,8 +2,8 @@ import { SortableLayerRow } from "./SortableLayerRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import React from "react";
-import { Layer } from "@/module_bindings";
+import React, { useEffect, useState } from "react";
+import { Layer, EventContext } from "@/module_bindings";
 import {
   DndContext,
   closestCenter,
@@ -23,26 +23,79 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
-import {
-  useLayersContext,
-  useProjectMeta,
-} from "@/contexts/CurrentProjectContext";
+import { useProjectMeta } from "@/contexts/CurrentProjectContext";
 
-export const LayersSection = () => {
+interface LayersSectionProps {
+  onSelectLayer?: (layerIndex: number) => void;
+}
+
+export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
   const { connection } = useDatabase();
-  const { layers, setLayers, selectedLayer, setSelectedLayer } =
-    useLayersContext();
   const { project } = useProjectMeta();
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const [selectedLayer, setSelectedLayer] = useState<number>(0);
+
+  // Notify external listener when selection changes
+  useEffect(() => {
+    if (onSelectLayer) onSelectLayer(selectedLayer);
+  }, [selectedLayer, onSelectLayer]);
+
+  // Local layer subscription
+  useEffect(() => {
+    if (!connection || !project?.id) return;
+
+    const subscription = connection
+      .subscriptionBuilder()
+      .onApplied(() => {
+        const projectLayers = Array.from(connection.db.layer.tableCache.iter())
+          .filter((l: Layer) => l.projectId === project.id)
+          .sort((a: Layer, b: Layer) => a.index - b.index);
+        setLayers(projectLayers);
+      })
+      .onError((err) => console.error("Layers subscription error:", err))
+      .subscribe([`SELECT * FROM layer WHERE ProjectId='${project.id}'`]);
+
+    const onLayerInsert = (_ctx: EventContext, newLayer: Layer) => {
+      if (newLayer.projectId === project.id) {
+        setLayers((prev) => {
+          if (prev.some((l) => l.id === newLayer.id)) return prev;
+          setSelectedLayer(newLayer.index);
+          return [...prev, newLayer].sort((a, b) => a.index - b.index);
+        });
+      }
+    };
+    const onLayerUpdate = (_ctx: EventContext, _old: Layer, updated: Layer) => {
+      if (updated.projectId === project.id) {
+        setLayers((prev) =>
+          prev
+            .map((l) => (l.id === updated.id ? updated : l))
+            .sort((a, b) => a.index - b.index)
+        );
+      }
+    };
+    const onLayerDelete = (_ctx: EventContext, deleted: Layer) => {
+      if (deleted.projectId === project.id) {
+        setLayers((prev) => prev.filter((l) => l.id !== deleted.id));
+      }
+    };
+
+    connection.db.layer.onInsert(onLayerInsert);
+    connection.db.layer.onUpdate(onLayerUpdate);
+    connection.db.layer.onDelete(onLayerDelete);
+
+    return () => {
+      subscription.unsubscribe();
+      connection.db.layer.removeOnInsert(onLayerInsert);
+      connection.db.layer.removeOnUpdate(onLayerUpdate);
+      connection.db.layer.removeOnDelete(onLayerDelete);
+    };
+  }, [connection, project?.id]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const addLayer = React.useCallback(() => {
@@ -52,12 +105,11 @@ export const LayersSection = () => {
   const onDelete = React.useCallback(
     (layer: Layer) => {
       connection?.reducers.deleteLayer(layer.id);
-
       if (selectedLayer >= layers.length - 1) {
         setSelectedLayer(selectedLayer - 1);
       }
     },
-    [connection?.reducers, layers, selectedLayer, setSelectedLayer]
+    [connection?.reducers, layers, selectedLayer]
   );
 
   const toggleVisibility = React.useCallback(
@@ -77,11 +129,9 @@ export const LayersSection = () => {
   const handleDragEnd = React.useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-
       if (over && active.id !== over.id) {
         const oldIndex = layers.findIndex((layer) => layer.id === active.id);
         const newIndex = layers.findIndex((layer) => layer.id === over.id);
-
         if (oldIndex !== -1 && newIndex !== -1) {
           const newLayers = arrayMove(layers, oldIndex, newIndex);
           setLayers(newLayers);
@@ -90,7 +140,7 @@ export const LayersSection = () => {
         }
       }
     },
-    [layers, setLayers, connection?.reducers, project.id]
+    [layers, connection?.reducers, project.id]
   );
 
   const layerIds = layers.map((layer) => layer.id);

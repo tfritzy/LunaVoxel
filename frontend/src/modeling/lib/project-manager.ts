@@ -21,6 +21,7 @@ export class ProjectManager {
   private layers: Layer[] = [];
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
+  private layerSub?: { unsubscribe: () => void };
 
   constructor(
     scene: THREE.Scene,
@@ -44,6 +45,7 @@ export class ProjectManager {
       this.onPreviewUpdate
     );
     this.setupLayers();
+    this.setupLayerSubscription();
     this.setupCursors();
   }
 
@@ -75,15 +77,61 @@ export class ProjectManager {
   };
 
   setupLayers = async () => {
-    this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[]).filter(
-      (l) => l.projectId === this.project.id
-    );
+    this.refreshLayers();
     await this.updateChunkManager();
+  };
+
+  private setupLayerSubscription = () => {
+    this.layerSub = this.dbConn
+      .subscriptionBuilder()
+      .onApplied(() => {
+        this.refreshLayers();
+        this.updateChunkManager();
+      })
+      .onError((e) => console.error("Layer subscription error", e))
+      .subscribe([`SELECT * FROM layer WHERE ProjectId='${this.project.id}'`]);
+
+    // Table event listeners (fine-grained updates)
+    this.dbConn.db.layer.onInsert(this.onLayerInsert);
+    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
+    this.dbConn.db.layer.onDelete(this.onLayerDelete);
   };
 
   updateLayers = async (layers: Layer[]) => {
     this.layers = layers;
     await this.updateChunkManager();
+  };
+
+  private refreshLayers = () => {
+    this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
+      .filter((l) => l.projectId === this.project.id)
+      .sort((a, b) => a.index - b.index);
+  };
+
+  private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
+    if (newLayer.projectId !== this.project.id) return;
+    if (this.layers.some((l) => l.id === newLayer.id)) return;
+    this.layers = [...this.layers, newLayer].sort((a, b) => a.index - b.index);
+    this.updateChunkManager();
+  };
+
+  private onLayerUpdate = (
+    ctx: EventContext,
+    oldLayer: Layer,
+    newLayer: Layer
+  ) => {
+    if (newLayer.projectId !== this.project.id) return;
+    this.layers = this.layers
+      .map((l) => (l.id === newLayer.id ? newLayer : l))
+      .sort((a, b) => a.index - b.index);
+    this.updateChunkManager();
+  };
+
+  private onLayerDelete = (ctx: EventContext, deletedLayer: Layer) => {
+    if (deletedLayer.projectId !== this.project.id) return;
+    const before = this.layers.length;
+    this.layers = this.layers.filter((l) => l.id !== deletedLayer.id);
+    if (this.layers.length !== before) this.updateChunkManager();
   };
 
   setupCursors = () => {
@@ -144,5 +192,9 @@ export class ProjectManager {
     this.dbConn.db.playerCursor.removeOnUpdate(this.onCursorUpdate);
     this.dbConn.db.playerCursor.removeOnInsert(this.onCursorInsert);
     this.dbConn.db.playerCursor.removeOnDelete(this.onCursorDelete);
+    this.layerSub?.unsubscribe();
+    this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
+    this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
+    this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
   }
 }
