@@ -16,9 +16,7 @@ export const ProjectViewPage = () => {
   const { connection } = useDatabase();
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
-  const [layersLoading, setLayersLoading] = useState(true);
   const [cursorsLoading, setCursorsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
@@ -49,20 +47,7 @@ export const ProjectViewPage = () => {
   useEffect(() => {
     if (!projectId || !connection) return;
 
-    setLayersLoading(true);
     setCursorsLoading(true);
-
-    const layersSub = connection
-      .subscriptionBuilder()
-      .onApplied(() => {
-        setLayersLoading(false);
-      })
-      .onError((err) => {
-        console.error("Error subscribing to layers:", err);
-        setError(`Error loading layers: ${err}`);
-        setLayersLoading(false);
-      })
-      .subscribe([`SELECT * FROM layer WHERE ProjectId='${projectId}'`]);
 
     const cursorsSub = connection
       .subscriptionBuilder()
@@ -78,9 +63,7 @@ export const ProjectViewPage = () => {
       ]);
 
     return () => {
-      layersSub.unsubscribe();
       cursorsSub.unsubscribe();
-      setLayersLoading(true);
       setCursorsLoading(true);
 
       if (engineRef.current) {
@@ -91,7 +74,7 @@ export const ProjectViewPage = () => {
   }, [projectId, connection]);
 
   useEffect(() => {
-    if (layersLoading || cursorsLoading || !connection) return;
+    if (cursorsLoading || !connection) return;
 
     if (engineRef.current) {
       engineRef.current.dispose();
@@ -116,7 +99,8 @@ export const ProjectViewPage = () => {
         engineRef.current = null;
       }
     };
-  }, [layersLoading, cursorsLoading, connection, project, projectId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection, cursorsLoading]);
 
   useEffect(() => {
     if (!engineRef.current || !containerRef.current) return;
@@ -132,7 +116,7 @@ export const ProjectViewPage = () => {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [layersLoading, cursorsLoading]);
+  }, [cursorsLoading]);
 
   useEffect(() => {
     if (engineRef.current) {
@@ -174,31 +158,11 @@ export const ProjectViewPage = () => {
             className="h-full"
             style={{
               height: "calc(100vh - 64px)",
-              cursor: customCursor
+              cursor: customCursor,
             }}
           />
 
-          {(layersLoading || cursorsLoading) && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-white">Loading...</div>
-            </div>
-          )}
-
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="mb-4">{error}</div>
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                >
-                  Retry
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!layersLoading && !cursorsLoading && !error && (
+          {!cursorsLoading && (
             <FloatingToolbar
               currentTool={currentTool}
               onToolChange={handleToolChange}

@@ -53,18 +53,18 @@ export class ProjectManager {
 
   setAtlas = (atlas: Atlas) => {
     this.atlas = atlas;
-    this.updateChunkManager(true);
+    this.updateChunkManager();
   };
 
   setBlocks = (blocks: ProjectBlocks) => {
     this.blocks = blocks;
-    this.updateChunkManager(true);
+    this.updateChunkManager();
   };
 
   setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
     if (textureAtlas) {
       this.chunkManager.setTextureAtlas(textureAtlas);
-      this.updateChunkManager(true);
+      this.updateChunkManager();
     }
   };
 
@@ -78,12 +78,12 @@ export class ProjectManager {
     this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[]).filter(
       (l) => l.projectId === this.project.id
     );
-    await this.updateChunkManager(true);
+    await this.updateChunkManager();
   };
 
   updateLayers = async (layers: Layer[]) => {
     this.layers = layers;
-    await this.updateChunkManager(true);
+    await this.updateChunkManager();
   };
 
   setupCursors = () => {
@@ -91,7 +91,7 @@ export class ProjectManager {
   };
 
   onPreviewUpdate = () => {
-    this.updateChunkManager(false);
+    this.updateChunkManager();
   };
 
   onCursorUpdate = (
@@ -116,7 +116,7 @@ export class ProjectManager {
     }
   };
 
-  private updateChunkManager = (real: boolean) => {
+  private updateChunkManager = () => {
     if (!this.atlas || !this.blocks) return;
 
     const start = performance.now();

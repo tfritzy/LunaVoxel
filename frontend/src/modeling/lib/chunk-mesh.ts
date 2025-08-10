@@ -46,7 +46,8 @@ export class ChunkMesh {
     this.worldDimensions = worldDimensions;
     this.textureAtlas = textureAtlas;
 
-    const maxFaces = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z * 6;
+    const maxFaces =
+      chunkDimensions.x * chunkDimensions.y * chunkDimensions.z * 6;
     const maxVertices = maxFaces * 4;
     const maxIndices = maxFaces * 6;
 
@@ -67,17 +68,27 @@ export class ChunkMesh {
   }
 
   setVoxel(x: number, y: number, z: number, value: number): void {
-    if (x >= 0 && x < this.chunkDimensions.x &&
-      y >= 0 && y < this.chunkDimensions.y &&
-      z >= 0 && z < this.chunkDimensions.z) {
+    if (
+      x >= 0 &&
+      x < this.chunkDimensions.x &&
+      y >= 0 &&
+      y < this.chunkDimensions.y &&
+      z >= 0 &&
+      z < this.chunkDimensions.z
+    ) {
       this.voxelData[x][y][z] = value;
     }
   }
 
   getVoxel(x: number, y: number, z: number): number {
-    if (x >= 0 && x < this.chunkDimensions.x &&
-      y >= 0 && y < this.chunkDimensions.y &&
-      z >= 0 && z < this.chunkDimensions.z) {
+    if (
+      x >= 0 &&
+      x < this.chunkDimensions.x &&
+      y >= 0 &&
+      y < this.chunkDimensions.y &&
+      z >= 0 &&
+      z < this.chunkDimensions.z
+    ) {
       return this.voxelData[x][y][z];
     }
     return 0;
@@ -171,8 +182,8 @@ export class ChunkMesh {
     );
     const radius = Math.sqrt(
       (this.chunkDimensions.x / 2) ** 2 +
-      (this.chunkDimensions.y / 2) ** 2 +
-      (this.chunkDimensions.z / 2) ** 2
+        (this.chunkDimensions.y / 2) ** 2 +
+        (this.chunkDimensions.z / 2) ** 2
     );
     this.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
@@ -238,8 +249,8 @@ export class ChunkMesh {
     );
     const radius = Math.sqrt(
       (this.chunkDimensions.x / 2) ** 2 +
-      (this.chunkDimensions.y / 2) ** 2 +
-      (this.chunkDimensions.z / 2) ** 2
+        (this.chunkDimensions.y / 2) ** 2 +
+        (this.chunkDimensions.z / 2) ** 2
     );
     this.previewMesh.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
