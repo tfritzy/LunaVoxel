@@ -112,7 +112,7 @@ export const Modal: React.FC<ModalProps> = ({
             <div className="flex items-center justify-between">
               <h2
                 id="modal-title"
-                className="text-lg font-semibold text-foreground"
+                className="text-xl font-semibold text-foreground"
               >
                 {title}
               </h2>
