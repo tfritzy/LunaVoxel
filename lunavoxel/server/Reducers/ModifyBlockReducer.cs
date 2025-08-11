@@ -61,5 +61,13 @@ public static partial class Module
 
         layer.Voxels = compressedAfter;
         ctx.Db.layer.Id.Update(layer);
+
+        var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("No such project");
+        if (ctx.Sender == project.Owner)
+        {
+            // Updated is used to find the most recent project of the user, so don't care about shared updates.
+            project.Updated = ctx.Timestamp;
+            ctx.Db.projects.Id.Update(project);
+        }
     }
 }

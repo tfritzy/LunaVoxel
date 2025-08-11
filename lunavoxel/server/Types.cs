@@ -11,8 +11,6 @@ public static partial class Module
     // );
 
     [Table(Name = "projects", Public = true)]
-    [SpacetimeDB.Index.BTree(Name = "idx_owner_last_visited",
-                             Columns = new[] { nameof(Owner), nameof(LastVisited) })]
     public partial class Project
     {
         [PrimaryKey]
@@ -20,10 +18,11 @@ public static partial class Module
         public string Name;
         public Vector3 Dimensions;
         public Identity Owner;
-        public Timestamp LastVisited;
+        public Timestamp Updated;
+        public Timestamp Created;
         public AccessType PublicAccess;
 
-        public static Project Build(string id, string name, int xDim, int yDim, int zDim, Identity owner, Timestamp timestamp)
+        public static Project Build(string id, string name, int xDim, int yDim, int zDim, Identity owner, Timestamp now)
         {
             return new Project
             {
@@ -31,7 +30,8 @@ public static partial class Module
                 Name = name,
                 Dimensions = new Vector3(xDim, yDim, zDim),
                 Owner = owner,
-                LastVisited = timestamp,
+                Updated = now,
+                Created = now,
                 PublicAccess = AccessType.None
             };
         }

@@ -8,10 +8,10 @@ import { DatabaseProvider } from "./contexts/DatabaseContext";
 import { Layout } from "./components/custom/Layout";
 import { ProjectsProvider } from "./contexts/ProjectsContext";
 import { CurrentProjectProvider } from "./contexts/CurrentProjectContext";
-import { ProjectsPage } from "./pages/ProjectsPage";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 import { Toaster } from "sonner";
+import { ProjectsPage } from "./pages/ProjectsPage";
 
 const getSpacetimeConfig = () => {
   const isDev = import.meta.env.DEV || window.location.hostname === "localhost";
@@ -132,8 +132,8 @@ function AppContent() {
       <ProjectsProvider>
         <Layout>
           <Routes>
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/create-new" element={<CreateNewPage />} />
+            <Route path="/project" element={<ProjectsPage />} />
+            <Route path="/create" element={<CreateNewPage />} />
             <Route
               path="/project/:projectId"
               element={
@@ -142,7 +142,7 @@ function AppContent() {
                 </CurrentProjectProvider>
               }
             />
-            <Route path="*" element={<Navigate to="/projects" replace />} />
+            <Route path="*" element={<Navigate to="/project" replace />} />
           </Routes>
         </Layout>
       </ProjectsProvider>

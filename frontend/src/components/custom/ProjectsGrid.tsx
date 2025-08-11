@@ -151,7 +151,7 @@ export function ProjectGrid({
   );
 
   const groupedProjects = filteredProjects.reduce((groups, project) => {
-    const groupName = getGroupLabel(project.lastVisited);
+    const groupName = getGroupLabel(project.updated);
     if (!groups[groupName]) {
       groups[groupName] = [];
     }

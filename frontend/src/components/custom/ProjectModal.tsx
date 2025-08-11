@@ -12,7 +12,7 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
   const navigate = useNavigate();
 
   const handleProjectClick = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
+    navigate(`/project/${projectId}`);
     onClose();
   };
 

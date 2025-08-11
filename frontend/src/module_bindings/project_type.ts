@@ -38,7 +38,8 @@ export type Project = {
   name: string,
   dimensions: __Vector3,
   owner: Identity,
-  lastVisited: Timestamp,
+  updated: Timestamp,
+  created: Timestamp,
   publicAccess: __AccessType,
 };
 
@@ -56,7 +57,8 @@ export namespace Project {
       new ProductTypeElement("name", AlgebraicType.createStringType()),
       new ProductTypeElement("dimensions", __Vector3.getTypeScriptAlgebraicType()),
       new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("lastVisited", AlgebraicType.createTimestampType()),
+      new ProductTypeElement("updated", AlgebraicType.createTimestampType()),
+      new ProductTypeElement("created", AlgebraicType.createTimestampType()),
       new ProductTypeElement("publicAccess", __AccessType.getTypeScriptAlgebraicType()),
     ]);
   }
