@@ -19,6 +19,7 @@ export class ChunkManager {
   private blocksToRender: Uint16Array;
   private currentUpdateId: number = 0;
   private chunkDimensions: Vector3;
+  private editBuffer: Uint16Array | null = null;
 
   constructor(scene: THREE.Scene, dimensions: Vector3) {
     this.scene = scene;
@@ -157,9 +158,7 @@ export class ChunkManager {
       const hasRealBlock = currentBlock !== 0;
 
       if (hasPreview) {
-        // In paint mode, only apply preview if there's a real block to paint
         if (isPaintMode && !hasRealBlock) {
-          // Don't apply preview - can't paint on nothing
           blocks[voxelIndex] &= ~0x08;
         } else {
           blocks[voxelIndex] = previewBlocks[voxelIndex];
@@ -168,6 +167,102 @@ export class ChunkManager {
         blocks[voxelIndex] &= ~0x08;
       }
     }
+  }
+
+  private ensureEditBuffer(): Uint16Array {
+    if (!this.editBuffer) {
+      this.editBuffer = new Uint16Array(
+        this.dimensions.x * this.dimensions.y * this.dimensions.z
+      );
+    }
+    return this.editBuffer;
+  }
+
+  private encodeBlockShort(type: number, rotation: number): number {
+    // Layout: bits 6-15 = type (10 bits), bits 0-2 = rotation
+    return (type << 6) | (rotation & 0x07);
+  }
+
+  private compressRLE(data: Uint16Array): number[] {
+    if (data.length === 0) return [];
+    const out: number[] = [];
+    let current = data[0];
+    let run = 1;
+    for (let i = 1; i < data.length; i++) {
+      const v = data[i];
+      if (v === current && run < 0x7fff) {
+        run++;
+      } else {
+        out.push(run, current);
+        current = v;
+        run = 1;
+      }
+    }
+    out.push(run, current);
+    return out;
+  }
+
+  private getBlockType(value: number): number {
+    return value >>> 6;
+  }
+
+  public applyOptimisticRect(
+    layer: Layer,
+    tool: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number,
+    rotation: number
+  ) {
+    if (layer.locked) return;
+
+    const totalExpected =
+      layer.xDim * layer.yDim * layer.zDim;
+
+    const buf = this.ensureEditBuffer();
+    if (buf.length !== totalExpected) {
+      this.editBuffer = new Uint16Array(totalExpected);
+    }
+    this.decompressBlocksInto(layer.voxels, buf);
+
+    const minX = Math.max(0, Math.min(start.x, end.x));
+    const maxX = Math.min(layer.xDim - 1, Math.max(start.x, end.x));
+    const minY = Math.max(0, Math.min(start.y, end.y));
+    const maxY = Math.min(layer.yDim - 1, Math.max(start.y, end.y));
+    const minZ = Math.max(0, Math.min(start.z, end.z));
+    const maxZ = Math.min(layer.zDim - 1, Math.max(start.z, end.z));
+
+    const yDim = layer.yDim;
+    const zDim = layer.zDim;
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        let base = x * yDim * zDim + y * zDim;
+        for (let z = minZ; z <= maxZ; z++) {
+          const idx = base + z;
+          const currentVal = buf[idx];
+          const currentType = this.getBlockType(currentVal);
+
+          switch (tool.tag) {
+            case BlockModificationMode.Build.tag:
+              buf[idx] = this.encodeBlockShort(blockType, rotation);
+              break;
+            case BlockModificationMode.Erase.tag:
+              buf[idx] = 0;
+              break;
+            case BlockModificationMode.Paint.tag:
+              if (currentType !== 0) {
+                buf[idx] = this.encodeBlockShort(blockType, rotation);
+              }
+              break;
+            default:
+              break;
+          }
+        }
+      }
+    }
+
+    layer.voxels = this.compressRLE(buf);
   }
 
   update = (

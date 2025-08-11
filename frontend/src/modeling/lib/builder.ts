@@ -13,6 +13,13 @@ export const Builder = class {
   private projectId: string;
   private dimensions: Vector3;
   private onPreviewUpdate: () => void;
+  private onCommitRect?: (
+    tool: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number,
+    layerIndex: number
+  ) => void;
   private selectedBlock: number = 1;
   private selectedLayer: number = 0;
 
@@ -46,7 +53,14 @@ export const Builder = class {
     camera: THREE.Camera,
     scene: THREE.Scene,
     domElement: HTMLElement,
-    onPreviewUpdate: () => void
+    onPreviewUpdate: () => void,
+    onCommitRect?: (
+      tool: BlockModificationMode,
+      start: THREE.Vector3,
+      end: THREE.Vector3,
+      blockType: number,
+      layerIndex: number
+    ) => void
   ) {
     this.dbConn = dbConn;
     this.projectId = projectId;
@@ -55,13 +69,16 @@ export const Builder = class {
     this.scene = scene;
     this.domElement = domElement;
     this.onPreviewUpdate = onPreviewUpdate;
+    this.onCommitRect = onCommitRect;
     this.selectedBlock = 1;
 
     this.raycaster = new THREE.Raycaster();
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewBlocks = new Uint16Array(dimensions.x * dimensions.y * dimensions.z);
+    this.previewBlocks = new Uint16Array(
+      dimensions.x * dimensions.y * dimensions.z
+    );
 
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
@@ -331,6 +348,13 @@ export const Builder = class {
     if (!this.dbConn.isActive) return;
 
     this.clearPreviewBlocks();
+    this.onCommitRect?.(
+      tool,
+      startPos.clone(),
+      endPos.clone(),
+      this.selectedBlock,
+      this.selectedLayer
+    );
 
     this.dbConn.reducers.modifyBlockRect(
       this.projectId,

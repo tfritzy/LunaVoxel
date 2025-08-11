@@ -42,7 +42,17 @@ export class ProjectManager {
       camera,
       scene,
       container,
-      this.onPreviewUpdate
+      this.onPreviewUpdate,
+      (tool, start, end, blockType, layerIndex) => {
+        this.applyOptimisticRectEdit(
+          layerIndex,
+          tool,
+          start,
+          end,
+          blockType,
+          0
+        );
+      }
     );
     this.setupLayers();
     this.setupLayerSubscription();
@@ -163,6 +173,27 @@ export class ProjectManager {
       this.cursorManager.updateFromDatabase(this.dbConn);
     }
   };
+
+  public applyOptimisticRectEdit(
+    layerIndex: number,
+    tool: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number,
+    rotation: number
+  ) {
+    const layer = this.layers.find((l) => l.index === layerIndex);
+    if (!layer) return;
+    this.chunkManager.applyOptimisticRect(
+      layer,
+      tool,
+      start,
+      end,
+      blockType,
+      rotation
+    );
+    this.updateChunkManager();
+  }
 
   private updateChunkManager = () => {
     if (!this.atlas || !this.blocks) return;
