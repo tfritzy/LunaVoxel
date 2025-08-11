@@ -7,6 +7,7 @@ import {
   Vector3,
 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
+import { DecompressedLayer } from "./project-manager";
 
 export const CHUNK_SIZE = 16;
 
@@ -105,29 +106,7 @@ export class ChunkManager {
     blocks.fill(0);
   }
 
-  private decompressBlocksInto(
-    compressedData: number[],
-    blocks: Uint16Array
-  ): void {
-    let dataIndex = 0;
-    let blockIndex = 0;
-
-    while (dataIndex < compressedData.length) {
-      const runLength = compressedData[dataIndex];
-      const value = compressedData[dataIndex + 1];
-
-      const endIndex = blockIndex + runLength;
-
-      while (blockIndex < endIndex) {
-        blocks[blockIndex] = value & 0xffff;
-        blockIndex++;
-      }
-
-      dataIndex += 2;
-    }
-  }
-
-  private addLayerToBlocks(layer: Layer, blocks: Uint16Array): void {
+  private addLayerToBlocks(layer: DecompressedLayer, blocks: Uint16Array): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
     if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
@@ -135,12 +114,9 @@ export class ChunkManager {
       return;
     }
 
-    const tempBlocks = new Uint16Array(xDim * yDim * zDim);
-    this.decompressBlocksInto(layer.voxels, tempBlocks);
-
     for (let i = 0; i < blocks.length; i++) {
-      if (tempBlocks[i] !== 0) {
-        blocks[i] = tempBlocks[i];
+      if (layer.voxels[i] !== 0) {
+        blocks[i] = layer.voxels[i];
       }
     }
   }
@@ -212,7 +188,7 @@ export class ChunkManager {
   }
 
   public applyOptimisticRect(
-    layer: Layer,
+    layer: DecompressedLayer,
     tool: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
@@ -220,14 +196,6 @@ export class ChunkManager {
     rotation: number
   ) {
     if (layer.locked) return;
-
-    const totalExpected = layer.xDim * layer.yDim * layer.zDim;
-
-    const buf = this.ensureEditBuffer();
-    if (buf.length !== totalExpected) {
-      this.editBuffer = new Uint16Array(totalExpected);
-    }
-    this.decompressBlocksInto(layer.voxels, buf);
 
     const minX = Math.max(0, Math.min(start.x, end.x));
     const maxX = Math.min(layer.xDim - 1, Math.max(start.x, end.x));
@@ -244,19 +212,19 @@ export class ChunkManager {
         const base = x * yDim * zDim + y * zDim;
         for (let z = minZ; z <= maxZ; z++) {
           const idx = base + z;
-          const currentVal = buf[idx];
+          const currentVal = layer.voxels[idx];
           const currentType = this.getBlockType(currentVal);
 
           switch (tool.tag) {
             case BlockModificationMode.Build.tag:
-              buf[idx] = this.encodeBlockShort(blockType, rotation);
+              layer.voxels[idx] = this.encodeBlockShort(blockType, rotation);
               break;
             case BlockModificationMode.Erase.tag:
-              buf[idx] = 0;
+              layer.voxels[idx] = 0;
               break;
             case BlockModificationMode.Paint.tag:
               if (currentType !== 0) {
-                buf[idx] = this.encodeBlockShort(blockType, rotation);
+                layer.voxels[idx] = this.encodeBlockShort(blockType, rotation);
               }
               break;
             default:
@@ -265,12 +233,10 @@ export class ChunkManager {
         }
       }
     }
-
-    layer.voxels = this.compressRLE(buf);
   }
 
   update = (
-    layers: Layer[],
+    layers: DecompressedLayer[],
     previewBlocks: Uint16Array,
     buildMode: BlockModificationMode,
     blocks: ProjectBlocks,
@@ -285,7 +251,7 @@ export class ChunkManager {
         this.clearBlocks(this.blocksToRender);
       } else {
         const firstLayer = visibleLayers[0];
-        this.decompressBlocksInto(firstLayer.voxels, this.blocksToRender);
+        this.blocksToRender.set(firstLayer.voxels);
 
         for (let i = 1; i < visibleLayers.length; i++) {
           this.addLayerToBlocks(visibleLayers[i], this.blocksToRender);

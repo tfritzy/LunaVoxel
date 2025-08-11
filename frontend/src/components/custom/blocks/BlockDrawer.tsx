@@ -3,7 +3,7 @@ import { HexagonOverlay } from "./HexagonOverlay";
 import { BlockFacePreview } from "./BlockFacePreview";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BlockModal } from "./BlockModal";
 import { useBlocksContext } from "@/contexts/CurrentProjectContext";
 
@@ -57,43 +57,45 @@ export const BlockDrawer = () => {
     </div>
   );
 
-  const rows = [];
-  let currentIndex = 0;
-  let rowIndex = 0;
-  const totalItems = blocks.blockFaceAtlasIndexes.length + 1; // +1 for the add new hex
+  const memoizedRows = useMemo(() => {
+    const rows = [];
+    let currentIndex = 0;
+    let rowIndex = 0;
+    const totalItems = blocks.blockFaceAtlasIndexes.length + 1; // +1 for the add new hex
 
-  while (currentIndex < totalItems) {
-    const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
-    const isOddRow = rowIndex % 2 === 1;
-    const rowItems = [];
+    while (currentIndex < totalItems) {
+      const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
+      const isOddRow = rowIndex % 2 === 1;
+      const rowItems = [];
 
-    for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
-      if (currentIndex < blocks.blockFaceAtlasIndexes.length) {
-        rowItems.push(createBlockPreview(currentIndex + 1));
-      } else {
-        rowItems.push(createAddNewHex(currentIndex));
+      for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
+        if (currentIndex < blocks.blockFaceAtlasIndexes.length) {
+          rowItems.push(createBlockPreview(currentIndex + 1));
+        } else {
+          rowItems.push(createAddNewHex(currentIndex));
+        }
+        currentIndex++;
       }
-      currentIndex++;
-    }
 
-    rows.push(
-      <div
-        key={rowIndex}
-        className="flex pointer-events-none"
-        style={{
-          transform: isOddRow
-            ? `translateX(${HORIZONTAL_OFFSET})`
-            : "translateX(0)",
-          marginTop: rowIndex === 0 ? "0" : VERTICAL_OVERLAP,
-          marginLeft: `-${HORIZONTAL_GAP}`,
-          zIndex: rowIndex,
-        }}
-      >
-        {rowItems}
-      </div>
-    );
-    rowIndex++;
-  }
+      rows.push(
+        <div
+          key={rowIndex}
+          className="flex pointer-events-none"
+          style={{
+            transform: isOddRow
+              ? `translateX(${HORIZONTAL_OFFSET})`
+              : "translateX(0)",
+            marginTop: rowIndex === 0 ? "0" : VERTICAL_OVERLAP,
+            marginLeft: `-${HORIZONTAL_GAP}`,
+          }}
+        >
+          {rowItems}
+        </div>
+      );
+      rowIndex++;
+    }
+    return rows;
+  }, [blocks.blockFaceAtlasIndexes, selectedBlock, setSelectedBlock]);
 
   const selectedBlockFaces =
     selectedBlock <= blocks.blockFaceAtlasIndexes.length
@@ -107,7 +109,7 @@ export const BlockDrawer = () => {
       </div>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="flex flex-col">{rows}</div>
+          <div className="flex flex-col">{memoizedRows}</div>
         </div>
         {selectedBlockFaces && (
           <div className="">

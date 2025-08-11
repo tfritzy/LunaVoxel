@@ -220,17 +220,17 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
         {searchTerm
           ? "No projects found"
           : viewMode === "shared"
-          ? "No shared projects"
-          : viewMode === "recent"
-          ? "No recent projects"
-          : "No projects yet"}
+            ? "No shared projects"
+            : viewMode === "recent"
+              ? "No recent projects"
+              : "No projects yet"}
       </h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
         {searchTerm
           ? `No projects match "${searchTerm}". Try a different search term.`
           : viewMode === "shared"
-          ? "No one has shared any projects with you yet."
-          : "Create your first project to get started with LunaVoxel."}
+            ? "No one has shared any projects with you yet."
+            : "Create your first project to get started with LunaVoxel."}
       </p>
       {!searchTerm && viewMode !== "shared" && (
         <Button onClick={handleCreateProject} disabled={isCreating}>
@@ -247,70 +247,69 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
         {/* Header */}
         <div className="border-b border-border pb-6">
           {/* Search and filters */}
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          <div className="flex items-center gap-4 w-full justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search projects..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex bg-muted rounded-lg p-1">
-                {(["all", "recent", "shared"] as ViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      viewMode === mode
+              <div className="flex items-center gap-2">
+                <div className="flex bg-muted rounded-lg p-1">
+                  {(["all", "recent", "shared"] as ViewMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewMode(mode)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === mode
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                        }`}
+                    >
+                      {mode === "all"
+                        ? "All"
+                        : mode === "recent"
+                          ? "Recent"
+                          : "Shared"}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex bg-muted rounded-lg p-1">
+                  <button
+                    onClick={() => setLayoutMode("grid")}
+                    className={`p-2 rounded-md transition-colors ${layoutMode === "grid"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                      }`}
                   >
-                    {mode === "all"
-                      ? "All"
-                      : mode === "recent"
-                      ? "Recent"
-                      : "Shared"}
+                    <Grid3X3 className="w-4 h-4" />
                   </button>
-                ))}
-              </div>
-
-              <div className="flex bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => setLayoutMode("grid")}
-                  className={`p-2 rounded-md transition-colors ${
-                    layoutMode === "grid"
+                  <button
+                    onClick={() => setLayoutMode("list")}
+                    className={`p-2 rounded-md transition-colors ${layoutMode === "list"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setLayoutMode("list")}
-                  className={`p-2 rounded-md transition-colors ${
-                    layoutMode === "list"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
+                      }`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-
-              <Button
-                onClick={handleCreateProject}
-                disabled={isCreating}
-                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                {isCreating ? "Creating..." : "New Project"}
-              </Button>
             </div>
+
+            <Button
+              onClick={handleCreateProject}
+              disabled={isCreating}
+              className=""
+            >
+              <Plus className="w-4 h-4" />
+              {isCreating ? "Creating..." : "New Project"}
+            </Button>
           </div>
         </div>
 

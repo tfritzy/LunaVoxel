@@ -12,13 +12,15 @@ import { CursorManager, PlayerCursor } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 
-export class ProjectManager {
+export type DecompressedLayer = Omit<Layer, 'voxels'> & { voxels: Uint16Array }
+
+export const ProjectManager = class {
   public builder;
   private chunkManager;
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
-  private layers: Layer[] = [];
+  private layers: DecompressedLayer[] = [];
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
   private layerSub?: { unsubscribe: () => void };
@@ -58,6 +60,39 @@ export class ProjectManager {
     this.setupLayerSubscription();
     this.setupCursors();
   }
+
+  private decompressLayer = (layer: Layer): DecompressedLayer => {
+    let voxels: Uint16Array;
+
+    if (layer.voxels instanceof Uint16Array) {
+      voxels = layer.voxels;
+    } else if (Array.isArray(layer.voxels)) {
+      const totalSize = this.project.dimensions.x * this.project.dimensions.y * this.project.dimensions.z;
+      voxels = new Uint16Array(totalSize);
+
+      const compressedData = layer.voxels;
+      let dataIndex = 0;
+      let blockIndex = 0;
+      while (dataIndex < compressedData.length) {
+        const runLength = compressedData[dataIndex];
+        const value = compressedData[dataIndex + 1];
+        const endIndex = blockIndex + runLength;
+        while (blockIndex < endIndex) {
+          voxels[blockIndex] = value & 0xffff;
+          blockIndex++;
+        }
+        dataIndex += 2;
+      }
+    } else {
+      const totalSize = this.project.dimensions.x * this.project.dimensions.y * this.project.dimensions.z;
+      voxels = new Uint16Array(totalSize);
+    }
+
+    return {
+      ...layer,
+      voxels
+    };
+  };
 
   setSelectedBlock = (block: number) => {
     this.builder.setSelectedBlock(block);
@@ -101,27 +136,30 @@ export class ProjectManager {
       .onError((e) => console.error("Layer subscription error", e))
       .subscribe([`SELECT * FROM layer WHERE ProjectId='${this.project.id}'`]);
 
-    // Table event listeners (fine-grained updates)
     this.dbConn.db.layer.onInsert(this.onLayerInsert);
     this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.onDelete(this.onLayerDelete);
   };
 
   updateLayers = async (layers: Layer[]) => {
-    this.layers = layers;
+    this.layers = layers.map(this.decompressLayer);
     await this.updateChunkManager();
   };
 
   private refreshLayers = () => {
-    this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
+    const rawLayers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
       .filter((l) => l.projectId === this.project.id)
       .sort((a, b) => a.index - b.index);
+
+    this.layers = rawLayers.map(this.decompressLayer);
   };
 
   private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
     if (newLayer.projectId !== this.project.id) return;
     if (this.layers.some((l) => l.id === newLayer.id)) return;
-    this.layers = [...this.layers, newLayer].sort((a, b) => a.index - b.index);
+
+    const decompressedLayer = this.decompressLayer(newLayer);
+    this.layers = [...this.layers, decompressedLayer].sort((a, b) => a.index - b.index);
     this.updateChunkManager();
   };
 
@@ -131,8 +169,10 @@ export class ProjectManager {
     newLayer: Layer
   ) => {
     if (newLayer.projectId !== this.project.id) return;
+
+    const decompressedLayer = this.decompressLayer(newLayer);
     this.layers = this.layers
-      .map((l) => (l.id === newLayer.id ? newLayer : l))
+      .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
       .sort((a, b) => a.index - b.index);
     this.updateChunkManager();
   };
@@ -228,4 +268,4 @@ export class ProjectManager {
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
   }
-}
+};
