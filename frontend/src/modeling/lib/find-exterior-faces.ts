@@ -9,7 +9,7 @@ import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 
 const getBlockType = (blockValue: number): number => {
-  return (blockValue >> 6) & 0x3FF;
+  return (blockValue >> 6) & 0x3ff;
 };
 
 const isBlockPresent = (blockValue: number): boolean => {
@@ -36,15 +36,21 @@ export const findExteriorFaces = (
   meshArrays.reset();
   previewMeshArrays.reset();
 
-  const maskSize = Math.max(chunkDimensions.x, chunkDimensions.y, chunkDimensions.z) ** 2;
+  const maskSize =
+    Math.max(chunkDimensions.x, chunkDimensions.y, chunkDimensions.z) ** 2;
   const realMask = new Int16Array(maskSize);
   const previewMask = new Int16Array(maskSize);
   const processed = new Uint8Array(maskSize);
 
   const getNeighborBlock = (x: number, y: number, z: number): number | null => {
-    if (x >= 0 && x < chunkDimensions.x &&
-      y >= 0 && y < chunkDimensions.y &&
-      z >= 0 && z < chunkDimensions.z) {
+    if (
+      x >= 0 &&
+      x < chunkDimensions.x &&
+      y >= 0 &&
+      y < chunkDimensions.y &&
+      z >= 0 &&
+      z < chunkDimensions.z
+    ) {
       return chunkData[x][y][z];
     }
 
@@ -55,9 +61,24 @@ export const findExteriorFaces = (
     const u = (axis + 1) % 3;
     const v = (axis + 2) % 3;
 
-    const axisSize = axis === 0 ? chunkDimensions.x : axis === 1 ? chunkDimensions.y : chunkDimensions.z;
-    const uSize = u === 0 ? chunkDimensions.x : u === 1 ? chunkDimensions.y : chunkDimensions.z;
-    const vSize = v === 0 ? chunkDimensions.x : v === 1 ? chunkDimensions.y : chunkDimensions.z;
+    const axisSize =
+      axis === 0
+        ? chunkDimensions.x
+        : axis === 1
+        ? chunkDimensions.y
+        : chunkDimensions.z;
+    const uSize =
+      u === 0
+        ? chunkDimensions.x
+        : u === 1
+        ? chunkDimensions.y
+        : chunkDimensions.z;
+    const vSize =
+      v === 0
+        ? chunkDimensions.x
+        : v === 1
+        ? chunkDimensions.y
+        : chunkDimensions.z;
 
     for (let dir = -1; dir <= 1; dir += 2) {
       const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
@@ -93,13 +114,12 @@ export const findExteriorFaces = (
                 const neighborPresent = isBlockPresent(neighborValue);
                 const neighborIsPreview = isPreview(neighborValue);
 
-                shouldShowFace = !neighborPresent ||
-                  (isEraseMode && neighborIsPreview) ||
-                  (isPaintMode && neighborIsPreview && !neighborPresent);
+                shouldShowFace = !neighborPresent || neighborIsPreview;
               }
 
               if (shouldShowFace) {
-                const textureIndex = projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
+                const textureIndex =
+                  projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
 
                 if (blockIsPreview) {
                   if (isPaintMode && !isPreview) {
@@ -167,7 +187,7 @@ const generateGreedyMesh = (
   processed.fill(0, 0, width * height);
 
   for (let j = 0; j < height; j++) {
-    for (let i = 0; i < width;) {
+    for (let i = 0; i < width; ) {
       const maskIndex = i + j * width;
 
       if (processed[maskIndex] || mask[maskIndex] < 0) {

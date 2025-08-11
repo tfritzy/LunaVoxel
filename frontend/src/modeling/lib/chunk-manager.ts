@@ -119,7 +119,7 @@ export class ChunkManager {
       const endIndex = blockIndex + runLength;
 
       while (blockIndex < endIndex) {
-        blocks[blockIndex] = value & 0xFFFF;
+        blocks[blockIndex] = value & 0xffff;
         blockIndex++;
       }
 
@@ -152,6 +152,7 @@ export class ChunkManager {
   ): void {
     const isPaintMode = buildMode.tag === BlockModificationMode.Paint.tag;
     const isBuildMode = buildMode.tag === BlockModificationMode.Build.tag;
+    const isEraseMode = buildMode.tag === BlockModificationMode.Erase.tag;
 
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
       const hasPreview = previewBlocks[voxelIndex] !== 0;
@@ -162,9 +163,11 @@ export class ChunkManager {
         if (isPaintMode && !hasRealBlock) {
           continue;
         } else if (isBuildMode && hasRealBlock) {
+          blocks[voxelIndex] = previewBlocks[voxelIndex];
+          blocks[voxelIndex] &= 0x3fff;
+        } else if (isEraseMode && !hasRealBlock) {
           continue;
-        }
-        else {
+        } else {
           blocks[voxelIndex] = previewBlocks[voxelIndex];
         }
       }
@@ -218,8 +221,7 @@ export class ChunkManager {
   ) {
     if (layer.locked) return;
 
-    const totalExpected =
-      layer.xDim * layer.yDim * layer.zDim;
+    const totalExpected = layer.xDim * layer.yDim * layer.zDim;
 
     const buf = this.ensureEditBuffer();
     if (buf.length !== totalExpected) {
@@ -239,7 +241,7 @@ export class ChunkManager {
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
-        let base = x * yDim * zDim + y * zDim;
+        const base = x * yDim * zDim + y * zDim;
         for (let z = minZ; z <= maxZ; z++) {
           const idx = base + z;
           const currentVal = buf[idx];
