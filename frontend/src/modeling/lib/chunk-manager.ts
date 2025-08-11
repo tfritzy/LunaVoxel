@@ -151,6 +151,7 @@ export class ChunkManager {
     buildMode: BlockModificationMode
   ): void {
     const isPaintMode = buildMode.tag === BlockModificationMode.Paint.tag;
+    const isBuildMode = buildMode.tag === BlockModificationMode.Build.tag;
 
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
       const hasPreview = previewBlocks[voxelIndex] !== 0;
@@ -159,12 +160,13 @@ export class ChunkManager {
 
       if (hasPreview) {
         if (isPaintMode && !hasRealBlock) {
-          blocks[voxelIndex] &= ~0x08;
-        } else {
+          continue;
+        } else if (isBuildMode && hasRealBlock) {
+          continue;
+        }
+        else {
           blocks[voxelIndex] = previewBlocks[voxelIndex];
         }
-      } else {
-        blocks[voxelIndex] &= ~0x08;
       }
     }
   }
