@@ -3,10 +3,8 @@ using System;
 public static class RandomNameGenerator
 {
     private static readonly string[] Adjectives = {
-        "Swift", "Brave", "Clever", "Mighty", "Silent", "Golden", "Fierce", "Noble",
-        "Quick", "Bold", "Wise", "Strong", "Gentle", "Wild", "Calm", "Bright",
-        "Dark", "Ancient", "Mystic", "Sacred", "Royal", "Proud", "Free", "Lucky",
-        "Happy", "Curious", "Playful", "Graceful", "Elegant", "Majestic"
+        "Stealthy", "Shadowy", "Covert", "Veiled", "Masked", "Mysterious", "Incognito",
+        "Silent", "Camouflaged", "Disguised", "Anonymous", "Cloaked", "Ghostly", "Concealed",
     };
 
     private static readonly string[] Animals = {

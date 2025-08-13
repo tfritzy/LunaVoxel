@@ -106,6 +106,7 @@ public static partial class Module
         public Identity Player;
         public Vector3Float? Position;
         public Vector3Float? Normal;
+        public Timestamp LastUpdated;
     }
 
     [Table(Name = "layer", Public = true)]

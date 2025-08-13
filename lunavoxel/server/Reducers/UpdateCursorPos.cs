@@ -23,7 +23,8 @@ public static partial class Module
                 Player = identity,
                 DisplayName = displayName,
                 Position = pos,
-                Normal = normal
+                Normal = normal,
+                LastUpdated = ctx.Timestamp
             };
             ctx.Db.player_cursor.Insert(cursor);
         }
@@ -31,6 +32,7 @@ public static partial class Module
         {
             cursor.Position = pos;
             cursor.Normal = normal;
+            cursor.LastUpdated = ctx.Timestamp;
 
             if (string.IsNullOrEmpty(cursor.DisplayName))
             {
