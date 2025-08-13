@@ -21,5 +21,10 @@ public static partial class Module
     [Reducer(ReducerKind.ClientDisconnected)]
     public static void ClientDisconnected(ReducerContext ctx)
     {
+        var cursorsToDelete = ctx.Db.player_cursor.player_cursor_player.Filter(ctx.Sender);
+        foreach (var cursor in cursorsToDelete)
+        {
+            ctx.Db.player_cursor.Id.Delete(cursor.Id);
+        }
     }
 }

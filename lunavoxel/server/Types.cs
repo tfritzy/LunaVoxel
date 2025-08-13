@@ -97,6 +97,7 @@ public static partial class Module
     [Table(Name = "player_cursor", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "player_cursor_project", Columns = new[] { nameof(ProjectId) })]
     [SpacetimeDB.Index.BTree(Name = "player_cursor_project_player", Columns = new[] { nameof(ProjectId), nameof(Player) })]
+    [SpacetimeDB.Index.BTree(Name = "player_cursor_player", Columns = new[] { nameof(Player) })]
     public partial class PlayerCursor
     {
         [PrimaryKey]

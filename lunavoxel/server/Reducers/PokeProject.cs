@@ -16,6 +16,8 @@ public static partial class Module
             return;
         }
 
+        UpdateCursorPos(ctx, projectId, ctx.Sender, null, null);
+
         var existingUserProject = ctx.Db.user_projects.idx_user_project.Filter((projectId, ctx.Sender)).FirstOrDefault();
         if (existingUserProject != null)
         {
@@ -29,6 +31,6 @@ public static partial class Module
         }
 
         ctx.Db.user_projects.Insert(UserProject.Build(ctx.Sender, projectId, AccessType.Inherited, user.Email));
-        UpdateCursorPos(ctx, projectId, ctx.Sender, null, null);
+
     }
 }
