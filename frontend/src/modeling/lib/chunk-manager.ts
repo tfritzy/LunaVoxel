@@ -102,6 +102,21 @@ export class ChunkManager {
     }
   };
 
+  public getChunkDimensions(): Vector3 {
+    return this.chunkDimensions;
+  }
+
+  public getChunk(chunkX: number, chunkY: number, chunkZ: number): ChunkMesh | null {
+    if (
+      chunkX >= 0 && chunkX < this.chunkDimensions.x &&
+      chunkY >= 0 && chunkY < this.chunkDimensions.y &&
+      chunkZ >= 0 && chunkZ < this.chunkDimensions.z
+    ) {
+      return this.chunks[chunkX][chunkY][chunkZ];
+    }
+    return null;
+  }
+
   private clearBlocks(blocks: Uint16Array) {
     blocks.fill(0);
   }

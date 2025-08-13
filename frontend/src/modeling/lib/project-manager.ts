@@ -12,6 +12,7 @@ import {
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
+import { BlenderExporter } from "../export/blender-exporter";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint16Array };
 
@@ -25,6 +26,8 @@ export const ProjectManager = class {
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
   private layerSub?: { unsubscribe: () => void };
+  private textureAtlas: THREE.Texture | null = null;
+
 
   constructor(
     scene: THREE.Scene,
@@ -61,6 +64,17 @@ export const ProjectManager = class {
     this.setupLayerSubscription();
     this.setupCursors();
   }
+
+  public exportToOBJ = (): void => {
+    const exporter = new BlenderExporter(
+      this.chunkManager,
+      this.atlas,
+      this.blocks,
+      this.project,
+      this.textureAtlas
+    );
+    exporter.exportOBJ();
+  };
 
   private decompressLayer = (layer: Layer): DecompressedLayer => {
     let voxels: Uint16Array;
@@ -116,6 +130,7 @@ export const ProjectManager = class {
   };
 
   setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
+    this.textureAtlas = textureAtlas;
     if (textureAtlas) {
       this.chunkManager.setTextureAtlas(textureAtlas);
       this.updateChunkManager();

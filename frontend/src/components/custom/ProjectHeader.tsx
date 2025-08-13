@@ -13,7 +13,11 @@ import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
 import { UserDropdown } from "./Share/UserDropdown";
 
-export function ProjectHeader() {
+interface ProjectHeaderProps {
+  onExportOBJ?: () => void;
+}
+
+export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -69,6 +73,7 @@ export function ProjectHeader() {
                 <FileDropdown
                   onNewProject={handleNewProject}
                   onOpenProject={handleOpenProject}
+                  onExportOBJ={onExportOBJ}
                 />
                 {projectId && <EditDropdown />}
               </div>

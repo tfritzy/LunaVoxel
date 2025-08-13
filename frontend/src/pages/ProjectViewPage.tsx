@@ -27,6 +27,12 @@ export const ProjectViewPage = () => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
   }, []);
 
+  const handleExportOBJ = useCallback(() => {
+    if (engineRef.current?.projectManager) {
+      engineRef.current.projectManager.exportToOBJ();
+    }
+  }, []);
+
   useEffect(() => {
     engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
   }, [selectedBlock]);
@@ -133,7 +139,7 @@ export const ProjectViewPage = () => {
 
   return (
     <div>
-      <ProjectHeader />
+      <ProjectHeader onExportOBJ={handleExportOBJ} />
       <div className="h-full flex">
         <div className="flex-1 relative">
           <BlockDrawer />
