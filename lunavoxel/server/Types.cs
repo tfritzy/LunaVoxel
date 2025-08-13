@@ -102,9 +102,10 @@ public static partial class Module
         [PrimaryKey]
         public string Id;
         public string ProjectId;
+        public string DisplayName;
         public Identity Player;
-        public Vector3Float Position;
-        public Vector3Float Normal;
+        public Vector3Float? Position;
+        public Vector3Float? Normal;
     }
 
     [Table(Name = "layer", Public = true)]

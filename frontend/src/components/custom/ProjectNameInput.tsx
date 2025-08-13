@@ -8,7 +8,7 @@ export function ProjectNameInput() {
   const { connection } = useDatabase();
   const [localName, setLocalName] = useState("");
   const [project, setProject] = useState<Project | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

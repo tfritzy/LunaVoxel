@@ -33,15 +33,13 @@ import {
   type SubscriptionEventContextInterface,
 } from "@clockworklabs/spacetimedb-sdk";
 
+import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
+
 export type UpdateCursorPos = {
   projectId: string,
   identity: Identity,
-  x: number,
-  y: number,
-  z: number,
-  nx: number,
-  ny: number,
-  nz: number,
+  pos: __Vector3Float | undefined,
+  normal: __Vector3Float | undefined,
 };
 
 /**
@@ -56,12 +54,8 @@ export namespace UpdateCursorPos {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("identity", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("x", AlgebraicType.createF32Type()),
-      new ProductTypeElement("y", AlgebraicType.createF32Type()),
-      new ProductTypeElement("z", AlgebraicType.createF32Type()),
-      new ProductTypeElement("nx", AlgebraicType.createF32Type()),
-      new ProductTypeElement("ny", AlgebraicType.createF32Type()),
-      new ProductTypeElement("nz", AlgebraicType.createF32Type()),
+      new ProductTypeElement("pos", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("normal", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
     ]);
   }
 

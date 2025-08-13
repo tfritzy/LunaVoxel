@@ -29,5 +29,6 @@ public static partial class Module
         }
 
         ctx.Db.user_projects.Insert(UserProject.Build(ctx.Sender, projectId, AccessType.Inherited, user.Email));
+        UpdateCursorPos(ctx, projectId, ctx.Sender, null, null);
     }
 }

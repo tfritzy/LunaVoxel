@@ -17,7 +17,6 @@ import {
   Clock,
   Users,
   ArrowRight,
-  Sparkles,
   Grid3X3,
   List,
 } from "lucide-react";
@@ -220,17 +219,17 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
         {searchTerm
           ? "No projects found"
           : viewMode === "shared"
-            ? "No shared projects"
-            : viewMode === "recent"
-              ? "No recent projects"
-              : "No projects yet"}
+          ? "No shared projects"
+          : viewMode === "recent"
+          ? "No recent projects"
+          : "No projects yet"}
       </h3>
       <p className="text-muted-foreground mb-6 max-w-sm">
         {searchTerm
           ? `No projects match "${searchTerm}". Try a different search term.`
           : viewMode === "shared"
-            ? "No one has shared any projects with you yet."
-            : "Create your first project to get started with LunaVoxel."}
+          ? "No one has shared any projects with you yet."
+          : "Create your first project to get started with LunaVoxel."}
       </p>
       {!searchTerm && viewMode !== "shared" && (
         <Button onClick={handleCreateProject} disabled={isCreating}>
@@ -265,16 +264,17 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === mode
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                        }`}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        viewMode === mode
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
                     >
                       {mode === "all"
                         ? "All"
                         : mode === "recent"
-                          ? "Recent"
-                          : "Shared"}
+                        ? "Recent"
+                        : "Shared"}
                     </button>
                   ))}
                 </div>
@@ -282,19 +282,21 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
                 <div className="flex bg-muted rounded-lg p-1">
                   <button
                     onClick={() => setLayoutMode("grid")}
-                    className={`p-2 rounded-md transition-colors ${layoutMode === "grid"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                      }`}
+                    className={`p-2 rounded-md transition-colors ${
+                      layoutMode === "grid"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
                     <Grid3X3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setLayoutMode("list")}
-                    className={`p-2 rounded-md transition-colors ${layoutMode === "list"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                      }`}
+                    className={`p-2 rounded-md transition-colors ${
+                      layoutMode === "list"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
                     <List className="w-4 h-4" />
                   </button>

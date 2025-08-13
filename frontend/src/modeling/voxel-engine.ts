@@ -13,7 +13,7 @@ export interface VoxelEngineOptions {
 }
 
 export class VoxelEngine {
-  public projectManager: ProjectManager;
+  public projectManager;
   private container: HTMLElement;
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;

@@ -1,15 +1,19 @@
 import * as THREE from "three";
-import { Vector3, DbConnection } from "../../module_bindings";
-import { Identity } from "@clockworklabs/spacetimedb-sdk";
+import { Vector3, DbConnection, PlayerCursor } from "../../module_bindings";
 import { layers } from "./layers";
 
-export interface PlayerCursor {
-  id: string;
-  projectId: string;
-  player: Identity;
-  position: Vector3;
-  normal: Vector3;
-}
+export const CURSOR_COLORS = [
+  new THREE.Color("#EE5A32"), // Vivid Orange
+  new THREE.Color("#3FA34D"), // Leaf Green
+  new THREE.Color("#3F6FE4"), // Azure Blue
+  new THREE.Color("#E2B534"), // Warm Gold
+  new THREE.Color("#15B2A7"), // Teal
+  new THREE.Color("#C545A7"), // Magenta
+  new THREE.Color("#9F5BFF"), // Violet
+  new THREE.Color("#FF6FAE"), // Pink
+  new THREE.Color("#5CC9FF"), // Sky Cyan
+  new THREE.Color("#7DDB4B"), // Lime
+];
 
 export class CursorManager {
   private scene: THREE.Scene;
@@ -17,19 +21,6 @@ export class CursorManager {
   private playerColors: Map<string, THREE.Color> = new Map();
   private colorIndex: number = 0;
   private projectId: string;
-
-  private readonly CURSOR_COLORS = [
-    new THREE.Color(0xff6b6b),
-    new THREE.Color(0x4ecdc4),
-    new THREE.Color(0x45b7d1),
-    new THREE.Color(0xf9ca24),
-    new THREE.Color(0xf0932b),
-    new THREE.Color(0xeb4d4b),
-    new THREE.Color(0x6c5ce7),
-    new THREE.Color(0xa29bfe),
-    new THREE.Color(0xfd79a8),
-    new THREE.Color(0x00b894),
-  ];
 
   constructor(scene: THREE.Scene, projectId: string) {
     this.scene = scene;
@@ -57,27 +48,29 @@ export class CursorManager {
 
       const existingMesh = this.cursors.get(cursor.id);
 
-      if (existingMesh) {
-        const newPosition = new THREE.Vector3(
-          cursor.position.x,
-          cursor.position.y,
-          cursor.position.z
-        );
-        const newNormal = new THREE.Vector3(
-          cursor.normal.x,
-          cursor.normal.y,
-          cursor.normal.z
-        );
+      if (cursor.position && cursor.normal) {
+        if (existingMesh) {
+          const newPosition = new THREE.Vector3(
+            cursor.position.x,
+            cursor.position.y,
+            cursor.position.z
+          );
+          const newNormal = new THREE.Vector3(
+            cursor.normal.x,
+            cursor.normal.y,
+            cursor.normal.z
+          );
 
-        if (
-          !existingMesh.position.equals(newPosition) ||
-          !this.getMeshNormal(existingMesh).equals(newNormal)
-        ) {
-          existingMesh.position.copy(newPosition);
-          this.orientCursorToNormal(existingMesh, cursor.normal);
+          if (
+            !existingMesh.position.equals(newPosition) ||
+            !this.getMeshNormal(existingMesh).equals(newNormal)
+          ) {
+            existingMesh.position.copy(newPosition);
+            this.orientCursorToNormal(existingMesh, cursor.normal);
+          }
+        } else {
+          this.createCursor(cursor);
         }
-      } else {
-        this.createCursor(cursor);
       }
     }
 
@@ -101,7 +94,7 @@ export class CursorManager {
     let color = this.playerColors.get(playerKey);
 
     if (!color) {
-      color = this.CURSOR_COLORS[this.colorIndex % this.CURSOR_COLORS.length];
+      color = CURSOR_COLORS[this.colorIndex % CURSOR_COLORS.length];
       this.playerColors.set(playerKey, color);
       this.colorIndex++;
     }

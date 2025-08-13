@@ -190,12 +190,8 @@ export const Builder = class {
         this.dbConn.reducers.updateCursorPos(
           this.projectId,
           this.dbConn.identity!,
-          faceCenter.x,
-          faceCenter.y,
-          faceCenter.z,
-          worldNormal.x,
-          worldNormal.y,
-          worldNormal.z
+          faceCenter,
+          worldNormal,
         );
 
         this.lastSentCursorPos = faceCenter.clone();

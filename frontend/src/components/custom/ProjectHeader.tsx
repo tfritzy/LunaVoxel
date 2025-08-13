@@ -1,16 +1,17 @@
 import { Link, useParams } from "react-router-dom";
 import { FileDropdown } from "./FileDropdown";
 import { EditDropdown } from "./EditDropdown";
-import { UserDropdown } from "./Share/UserDropdown";
 import { useAuth } from "@/firebase/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
-import { ShareButton } from "./Share/ShareButton";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useState } from "react";
 import { ProjectModal } from "./ProjectModal";
+import { PresenceIndicator } from "./PresenceIndicator";
+import { ShareButton } from "./Share/ShareButton";
+import { UserDropdown } from "./Share/UserDropdown";
 
 export function ProjectHeader() {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
@@ -74,7 +75,8 @@ export function ProjectHeader() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
+            {projectId && <PresenceIndicator />}
             {projectId && <ShareButton />}
             <UserDropdown
               currentUser={currentUser}

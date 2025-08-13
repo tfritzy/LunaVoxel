@@ -160,3 +160,12 @@
 *::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+
+.emoji-flat {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  background: currentColor;
+  mask: var(--emoji-url) center/contain no-repeat;
+  -webkit-mask: var(--emoji-url) center/contain no-repeat;
+}

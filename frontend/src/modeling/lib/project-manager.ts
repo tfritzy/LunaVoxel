@@ -5,14 +5,15 @@ import {
   DbConnection,
   EventContext,
   Layer,
+  PlayerCursor,
   Project,
   ProjectBlocks,
 } from "../../module_bindings";
-import { CursorManager, PlayerCursor } from "./cursor-manager";
+import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 
-export type DecompressedLayer = Omit<Layer, 'voxels'> & { voxels: Uint16Array }
+export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint16Array };
 
 export const ProjectManager = class {
   public builder;
@@ -67,7 +68,10 @@ export const ProjectManager = class {
     if (layer.voxels instanceof Uint16Array) {
       voxels = layer.voxels;
     } else if (Array.isArray(layer.voxels)) {
-      const totalSize = this.project.dimensions.x * this.project.dimensions.y * this.project.dimensions.z;
+      const totalSize =
+        this.project.dimensions.x *
+        this.project.dimensions.y *
+        this.project.dimensions.z;
       voxels = new Uint16Array(totalSize);
 
       const compressedData = layer.voxels;
@@ -84,13 +88,16 @@ export const ProjectManager = class {
         dataIndex += 2;
       }
     } else {
-      const totalSize = this.project.dimensions.x * this.project.dimensions.y * this.project.dimensions.z;
+      const totalSize =
+        this.project.dimensions.x *
+        this.project.dimensions.y *
+        this.project.dimensions.z;
       voxels = new Uint16Array(totalSize);
     }
 
     return {
       ...layer,
-      voxels
+      voxels,
     };
   };
 
@@ -159,7 +166,9 @@ export const ProjectManager = class {
     if (this.layers.some((l) => l.id === newLayer.id)) return;
 
     const decompressedLayer = this.decompressLayer(newLayer);
-    this.layers = [...this.layers, decompressedLayer].sort((a, b) => a.index - b.index);
+    this.layers = [...this.layers, decompressedLayer].sort(
+      (a, b) => a.index - b.index
+    );
     this.updateChunkManager();
   };
 

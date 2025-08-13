@@ -1,9 +1,10 @@
+using System.Security.Cryptography;
 using SpacetimeDB;
 
 public static partial class Module
 {
     [Reducer]
-    public static void UpdateCursorPos(ReducerContext ctx, string projectId, Identity identity, float x, float y, float z, float nx, float ny, float nz)
+    public static void UpdateCursorPos(ReducerContext ctx, string projectId, Identity identity, Vector3Float? pos, Vector3Float? normal)
     {
         if (string.IsNullOrEmpty(projectId))
         {
@@ -13,20 +14,30 @@ public static partial class Module
         var cursor = ctx.Db.player_cursor.player_cursor_project_player.Filter((projectId, identity)).FirstOrDefault();
         if (cursor == null)
         {
+            var player = ctx.Db.user.Identity.Find(identity);
+            var displayName = string.IsNullOrEmpty(player?.Email) ? RandomNameGenerator.GenerateName() : player.Email;
             cursor = new PlayerCursor
             {
                 Id = IdGenerator.Generate("csr"),
                 ProjectId = projectId,
                 Player = identity,
-                Position = new Vector3Float(x, y, z),
-                Normal = new Vector3Float(nx, ny, nz)
+                DisplayName = displayName,
+                Position = pos,
+                Normal = normal
             };
             ctx.Db.player_cursor.Insert(cursor);
         }
         else
         {
-            cursor.Position = new Vector3Float(x, y, z);
-            cursor.Normal = new Vector3Float(nx, ny, nz);
+            cursor.Position = pos;
+            cursor.Normal = normal;
+
+            if (string.IsNullOrEmpty(cursor.DisplayName))
+            {
+                var player = ctx.Db.user.Identity.Find(identity);
+                cursor.DisplayName = string.IsNullOrEmpty(player?.Email) ? RandomNameGenerator.GenerateName() : player.Email;
+            }
+
             ctx.Db.player_cursor.Id.Update(cursor);
         }
     }

@@ -37,9 +37,10 @@ import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
 export type PlayerCursor = {
   id: string,
   projectId: string,
+  displayName: string,
   player: Identity,
-  position: __Vector3Float,
-  normal: __Vector3Float,
+  position: __Vector3Float | undefined,
+  normal: __Vector3Float | undefined,
 };
 
 /**
@@ -54,9 +55,10 @@ export namespace PlayerCursor {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createStringType()),
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("displayName", AlgebraicType.createStringType()),
       new ProductTypeElement("player", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("position", __Vector3Float.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("normal", __Vector3Float.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("position", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("normal", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
     ]);
   }
 

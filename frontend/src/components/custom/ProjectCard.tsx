@@ -7,12 +7,9 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const lastVisitedRelative = formatDistanceToNow(
-    project.lastVisited.toDate(),
-    {
-      addSuffix: true,
-    }
-  );
+  const lastVisitedRelative = formatDistanceToNow(project.updated.toDate(), {
+    addSuffix: true,
+  });
 
   return (
     <div
