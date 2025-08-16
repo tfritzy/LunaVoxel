@@ -5,7 +5,6 @@ import {
   DbConnection,
   Vector3,
 } from "../../module_bindings";
-import { Block } from "./blocks";
 
 export const Builder = class {
   public previewBlocks: Uint16Array;
@@ -19,6 +18,10 @@ export const Builder = class {
     end: THREE.Vector3,
     blockType: number,
     layerIndex: number
+  ) => void;
+  private onLocalCursorUpdate?: (
+    position: THREE.Vector3,
+    normal: THREE.Vector3
   ) => void;
   private selectedBlock: number = 1;
   private selectedLayer: number = 0;
@@ -60,6 +63,10 @@ export const Builder = class {
       end: THREE.Vector3,
       blockType: number,
       layerIndex: number
+    ) => void,
+    onLocalCursorUpdate?: (
+      position: THREE.Vector3,
+      normal: THREE.Vector3
     ) => void
   ) {
     this.dbConn = dbConn;
@@ -70,6 +77,7 @@ export const Builder = class {
     this.domElement = domElement;
     this.onPreviewUpdate = onPreviewUpdate;
     this.onCommitRect = onCommitRect;
+    this.onLocalCursorUpdate = onLocalCursorUpdate;
     this.selectedBlock = 1;
 
     this.raycaster = new THREE.Raycaster();
@@ -89,10 +97,18 @@ export const Builder = class {
   }
 
   private getBlockIndex(x: number, y: number, z: number): number {
-    return x * this.dimensions.y * this.dimensions.z + y * this.dimensions.z + z;
+    return (
+      x * this.dimensions.y * this.dimensions.z + y * this.dimensions.z + z
+    );
   }
 
-  private setPreviewBlock(x: number, y: number, z: number, blockType: number, rotation: number = 0): void {
+  private setPreviewBlock(
+    x: number,
+    y: number,
+    z: number,
+    blockType: number,
+    rotation: number = 0
+  ): void {
     const blockIndex = this.getBlockIndex(x, y, z);
     const blockValue = (blockType << 6) | 0x08 | (rotation & 0x07);
     this.previewBlocks[blockIndex] = blockValue;
@@ -177,6 +193,10 @@ export const Builder = class {
     faceCenter: THREE.Vector3,
     worldNormal: THREE.Vector3
   ): void {
+    if (this.onLocalCursorUpdate) {
+      this.onLocalCursorUpdate(faceCenter, worldNormal);
+    }
+
     const now = Date.now();
     if (now - this.lastCursorUpdateTime >= this.CURSOR_UPDATE_THROTTLE_MS) {
       const hasPositionChanged =
@@ -191,7 +211,7 @@ export const Builder = class {
           this.projectId,
           this.dbConn.identity!,
           faceCenter,
-          worldNormal,
+          worldNormal
         );
 
         this.lastSentCursorPos = faceCenter.clone();

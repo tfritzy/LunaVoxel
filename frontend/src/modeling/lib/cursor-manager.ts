@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Vector3, DbConnection, PlayerCursor } from "../../module_bindings";
 import { layers } from "./layers";
+import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 
 export const CURSOR_COLORS = [
   new THREE.Color("#EE5A32"), // Vivid Orange
@@ -21,6 +22,7 @@ export class CursorManager {
   private playerColors: Map<string, THREE.Color> = new Map();
   private colorIndex: number = 0;
   private projectId: string;
+  private dbConn: DbConnection | null = null;
 
   constructor(scene: THREE.Scene, projectId: string) {
     this.scene = scene;
@@ -28,6 +30,7 @@ export class CursorManager {
   }
 
   updateFromDatabase(dbConn: DbConnection): void {
+    this.dbConn = dbConn;
     const cursors: PlayerCursor[] = [];
 
     for (const cursor of dbConn.db.playerCursor.tableCache.iter()) {
@@ -38,6 +41,40 @@ export class CursorManager {
     }
 
     this.update(cursors);
+  }
+
+  updateLocalCursor(position: THREE.Vector3, normal: THREE.Vector3): void {
+    if (!this.dbConn?.identity) return;
+
+    const cursorId = this.dbConn.identity.toHexString();
+    const existingMesh = this.cursors.get(cursorId);
+
+    if (existingMesh) {
+      existingMesh.position.set(position.x, position.y, position.z);
+      this.orientCursorToNormal(existingMesh, normal);
+    } else {
+      this.createLocalCursor(position, normal);
+    }
+  }
+
+  private createLocalCursor(
+    position: THREE.Vector3,
+    normal: THREE.Vector3
+  ): void {
+    if (!this.dbConn?.identity) return;
+
+    const playerKey = this.dbConn.identity.toHexString();
+    const cursor: PlayerCursor = {
+      id: playerKey,
+      projectId: this.projectId,
+      player: this.dbConn.identity,
+      displayName: "",
+      position: { x: position.x, y: position.y, z: position.z },
+      normal: { x: normal.x, y: normal.y, z: normal.z },
+      lastUpdated: Timestamp.now(),
+    };
+
+    this.createCursor(cursor);
   }
 
   private update(cursors: PlayerCursor[]): void {
@@ -74,7 +111,7 @@ export class CursorManager {
       }
     }
 
-    for (const [cursorId, mesh] of this.cursors) {
+    for (const [cursorId] of this.cursors) {
       if (!activeCursorIds.has(cursorId)) {
         this.removeCursor(cursorId);
       }
@@ -88,6 +125,8 @@ export class CursorManager {
   }
 
   private createCursor(cursor: PlayerCursor): void {
+    if (cursor.player === this.dbConn?.identity) return;
+
     const geometry = new THREE.PlaneGeometry(1, 1);
 
     const playerKey = cursor.player.toHexString();

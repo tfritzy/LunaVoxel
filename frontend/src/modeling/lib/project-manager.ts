@@ -28,7 +28,6 @@ export const ProjectManager = class {
   private layerSub?: { unsubscribe: () => void };
   private textureAtlas: THREE.Texture | null = null;
 
-
   constructor(
     scene: THREE.Scene,
     dbConn: DbConnection,
@@ -58,6 +57,9 @@ export const ProjectManager = class {
           blockType,
           0
         );
+      },
+      (position: THREE.Vector3, normal: THREE.Vector3) => {
+        this.cursorManager.updateLocalCursor(position, normal);
       }
     );
     this.setupLayers();
