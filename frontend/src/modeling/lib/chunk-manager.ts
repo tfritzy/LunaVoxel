@@ -2,7 +2,6 @@ import * as THREE from "three";
 import {
   Atlas,
   BlockModificationMode,
-  Layer,
   ProjectBlocks,
   Vector3,
 } from "@/module_bindings";
