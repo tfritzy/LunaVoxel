@@ -9,6 +9,7 @@ import { useProjectMeta, useAtlasContext, useBlocksContext } from "@/contexts/Cu
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
 import { useCustomCursor } from "@/lib/useCustomCursor";
+import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -58,6 +59,10 @@ export const ProjectViewPage = () => {
       setCursorsLoading(true);
 
       if (engineRef.current) {
+        if (projectId) {
+          const cameraState = engineRef.current.getCameraState();
+          CameraStatePersistence.save(projectId, cameraState);
+        }
         engineRef.current.dispose();
         engineRef.current = null;
       }
@@ -65,17 +70,24 @@ export const ProjectViewPage = () => {
   }, [projectId, connection]);
 
   useEffect(() => {
-    if (cursorsLoading || !connection) return;
+    if (cursorsLoading || !connection || !projectId) return;
 
     if (engineRef.current) {
+      if (projectId) {
+        const cameraState = engineRef.current.getCameraState();
+        CameraStatePersistence.save(projectId, cameraState);
+      }
       engineRef.current.dispose();
       engineRef.current = null;
     }
+
+    const savedCameraState = CameraStatePersistence.load(projectId);
 
     engineRef.current = new VoxelEngine({
       container: containerRef.current!,
       connection,
       project,
+      initialCameraState: savedCameraState || undefined,
     });
 
     engineRef.current.projectManager.setSelectedBlock(selectedBlock);
@@ -85,7 +97,9 @@ export const ProjectViewPage = () => {
     engineRef.current.projectManager.setTextureAtlas(textureAtlas);
 
     return () => {
-      if (engineRef.current) {
+      if (engineRef.current && projectId) {
+        const cameraState = engineRef.current.getCameraState();
+        CameraStatePersistence.save(projectId, cameraState);
         engineRef.current.dispose();
         engineRef.current = null;
       }

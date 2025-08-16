@@ -1,5 +1,15 @@
 import * as THREE from "three";
 
+export interface CameraState {
+  position: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+  distance: number;
+  phi: number;
+  theta: number;
+  currentRotationAngle: number;
+  targetRotationAngle: number;
+}
+
 export class CameraController {
   private camera: THREE.PerspectiveCamera;
   private domElement: HTMLElement;
@@ -8,10 +18,9 @@ export class CameraController {
   private zoomSpeed: number = 2;
   private rotationSpeed: number = 0.003;
 
-  // Zoom scaling parameters
-  private zoomScaleMultiplier: number = 0.1; // Controls how much distance affects zoom speed
-  private minZoomSpeed: number = 0.5; // Minimum zoom speed at close distances
-  private maxZoomSpeed: number = 10; // Maximum zoom speed at far distances
+  private zoomScaleMultiplier: number = 0.01;
+  private minZoomSpeed: number = 0.1;
+  private maxZoomSpeed: number = 10;
 
   private rotateMouseDown: boolean = false;
   private panMouseDown: boolean = false;
@@ -64,15 +73,40 @@ export class CameraController {
     this.addEventListeners();
   }
 
-  // Method to configure zoom scaling behavior
-  setZoomScaling(
-    multiplier: number = 0.1,
-    minSpeed: number = 0.5,
-    maxSpeed: number = 10
-  ): void {
-    this.zoomScaleMultiplier = multiplier;
-    this.minZoomSpeed = minSpeed;
-    this.maxZoomSpeed = maxSpeed;
+  getCameraState(): CameraState {
+    return {
+      position: {
+        x: this.camera.position.x,
+        y: this.camera.position.y,
+        z: this.camera.position.z,
+      },
+      target: {
+        x: this.target.x,
+        y: this.target.y,
+        z: this.target.z,
+      },
+      distance: this.distance,
+      phi: this.phi,
+      theta: this.theta,
+      currentRotationAngle: this.currentRotationAngle,
+      targetRotationAngle: this.targetRotationAngle,
+    };
+  }
+
+  setCameraState(state: CameraState): void {
+    this.camera.position.set(
+      state.position.x,
+      state.position.y,
+      state.position.z
+    );
+    this.target.set(state.target.x, state.target.y, state.target.z);
+    this.distance = state.distance;
+    this.phi = state.phi;
+    this.theta = state.theta;
+    this.currentRotationAngle = state.currentRotationAngle;
+    this.targetRotationAngle = state.targetRotationAngle;
+
+    this.camera.lookAt(this.target);
   }
 
   private addEventListeners(): void {
@@ -206,7 +240,6 @@ export class CameraController {
   }
 
   private zoomCamera(delta: number): void {
-    // Calculate adaptive zoom speed based on current distance
     const distanceBasedSpeed = this.distance * this.zoomScaleMultiplier;
     const adaptiveZoomSpeed = Math.max(
       this.minZoomSpeed,

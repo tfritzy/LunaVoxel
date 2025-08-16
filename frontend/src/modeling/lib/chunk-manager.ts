@@ -65,6 +65,34 @@ export class ChunkManager {
     }
   }
 
+  public getBlockAt(worldX: number, worldY: number, worldZ: number): number {
+    if (
+      worldX < 0 ||
+      worldX >= this.dimensions.x ||
+      worldY < 0 ||
+      worldY >= this.dimensions.y ||
+      worldZ < 0 ||
+      worldZ >= this.dimensions.z
+    ) {
+      return 0;
+    }
+
+    const chunkX = Math.floor(worldX / CHUNK_SIZE);
+    const chunkY = Math.floor(worldY / CHUNK_SIZE);
+    const chunkZ = Math.floor(worldZ / CHUNK_SIZE);
+
+    const localX = worldX % CHUNK_SIZE;
+    const localY = worldY % CHUNK_SIZE;
+    const localZ = worldZ % CHUNK_SIZE;
+
+    const chunk = this.chunks[chunkX]?.[chunkY]?.[chunkZ];
+    if (!chunk) {
+      return 0;
+    }
+
+    return chunk.getVoxel(localX, localY, localZ);
+  }
+
   private copyChunkData(
     chunkX: number,
     chunkY: number,
@@ -106,11 +134,18 @@ export class ChunkManager {
     return this.chunkDimensions;
   }
 
-  public getChunk(chunkX: number, chunkY: number, chunkZ: number): ChunkMesh | null {
+  public getChunk(
+    chunkX: number,
+    chunkY: number,
+    chunkZ: number
+  ): ChunkMesh | null {
     if (
-      chunkX >= 0 && chunkX < this.chunkDimensions.x &&
-      chunkY >= 0 && chunkY < this.chunkDimensions.y &&
-      chunkZ >= 0 && chunkZ < this.chunkDimensions.z
+      chunkX >= 0 &&
+      chunkX < this.chunkDimensions.x &&
+      chunkY >= 0 &&
+      chunkY < this.chunkDimensions.y &&
+      chunkZ >= 0 &&
+      chunkZ < this.chunkDimensions.z
     ) {
       return this.chunks[chunkX][chunkY][chunkZ];
     }
@@ -121,7 +156,10 @@ export class ChunkManager {
     blocks.fill(0);
   }
 
-  private addLayerToBlocks(layer: DecompressedLayer, blocks: Uint16Array): void {
+  private addLayerToBlocks(
+    layer: DecompressedLayer,
+    blocks: Uint16Array
+  ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
     if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
@@ -175,7 +213,6 @@ export class ChunkManager {
   }
 
   private encodeBlockShort(type: number, rotation: number): number {
-    // Layout: bits 6-15 = type (10 bits), bits 0-2 = rotation
     return (type << 6) | (rotation & 0x07);
   }
 

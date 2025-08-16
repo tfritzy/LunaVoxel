@@ -34,10 +34,8 @@ export const EditDropdown = () => {
         event.stopPropagation();
 
         if (event.shiftKey) {
-          console.log("redo");
           handleRedo();
         } else {
-          console.log("undo");
           handleUndo();
         }
       }

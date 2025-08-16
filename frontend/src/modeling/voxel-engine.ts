@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
-import { CameraController } from "./lib/camera-controller";
+import { CameraController, CameraState } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
 import { DbConnection, Project } from "../module_bindings";
 import { ProjectManager } from "./lib/project-manager";
@@ -10,6 +10,7 @@ export interface VoxelEngineOptions {
   connection: DbConnection;
   project: Project;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
+  initialCameraState?: CameraState;
 }
 
 export class VoxelEngine {
@@ -43,6 +44,11 @@ export class VoxelEngine {
       ),
       this.renderer.domElement
     );
+
+    if (options.initialCameraState) {
+      this.controls.setCameraState(options.initialCameraState);
+    }
+
     addGroundPlane(
       this.scene,
       this.project.dimensions.x,
@@ -61,6 +67,10 @@ export class VoxelEngine {
 
     this.animate();
     this.setupPerformanceMonitoring();
+  }
+
+  getCameraState(): CameraState {
+    return this.controls.getCameraState();
   }
 
   private setupRenderer(container: HTMLElement): THREE.WebGLRenderer {

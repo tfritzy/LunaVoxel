@@ -8,6 +8,28 @@ import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 
+/**
+ * Defines the final AO value based on the number of occluders.
+ * Index 0 = 0 occluders (fully lit, should be 1.0)
+ * Index 1 = 1 occluder
+ * Index 2 = 2 occluders
+ * Index 3 = 3 occluders (or a sharp interior corner)
+ */
+export const OCCLUSION_LEVELS = [1.0, 0.9, 0.85, 0.75];
+const DISABLE_GREEDY_MESHING = true;
+
+// Tangent directions for each face - controls where we check for occluding blocks
+const FACE_TANGENTS: {
+  [key: number]: { u: [number, number, number]; v: [number, number, number] };
+} = {
+  0: { u: [0, 1, 0], v: [0, 0, 1] }, // +X face: check Y and Z directions
+  1: { u: [0, 1, 0], v: [0, 0, 1] }, // -X face: check Y and Z directions
+  2: { u: [1, 0, 0], v: [0, 0, 1] }, // +Y face: check X and Z directions
+  3: { u: [1, 0, 0], v: [0, 0, 1] }, // -Y face: check X and Z directions
+  4: { u: [1, 0, 0], v: [0, 1, 0] }, // +Z face: check X and Y directions
+  5: { u: [1, 0, 0], v: [0, 1, 0] }, // -Z face: check X and Y directions
+};
+
 const getBlockType = (blockValue: number): number => {
   return (blockValue >> 6) & 0x3ff;
 };
@@ -20,6 +42,74 @@ const isPreview = (blockValue: number): boolean => {
   return (blockValue & 0x08) !== 0;
 };
 
+/**
+ * Calculates ambient occlusion for a face
+ * @returns packed occlusion mask with 2 bits per corner
+ */
+const calculateAmbientOcclusion = (
+  nx: number,
+  ny: number,
+  nz: number,
+  faceDir: number,
+  getNeighborBlock: (x: number, y: number, z: number) => number | null
+): number => {
+  const tangent = FACE_TANGENTS[faceDir];
+  const u_dir = [tangent.u[0], tangent.u[1], tangent.u[2]];
+  const v_dir = [tangent.v[0], tangent.v[1], tangent.v[2]];
+
+  const isOccluder = (ox: number, oy: number, oz: number): boolean => {
+    const val = getNeighborBlock(nx + ox, ny + oy, nz + oz);
+    return val !== null && isBlockPresent(val);
+  };
+
+  const side1_neg = isOccluder(-u_dir[0], -u_dir[1], -u_dir[2]);
+  const side1_pos = isOccluder(u_dir[0], u_dir[1], u_dir[2]);
+  const side2_neg = isOccluder(-v_dir[0], -v_dir[1], -v_dir[2]);
+  const side2_pos = isOccluder(v_dir[0], v_dir[1], v_dir[2]);
+
+  const corner_nn = isOccluder(
+    -u_dir[0] - v_dir[0],
+    -u_dir[1] - v_dir[1],
+    -u_dir[2] - v_dir[2]
+  );
+  const corner_pn = isOccluder(
+    u_dir[0] - v_dir[0],
+    u_dir[1] - v_dir[1],
+    u_dir[2] - v_dir[2]
+  );
+  const corner_np = isOccluder(
+    -u_dir[0] + v_dir[0],
+    -u_dir[1] + v_dir[1],
+    -u_dir[2] + v_dir[2]
+  );
+  const corner_pp = isOccluder(
+    u_dir[0] + v_dir[0],
+    u_dir[1] + v_dir[1],
+    u_dir[2] + v_dir[2]
+  );
+
+  const calculateOcclusion = (s1: boolean, s2: boolean, c: boolean): number => {
+    if (s1 && s2) {
+      return 3; // Inner corner case
+    }
+    return (s1 ? 1 : 0) + (s2 ? 1 : 0) + (c ? 1 : 0);
+  };
+
+  const occ00 = calculateOcclusion(side1_neg, side2_neg, corner_nn);
+  const occ10 = calculateOcclusion(side1_pos, side2_neg, corner_pn);
+  const occ11 = calculateOcclusion(side1_pos, side2_pos, corner_pp);
+  const occ01 = calculateOcclusion(side1_neg, side2_pos, corner_np);
+
+  // Pack occlusion values directly (2 bits per corner)
+  let occluderMask = 0;
+  occluderMask |= occ00 << 0;
+  occluderMask |= occ10 << 2;
+  occluderMask |= occ11 << 4;
+  occluderMask |= occ01 << 6;
+
+  return occluderMask;
+};
+
 export const findExteriorFaces = (
   chunkData: Uint16Array[][],
   previewMode: BlockModificationMode,
@@ -30,7 +120,6 @@ export const findExteriorFaces = (
   previewMeshArrays: MeshArrays
 ): void => {
   const isEraseMode = previewMode.tag === BlockModificationMode.Erase.tag;
-  const isBuildMode = previewMode.tag === BlockModificationMode.Build.tag;
   const isPaintMode = previewMode.tag === BlockModificationMode.Paint.tag;
 
   meshArrays.reset();
@@ -41,6 +130,7 @@ export const findExteriorFaces = (
   const realMask = new Int16Array(maskSize);
   const previewMask = new Int16Array(maskSize);
   const processed = new Uint8Array(maskSize);
+  const aoMask = new Uint8Array(maskSize);
 
   const getNeighborBlock = (x: number, y: number, z: number): number | null => {
     if (
@@ -86,6 +176,7 @@ export const findExteriorFaces = (
       for (let d = 0; d < axisSize; d++) {
         realMask.fill(-1, 0, uSize * vSize);
         previewMask.fill(-1, 0, uSize * vSize);
+        aoMask.fill(0, 0, uSize * vSize);
 
         for (let iu = 0; iu < uSize; iu++) {
           for (let iv = 0; iv < vSize; iv++) {
@@ -121,6 +212,14 @@ export const findExteriorFaces = (
                 const textureIndex =
                   projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
 
+                aoMask[maskIndex] = calculateAmbientOcclusion(
+                  nx,
+                  ny,
+                  nz,
+                  faceDir,
+                  getNeighborBlock
+                );
+
                 if (blockIsPreview) {
                   if (isPaintMode && !isPreview) {
                     previewMask[maskIndex] = textureIndex;
@@ -139,6 +238,7 @@ export const findExteriorFaces = (
 
         generateGreedyMesh(
           realMask,
+          aoMask,
           processed,
           uSize,
           vSize,
@@ -153,6 +253,7 @@ export const findExteriorFaces = (
         );
         generateGreedyMesh(
           previewMask,
+          aoMask,
           processed,
           uSize,
           vSize,
@@ -172,6 +273,7 @@ export const findExteriorFaces = (
 
 const generateGreedyMesh = (
   mask: Int16Array,
+  aoMask: Uint8Array,
   processed: Uint8Array,
   width: number,
   height: number,
@@ -198,19 +300,23 @@ const generateGreedyMesh = (
       const textureIndex = mask[maskIndex];
 
       let quadWidth = 1;
-      while (i + quadWidth < width) {
-        const idx = i + quadWidth + j * width;
-        if (processed[idx] || mask[idx] !== textureIndex) break;
-        quadWidth++;
+      if (!DISABLE_GREEDY_MESHING) {
+        while (i + quadWidth < width) {
+          const idx = i + quadWidth + j * width;
+          if (processed[idx] || mask[idx] !== textureIndex) break;
+          quadWidth++;
+        }
       }
 
       let quadHeight = 1;
-      outer: while (j + quadHeight < height) {
-        for (let w = 0; w < quadWidth; w++) {
-          const idx = i + w + (j + quadHeight) * width;
-          if (processed[idx] || mask[idx] !== textureIndex) break outer;
+      if (!DISABLE_GREEDY_MESHING) {
+        outer: while (j + quadHeight < height) {
+          for (let w = 0; w < quadWidth; w++) {
+            const idx = i + w + (j + quadHeight) * width;
+            if (processed[idx] || mask[idx] !== textureIndex) break outer;
+          }
+          quadHeight++;
         }
-        quadHeight++;
       }
 
       const endI = i + quadWidth;
@@ -292,12 +398,29 @@ const generateGreedyMesh = (
 
       const startVertexIndex = meshArrays.vertexCount;
 
+      // Apply AO to vertices
       for (let vi = 0; vi < 4; vi++) {
         const vertex = vertices[vi];
         meshArrays.pushVertex(vertex[0], vertex[1], vertex[2]);
         meshArrays.pushNormal(normal[0], normal[1], normal[2]);
         meshArrays.pushUV(textureCoords[vi * 2], textureCoords[vi * 2 + 1]);
-        meshArrays.pushAO(1.0);
+
+        const packedAO = aoMask[maskIndex];
+
+        // Faces 1, 2, 5 use swapped pattern [0, 3, 2, 1]
+        // Faces 0, 3, 4 use standard pattern [0, 1, 2, 3]
+        let aoCornerIndex: number;
+        if (faceDir === 1 || faceDir === 2 || faceDir === 5) {
+          // Swapped pattern for these faces
+          aoCornerIndex = vi === 1 ? 3 : vi === 3 ? 1 : vi;
+        } else {
+          // Standard pattern - direct mapping
+          aoCornerIndex = vi;
+        }
+
+        const occlusionCount = (packedAO >> (aoCornerIndex * 2)) & 0x03;
+        const aoFactor = OCCLUSION_LEVELS[occlusionCount];
+        meshArrays.pushAO(aoFactor);
         meshArrays.incrementVertex();
       }
 
