@@ -120,7 +120,6 @@ export class ChunkMesh {
 
     findExteriorFaces(
       this.voxelData,
-      buildMode,
       atlas,
       blocks,
       this.chunkDimensions,
@@ -186,8 +185,8 @@ export class ChunkMesh {
     );
     const radius = Math.sqrt(
       (this.chunkDimensions.x / 2) ** 2 +
-      (this.chunkDimensions.y / 2) ** 2 +
-      (this.chunkDimensions.z / 2) ** 2
+        (this.chunkDimensions.y / 2) ** 2 +
+        (this.chunkDimensions.z / 2) ** 2
     );
     this.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
@@ -253,8 +252,8 @@ export class ChunkMesh {
     );
     const radius = Math.sqrt(
       (this.chunkDimensions.x / 2) ** 2 +
-      (this.chunkDimensions.y / 2) ** 2 +
-      (this.chunkDimensions.z / 2) ** 2
+        (this.chunkDimensions.y / 2) ** 2 +
+        (this.chunkDimensions.z / 2) ** 2
     );
     this.previewMesh.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };

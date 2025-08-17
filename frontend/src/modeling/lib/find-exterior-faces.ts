@@ -1,9 +1,4 @@
-import {
-  Atlas,
-  BlockModificationMode,
-  ProjectBlocks,
-  Vector3,
-} from "@/module_bindings";
+import { Atlas, ProjectBlocks, Vector3 } from "@/module_bindings";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
@@ -11,33 +6,18 @@ import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
+import { getBlockType, isBlockPresent, isPreview } from "./voxel-data-utils";
 
 export const DISABLE_GREEDY_MESHING = false;
 
-const getBlockType = (blockValue: number): number => {
-  return (blockValue >> 6) & 0x3ff;
-};
-
-const isBlockPresent = (blockValue: number): boolean => {
-  return blockValue !== 0;
-};
-
-const isPreview = (blockValue: number): boolean => {
-  return (blockValue & 0x08) !== 0;
-};
-
 export const findExteriorFaces = (
   chunkData: Uint16Array[][],
-  previewMode: BlockModificationMode,
   atlas: Atlas,
   projectBlocks: ProjectBlocks,
   chunkDimensions: Vector3,
   meshArrays: MeshArrays,
   previewMeshArrays: MeshArrays
 ): void => {
-  const isEraseMode = previewMode.tag === BlockModificationMode.Erase.tag;
-  const isPaintMode = previewMode.tag === BlockModificationMode.Paint.tag;
-
   meshArrays.reset();
   previewMeshArrays.reset();
 
@@ -48,7 +28,7 @@ export const findExteriorFaces = (
   const processed = new Uint8Array(maskSize);
   const aoMask = new Uint8Array(maskSize);
 
-  const getNeighborBlock = (x: number, y: number, z: number): number | null => {
+  const getNeighborBlock = (x: number, y: number, z: number): number => {
     if (
       x >= 0 &&
       x < chunkDimensions.x &&
@@ -105,47 +85,29 @@ export const findExteriorFaces = (
             const blockValue = chunkData[x][y][z];
             const blockPresent = isBlockPresent(blockValue);
             const blockIsPreview = isPreview(blockValue);
-            const blockType = getBlockType(blockValue);
+            const blockType = Math.max(getBlockType(blockValue), 1);
 
             const nx = x + (axis === 0 ? dir : 0);
             const ny = y + (axis === 1 ? dir : 0);
             const nz = z + (axis === 2 ? dir : 0);
             const neighborValue = getNeighborBlock(nx, ny, nz);
 
-            if (blockPresent) {
-              let shouldShowFace = false;
+            if (blockPresent && (!neighborValue || isPreview(neighborValue))) {
+              const textureIndex =
+                projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
 
-              if (neighborValue === null) {
-                shouldShowFace = true;
+              aoMask[maskIndex] = calculateAmbientOcclusion(
+                nx,
+                ny,
+                nz,
+                faceDir,
+                getNeighborBlock
+              );
+
+              if (blockIsPreview) {
+                previewMask[maskIndex] = textureIndex;
               } else {
-                const neighborPresent = isBlockPresent(neighborValue);
-
-                shouldShowFace = !neighborPresent;
-              }
-
-              if (shouldShowFace) {
-                const textureIndex =
-                  projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
-
-                aoMask[maskIndex] = calculateAmbientOcclusion(
-                  nx,
-                  ny,
-                  nz,
-                  faceDir,
-                  getNeighborBlock
-                );
-
-                if (blockIsPreview) {
-                  if (isPaintMode && !isPreview) {
-                    previewMask[maskIndex] = textureIndex;
-                  } else if (isEraseMode && !blockIsPreview) {
-                    // Don't show preview - nothing to erase
-                  } else {
-                    previewMask[maskIndex] = textureIndex;
-                  }
-                } else {
-                  realMask[maskIndex] = textureIndex;
-                }
+                realMask[maskIndex] = textureIndex;
               }
             }
           }

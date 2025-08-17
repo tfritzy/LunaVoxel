@@ -7,6 +7,12 @@ import {
 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import { DecompressedLayer } from "./project-manager";
+import {
+  setPreviewBit,
+  clearPreviewBit,
+  encodeBlockData,
+  getBlockType,
+} from "./voxel-data-utils";
 
 export const CHUNK_SIZE = 16;
 
@@ -183,20 +189,34 @@ export class ChunkManager {
     const isEraseMode = buildMode.tag === BlockModificationMode.Erase.tag;
 
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      const hasPreview = previewBlocks[voxelIndex] !== 0;
-      const currentBlock = blocks[voxelIndex];
-      const hasRealBlock = currentBlock !== 0;
+      const previewBlockValue = previewBlocks[voxelIndex];
+      const hasPreview = previewBlockValue !== 0;
+      const realBlockValue = blocks[voxelIndex];
+      const hasRealBlock = realBlockValue !== 0;
 
-      if (hasPreview) {
-        if (isPaintMode && !hasRealBlock) {
-          continue;
-        } else if (isBuildMode && hasRealBlock) {
-          blocks[voxelIndex] = previewBlocks[voxelIndex];
-          blocks[voxelIndex] &= 0x3fff;
-        } else if (isEraseMode && !hasRealBlock) {
-          continue;
-        } else {
-          blocks[voxelIndex] = previewBlocks[voxelIndex];
+      if (isBuildMode) {
+        if (hasPreview && hasRealBlock) {
+          blocks[voxelIndex] = clearPreviewBit(previewBlockValue);
+        } else if (hasPreview && !hasRealBlock) {
+          blocks[voxelIndex] = setPreviewBit(previewBlockValue);
+        } else if (!hasPreview && hasRealBlock) {
+          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
+        }
+      } else if (isEraseMode) {
+        if (hasPreview && hasRealBlock) {
+          blocks[voxelIndex] = setPreviewBit(0);
+        } else if (hasPreview && !hasRealBlock) {
+          blocks[voxelIndex] = 0;
+        } else if (!hasPreview && hasRealBlock) {
+          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
+        }
+      } else if (isPaintMode) {
+        if (hasPreview && hasRealBlock) {
+          blocks[voxelIndex] = clearPreviewBit(previewBlockValue);
+        } else if (hasPreview && !hasRealBlock) {
+          blocks[voxelIndex] = 0;
+        } else if (!hasPreview && hasRealBlock) {
+          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
         }
       }
     }
@@ -209,10 +229,6 @@ export class ChunkManager {
       );
     }
     return this.editBuffer;
-  }
-
-  private encodeBlockShort(type: number, rotation: number): number {
-    return (type << 6) | (rotation & 0x07);
   }
 
   private compressRLE(data: Uint16Array): number[] {
@@ -232,10 +248,6 @@ export class ChunkManager {
     }
     out.push(run, current);
     return out;
-  }
-
-  private getBlockType(value: number): number {
-    return value >>> 6;
   }
 
   public applyOptimisticRect(
@@ -264,18 +276,18 @@ export class ChunkManager {
         for (let z = minZ; z <= maxZ; z++) {
           const idx = base + z;
           const currentVal = layer.voxels[idx];
-          const currentType = this.getBlockType(currentVal);
+          const currentType = getBlockType(currentVal);
 
           switch (tool.tag) {
             case BlockModificationMode.Build.tag:
-              layer.voxels[idx] = this.encodeBlockShort(blockType, rotation);
+              layer.voxels[idx] = encodeBlockData(blockType, rotation);
               break;
             case BlockModificationMode.Erase.tag:
               layer.voxels[idx] = 0;
               break;
             case BlockModificationMode.Paint.tag:
               if (currentType !== 0) {
-                layer.voxels[idx] = this.encodeBlockShort(blockType, rotation);
+                layer.voxels[idx] = encodeBlockData(blockType, rotation);
               }
               break;
             default:

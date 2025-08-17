@@ -5,6 +5,7 @@ import {
   DbConnection,
   Vector3,
 } from "../../module_bindings";
+import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 
 export const Builder = class {
   public previewBlocks: Uint16Array;
@@ -110,7 +111,7 @@ export const Builder = class {
     rotation: number = 0
   ): void {
     const blockIndex = this.getBlockIndex(x, y, z);
-    const blockValue = (blockType << 6) | 0x08 | (rotation & 0x07);
+    const blockValue = setPreviewBit(encodeBlockData(blockType, rotation));
     this.previewBlocks[blockIndex] = blockValue;
   }
 
@@ -216,6 +217,7 @@ export const Builder = class {
 
         this.lastSentCursorPos = faceCenter.clone();
         this.lastSentCursorNormal = worldNormal.clone();
+        this.lastCursorUpdateTime = now;
       }
 
       this.lastCursorUpdateTime = now;
