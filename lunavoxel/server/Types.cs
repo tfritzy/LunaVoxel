@@ -171,23 +171,26 @@ public static partial class Module
     {
         public int Type;
         public int Rotation;
+        public int Version;
 
-        public BlockType(int type, int rotation = 0)
+        public BlockType(int type, int version, int rotation)
         {
             Type = type;
+            Version = version;
             Rotation = rotation;
         }
 
         public static BlockType FromInt(uint data)
         {
             int type = VoxelDataUtils.GetBlockType(data);
+            int version = VoxelDataUtils.GetVersion(data);
             int rotation = VoxelDataUtils.GetRotation(data);
-            return new BlockType(type, rotation);
+            return new BlockType(type, version, rotation);
         }
 
         public uint ToInt()
         {
-            return VoxelDataUtils.EncodeBlockData(Type, Rotation);
+            return VoxelDataUtils.EncodeBlockData(Type, Version, Rotation);
         }
     }
 

@@ -474,35 +474,35 @@ export class RemoteReducers {
     this.connection.offReducer("InviteToProject", callback);
   }
 
-  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, blockType, positions, rotation, layerIndex };
+  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, diffData: number[], rotation: number, layerIndex: number) {
+    const __args = { projectId, mode, blockType, diffData, rotation, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, diffData: number[], rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, diffData: number[], rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, rotation, layerIndex };
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
+    const __args = { projectId, mode, type, start, end, rotation, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 

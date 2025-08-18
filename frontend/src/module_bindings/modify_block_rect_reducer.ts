@@ -32,17 +32,14 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 
 import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
+import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type ModifyBlockRect = {
   projectId: string,
   mode: __BlockModificationMode,
   type: number,
-  x1: number,
-  y1: number,
-  z1: number,
-  x2: number,
-  y2: number,
-  z2: number,
+  start: __Vector3,
+  end: __Vector3,
   rotation: number,
   layerIndex: number,
 };
@@ -60,12 +57,8 @@ export namespace ModifyBlockRect {
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
       new ProductTypeElement("type", AlgebraicType.createI32Type()),
-      new ProductTypeElement("x1", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y1", AlgebraicType.createI32Type()),
-      new ProductTypeElement("z1", AlgebraicType.createI32Type()),
-      new ProductTypeElement("x2", AlgebraicType.createI32Type()),
-      new ProductTypeElement("y2", AlgebraicType.createI32Type()),
-      new ProductTypeElement("z2", AlgebraicType.createI32Type()),
+      new ProductTypeElement("start", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("end", __Vector3.getTypeScriptAlgebraicType()),
       new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
       new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
     ]);

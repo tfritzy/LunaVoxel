@@ -11,7 +11,7 @@ public static partial class Module
         string projectId,
         BlockModificationMode mode,
         int blockType,
-        List<Vector3> positions,
+        uint[] diffData,
         int rotation,
         int layerIndex)
     {
@@ -24,35 +24,29 @@ public static partial class Module
 
         uint[] voxels = VoxelRLE.Decompress(layer.Voxels);
 
-        foreach (var position in positions)
+        for (int i = 0; i < diffData.Length; i++)
         {
-            int x = position.X, y = position.Y, z = position.Z;
-            if (x < 0 || x >= layer.xDim || y < 0 || y >= layer.yDim || z < 0 || z >= layer.zDim)
+            if (diffData[i] > 0) // full 0 in diff means no op.
             {
-                continue;
-            }
+                var newVoxel = BlockType.FromInt(diffData[i]);
+                switch (mode)
+                {
+                    case BlockModificationMode.Build:
+                        voxels[i] = newVoxel.ToInt();
+                        break;
 
-            int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
+                    case BlockModificationMode.Erase:
+                        voxels[i] = VoxelDataUtils.EncodeBlockData(0, 0, newVoxel.Version);
+                        break;
 
-            switch (mode)
-            {
-                case BlockModificationMode.Build:
-                    var buildBlock = new BlockType(blockType, rotation);
-                    voxels[index] = buildBlock.ToInt();
-                    break;
-
-                case BlockModificationMode.Erase:
-                    voxels[index] = 0;
-                    break;
-
-                case BlockModificationMode.Paint:
-                    var existingBlock = BlockType.FromInt(voxels[index]);
-                    if (existingBlock.Type != 0)
-                    {
-                        var paintedBlock = new BlockType(blockType, rotation);
-                        voxels[index] = paintedBlock.ToInt();
-                    }
-                    break;
+                    case BlockModificationMode.Paint:
+                        var existingType = VoxelDataUtils.GetBlockType(voxels[i]);
+                        if (existingType != 0)
+                        {
+                            voxels[i] = newVoxel.ToInt();
+                        }
+                        break;
+                }
             }
         }
 
