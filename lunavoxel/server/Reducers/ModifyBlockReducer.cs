@@ -22,7 +22,7 @@ public static partial class Module
 
         if (layer.Locked) return;
 
-        short[] voxels = VoxelRLE.Decompress(layer.Voxels);
+        uint[] voxels = VoxelRLE.Decompress(layer.Voxels);
 
         foreach (var position in positions)
         {
@@ -38,7 +38,7 @@ public static partial class Module
             {
                 case BlockModificationMode.Build:
                     var buildBlock = new BlockType(blockType, rotation);
-                    voxels[index] = buildBlock.ToShort();
+                    voxels[index] = buildBlock.ToInt();
                     break;
 
                 case BlockModificationMode.Erase:
@@ -46,20 +46,17 @@ public static partial class Module
                     break;
 
                 case BlockModificationMode.Paint:
-                    var existingBlock = BlockType.FromShort(voxels[index]);
+                    var existingBlock = BlockType.FromInt(voxels[index]);
                     if (existingBlock.Type != 0)
                     {
                         var paintedBlock = new BlockType(blockType, rotation);
-                        voxels[index] = paintedBlock.ToShort();
+                        voxels[index] = paintedBlock.ToInt();
                     }
                     break;
             }
         }
 
-        var compressedAfter = VoxelRLE.Compress(voxels);
-        UndoRedo.AddEntry(ctx, projectId, layer.Id, layer.Voxels, compressedAfter);
-
-        layer.Voxels = compressedAfter;
+        layer.Voxels = VoxelRLE.Compress(voxels);
         ctx.Db.layer.Id.Update(layer);
 
         var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("No such project");

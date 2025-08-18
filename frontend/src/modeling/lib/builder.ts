@@ -8,7 +8,7 @@ import {
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 
 export const Builder = class {
-  public previewBlocks: Uint16Array;
+  public previewBlocks: Uint32Array;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
@@ -85,7 +85,7 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewBlocks = new Uint16Array(
+    this.previewBlocks = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
     );
 

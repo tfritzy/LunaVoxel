@@ -60,8 +60,6 @@ import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
 import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
-import { Redo } from "./redo_reducer.ts";
-export { Redo };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
@@ -72,8 +70,6 @@ import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
 export { ToggleLayerLock };
 import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
 export { ToggleLayerVisibility };
-import { Undo } from "./undo_reducer.ts";
-export { Undo };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
 export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
@@ -90,8 +86,6 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { LayerTableHandle } from "./layer_table.ts";
 export { LayerTableHandle };
-import { LayerHistoryEntryTableHandle } from "./layer_history_entry_table.ts";
-export { LayerHistoryEntryTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
 export { PlayerCursorTableHandle };
 import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
@@ -114,8 +108,6 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { Layer } from "./layer_type.ts";
 export { Layer };
-import { LayerHistoryEntry } from "./layer_history_entry_type.ts";
-export { LayerHistoryEntry };
 import { PlayerCursor } from "./player_cursor_type.ts";
 export { PlayerCursor };
 import { Project } from "./project_type.ts";
@@ -146,11 +138,6 @@ const REMOTE_MODULE = {
     layer: {
       tableName: "layer",
       rowType: Layer.getTypeScriptAlgebraicType(),
-      primaryKey: "id",
-    },
-    layer_history_entry: {
-      tableName: "layer_history_entry",
-      rowType: LayerHistoryEntry.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
     player_cursor: {
@@ -236,10 +223,6 @@ const REMOTE_MODULE = {
       reducerName: "PokeProject",
       argsType: PokeProject.getTypeScriptAlgebraicType(),
     },
-    Redo: {
-      reducerName: "Redo",
-      argsType: Redo.getTypeScriptAlgebraicType(),
-    },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
       argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
@@ -259,10 +242,6 @@ const REMOTE_MODULE = {
     ToggleLayerVisibility: {
       reducerName: "ToggleLayerVisibility",
       argsType: ToggleLayerVisibility.getTypeScriptAlgebraicType(),
-    },
-    Undo: {
-      reducerName: "Undo",
-      argsType: Undo.getTypeScriptAlgebraicType(),
     },
     UpdateAtlas: {
       reducerName: "UpdateAtlas",
@@ -321,13 +300,11 @@ export type Reducer = never
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
-| { name: "Redo", args: Redo }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
-| { name: "Undo", args: Undo }
 | { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
@@ -545,22 +522,6 @@ export class RemoteReducers {
     this.connection.offReducer("PokeProject", callback);
   }
 
-  redo(projectId: string) {
-    const __args = { projectId };
-    let __writer = new BinaryWriter(1024);
-    Redo.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("Redo", __argsBuffer, this.setCallReducerFlags.redoFlags);
-  }
-
-  onRedo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.onReducer("Redo", callback);
-  }
-
-  removeOnRedo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.offReducer("Redo", callback);
-  }
-
   removeColorFromPalette(projectId: string, colorIndex: number) {
     const __args = { projectId, colorIndex };
     let __writer = new BinaryWriter(1024);
@@ -639,22 +600,6 @@ export class RemoteReducers {
 
   removeOnToggleLayerVisibility(callback: (ctx: ReducerEventContext, layerId: string) => void) {
     this.connection.offReducer("ToggleLayerVisibility", callback);
-  }
-
-  undo(projectId: string) {
-    const __args = { projectId };
-    let __writer = new BinaryWriter(1024);
-    Undo.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("Undo", __argsBuffer, this.setCallReducerFlags.undoFlags);
-  }
-
-  onUndo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.onReducer("Undo", callback);
-  }
-
-  removeOnUndo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.offReducer("Undo", callback);
   }
 
   updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
@@ -784,11 +729,6 @@ export class SetReducerFlags {
     this.pokeProjectFlags = flags;
   }
 
-  redoFlags: CallReducerFlags = 'FullUpdate';
-  redo(flags: CallReducerFlags) {
-    this.redoFlags = flags;
-  }
-
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
   removeColorFromPalette(flags: CallReducerFlags) {
     this.removeColorFromPaletteFlags = flags;
@@ -812,11 +752,6 @@ export class SetReducerFlags {
   toggleLayerVisibilityFlags: CallReducerFlags = 'FullUpdate';
   toggleLayerVisibility(flags: CallReducerFlags) {
     this.toggleLayerVisibilityFlags = flags;
-  }
-
-  undoFlags: CallReducerFlags = 'FullUpdate';
-  undo(flags: CallReducerFlags) {
-    this.undoFlags = flags;
   }
 
   updateAtlasFlags: CallReducerFlags = 'FullUpdate';
@@ -854,10 +789,6 @@ export class RemoteTables {
 
   get layer(): LayerTableHandle {
     return new LayerTableHandle(this.connection.clientCache.getOrCreateTable<Layer>(REMOTE_MODULE.tables.layer));
-  }
-
-  get layerHistoryEntry(): LayerHistoryEntryTableHandle {
-    return new LayerHistoryEntryTableHandle(this.connection.clientCache.getOrCreateTable<LayerHistoryEntry>(REMOTE_MODULE.tables.layer_history_entry));
   }
 
   get playerCursor(): PlayerCursorTableHandle {

@@ -13,8 +13,9 @@ import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { BlenderExporter } from "../export/blender-exporter";
+import { decompressVoxelData } from "./voxel-data-utils";
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint16Array };
+export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
 export const ProjectManager = class {
   public builder;
@@ -79,36 +80,18 @@ export const ProjectManager = class {
   };
 
   private decompressLayer = (layer: Layer): DecompressedLayer => {
-    let voxels: Uint16Array;
+    let voxels: Uint32Array;
 
-    if (layer.voxels instanceof Uint16Array) {
+    if (layer.voxels instanceof Uint32Array) {
       voxels = layer.voxels;
     } else if (Array.isArray(layer.voxels)) {
-      const totalSize =
-        this.project.dimensions.x *
-        this.project.dimensions.y *
-        this.project.dimensions.z;
-      voxels = new Uint16Array(totalSize);
-
-      const compressedData = layer.voxels;
-      let dataIndex = 0;
-      let blockIndex = 0;
-      while (dataIndex < compressedData.length) {
-        const runLength = compressedData[dataIndex];
-        const value = compressedData[dataIndex + 1];
-        const endIndex = blockIndex + runLength;
-        while (blockIndex < endIndex) {
-          voxels[blockIndex] = value & 0xffff;
-          blockIndex++;
-        }
-        dataIndex += 2;
-      }
+      voxels = decompressVoxelData(layer.voxels);
     } else {
       const totalSize =
         this.project.dimensions.x *
         this.project.dimensions.y *
         this.project.dimensions.z;
-      voxels = new Uint16Array(totalSize);
+      voxels = new Uint32Array(totalSize);
     }
 
     return {

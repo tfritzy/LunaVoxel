@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public static class VoxelRLE
 {
-    public static short[] Compress(short[] voxelData)
+    public static short[] Compress(uint[] voxelData)
     {
         if (voxelData.Length == 0)
             throw new ArgumentException("Voxel data must not be empty");
@@ -13,8 +13,8 @@ public static class VoxelRLE
 
         while (i < voxelData.Length)
         {
-            short value = voxelData[i];
-            short runLength = 1;
+            uint value = voxelData[i];
+            int runLength = 1;
             int j = i + 1;
 
             while (j < voxelData.Length &&
@@ -25,25 +25,35 @@ public static class VoxelRLE
                 j++;
             }
 
-            compressed.Add(runLength);
-            compressed.Add(value);
+            // Split 32-bit voxel value into two 16-bit values
+            short valueLow = (short)(value & 0xFFFF);
+            short valueHigh = (short)((value >> 16) & 0xFFFF);
+            short runLengthShort = (short)runLength;
+
+            compressed.Add(valueLow);
+            compressed.Add(valueHigh);
+            compressed.Add(runLengthShort);
             i = j;
         }
 
         return compressed.ToArray();
     }
 
-    public static short[] Decompress(short[] compressedData)
+    public static uint[] Decompress(short[] compressedData)
     {
-        if (compressedData.Length % 2 != 0)
-            throw new ArgumentException("Compressed data must be in pairs (count, value)");
+        if (compressedData.Length % 3 != 0)
+            throw new ArgumentException("Compressed data must be in triplets (valueLow, valueHigh, count)");
 
-        var decompressed = new List<short>();
+        var decompressed = new List<uint>();
 
-        for (int i = 0; i < compressedData.Length; i += 2)
+        for (int i = 0; i < compressedData.Length; i += 3)
         {
-            short runLength = compressedData[i];
-            short value = compressedData[i + 1];
+            short valueLow = compressedData[i];
+            short valueHigh = compressedData[i + 1];
+            short runLength = compressedData[i + 2];
+
+            // Reconstruct 32-bit value from two 16-bit values
+            uint value = (uint)((valueLow & 0xFFFF) | ((valueHigh & 0xFFFF) << 16));
 
             for (int j = 0; j < runLength; j++)
             {
@@ -54,28 +64,27 @@ public static class VoxelRLE
         return decompressed.ToArray();
     }
 
-    public static void CompressInPlace(ref short[] voxelData)
-    {
-        voxelData = Compress(voxelData);
-    }
 
-    public static short GetVoxelAt(short[] compressedData, int voxelIndex)
+    public static uint GetVoxelAt(short[] compressedData, int voxelIndex)
     {
-        if (compressedData.Length % 2 != 0)
-            throw new ArgumentException("Compressed data must be in pairs (count, value)");
+        if (compressedData.Length % 3 != 0)
+            throw new ArgumentException("Compressed data must be in triplets (valueLow, valueHigh, count)");
 
         if (voxelIndex < 0)
             throw new ArgumentOutOfRangeException(nameof(voxelIndex));
 
         int currentVoxelIndex = 0;
 
-        for (int i = 0; i < compressedData.Length; i += 2)
+        for (int i = 0; i < compressedData.Length; i += 3)
         {
-            short runLength = compressedData[i];
+            short valueLow = compressedData[i];
+            short valueHigh = compressedData[i + 1];
+            short runLength = compressedData[i + 2];
 
             if (voxelIndex < currentVoxelIndex + runLength)
             {
-                return compressedData[i + 1];
+                // Reconstruct 32-bit value from two 16-bit values
+                return (uint)((valueLow & 0xFFFF) | ((valueHigh & 0xFFFF) << 16));
             }
 
             currentVoxelIndex += runLength;

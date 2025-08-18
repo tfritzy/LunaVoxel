@@ -11,7 +11,7 @@ import { getBlockType, isBlockPresent, isPreview } from "./voxel-data-utils";
 export const DISABLE_GREEDY_MESHING = false;
 
 export const findExteriorFaces = (
-  chunkData: Uint16Array[][],
+  chunkData: Uint32Array[][],
   atlas: Atlas,
   projectBlocks: ProjectBlocks,
   chunkDimensions: Vector3,

@@ -27,7 +27,7 @@ export class ChunkMesh {
   private chunkZ: number;
   private chunkDimensions: Vector3;
   private worldDimensions: Vector3;
-  private voxelData: Uint16Array[][];
+  private voxelData: Uint32Array[][];
 
   constructor(
     scene: THREE.Scene,
@@ -58,7 +58,7 @@ export class ChunkMesh {
     for (let x = 0; x < chunkDimensions.x; x++) {
       this.voxelData[x] = [];
       for (let y = 0; y < chunkDimensions.y; y++) {
-        this.voxelData[x][y] = new Uint16Array(chunkDimensions.z);
+        this.voxelData[x][y] = new Uint32Array(chunkDimensions.z);
       }
     }
   }

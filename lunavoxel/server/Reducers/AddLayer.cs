@@ -27,7 +27,5 @@ public static partial class Module
             project.Dimensions.Z,
             nextIndex
         );
-
-        LayerHelpers.Add(ctx, newLayer);
     }
 }

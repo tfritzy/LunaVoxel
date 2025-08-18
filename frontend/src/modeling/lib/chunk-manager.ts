@@ -21,20 +21,20 @@ export class ChunkManager {
   private chunks: ChunkMesh[][][];
   private textureAtlas: THREE.Texture | null = null;
   private dimensions: Vector3;
-  private renderedBlocks: Uint16Array;
-  private blocksToRender: Uint16Array;
+  private renderedBlocks: Uint32Array;
+  private blocksToRender: Uint32Array;
   private currentUpdateId: number = 0;
   private chunkDimensions: Vector3;
-  private editBuffer: Uint16Array | null = null;
+  private editBuffer: Uint32Array | null = null;
 
   constructor(scene: THREE.Scene, dimensions: Vector3) {
     this.scene = scene;
     this.dimensions = dimensions;
 
-    this.renderedBlocks = new Uint16Array(
+    this.renderedBlocks = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
     );
-    this.blocksToRender = new Uint16Array(
+    this.blocksToRender = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
     );
 
@@ -102,7 +102,7 @@ export class ChunkManager {
     chunkX: number,
     chunkY: number,
     chunkZ: number,
-    blocks: Uint16Array
+    blocks: Uint32Array
   ): void {
     const chunk = this.chunks[chunkX][chunkY][chunkZ];
     const chunkDims = chunk.getChunkDimensions();
@@ -157,13 +157,13 @@ export class ChunkManager {
     return null;
   }
 
-  private clearBlocks(blocks: Uint16Array) {
+  private clearBlocks(blocks: Uint32Array) {
     blocks.fill(0);
   }
 
   private addLayerToBlocks(
     layer: DecompressedLayer,
-    blocks: Uint16Array
+    blocks: Uint32Array
   ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
@@ -180,8 +180,8 @@ export class ChunkManager {
   }
 
   private updatePreviewState(
-    previewBlocks: Uint16Array,
-    blocks: Uint16Array,
+    previewBlocks: Uint32Array,
+    blocks: Uint32Array,
     buildMode: BlockModificationMode
   ): void {
     const isPaintMode = buildMode.tag === BlockModificationMode.Paint.tag;
@@ -222,16 +222,16 @@ export class ChunkManager {
     }
   }
 
-  private ensureEditBuffer(): Uint16Array {
+  private ensureEditBuffer(): Uint32Array {
     if (!this.editBuffer) {
-      this.editBuffer = new Uint16Array(
+      this.editBuffer = new Uint32Array(
         this.dimensions.x * this.dimensions.y * this.dimensions.z
       );
     }
     return this.editBuffer;
   }
 
-  private compressRLE(data: Uint16Array): number[] {
+  private compressRLE(data: Uint32Array): number[] {
     if (data.length === 0) return [];
     const out: number[] = [];
     let current = data[0];
@@ -300,7 +300,7 @@ export class ChunkManager {
 
   update = (
     layers: DecompressedLayer[],
-    previewBlocks: Uint16Array,
+    previewBlocks: Uint32Array,
     buildMode: BlockModificationMode,
     blocks: ProjectBlocks,
     atlas: Atlas
