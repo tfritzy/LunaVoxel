@@ -153,11 +153,9 @@ export const Builder = class {
     this.updateMousePosition(event);
 
     const gridPos = this.checkIntersection();
-
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-
     if (gridPos) {
-      this.onMouseHover(gridPos);
+      this.preview(gridPos);
     }
   }
 
@@ -177,6 +175,11 @@ export const Builder = class {
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
       this.isMouseDown = true;
+
+      const gridPos = this.checkIntersection();
+      if (gridPos) {
+        this.preview(gridPos);
+      }
     }
   }
 
@@ -286,7 +289,7 @@ export const Builder = class {
     return vector3;
   }
 
-  private onMouseHover(gridPos: THREE.Vector3): void {
+  private preview(gridPos: THREE.Vector3): void {
     if (!this.dbConn.isActive) return;
 
     if (this.isMouseDown && !this.startPosition) {
