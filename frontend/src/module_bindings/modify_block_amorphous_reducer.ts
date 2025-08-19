@@ -31,16 +31,16 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type ModifyBlock = {
+export type ModifyBlockAmorphous = {
   projectId: string,
-  diffData: number[],
+  compressedDiffData: number[],
   layerIndex: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace ModifyBlock {
+export namespace ModifyBlockAmorphous {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -48,17 +48,17 @@ export namespace ModifyBlock {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("diffData", AlgebraicType.createArrayType(AlgebraicType.createU32Type())),
+      new ProductTypeElement("compressedDiffData", AlgebraicType.createArrayType(AlgebraicType.createI16Type())),
       new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: ModifyBlock): void {
-    ModifyBlock.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: ModifyBlockAmorphous): void {
+    ModifyBlockAmorphous.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): ModifyBlock {
-    return ModifyBlock.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): ModifyBlockAmorphous {
+    return ModifyBlockAmorphous.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

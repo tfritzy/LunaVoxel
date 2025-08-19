@@ -33,12 +33,27 @@ public static partial class Module
                 for (int z = minZ; z <= maxZ; z++)
                 {
                     int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                    var existingVoxel = BlockType.FromInt(existingData[index]);
-                    diffData[index] = VoxelDataUtils.EncodeBlockData(type, rotation, existingVoxel.Version + 1);
+                    var cur = BlockType.FromInt(existingData[index]);
+
+                    uint? newValue = mode switch
+                    {
+                        BlockModificationMode.Build =>
+                            VoxelDataUtils.EncodeBlockData(type, rotation, cur.Version + 1),
+                        BlockModificationMode.Erase =>
+                            VoxelDataUtils.EncodeBlockData(0, 0, cur.Version + 1),
+                        BlockModificationMode.Paint when cur.Type != 0 =>
+                            VoxelDataUtils.EncodeBlockData(type, cur.Rotation, cur.Version + 1),
+                        _ => 0
+                    };
+
+                    if (newValue.HasValue)
+                    {
+                        diffData[index] = newValue.Value;
+                    }
                 }
             }
         }
 
-        ModifyBlock(ctx, projectId, mode, type, diffData, rotation, layerIndex);
+        ModifyBlock(ctx, projectId, diffData, layerIndex);
     }
 }

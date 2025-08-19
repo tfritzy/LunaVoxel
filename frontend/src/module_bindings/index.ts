@@ -56,6 +56,8 @@ import { InviteToProject } from "./invite_to_project_reducer.ts";
 export { InviteToProject };
 import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
+import { ModifyBlockAmorphous } from "./modify_block_amorphous_reducer.ts";
+export { ModifyBlockAmorphous };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
 import { PokeProject } from "./poke_project_reducer.ts";
@@ -215,6 +217,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlock",
       argsType: ModifyBlock.getTypeScriptAlgebraicType(),
     },
+    ModifyBlockAmorphous: {
+      reducerName: "ModifyBlockAmorphous",
+      argsType: ModifyBlockAmorphous.getTypeScriptAlgebraicType(),
+    },
     ModifyBlockRect: {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
@@ -298,6 +304,7 @@ export type Reducer = never
 | { name: "InitializeAtlas", args: InitializeAtlas }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
+| { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
@@ -474,20 +481,36 @@ export class RemoteReducers {
     this.connection.offReducer("InviteToProject", callback);
   }
 
-  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, diffData: number[], rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, blockType, diffData, rotation, layerIndex };
+  modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
+    const __args = { projectId, diffData, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, diffData: number[], rotation: number, layerIndex: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, diffData: number[], rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
+  }
+
+  modifyBlockAmorphous(projectId: string, compressedDiffData: number[], layerIndex: number) {
+    const __args = { projectId, compressedDiffData, layerIndex };
+    let __writer = new BinaryWriter(1024);
+    ModifyBlockAmorphous.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ModifyBlockAmorphous", __argsBuffer, this.setCallReducerFlags.modifyBlockAmorphousFlags);
+  }
+
+  onModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: number[], layerIndex: number) => void) {
+    this.connection.onReducer("ModifyBlockAmorphous", callback);
+  }
+
+  removeOnModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: number[], layerIndex: number) => void) {
+    this.connection.offReducer("ModifyBlockAmorphous", callback);
   }
 
   modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
@@ -717,6 +740,11 @@ export class SetReducerFlags {
   modifyBlockFlags: CallReducerFlags = 'FullUpdate';
   modifyBlock(flags: CallReducerFlags) {
     this.modifyBlockFlags = flags;
+  }
+
+  modifyBlockAmorphousFlags: CallReducerFlags = 'FullUpdate';
+  modifyBlockAmorphous(flags: CallReducerFlags) {
+    this.modifyBlockAmorphousFlags = flags;
   }
 
   modifyBlockRectFlags: CallReducerFlags = 'FullUpdate';
