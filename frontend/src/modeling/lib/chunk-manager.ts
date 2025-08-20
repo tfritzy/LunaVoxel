@@ -12,6 +12,8 @@ import {
   clearPreviewBit,
   encodeBlockData,
   getBlockType,
+  isPreview,
+  isBlockPresent,
 } from "./voxel-data-utils";
 
 export const CHUNK_SIZE = 16;
@@ -173,7 +175,7 @@ export class ChunkManager {
     }
 
     for (let i = 0; i < blocks.length; i++) {
-      if (layer.voxels[i] !== 0) {
+      if (isBlockPresent(layer.voxels[i])) {
         blocks[i] = layer.voxels[i];
       }
     }
@@ -190,9 +192,9 @@ export class ChunkManager {
 
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
       const previewBlockValue = previewBlocks[voxelIndex];
-      const hasPreview = previewBlockValue !== 0;
+      const hasPreview = isPreview(previewBlockValue);
       const realBlockValue = blocks[voxelIndex];
-      const hasRealBlock = realBlockValue !== 0;
+      const hasRealBlock = isBlockPresent(realBlockValue);
 
       if (isBuildMode) {
         if (hasPreview && hasRealBlock) {
@@ -204,9 +206,9 @@ export class ChunkManager {
         }
       } else if (isEraseMode) {
         if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = setPreviewBit(0);
+          blocks[voxelIndex] = setPreviewBit(realBlockValue);
         } else if (hasPreview && !hasRealBlock) {
-          blocks[voxelIndex] = 0;
+          // leave it alone
         } else if (!hasPreview && hasRealBlock) {
           blocks[voxelIndex] = clearPreviewBit(realBlockValue);
         }
@@ -220,34 +222,6 @@ export class ChunkManager {
         }
       }
     }
-  }
-
-  private ensureEditBuffer(): Uint32Array {
-    if (!this.editBuffer) {
-      this.editBuffer = new Uint32Array(
-        this.dimensions.x * this.dimensions.y * this.dimensions.z
-      );
-    }
-    return this.editBuffer;
-  }
-
-  private compressRLE(data: Uint32Array): number[] {
-    if (data.length === 0) return [];
-    const out: number[] = [];
-    let current = data[0];
-    let run = 1;
-    for (let i = 1; i < data.length; i++) {
-      const v = data[i];
-      if (v === current && run < 0x7fff) {
-        run++;
-      } else {
-        out.push(run, current);
-        current = v;
-        run = 1;
-      }
-    }
-    out.push(run, current);
-    return out;
   }
 
   public applyOptimisticRect(

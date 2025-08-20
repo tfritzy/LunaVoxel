@@ -1,4 +1,4 @@
-import { getBlockType, isPreview } from "./voxel-data-utils";
+import { getBlockType } from "./voxel-data-utils";
 
 /**
  * Defines the final AO value based on the number of occluders.

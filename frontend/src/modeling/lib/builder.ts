@@ -381,12 +381,8 @@ export const Builder = class {
       this.projectId,
       tool,
       this.selectedBlock,
-      startPos.x,
-      startPos.y,
-      startPos.z,
-      endPos.x,
-      endPos.y,
-      endPos.z,
+      startPos,
+      endPos,
       0,
       this.selectedLayer
     );

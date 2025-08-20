@@ -122,11 +122,11 @@ public static partial class Module
         public int yDim;
         public int zDim;
         public int Index;
-        // Compressed format: short array with triplets [voxel_low16, voxel_high16, run_length]
-        // Where each voxel is a 32-bit int split into two 16-bit values:
-        // voxel_low16: lower 16 bits of voxel data
-        // voxel_high16: upper 16 bits of voxel data  
-        // run_length: 16-bit run length for RLE compression
+        // Compressed format: byte array with 6-byte groups [vL0, vL1, vH0, vH1, rL0, rL1]
+        // Where each voxel is a 32-bit int split into bytes:
+        // vL0, vL1: lower 16 bits of voxel data (little-endian)
+        // vH0, vH1: upper 16 bits of voxel data (little-endian)
+        // rL0, rL1: 16-bit run length for RLE compression (little-endian)
         //
         // Voxel format (32-bit int when decompressed):
         // Byte 1: [NEW_15][NEW_14][NEW_13][NEW_12][NEW_11][NEW_10][NEW_9][NEW_8]
@@ -134,13 +134,17 @@ public static partial class Module
         // Byte 3: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
         // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][UNUSED][UNUSED][ROT_2][ROT_1][ROT_0]
         // note: Is preview is only used client side
-        public short[] Voxels = [];
+        public byte[] Voxels = [];
         public bool Visible;
         public bool Locked;
         public string Name;
 
         public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
         {
+            uint empty = VoxelDataUtils.EncodeBlockData(0, 0, 1);
+            var voxels = new uint[xDim * yDim * zDim];
+            Array.Fill(voxels, empty);
+
             return new Layer
             {
                 Id = IdGenerator.Generate("lyr"),
@@ -149,7 +153,7 @@ public static partial class Module
                 yDim = yDim,
                 zDim = zDim,
                 Index = index,
-                Voxels = VoxelRLE.Compress(new uint[xDim * yDim * zDim]),
+                Voxels = VoxelRLE.Compress(voxels),
                 Visible = true,
                 Locked = false,
                 Name = $"Layer {index}"
@@ -169,25 +173,28 @@ public static partial class Module
 
     public class BlockType
     {
-        public int Type;
-        public int Rotation;
+        public uint Type;
+        public uint Rotation;
+        public uint Version;
 
-        public BlockType(int type, int rotation = 0)
+        public BlockType(uint type, uint version, uint rotation)
         {
             Type = type;
+            Version = version;
             Rotation = rotation;
         }
 
         public static BlockType FromInt(uint data)
         {
-            int type = VoxelDataUtils.GetBlockType(data);
-            int rotation = VoxelDataUtils.GetRotation(data);
-            return new BlockType(type, rotation);
+            uint type = VoxelDataUtils.GetBlockType(data);
+            uint version = VoxelDataUtils.GetVersion(data);
+            uint rotation = VoxelDataUtils.GetRotation(data);
+            return new BlockType(type, version, rotation);
         }
 
         public uint ToInt()
         {
-            return VoxelDataUtils.EncodeBlockData(Type, Rotation);
+            return VoxelDataUtils.EncodeBlockData(Type, Version, Rotation);
         }
     }
 

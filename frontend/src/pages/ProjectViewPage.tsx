@@ -5,7 +5,11 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
 import { BlockModificationMode } from "@/module_bindings";
 import { ProjectHeader } from "@/components/custom/ProjectHeader";
-import { useProjectMeta, useAtlasContext, useBlocksContext } from "@/contexts/CurrentProjectContext";
+import {
+  useProjectMeta,
+  useAtlasContext,
+  useBlocksContext,
+} from "@/contexts/CurrentProjectContext";
 import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
 import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
 import { useCustomCursor } from "@/lib/useCustomCursor";
@@ -17,7 +21,9 @@ export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [cursorsLoading, setCursorsLoading] = useState(true);
-  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({ tag: "Build" });
+  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
+    tag: "Build",
+  });
   const { selectedBlock, blocks } = useBlocksContext();
   const { project } = useProjectMeta();
   const { atlas, textureAtlas } = useAtlasContext();
@@ -52,7 +58,9 @@ export const ProjectViewPage = () => {
         console.error("Error subscribing to cursors:", err);
         setCursorsLoading(false);
       })
-      .subscribe([`SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`]);
+      .subscribe([
+        `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
+      ]);
 
     return () => {
       cursorsSub.unsubscribe();
@@ -165,7 +173,10 @@ export const ProjectViewPage = () => {
           />
 
           {!cursorsLoading && (
-            <FloatingToolbar currentTool={currentTool} onToolChange={handleToolChange} />
+            <FloatingToolbar
+              currentTool={currentTool}
+              onToolChange={handleToolChange}
+            />
           )}
 
           <RightSideDrawer onSelectLayer={handleLayerSelect} />

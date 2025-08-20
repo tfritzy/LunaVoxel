@@ -14,6 +14,7 @@ import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { BlenderExporter } from "../export/blender-exporter";
 import { decompressVoxelData } from "./voxel-data-utils";
+import { EditHistory } from "./edit-history";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
@@ -28,6 +29,8 @@ export const ProjectManager = class {
   private blocks: ProjectBlocks | null = null;
   private layerSub?: { unsubscribe: () => void };
   private textureAtlas: THREE.Texture | null = null;
+  private editHistory: EditHistory;
+  private keydownHandler: (event: KeyboardEvent) => void;
 
   constructor(
     scene: THREE.Scene,
@@ -40,6 +43,8 @@ export const ProjectManager = class {
     this.project = project;
     this.chunkManager = new ChunkManager(scene, project.dimensions);
     this.cursorManager = new CursorManager(scene, project.id);
+    this.editHistory = new EditHistory(this.applyEdit);
+    this.keydownHandler = this.setupKeyboardEvents();
     this.setupEvents();
     this.builder = new Builder(
       this.dbConn,
@@ -68,6 +73,23 @@ export const ProjectManager = class {
     this.setupCursors();
   }
 
+  private setupKeyboardEvents = () => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        if (event.shiftKey && event.key === "Z") {
+          event.preventDefault();
+          this.editHistory.redo();
+        } else if (event.key === "z") {
+          event.preventDefault();
+          this.editHistory.undo();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return handler;
+  };
+
   public exportToOBJ = (): void => {
     const exporter = new BlenderExporter(
       this.chunkManager,
@@ -79,11 +101,17 @@ export const ProjectManager = class {
     exporter.exportOBJ();
   };
 
+  applyEdit = (layer: number, diff: Uint8Array) => {
+    this.dbConn.reducers.modifyBlockAmorphous(this.project.id, diff, layer);
+  };
+
   private decompressLayer = (layer: Layer): DecompressedLayer => {
     let voxels: Uint32Array;
 
     if (layer.voxels instanceof Uint32Array) {
       voxels = layer.voxels;
+    } else if (layer.voxels instanceof Uint8Array) {
+      voxels = decompressVoxelData(layer.voxels);
     } else if (Array.isArray(layer.voxels)) {
       voxels = decompressVoxelData(layer.voxels);
     } else {
@@ -233,6 +261,7 @@ export const ProjectManager = class {
   ) {
     const layer = this.layers.find((l) => l.index === layerIndex);
     if (!layer) return;
+    const previousVoxels = new Uint32Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
       layer,
       tool,
@@ -241,6 +270,8 @@ export const ProjectManager = class {
       blockType,
       rotation
     );
+    const updated = new Uint32Array(layer.voxels);
+    this.editHistory.addEntry(previousVoxels, updated, layer.index);
     this.updateChunkManager();
   }
 
@@ -276,5 +307,6 @@ export const ProjectManager = class {
     this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
+    window.removeEventListener("keydown", this.keydownHandler);
   }
 };

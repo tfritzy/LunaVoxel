@@ -92,7 +92,10 @@ export const findExteriorFaces = (
             const nz = z + (axis === 2 ? dir : 0);
             const neighborValue = getNeighborBlock(nx, ny, nz);
 
-            if (blockPresent && (!neighborValue || isPreview(neighborValue))) {
+            if (
+              blockPresent &&
+              (!isBlockPresent(neighborValue) || isPreview(neighborValue))
+            ) {
               const textureIndex =
                 projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
 

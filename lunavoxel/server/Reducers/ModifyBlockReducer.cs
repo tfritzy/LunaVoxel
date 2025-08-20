@@ -1,19 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SpacetimeDB;
 
 public static partial class Module
 {
     [Reducer]
-    public static void ModifyBlock(
-        ReducerContext ctx,
-        string projectId,
-        BlockModificationMode mode,
-        int blockType,
-        List<Vector3> positions,
-        int rotation,
-        int layerIndex)
+    public static void ModifyBlock(ReducerContext ctx, string projectId, uint[] diffData, int layerIndex)
     {
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
@@ -23,36 +13,11 @@ public static partial class Module
         if (layer.Locked) return;
 
         uint[] voxels = VoxelRLE.Decompress(layer.Voxels);
-
-        foreach (var position in positions)
+        for (int i = 0; i < diffData.Length; i++)
         {
-            int x = position.X, y = position.Y, z = position.Z;
-            if (x < 0 || x >= layer.xDim || y < 0 || y >= layer.yDim || z < 0 || z >= layer.zDim)
+            if (diffData[i] != 0)
             {
-                continue;
-            }
-
-            int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-
-            switch (mode)
-            {
-                case BlockModificationMode.Build:
-                    var buildBlock = new BlockType(blockType, rotation);
-                    voxels[index] = buildBlock.ToInt();
-                    break;
-
-                case BlockModificationMode.Erase:
-                    voxels[index] = 0;
-                    break;
-
-                case BlockModificationMode.Paint:
-                    var existingBlock = BlockType.FromInt(voxels[index]);
-                    if (existingBlock.Type != 0)
-                    {
-                        var paintedBlock = new BlockType(blockType, rotation);
-                        voxels[index] = paintedBlock.ToInt();
-                    }
-                    break;
+                voxels[i] = diffData[i];
             }
         }
 

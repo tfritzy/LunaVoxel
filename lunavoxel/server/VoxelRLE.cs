@@ -3,12 +3,12 @@ using System.Collections.Generic;
 
 public static class VoxelRLE
 {
-    public static short[] Compress(uint[] voxelData)
+    public static byte[] Compress(uint[] voxelData)
     {
         if (voxelData.Length == 0)
             throw new ArgumentException("Voxel data must not be empty");
 
-        var compressed = new List<short>();
+        var compressed = new List<byte>();
         int i = 0;
 
         while (i < voxelData.Length)
@@ -19,40 +19,42 @@ public static class VoxelRLE
 
             while (j < voxelData.Length &&
                    voxelData[j] == value &&
-                   runLength < short.MaxValue)
+                   runLength < ushort.MaxValue)
             {
                 runLength++;
                 j++;
             }
 
-            // Split 32-bit voxel value into two 16-bit values
-            short valueLow = (short)(value & 0xFFFF);
-            short valueHigh = (short)((value >> 16) & 0xFFFF);
-            short runLengthShort = (short)runLength;
+            ushort valueLow = (ushort)(value & 0xFFFF);
+            ushort valueHigh = (ushort)((value >> 16) & 0xFFFF);
+            ushort runLengthUShort = (ushort)runLength;
 
-            compressed.Add(valueLow);
-            compressed.Add(valueHigh);
-            compressed.Add(runLengthShort);
+            compressed.Add((byte)(valueLow & 0xFF));
+            compressed.Add((byte)((valueLow >> 8) & 0xFF));
+            compressed.Add((byte)(valueHigh & 0xFF));
+            compressed.Add((byte)((valueHigh >> 8) & 0xFF));
+            compressed.Add((byte)(runLengthUShort & 0xFF));
+            compressed.Add((byte)((runLengthUShort >> 8) & 0xFF));
+
             i = j;
         }
 
         return compressed.ToArray();
     }
 
-    public static uint[] Decompress(short[] compressedData)
+    public static uint[] Decompress(byte[] compressedData)
     {
-        if (compressedData.Length % 3 != 0)
-            throw new ArgumentException("Compressed data must be in triplets (valueLow, valueHigh, count)");
+        if (compressedData.Length % 6 != 0)
+            throw new ArgumentException("Compressed data must be in 6-byte groups (valueLow_bytes, valueHigh_bytes, runLength_bytes)");
 
         var decompressed = new List<uint>();
 
-        for (int i = 0; i < compressedData.Length; i += 3)
+        for (int i = 0; i < compressedData.Length; i += 6)
         {
-            short valueLow = compressedData[i];
-            short valueHigh = compressedData[i + 1];
-            short runLength = compressedData[i + 2];
+            ushort valueLow = (ushort)(compressedData[i] | (compressedData[i + 1] << 8));
+            ushort valueHigh = (ushort)(compressedData[i + 2] | (compressedData[i + 3] << 8));
+            ushort runLength = (ushort)(compressedData[i + 4] | (compressedData[i + 5] << 8));
 
-            // Reconstruct 32-bit value from two 16-bit values
             uint value = (uint)((valueLow & 0xFFFF) | ((valueHigh & 0xFFFF) << 16));
 
             for (int j = 0; j < runLength; j++)
@@ -64,26 +66,24 @@ public static class VoxelRLE
         return decompressed.ToArray();
     }
 
-
-    public static uint GetVoxelAt(short[] compressedData, int voxelIndex)
+    public static uint GetVoxelAt(byte[] compressedData, int voxelIndex)
     {
-        if (compressedData.Length % 3 != 0)
-            throw new ArgumentException("Compressed data must be in triplets (valueLow, valueHigh, count)");
+        if (compressedData.Length % 6 != 0)
+            throw new ArgumentException("Compressed data must be in 6-byte groups (valueLow_bytes, valueHigh_bytes, runLength_bytes)");
 
         if (voxelIndex < 0)
             throw new ArgumentOutOfRangeException(nameof(voxelIndex));
 
         int currentVoxelIndex = 0;
 
-        for (int i = 0; i < compressedData.Length; i += 3)
+        for (int i = 0; i < compressedData.Length; i += 6)
         {
-            short valueLow = compressedData[i];
-            short valueHigh = compressedData[i + 1];
-            short runLength = compressedData[i + 2];
+            ushort valueLow = (ushort)(compressedData[i] | (compressedData[i + 1] << 8));
+            ushort valueHigh = (ushort)(compressedData[i + 2] | (compressedData[i + 3] << 8));
+            ushort runLength = (ushort)(compressedData[i + 4] | (compressedData[i + 5] << 8));
 
             if (voxelIndex < currentVoxelIndex + runLength)
             {
-                // Reconstruct 32-bit value from two 16-bit values
                 return (uint)((valueLow & 0xFFFF) | ((valueHigh & 0xFFFF) << 16));
             }
 
