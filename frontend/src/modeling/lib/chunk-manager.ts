@@ -14,6 +14,7 @@ import {
   getBlockType,
   isPreview,
   isBlockPresent,
+  setBlockType,
 } from "./voxel-data-utils";
 
 export const CHUNK_SIZE = 16;
@@ -257,7 +258,7 @@ export class ChunkManager {
               layer.voxels[idx] = encodeBlockData(blockType, rotation);
               break;
             case BlockModificationMode.Erase.tag:
-              layer.voxels[idx] = 0;
+              layer.voxels[idx] = setBlockType(currentType, 0);
               break;
             case BlockModificationMode.Paint.tag:
               if (currentType !== 0) {

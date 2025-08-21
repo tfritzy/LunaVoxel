@@ -76,7 +76,7 @@ export const ProjectManager = class {
   private setupKeyboardEvents = () => {
     const handler = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey) {
-        if (event.shiftKey && event.key === "Z") {
+        if ((event.shiftKey && event.key === "Z") || event.key === "y") {
           event.preventDefault();
           this.editHistory.redo();
         } else if (event.key === "z") {

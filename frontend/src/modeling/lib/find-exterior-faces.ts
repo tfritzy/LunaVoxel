@@ -16,7 +16,8 @@ export const findExteriorFaces = (
   projectBlocks: ProjectBlocks,
   chunkDimensions: Vector3,
   meshArrays: MeshArrays,
-  previewMeshArrays: MeshArrays
+  previewMeshArrays: MeshArrays,
+  previewHidden: boolean
 ): void => {
   meshArrays.reset();
   previewMeshArrays.reset();
@@ -104,7 +105,8 @@ export const findExteriorFaces = (
                 ny,
                 nz,
                 faceDir,
-                getNeighborBlock
+                getNeighborBlock,
+                previewHidden
               );
 
               if (blockIsPreview) {

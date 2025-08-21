@@ -124,7 +124,8 @@ export class ChunkMesh {
       blocks,
       this.chunkDimensions,
       this.meshArrays,
-      this.previewMeshArrays
+      this.previewMeshArrays,
+      buildMode.tag === BlockModificationMode.Erase.tag
     );
 
     this.updateMesh();
