@@ -1,5 +1,4 @@
 import React from "react";
-import { CURSOR_COLORS } from "@/modeling/lib/cursor-manager";
 import {
   Tooltip,
   TooltipContent,
@@ -7,6 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
+import { getAvatarGradient } from "@/lib/getAvatarColor";
 
 export interface AvatarProps {
   id: string;
@@ -143,15 +143,6 @@ export const Avatar: React.FC<AvatarProps> = ({
   updatedAt,
   displayName,
 }) => {
-  const getColorForPlayer = React.useCallback((playerId: string): string => {
-    let hash = 5381;
-    for (let i = 0; i < playerId.length; i++) {
-      hash = (hash * 33) ^ playerId.charCodeAt(i);
-    }
-    const index = Math.abs(hash) % CURSOR_COLORS.length;
-    return `#${CURSOR_COLORS[index].getHexString()}`;
-  }, []);
-
   const getInitials = React.useCallback((n?: string, fallback?: string) => {
     if (n && n.trim()) {
       const parts = n.trim().split(/\s+/);
@@ -176,7 +167,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     return "??";
   }, []);
 
-  const color = getColorForPlayer(id);
+  const gradientClass = getAvatarGradient(displayName || id);
   const initials = getInitials(displayName, id);
 
   let animalEmoji: string | undefined;
@@ -194,9 +185,8 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   const avatarElement = (
     <div
-      className="rounded-full border border-white/80 flex items-center justify-center font-medium text-white shadow-sm select-none"
+      className={`rounded-full border border-white/80 flex items-center justify-center font-medium text-white shadow-sm select-none ${gradientClass}`}
       style={{
-        backgroundColor: color,
         width: size,
         height: size,
         minWidth: size,

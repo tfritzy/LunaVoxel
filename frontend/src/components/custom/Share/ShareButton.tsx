@@ -14,7 +14,7 @@ export function ShareButton() {
         onClick={() => setIsOpen(true)}
         variant="outline"
         size="lg"
-        className="rounded-2xl"
+        className=""
       >
         <Users className="h-4 w-4" />
         Share

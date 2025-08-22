@@ -4,10 +4,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User as FirebaseUser } from "firebase/auth";
+import { Avatar } from "../Avatar";
+import { generateDisplayName } from "@/lib/nameGenerator";
+import { useState } from "react";
 
 interface UserDropdownProps {
   currentUser: FirebaseUser | null;
@@ -20,7 +22,9 @@ export function UserDropdown({
   onSignIn,
   onSignOut,
 }: UserDropdownProps) {
-  if (!currentUser || currentUser.isAnonymous) {
+  const [imageError, setImageError] = useState(false);
+
+  if (!currentUser) {
     return (
       <Button
         onClick={onSignIn}
@@ -33,20 +37,48 @@ export function UserDropdown({
     );
   }
 
+  if (currentUser.isAnonymous) {
+    const displayName = generateDisplayName(currentUser.uid);
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="border-2 rounded-full border-border hover:border-accent hover:brightness-125 transition-colors">
+            <Avatar id={currentUser.uid} displayName={displayName} size={36} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem
+            onClick={onSignIn}
+            className="flex items-center gap-2"
+          >
+            <User className="w-4 h-4" />
+            Sign In
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="flex items-center gap-2 border-2 rounded-full border-border hover:border-accent hover:brightness-125">
-          {currentUser.photoURL ? (
+        <button className="border-2 rounded-full border-border hover:border-accent hover:brightness-125 transition-colors">
+          {currentUser.photoURL && !imageError ? (
             <img
               src={currentUser.photoURL}
               alt="Profile"
               className="w-9 h-9 rounded-full"
+              onError={() => setImageError(true)}
             />
           ) : (
-            <User className="w-4 h-4" />
+            <Avatar
+              id={currentUser.uid}
+              displayName={currentUser.email || currentUser.uid}
+              size={36}
+            />
           )}
-        </div>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem
