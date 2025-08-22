@@ -43,7 +43,7 @@ export const ProjectManager = class {
     this.project = project;
     this.chunkManager = new ChunkManager(scene, project.dimensions);
     this.cursorManager = new CursorManager(scene, project.id);
-    this.editHistory = new EditHistory(this.applyEdit);
+    this.editHistory = new EditHistory(dbConn, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
     this.setupEvents();
     this.builder = new Builder(
@@ -101,8 +101,17 @@ export const ProjectManager = class {
     exporter.exportOBJ();
   };
 
-  applyEdit = (layer: number, diff: Uint8Array) => {
-    this.dbConn.reducers.modifyBlockAmorphous(this.project.id, diff, layer);
+  applyEdit = (
+    layer: number,
+    beforeDiff: Uint8Array,
+    afterDiff: Uint8Array
+  ) => {
+    this.dbConn.reducers.undoEdit(
+      this.project.id,
+      beforeDiff,
+      afterDiff,
+      layer
+    );
   };
 
   private decompressLayer = (layer: Layer): DecompressedLayer => {

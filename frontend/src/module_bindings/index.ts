@@ -72,6 +72,8 @@ import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
 export { ToggleLayerLock };
 import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
 export { ToggleLayerVisibility };
+import { UndoEdit } from "./undo_edit_reducer.ts";
+export { UndoEdit };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
 export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
@@ -249,6 +251,10 @@ const REMOTE_MODULE = {
       reducerName: "ToggleLayerVisibility",
       argsType: ToggleLayerVisibility.getTypeScriptAlgebraicType(),
     },
+    UndoEdit: {
+      reducerName: "UndoEdit",
+      argsType: UndoEdit.getTypeScriptAlgebraicType(),
+    },
     UpdateAtlas: {
       reducerName: "UpdateAtlas",
       argsType: UpdateAtlas.getTypeScriptAlgebraicType(),
@@ -312,6 +318,7 @@ export type Reducer = never
 | { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
+| { name: "UndoEdit", args: UndoEdit }
 | { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
@@ -625,6 +632,22 @@ export class RemoteReducers {
     this.connection.offReducer("ToggleLayerVisibility", callback);
   }
 
+  undoEdit(projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) {
+    const __args = { projectId, beforeDiff, afterDiff, layerIndex };
+    let __writer = new BinaryWriter(1024);
+    UndoEdit.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("UndoEdit", __argsBuffer, this.setCallReducerFlags.undoEditFlags);
+  }
+
+  onUndoEdit(callback: (ctx: ReducerEventContext, projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) => void) {
+    this.connection.onReducer("UndoEdit", callback);
+  }
+
+  removeOnUndoEdit(callback: (ctx: ReducerEventContext, projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) => void) {
+    this.connection.offReducer("UndoEdit", callback);
+  }
+
   updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
     const __args = { projectId, gridSize, cellPixelWidth, usedSlots };
     let __writer = new BinaryWriter(1024);
@@ -780,6 +803,11 @@ export class SetReducerFlags {
   toggleLayerVisibilityFlags: CallReducerFlags = 'FullUpdate';
   toggleLayerVisibility(flags: CallReducerFlags) {
     this.toggleLayerVisibilityFlags = flags;
+  }
+
+  undoEditFlags: CallReducerFlags = 'FullUpdate';
+  undoEdit(flags: CallReducerFlags) {
+    this.undoEditFlags = flags;
   }
 
   updateAtlasFlags: CallReducerFlags = 'FullUpdate';

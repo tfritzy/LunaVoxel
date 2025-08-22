@@ -4,11 +4,18 @@ export const BLOCK_TYPE_MASK = 0x3ff;
 export const ROTATION_MASK = 0x07;
 export const CLEAR_PREVIEW_BIT_MASK = 0xfffffff7;
 
+export const VERSION_SHIFT = 16;
+export const VERSION_MASK = 0xff;
+export const CLEAR_VERSION_MASK = 0xff00ffff;
+
 export const getBlockType = (blockValue: number): number => {
   return (blockValue >> BLOCK_TYPE_SHIFT) & BLOCK_TYPE_MASK;
 };
 
-export const setBlockType = (blockValue: number, newBlockType: number): number => {
+export const setBlockType = (
+  blockValue: number,
+  newBlockType: number
+): number => {
   const clearedValue = blockValue & ~(BLOCK_TYPE_MASK << BLOCK_TYPE_SHIFT);
   return clearedValue | ((newBlockType & BLOCK_TYPE_MASK) << BLOCK_TYPE_SHIFT);
 };
@@ -31,16 +38,38 @@ export const clearPreviewBit = (blockValue: number): number => {
 
 export const encodeBlockData = (
   blockType: number,
-  rotation: number
+  rotation: number,
+  version?: number
 ): number => {
-  return (blockType << BLOCK_TYPE_SHIFT) | (rotation & ROTATION_MASK);
+  const wrappedBlockType = blockType & BLOCK_TYPE_MASK;
+  const wrappedRotation = rotation & ROTATION_MASK;
+  let wrappedVersion = (version ?? 1) & VERSION_MASK;
+  if (wrappedVersion === 0) wrappedVersion = 1;
+  return (
+    (wrappedBlockType << BLOCK_TYPE_SHIFT) |
+    wrappedRotation |
+    (wrappedVersion << VERSION_SHIFT)
+  );
 };
 
 export const getRotation = (blockValue: number): number => {
   return blockValue & ROTATION_MASK;
 };
 
-export const compressVoxelData = (voxelData: Uint32Array | number[]): Uint8Array => {
+export const getVersion = (blockValue: number): number => {
+  return (blockValue >>> VERSION_SHIFT) & VERSION_MASK;
+};
+
+export const setVersion = (blockValue: number, version: number): number => {
+  return (
+    (blockValue & CLEAR_VERSION_MASK) |
+    ((version & VERSION_MASK) << VERSION_SHIFT)
+  );
+};
+
+export const compressVoxelData = (
+  voxelData: Uint32Array | number[]
+): Uint8Array => {
   const data = Array.isArray(voxelData) ? voxelData : Array.from(voxelData);
 
   if (data.length === 0) {
@@ -55,22 +84,20 @@ export const compressVoxelData = (voxelData: Uint32Array | number[]): Uint8Array
     let runLength = 1;
     let j = i + 1;
 
-    while (j < data.length &&
-      data[j] === value &&
-      runLength < 0xFFFF) {
+    while (j < data.length && data[j] === value && runLength < 0xffff) {
       runLength++;
       j++;
     }
 
-    const valueLow = value & 0xFFFF;
-    const valueHigh = (value >> 16) & 0xFFFF;
+    const valueLow = value & 0xffff;
+    const valueHigh = (value >> 16) & 0xffff;
 
-    compressed.push(valueLow & 0xFF);
-    compressed.push((valueLow >> 8) & 0xFF);
-    compressed.push(valueHigh & 0xFF);
-    compressed.push((valueHigh >> 8) & 0xFF);
-    compressed.push(runLength & 0xFF);
-    compressed.push((runLength >> 8) & 0xFF);
+    compressed.push(valueLow & 0xff);
+    compressed.push((valueLow >> 8) & 0xff);
+    compressed.push(valueHigh & 0xff);
+    compressed.push((valueHigh >> 8) & 0xff);
+    compressed.push(runLength & 0xff);
+    compressed.push((runLength >> 8) & 0xff);
 
     i = j;
   }

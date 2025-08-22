@@ -1,3 +1,4 @@
+import { DbConnection } from "@/module_bindings";
 import { compressVoxelData } from "./voxel-data-utils";
 
 type HistoryEntry = {
@@ -9,11 +10,13 @@ type HistoryEntry = {
 
 export class EditHistory {
   private entries: HistoryEntry[];
-  private applyEdit: (layer: number, diff: Uint8Array) => void;
+  private db: DbConnection;
+  private projectId: string;
 
-  constructor(applyEdit: (layer: number, diff: Uint8Array) => void) {
+  constructor(db: DbConnection, projectId: string) {
+    this.projectId = projectId;
     this.entries = [];
-    this.applyEdit = applyEdit;
+    this.db = db;
   }
 
   addEntry(previous: Uint32Array, updated: Uint32Array, layer: number) {
@@ -41,7 +44,12 @@ export class EditHistory {
     if (headIndex < 0) return;
     const head = this.entries[headIndex];
     head.isUndone = true;
-    this.applyEdit(head.layer, head.beforeDiff);
+    this.db.reducers.undoEdit(
+      this.projectId,
+      head.beforeDiff,
+      head.afterDiff,
+      head.layer
+    );
   }
 
   redo() {
@@ -49,6 +57,11 @@ export class EditHistory {
     if (firstUndoneIndex < 0) return;
     const firstUndone = this.entries[firstUndoneIndex];
     firstUndone.isUndone = false;
-    this.applyEdit(firstUndone.layer, firstUndone.afterDiff);
+    this.db.reducers.undoEdit(
+      this.projectId,
+      firstUndone.afterDiff,
+      firstUndone.beforeDiff,
+      firstUndone.layer
+    );
   }
 }
