@@ -8,7 +8,7 @@ import {
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 
 export const Builder = class {
-  public previewBlocks: Uint16Array;
+  public previewBlocks: Uint32Array;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
@@ -85,7 +85,7 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewBlocks = new Uint16Array(
+    this.previewBlocks = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
     );
 
@@ -153,11 +153,9 @@ export const Builder = class {
     this.updateMousePosition(event);
 
     const gridPos = this.checkIntersection();
-
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-
     if (gridPos) {
-      this.onMouseHover(gridPos);
+      this.preview(gridPos);
     }
   }
 
@@ -177,6 +175,11 @@ export const Builder = class {
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
       this.isMouseDown = true;
+
+      const gridPos = this.checkIntersection();
+      if (gridPos) {
+        this.preview(gridPos);
+      }
     }
   }
 
@@ -286,7 +289,7 @@ export const Builder = class {
     return vector3;
   }
 
-  private onMouseHover(gridPos: THREE.Vector3): void {
+  private preview(gridPos: THREE.Vector3): void {
     if (!this.dbConn.isActive) return;
 
     if (this.isMouseDown && !this.startPosition) {
@@ -378,12 +381,8 @@ export const Builder = class {
       this.projectId,
       tool,
       this.selectedBlock,
-      startPos.x,
-      startPos.y,
-      startPos.z,
-      endPos.x,
-      endPos.y,
-      endPos.z,
+      startPos,
+      endPos,
       0,
       this.selectedLayer
     );

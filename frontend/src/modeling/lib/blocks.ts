@@ -3,4 +3,4 @@ export type Block = {
   rotation: number;
 };
 
-export const bytesPerVoxel = 2;
+export const bytesPerVoxel = 4;

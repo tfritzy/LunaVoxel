@@ -31,14 +31,17 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type Undo = {
+export type UndoEdit = {
   projectId: string,
+  beforeDiff: Uint8Array,
+  afterDiff: Uint8Array,
+  layerIndex: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace Undo {
+export namespace UndoEdit {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -46,15 +49,18 @@ export namespace Undo {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("beforeDiff", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
+      new ProductTypeElement("afterDiff", AlgebraicType.createArrayType(AlgebraicType.createU8Type())),
+      new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Undo): void {
-    Undo.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: UndoEdit): void {
+    UndoEdit.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Undo {
-    return Undo.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): UndoEdit {
+    return UndoEdit.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

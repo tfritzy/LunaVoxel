@@ -15,38 +15,6 @@ export const EditDropdown = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { connection } = useDatabase();
 
-  const handleUndo = () => {
-    if (!projectId || !connection) return;
-    connection.reducers.undo(projectId);
-  };
-
-  const handleRedo = () => {
-    if (!projectId || !connection) return;
-    connection.reducers.redo(projectId);
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isModifierPressed = event.ctrlKey || event.metaKey;
-
-      if (isModifierPressed && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (event.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown, { capture: true });
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown, { capture: true });
-    };
-  }, [projectId, connection]);
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -54,7 +22,7 @@ export const EditDropdown = () => {
           Edit
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
+      {/* <DropdownMenuContent align="start" className="w-48">
         <DropdownMenuItem onClick={handleUndo}>
           <Undo2 className="mr-2 h-4 w-4" />
           Undo
@@ -65,7 +33,7 @@ export const EditDropdown = () => {
           Redo
           <DropdownMenuShortcut>⌘⇧Z</DropdownMenuShortcut>
         </DropdownMenuItem>
-      </DropdownMenuContent>
+      </DropdownMenuContent> */}
     </DropdownMenu>
   );
 };

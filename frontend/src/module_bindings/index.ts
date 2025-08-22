@@ -56,12 +56,12 @@ import { InviteToProject } from "./invite_to_project_reducer.ts";
 export { InviteToProject };
 import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
+import { ModifyBlockAmorphous } from "./modify_block_amorphous_reducer.ts";
+export { ModifyBlockAmorphous };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
 import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
-import { Redo } from "./redo_reducer.ts";
-export { Redo };
 import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
 export { RemoveColorFromPalette };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
@@ -72,8 +72,8 @@ import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
 export { ToggleLayerLock };
 import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
 export { ToggleLayerVisibility };
-import { Undo } from "./undo_reducer.ts";
-export { Undo };
+import { UndoEdit } from "./undo_edit_reducer.ts";
+export { UndoEdit };
 import { UpdateAtlas } from "./update_atlas_reducer.ts";
 export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
@@ -90,8 +90,6 @@ import { ColorPaletteTableHandle } from "./color_palette_table.ts";
 export { ColorPaletteTableHandle };
 import { LayerTableHandle } from "./layer_table.ts";
 export { LayerTableHandle };
-import { LayerHistoryEntryTableHandle } from "./layer_history_entry_table.ts";
-export { LayerHistoryEntryTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
 export { PlayerCursorTableHandle };
 import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
@@ -114,8 +112,6 @@ import { ColorPalette } from "./color_palette_type.ts";
 export { ColorPalette };
 import { Layer } from "./layer_type.ts";
 export { Layer };
-import { LayerHistoryEntry } from "./layer_history_entry_type.ts";
-export { LayerHistoryEntry };
 import { PlayerCursor } from "./player_cursor_type.ts";
 export { PlayerCursor };
 import { Project } from "./project_type.ts";
@@ -146,11 +142,6 @@ const REMOTE_MODULE = {
     layer: {
       tableName: "layer",
       rowType: Layer.getTypeScriptAlgebraicType(),
-      primaryKey: "id",
-    },
-    layer_history_entry: {
-      tableName: "layer_history_entry",
-      rowType: LayerHistoryEntry.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
     player_cursor: {
@@ -228,6 +219,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlock",
       argsType: ModifyBlock.getTypeScriptAlgebraicType(),
     },
+    ModifyBlockAmorphous: {
+      reducerName: "ModifyBlockAmorphous",
+      argsType: ModifyBlockAmorphous.getTypeScriptAlgebraicType(),
+    },
     ModifyBlockRect: {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
@@ -235,10 +230,6 @@ const REMOTE_MODULE = {
     PokeProject: {
       reducerName: "PokeProject",
       argsType: PokeProject.getTypeScriptAlgebraicType(),
-    },
-    Redo: {
-      reducerName: "Redo",
-      argsType: Redo.getTypeScriptAlgebraicType(),
     },
     RemoveColorFromPalette: {
       reducerName: "RemoveColorFromPalette",
@@ -260,9 +251,9 @@ const REMOTE_MODULE = {
       reducerName: "ToggleLayerVisibility",
       argsType: ToggleLayerVisibility.getTypeScriptAlgebraicType(),
     },
-    Undo: {
-      reducerName: "Undo",
-      argsType: Undo.getTypeScriptAlgebraicType(),
+    UndoEdit: {
+      reducerName: "UndoEdit",
+      argsType: UndoEdit.getTypeScriptAlgebraicType(),
     },
     UpdateAtlas: {
       reducerName: "UpdateAtlas",
@@ -319,15 +310,15 @@ export type Reducer = never
 | { name: "InitializeAtlas", args: InitializeAtlas }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
+| { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
-| { name: "Redo", args: Redo }
 | { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
-| { name: "Undo", args: Undo }
+| { name: "UndoEdit", args: UndoEdit }
 | { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
@@ -497,35 +488,51 @@ export class RemoteReducers {
     this.connection.offReducer("InviteToProject", callback);
   }
 
-  modifyBlock(projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, blockType, positions, rotation, layerIndex };
+  modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
+    const __args = { projectId, diffData, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, blockType: number, positions: Vector3[], rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, type, x1, y1, z1, x2, y2, z2, rotation, layerIndex };
+  modifyBlockAmorphous(projectId: string, compressedDiffData: Uint8Array, layerIndex: number) {
+    const __args = { projectId, compressedDiffData, layerIndex };
+    let __writer = new BinaryWriter(1024);
+    ModifyBlockAmorphous.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("ModifyBlockAmorphous", __argsBuffer, this.setCallReducerFlags.modifyBlockAmorphousFlags);
+  }
+
+  onModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: Uint8Array, layerIndex: number) => void) {
+    this.connection.onReducer("ModifyBlockAmorphous", callback);
+  }
+
+  removeOnModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: Uint8Array, layerIndex: number) => void) {
+    this.connection.offReducer("ModifyBlockAmorphous", callback);
+  }
+
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
+    const __args = { projectId, mode, type, start, end, rotation, layerIndex };
     let __writer = new BinaryWriter(1024);
     ModifyBlockRect.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
@@ -543,22 +550,6 @@ export class RemoteReducers {
 
   removeOnPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
     this.connection.offReducer("PokeProject", callback);
-  }
-
-  redo(projectId: string) {
-    const __args = { projectId };
-    let __writer = new BinaryWriter(1024);
-    Redo.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("Redo", __argsBuffer, this.setCallReducerFlags.redoFlags);
-  }
-
-  onRedo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.onReducer("Redo", callback);
-  }
-
-  removeOnRedo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.offReducer("Redo", callback);
   }
 
   removeColorFromPalette(projectId: string, colorIndex: number) {
@@ -641,20 +632,20 @@ export class RemoteReducers {
     this.connection.offReducer("ToggleLayerVisibility", callback);
   }
 
-  undo(projectId: string) {
-    const __args = { projectId };
+  undoEdit(projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) {
+    const __args = { projectId, beforeDiff, afterDiff, layerIndex };
     let __writer = new BinaryWriter(1024);
-    Undo.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    UndoEdit.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("Undo", __argsBuffer, this.setCallReducerFlags.undoFlags);
+    this.connection.callReducer("UndoEdit", __argsBuffer, this.setCallReducerFlags.undoEditFlags);
   }
 
-  onUndo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.onReducer("Undo", callback);
+  onUndoEdit(callback: (ctx: ReducerEventContext, projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) => void) {
+    this.connection.onReducer("UndoEdit", callback);
   }
 
-  removeOnUndo(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.offReducer("Undo", callback);
+  removeOnUndoEdit(callback: (ctx: ReducerEventContext, projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) => void) {
+    this.connection.offReducer("UndoEdit", callback);
   }
 
   updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
@@ -774,6 +765,11 @@ export class SetReducerFlags {
     this.modifyBlockFlags = flags;
   }
 
+  modifyBlockAmorphousFlags: CallReducerFlags = 'FullUpdate';
+  modifyBlockAmorphous(flags: CallReducerFlags) {
+    this.modifyBlockAmorphousFlags = flags;
+  }
+
   modifyBlockRectFlags: CallReducerFlags = 'FullUpdate';
   modifyBlockRect(flags: CallReducerFlags) {
     this.modifyBlockRectFlags = flags;
@@ -782,11 +778,6 @@ export class SetReducerFlags {
   pokeProjectFlags: CallReducerFlags = 'FullUpdate';
   pokeProject(flags: CallReducerFlags) {
     this.pokeProjectFlags = flags;
-  }
-
-  redoFlags: CallReducerFlags = 'FullUpdate';
-  redo(flags: CallReducerFlags) {
-    this.redoFlags = flags;
   }
 
   removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
@@ -814,9 +805,9 @@ export class SetReducerFlags {
     this.toggleLayerVisibilityFlags = flags;
   }
 
-  undoFlags: CallReducerFlags = 'FullUpdate';
-  undo(flags: CallReducerFlags) {
-    this.undoFlags = flags;
+  undoEditFlags: CallReducerFlags = 'FullUpdate';
+  undoEdit(flags: CallReducerFlags) {
+    this.undoEditFlags = flags;
   }
 
   updateAtlasFlags: CallReducerFlags = 'FullUpdate';
@@ -854,10 +845,6 @@ export class RemoteTables {
 
   get layer(): LayerTableHandle {
     return new LayerTableHandle(this.connection.clientCache.getOrCreateTable<Layer>(REMOTE_MODULE.tables.layer));
-  }
-
-  get layerHistoryEntry(): LayerHistoryEntryTableHandle {
-    return new LayerHistoryEntryTableHandle(this.connection.clientCache.getOrCreateTable<LayerHistoryEntry>(REMOTE_MODULE.tables.layer_history_entry));
   }
 
   get playerCursor(): PlayerCursorTableHandle {

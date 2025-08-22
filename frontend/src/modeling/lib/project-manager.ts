@@ -13,8 +13,10 @@ import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { BlenderExporter } from "../export/blender-exporter";
+import { decompressVoxelData } from "./voxel-data-utils";
+import { EditHistory } from "./edit-history";
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint16Array };
+export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
 export const ProjectManager = class {
   public builder;
@@ -27,6 +29,8 @@ export const ProjectManager = class {
   private blocks: ProjectBlocks | null = null;
   private layerSub?: { unsubscribe: () => void };
   private textureAtlas: THREE.Texture | null = null;
+  private editHistory: EditHistory;
+  private keydownHandler: (event: KeyboardEvent) => void;
 
   constructor(
     scene: THREE.Scene,
@@ -39,6 +43,8 @@ export const ProjectManager = class {
     this.project = project;
     this.chunkManager = new ChunkManager(scene, project.dimensions);
     this.cursorManager = new CursorManager(scene, project.id);
+    this.editHistory = new EditHistory(dbConn, project.id);
+    this.keydownHandler = this.setupKeyboardEvents();
     this.setupEvents();
     this.builder = new Builder(
       this.dbConn,
@@ -67,6 +73,23 @@ export const ProjectManager = class {
     this.setupCursors();
   }
 
+  private setupKeyboardEvents = () => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        if ((event.shiftKey && event.key === "Z") || event.key === "y") {
+          event.preventDefault();
+          this.editHistory.redo();
+        } else if (event.key === "z") {
+          event.preventDefault();
+          this.editHistory.undo();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return handler;
+  };
+
   public exportToOBJ = (): void => {
     const exporter = new BlenderExporter(
       this.chunkManager,
@@ -78,37 +101,34 @@ export const ProjectManager = class {
     exporter.exportOBJ();
   };
 
+  applyEdit = (
+    layer: number,
+    beforeDiff: Uint8Array,
+    afterDiff: Uint8Array
+  ) => {
+    this.dbConn.reducers.undoEdit(
+      this.project.id,
+      beforeDiff,
+      afterDiff,
+      layer
+    );
+  };
+
   private decompressLayer = (layer: Layer): DecompressedLayer => {
-    let voxels: Uint16Array;
+    let voxels: Uint32Array;
 
-    if (layer.voxels instanceof Uint16Array) {
+    if (layer.voxels instanceof Uint32Array) {
       voxels = layer.voxels;
+    } else if (layer.voxels instanceof Uint8Array) {
+      voxels = decompressVoxelData(layer.voxels);
     } else if (Array.isArray(layer.voxels)) {
-      const totalSize =
-        this.project.dimensions.x *
-        this.project.dimensions.y *
-        this.project.dimensions.z;
-      voxels = new Uint16Array(totalSize);
-
-      const compressedData = layer.voxels;
-      let dataIndex = 0;
-      let blockIndex = 0;
-      while (dataIndex < compressedData.length) {
-        const runLength = compressedData[dataIndex];
-        const value = compressedData[dataIndex + 1];
-        const endIndex = blockIndex + runLength;
-        while (blockIndex < endIndex) {
-          voxels[blockIndex] = value & 0xffff;
-          blockIndex++;
-        }
-        dataIndex += 2;
-      }
+      voxels = decompressVoxelData(layer.voxels);
     } else {
       const totalSize =
         this.project.dimensions.x *
         this.project.dimensions.y *
         this.project.dimensions.z;
-      voxels = new Uint16Array(totalSize);
+      voxels = new Uint32Array(totalSize);
     }
 
     return {
@@ -250,6 +270,7 @@ export const ProjectManager = class {
   ) {
     const layer = this.layers.find((l) => l.index === layerIndex);
     if (!layer) return;
+    const previousVoxels = new Uint32Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
       layer,
       tool,
@@ -258,6 +279,8 @@ export const ProjectManager = class {
       blockType,
       rotation
     );
+    const updated = new Uint32Array(layer.voxels);
+    this.editHistory.addEntry(previousVoxels, updated, layer.index);
     this.updateChunkManager();
   }
 
@@ -293,5 +316,6 @@ export const ProjectManager = class {
     this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
+    window.removeEventListener("keydown", this.keydownHandler);
   }
 };

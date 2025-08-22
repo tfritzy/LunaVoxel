@@ -1,4 +1,4 @@
-import { getBlockType, isPreview } from "./voxel-data-utils";
+import { isBlockPresent, isPreview } from "./voxel-data-utils";
 
 /**
  * Defines the final AO value based on the number of occluders.
@@ -30,7 +30,8 @@ export const calculateAmbientOcclusion = (
   ny: number,
   nz: number,
   faceDir: number,
-  getNeighborBlock: (x: number, y: number, z: number) => number
+  getNeighborBlock: (x: number, y: number, z: number) => number,
+  previewHidden: boolean
 ): number => {
   const tangent = FACE_TANGENTS[faceDir];
   const u_dir = [tangent.u[0], tangent.u[1], tangent.u[2]];
@@ -38,7 +39,7 @@ export const calculateAmbientOcclusion = (
 
   const isOccluder = (ox: number, oy: number, oz: number): boolean => {
     const val = getNeighborBlock(nx + ox, ny + oy, nz + oz);
-    return getBlockType(val) > 0; // Erased blocks have preview bit, but type 0
+    return isBlockPresent(val) && (!previewHidden || !isPreview(val));
   };
 
   const side1_neg = isOccluder(-u_dir[0], -u_dir[1], -u_dir[2]);

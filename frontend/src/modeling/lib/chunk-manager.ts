@@ -12,6 +12,9 @@ import {
   clearPreviewBit,
   encodeBlockData,
   getBlockType,
+  isPreview,
+  isBlockPresent,
+  getVersion,
 } from "./voxel-data-utils";
 
 export const CHUNK_SIZE = 16;
@@ -21,20 +24,20 @@ export class ChunkManager {
   private chunks: ChunkMesh[][][];
   private textureAtlas: THREE.Texture | null = null;
   private dimensions: Vector3;
-  private renderedBlocks: Uint16Array;
-  private blocksToRender: Uint16Array;
+  private renderedBlocks: Uint32Array;
+  private blocksToRender: Uint32Array;
   private currentUpdateId: number = 0;
   private chunkDimensions: Vector3;
-  private editBuffer: Uint16Array | null = null;
+  private editBuffer: Uint32Array | null = null;
 
   constructor(scene: THREE.Scene, dimensions: Vector3) {
     this.scene = scene;
     this.dimensions = dimensions;
 
-    this.renderedBlocks = new Uint16Array(
+    this.renderedBlocks = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
     );
-    this.blocksToRender = new Uint16Array(
+    this.blocksToRender = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
     );
 
@@ -102,7 +105,7 @@ export class ChunkManager {
     chunkX: number,
     chunkY: number,
     chunkZ: number,
-    blocks: Uint16Array
+    blocks: Uint32Array
   ): void {
     const chunk = this.chunks[chunkX][chunkY][chunkZ];
     const chunkDims = chunk.getChunkDimensions();
@@ -157,13 +160,13 @@ export class ChunkManager {
     return null;
   }
 
-  private clearBlocks(blocks: Uint16Array) {
+  private clearBlocks(blocks: Uint32Array) {
     blocks.fill(0);
   }
 
   private addLayerToBlocks(
     layer: DecompressedLayer,
-    blocks: Uint16Array
+    blocks: Uint32Array
   ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
@@ -173,15 +176,15 @@ export class ChunkManager {
     }
 
     for (let i = 0; i < blocks.length; i++) {
-      if (layer.voxels[i] !== 0) {
+      if (isBlockPresent(layer.voxels[i])) {
         blocks[i] = layer.voxels[i];
       }
     }
   }
 
   private updatePreviewState(
-    previewBlocks: Uint16Array,
-    blocks: Uint16Array,
+    previewBlocks: Uint32Array,
+    blocks: Uint32Array,
     buildMode: BlockModificationMode
   ): void {
     const isPaintMode = buildMode.tag === BlockModificationMode.Paint.tag;
@@ -190,9 +193,9 @@ export class ChunkManager {
 
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
       const previewBlockValue = previewBlocks[voxelIndex];
-      const hasPreview = previewBlockValue !== 0;
+      const hasPreview = isPreview(previewBlockValue);
       const realBlockValue = blocks[voxelIndex];
-      const hasRealBlock = realBlockValue !== 0;
+      const hasRealBlock = isBlockPresent(realBlockValue);
 
       if (isBuildMode) {
         if (hasPreview && hasRealBlock) {
@@ -204,9 +207,9 @@ export class ChunkManager {
         }
       } else if (isEraseMode) {
         if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = setPreviewBit(0);
+          blocks[voxelIndex] = setPreviewBit(realBlockValue);
         } else if (hasPreview && !hasRealBlock) {
-          blocks[voxelIndex] = 0;
+          // leave it alone
         } else if (!hasPreview && hasRealBlock) {
           blocks[voxelIndex] = clearPreviewBit(realBlockValue);
         }
@@ -220,34 +223,6 @@ export class ChunkManager {
         }
       }
     }
-  }
-
-  private ensureEditBuffer(): Uint16Array {
-    if (!this.editBuffer) {
-      this.editBuffer = new Uint16Array(
-        this.dimensions.x * this.dimensions.y * this.dimensions.z
-      );
-    }
-    return this.editBuffer;
-  }
-
-  private compressRLE(data: Uint16Array): number[] {
-    if (data.length === 0) return [];
-    const out: number[] = [];
-    let current = data[0];
-    let run = 1;
-    for (let i = 1; i < data.length; i++) {
-      const v = data[i];
-      if (v === current && run < 0x7fff) {
-        run++;
-      } else {
-        out.push(run, current);
-        current = v;
-        run = 1;
-      }
-    }
-    out.push(run, current);
-    return out;
   }
 
   public applyOptimisticRect(
@@ -277,17 +252,26 @@ export class ChunkManager {
           const idx = base + z;
           const currentVal = layer.voxels[idx];
           const currentType = getBlockType(currentVal);
+          const currentVersion = getVersion(currentVal);
 
           switch (tool.tag) {
             case BlockModificationMode.Build.tag:
-              layer.voxels[idx] = encodeBlockData(blockType, rotation);
+              layer.voxels[idx] = encodeBlockData(
+                blockType,
+                rotation,
+                currentVersion + 1
+              );
               break;
             case BlockModificationMode.Erase.tag:
-              layer.voxels[idx] = 0;
+              layer.voxels[idx] = encodeBlockData(0, 0, currentVersion + 1);
               break;
             case BlockModificationMode.Paint.tag:
               if (currentType !== 0) {
-                layer.voxels[idx] = encodeBlockData(blockType, rotation);
+                layer.voxels[idx] = encodeBlockData(
+                  blockType,
+                  0,
+                  currentVersion + 1
+                );
               }
               break;
             default:
@@ -300,7 +284,7 @@ export class ChunkManager {
 
   update = (
     layers: DecompressedLayer[],
-    previewBlocks: Uint16Array,
+    previewBlocks: Uint32Array,
     buildMode: BlockModificationMode,
     blocks: ProjectBlocks,
     atlas: Atlas

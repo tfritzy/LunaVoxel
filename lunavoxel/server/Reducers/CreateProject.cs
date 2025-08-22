@@ -10,7 +10,7 @@ public static partial class Module
         ctx.Db.projects.Insert(project);
         ctx.Db.user_projects.Insert(UserProject.Build(ctx.Sender, project.Id, AccessType.ReadWrite, user.Email));
         var layer = Layer.Build(project.Id, xDim, yDim, zDim, 0);
-        LayerHelpers.Add(ctx, layer);
+        ctx.Db.layer.Insert(layer);
         InitializeAtlas(ctx, project.Id);
     }
 }

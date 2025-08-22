@@ -11,12 +11,13 @@ import { getBlockType, isBlockPresent, isPreview } from "./voxel-data-utils";
 export const DISABLE_GREEDY_MESHING = false;
 
 export const findExteriorFaces = (
-  chunkData: Uint16Array[][],
+  chunkData: Uint32Array[][],
   atlas: Atlas,
   projectBlocks: ProjectBlocks,
   chunkDimensions: Vector3,
   meshArrays: MeshArrays,
-  previewMeshArrays: MeshArrays
+  previewMeshArrays: MeshArrays,
+  previewHidden: boolean
 ): void => {
   meshArrays.reset();
   previewMeshArrays.reset();
@@ -92,7 +93,10 @@ export const findExteriorFaces = (
             const nz = z + (axis === 2 ? dir : 0);
             const neighborValue = getNeighborBlock(nx, ny, nz);
 
-            if (blockPresent && (!neighborValue || isPreview(neighborValue))) {
+            if (
+              blockPresent &&
+              (!isBlockPresent(neighborValue) || isPreview(neighborValue))
+            ) {
               const textureIndex =
                 projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
 
@@ -101,7 +105,8 @@ export const findExteriorFaces = (
                 ny,
                 nz,
                 faceDir,
-                getNeighborBlock
+                getNeighborBlock,
+                previewHidden
               );
 
               if (blockIsPreview) {

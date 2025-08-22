@@ -3,47 +3,59 @@ using System.Collections.Generic;
 
 public static class VoxelRLE
 {
-    public static short[] Compress(short[] voxelData)
+    public static byte[] Compress(uint[] voxelData)
     {
         if (voxelData.Length == 0)
             throw new ArgumentException("Voxel data must not be empty");
 
-        var compressed = new List<short>();
+        var compressed = new List<byte>();
         int i = 0;
 
         while (i < voxelData.Length)
         {
-            short value = voxelData[i];
-            short runLength = 1;
+            uint value = voxelData[i];
+            int runLength = 1;
             int j = i + 1;
 
             while (j < voxelData.Length &&
                    voxelData[j] == value &&
-                   runLength < short.MaxValue)
+                   runLength < ushort.MaxValue)
             {
                 runLength++;
                 j++;
             }
 
-            compressed.Add(runLength);
-            compressed.Add(value);
+            ushort valueLow = (ushort)(value & 0xFFFF);
+            ushort valueHigh = (ushort)((value >> 16) & 0xFFFF);
+            ushort runLengthUShort = (ushort)runLength;
+
+            compressed.Add((byte)(valueLow & 0xFF));
+            compressed.Add((byte)((valueLow >> 8) & 0xFF));
+            compressed.Add((byte)(valueHigh & 0xFF));
+            compressed.Add((byte)((valueHigh >> 8) & 0xFF));
+            compressed.Add((byte)(runLengthUShort & 0xFF));
+            compressed.Add((byte)((runLengthUShort >> 8) & 0xFF));
+
             i = j;
         }
 
         return compressed.ToArray();
     }
 
-    public static short[] Decompress(short[] compressedData)
+    public static uint[] Decompress(byte[] compressedData)
     {
-        if (compressedData.Length % 2 != 0)
-            throw new ArgumentException("Compressed data must be in pairs (count, value)");
+        if (compressedData.Length % 6 != 0)
+            throw new ArgumentException("Compressed data must be in 6-byte groups (valueLow_bytes, valueHigh_bytes, runLength_bytes)");
 
-        var decompressed = new List<short>();
+        var decompressed = new List<uint>();
 
-        for (int i = 0; i < compressedData.Length; i += 2)
+        for (int i = 0; i < compressedData.Length; i += 6)
         {
-            short runLength = compressedData[i];
-            short value = compressedData[i + 1];
+            ushort valueLow = (ushort)(compressedData[i] | (compressedData[i + 1] << 8));
+            ushort valueHigh = (ushort)(compressedData[i + 2] | (compressedData[i + 3] << 8));
+            ushort runLength = (ushort)(compressedData[i + 4] | (compressedData[i + 5] << 8));
+
+            uint value = (uint)((valueLow & 0xFFFF) | ((valueHigh & 0xFFFF) << 16));
 
             for (int j = 0; j < runLength; j++)
             {
@@ -54,28 +66,25 @@ public static class VoxelRLE
         return decompressed.ToArray();
     }
 
-    public static void CompressInPlace(ref short[] voxelData)
+    public static uint GetVoxelAt(byte[] compressedData, int voxelIndex)
     {
-        voxelData = Compress(voxelData);
-    }
-
-    public static short GetVoxelAt(short[] compressedData, int voxelIndex)
-    {
-        if (compressedData.Length % 2 != 0)
-            throw new ArgumentException("Compressed data must be in pairs (count, value)");
+        if (compressedData.Length % 6 != 0)
+            throw new ArgumentException("Compressed data must be in 6-byte groups (valueLow_bytes, valueHigh_bytes, runLength_bytes)");
 
         if (voxelIndex < 0)
             throw new ArgumentOutOfRangeException(nameof(voxelIndex));
 
         int currentVoxelIndex = 0;
 
-        for (int i = 0; i < compressedData.Length; i += 2)
+        for (int i = 0; i < compressedData.Length; i += 6)
         {
-            short runLength = compressedData[i];
+            ushort valueLow = (ushort)(compressedData[i] | (compressedData[i + 1] << 8));
+            ushort valueHigh = (ushort)(compressedData[i + 2] | (compressedData[i + 3] << 8));
+            ushort runLength = (ushort)(compressedData[i + 4] | (compressedData[i + 5] << 8));
 
             if (voxelIndex < currentVoxelIndex + runLength)
             {
-                return compressedData[i + 1];
+                return (uint)((valueLow & 0xFFFF) | ((valueHigh & 0xFFFF) << 16));
             }
 
             currentVoxelIndex += runLength;

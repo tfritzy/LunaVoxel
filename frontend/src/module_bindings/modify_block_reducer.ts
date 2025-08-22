@@ -31,15 +31,9 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
-import { Vector3 as __Vector3 } from "./vector_3_type";
-
 export type ModifyBlock = {
   projectId: string,
-  mode: __BlockModificationMode,
-  blockType: number,
-  positions: __Vector3[],
-  rotation: number,
+  diffData: number[],
   layerIndex: number,
 };
 
@@ -54,10 +48,7 @@ export namespace ModifyBlock {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("blockType", AlgebraicType.createI32Type()),
-      new ProductTypeElement("positions", AlgebraicType.createArrayType(__Vector3.getTypeScriptAlgebraicType())),
-      new ProductTypeElement("rotation", AlgebraicType.createI32Type()),
+      new ProductTypeElement("diffData", AlgebraicType.createArrayType(AlgebraicType.createU32Type())),
       new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
     ]);
   }
