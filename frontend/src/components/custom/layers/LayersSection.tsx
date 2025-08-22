@@ -2,8 +2,8 @@ import { SortableLayerRow } from "./SortableLayerRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import React, { useEffect, useState } from "react";
-import { Layer, EventContext } from "@/module_bindings";
+import React, { useEffect, useMemo, useState } from "react";
+import { Layer } from "@/module_bindings";
 import {
   DndContext,
   closestCenter,
@@ -24,6 +24,7 @@ import {
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
 import { useProjectMeta } from "@/contexts/CurrentProjectContext";
+import { useQueryRunner } from "@/lib/useQueryRunner";
 
 interface LayersSectionProps {
   onSelectLayer?: (layerIndex: number) => void;
@@ -32,64 +33,24 @@ interface LayersSectionProps {
 export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
   const { connection } = useDatabase();
   const { project } = useProjectMeta();
-  const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedLayer, setSelectedLayer] = useState<number>(0);
 
-  // Notify external listener when selection changes
+
+  const filterFn = useMemo(() => {
+    return (layer: Layer) => layer.projectId === project?.id;
+  }, [project?.id]);
+  const { data: layers, loading, error, setOptimisticData } = useQueryRunner<Layer[]>(
+    `SELECT * FROM layer WHERE ProjectId='${project?.id}'`,
+    filterFn
+  );
+
+  const sortedLayers = useMemo(() => {
+    return layers ? [...layers].sort((a, b) => a.index - b.index) : [];
+  }, [layers]);
+
   useEffect(() => {
     if (onSelectLayer) onSelectLayer(selectedLayer);
   }, [selectedLayer, onSelectLayer]);
-
-  // Local layer subscription
-  useEffect(() => {
-    if (!connection || !project?.id) return;
-
-    const subscription = connection
-      .subscriptionBuilder()
-      .onApplied(() => {
-        const projectLayers = Array.from(connection.db.layer.tableCache.iter())
-          .filter((l: Layer) => l.projectId === project.id)
-          .sort((a: Layer, b: Layer) => a.index - b.index);
-        setLayers(projectLayers);
-      })
-      .onError((err) => console.error("Layers subscription error:", err))
-      .subscribe([`SELECT * FROM layer WHERE ProjectId='${project.id}'`]);
-
-    const onLayerInsert = (_ctx: EventContext, newLayer: Layer) => {
-      if (newLayer.projectId === project.id) {
-        setLayers((prev) => {
-          if (prev.some((l) => l.id === newLayer.id)) return prev;
-          setSelectedLayer(newLayer.index);
-          return [...prev, newLayer].sort((a, b) => a.index - b.index);
-        });
-      }
-    };
-    const onLayerUpdate = (_ctx: EventContext, _old: Layer, updated: Layer) => {
-      if (updated.projectId === project.id) {
-        setLayers((prev) =>
-          prev
-            .map((l) => (l.id === updated.id ? updated : l))
-            .sort((a, b) => a.index - b.index)
-        );
-      }
-    };
-    const onLayerDelete = (_ctx: EventContext, deleted: Layer) => {
-      if (deleted.projectId === project.id) {
-        setLayers((prev) => prev.filter((l) => l.id !== deleted.id));
-      }
-    };
-
-    connection.db.layer.onInsert(onLayerInsert);
-    connection.db.layer.onUpdate(onLayerUpdate);
-    connection.db.layer.onDelete(onLayerDelete);
-
-    return () => {
-      subscription.unsubscribe();
-      connection.db.layer.removeOnInsert(onLayerInsert);
-      connection.db.layer.removeOnUpdate(onLayerUpdate);
-      connection.db.layer.removeOnDelete(onLayerDelete);
-    };
-  }, [connection, project?.id]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -105,11 +66,11 @@ export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
   const onDelete = React.useCallback(
     (layer: Layer) => {
       connection?.reducers.deleteLayer(layer.id);
-      if (selectedLayer >= layers.length - 1) {
+      if (selectedLayer >= sortedLayers.length - 1) {
         setSelectedLayer(selectedLayer - 1);
       }
     },
-    [connection?.reducers, layers, selectedLayer]
+    [connection?.reducers, sortedLayers, selectedLayer]
   );
 
   const toggleVisibility = React.useCallback(
@@ -130,20 +91,35 @@ export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (over && active.id !== over.id) {
-        const oldIndex = layers.findIndex((layer) => layer.id === active.id);
-        const newIndex = layers.findIndex((layer) => layer.id === over.id);
+        const currentLayers = sortedLayers || [];
+        const oldIndex = currentLayers.findIndex((layer) => layer.id === active.id);
+        const newIndex = currentLayers.findIndex((layer) => layer.id === over.id);
+        const selectedId = currentLayers[selectedLayer].id;
+
         if (oldIndex !== -1 && newIndex !== -1) {
-          const newLayers = arrayMove(layers, oldIndex, newIndex);
-          setLayers(newLayers);
+          let newLayers = arrayMove(currentLayers, oldIndex, newIndex);
+          newLayers = newLayers.map((l, i) => ({ ...l, index: i }))
+          setOptimisticData(newLayers);
+          const newSelectedIndex = newLayers.findIndex(l => l.id === selectedId);
+          setSelectedLayer(newSelectedIndex);
+
           const newOrder = newLayers.map((layer) => layer.id);
           connection?.reducers.reorderLayers(project.id, newOrder);
         }
       }
     },
-    [layers, connection?.reducers, project.id]
+    [connection?.reducers, project.id, setOptimisticData]
   );
 
-  const layerIds = layers.map((layer) => layer.id);
+  if (loading) {
+    return <div className="p-4">Loading layers...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error loading layers: {error.message}</div>;
+  }
+
+  const layerIds = sortedLayers.map((layer) => layer.id);
 
   return (
     <div className="">
@@ -165,7 +141,7 @@ export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
           strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col">
-            {layers.map((l) => (
+            {sortedLayers.map((l) => (
               <SortableLayerRow
                 layer={l}
                 key={l.id}

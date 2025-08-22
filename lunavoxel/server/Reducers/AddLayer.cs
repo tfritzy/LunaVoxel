@@ -27,5 +27,7 @@ public static partial class Module
             project.Dimensions.Z,
             nextIndex
         );
+        ctx.Db.layer.Insert(newLayer);
+        Log.Info("Added layer " + newLayer.Id);
     }
 }

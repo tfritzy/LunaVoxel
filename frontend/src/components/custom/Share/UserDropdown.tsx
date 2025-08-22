@@ -23,6 +23,7 @@ export function UserDropdown({
   onSignOut,
 }: UserDropdownProps) {
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   if (!currentUser) {
     return (
@@ -39,7 +40,6 @@ export function UserDropdown({
 
   if (currentUser.isAnonymous) {
     const displayName = generateDisplayName(currentUser.uid);
-
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -64,20 +64,29 @@ export function UserDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="border-2 rounded-full border-border hover:border-accent hover:brightness-125 transition-colors">
-          {currentUser.photoURL && !imageError ? (
-            <img
-              src={currentUser.photoURL}
-              alt="Profile"
-              className="w-9 h-9 rounded-full"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <Avatar
-              id={currentUser.uid}
-              displayName={currentUser.email || currentUser.uid}
-              size={36}
-            />
-          )}
+          <div className="w-9 h-9 rounded-full relative overflow-hidden">
+            {currentUser.photoURL && !imageError ? (
+              <>
+                {!imageLoaded && (
+                  <div className="w-full h-full bg-muted animate-pulse" />
+                )}
+                <img
+                  src={currentUser.photoURL}
+                  alt=""
+                  className={`w-full h-full rounded-full object-cover transition-opacity ${imageLoaded ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageError(true)}
+                />
+              </>
+            ) : (
+              <Avatar
+                id={currentUser.uid}
+                displayName={currentUser.email || currentUser.uid}
+                size={36}
+              />
+            )}
+          </div>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
@@ -91,4 +100,5 @@ export function UserDropdown({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+
 }
