@@ -1,41 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { QueryRunner, QueryState } from "./queryRunner";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { QueryRunner, TableHandle } from "./queryRunner";
+import { DbConnection } from "@/module_bindings";
 
 export function useQueryRunner<T>(
-    sqlQuery: string,
-    filterFn?: (row: any) => boolean
-): QueryState<T> & { setOptimisticData: (data: T) => void } {
-    const { connection } = useDatabase();
-    const queryRunnerRef = useRef<QueryRunner<T> | null>(null);
-    const [state, setState] = useState<QueryState<T>>({
-        data: null,
-        loading: true,
-        error: null,
-    });
+  db: DbConnection | null,
+  query: string,
+  getTable: (db: DbConnection) => TableHandle<T>
+): { data: T[] } & { setDataOptimistically: (data: T[]) => void } {
+  const queryRunnerRef = useRef<QueryRunner<T> | null>(null);
+  const [data, setData] = useState<T[]>([]);
 
-    const setOptimisticData = (data: T) => {
-        queryRunnerRef.current?.setOptimisticData(data);
+  const setDataOptimistically = useCallback((data: T[]) => {
+    queryRunnerRef.current?.setDataOptimistically(data);
+  }, []);
+
+  const onDataUpdate = useCallback((data: T[]) => {
+    setData(data);
+  }, []);
+
+  useEffect(() => {
+    if (!db) return;
+
+    const queryRunner = new QueryRunner<T>(db, query, getTable, onDataUpdate);
+    queryRunnerRef.current = queryRunner;
+
+    return () => {
+      queryRunnerRef.current?.dispose();
+      queryRunnerRef.current = null;
     };
+  }, [db, getTable, onDataUpdate, query]);
 
-    useEffect(() => {
-        const queryRunner = new QueryRunner<T>(sqlQuery, filterFn || null, connection);
-        queryRunnerRef.current = queryRunner;
-
-        const unsubscribe = queryRunner.subscribe(setState);
-
-        return () => {
-            unsubscribe();
-            queryRunner.destroy();
-            queryRunnerRef.current = null;
-        };
-    }, [sqlQuery, filterFn, connection]);
-
-    useEffect(() => {
-        if (queryRunnerRef.current) {
-            queryRunnerRef.current.updateConnection(connection);
-        }
-    }, [connection]);
-
-    return { ...state, setOptimisticData };
+  return { data, setDataOptimistically };
 }

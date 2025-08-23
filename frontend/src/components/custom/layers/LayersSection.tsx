@@ -2,8 +2,8 @@ import { SortableLayerRow } from "./SortableLayerRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import React, { useEffect, useMemo, useState } from "react";
-import { Layer } from "@/module_bindings";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { DbConnection, Layer } from "@/module_bindings";
 import {
   DndContext,
   closestCenter,
@@ -23,25 +23,25 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
-import { useProjectMeta } from "@/contexts/CurrentProjectContext";
 import { useQueryRunner } from "@/lib/useQueryRunner";
 
 interface LayersSectionProps {
   onSelectLayer?: (layerIndex: number) => void;
+  projectId: string;
 }
 
-export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
+export const LayersSection = ({
+  onSelectLayer,
+  projectId,
+}: LayersSectionProps) => {
   const { connection } = useDatabase();
-  const { project } = useProjectMeta();
   const [selectedLayer, setSelectedLayer] = useState<number>(0);
 
-
-  const filterFn = useMemo(() => {
-    return (layer: Layer) => layer.projectId === project?.id;
-  }, [project?.id]);
-  const { data: layers, loading, error, setOptimisticData } = useQueryRunner<Layer[]>(
-    `SELECT * FROM layer WHERE ProjectId='${project?.id}'`,
-    filterFn
+  const getTable = useCallback((db: DbConnection) => db.db.layer, []);
+  const { data: layers, setDataOptimistically } = useQueryRunner<Layer>(
+    connection,
+    `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
+    getTable
   );
 
   const sortedLayers = useMemo(() => {
@@ -60,8 +60,8 @@ export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
   );
 
   const addLayer = React.useCallback(() => {
-    connection?.reducers.addLayer(project.id);
-  }, [connection?.reducers, project.id]);
+    connection?.reducers.addLayer(projectId);
+  }, [connection?.reducers, projectId]);
 
   const onDelete = React.useCallback(
     (layer: Layer) => {
@@ -92,32 +92,36 @@ export const LayersSection = ({ onSelectLayer }: LayersSectionProps) => {
       const { active, over } = event;
       if (over && active.id !== over.id) {
         const currentLayers = sortedLayers || [];
-        const oldIndex = currentLayers.findIndex((layer) => layer.id === active.id);
-        const newIndex = currentLayers.findIndex((layer) => layer.id === over.id);
+        const oldIndex = currentLayers.findIndex(
+          (layer) => layer.id === active.id
+        );
+        const newIndex = currentLayers.findIndex(
+          (layer) => layer.id === over.id
+        );
         const selectedId = currentLayers[selectedLayer].id;
 
         if (oldIndex !== -1 && newIndex !== -1) {
           let newLayers = arrayMove(currentLayers, oldIndex, newIndex);
-          newLayers = newLayers.map((l, i) => ({ ...l, index: i }))
-          setOptimisticData(newLayers);
-          const newSelectedIndex = newLayers.findIndex(l => l.id === selectedId);
+          newLayers = newLayers.map((l, i) => ({ ...l, index: i }));
+          setDataOptimistically(newLayers);
+          const newSelectedIndex = newLayers.findIndex(
+            (l) => l.id === selectedId
+          );
           setSelectedLayer(newSelectedIndex);
 
           const newOrder = newLayers.map((layer) => layer.id);
-          connection?.reducers.reorderLayers(project.id, newOrder);
+          connection?.reducers.reorderLayers(projectId, newOrder);
         }
       }
     },
-    [connection?.reducers, project.id, setOptimisticData]
+    [
+      connection?.reducers,
+      projectId,
+      selectedLayer,
+      setDataOptimistically,
+      sortedLayers,
+    ]
   );
-
-  if (loading) {
-    return <div className="p-4">Loading layers...</div>;
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-500">Error loading layers: {error.message}</div>;
-  }
 
   const layerIds = sortedLayers.map((layer) => layer.id);
 

@@ -8,10 +8,10 @@ public static partial class Module
         ReducerContext ctx,
         string projectId)
     {
+        Log.Info("Add layer called for " + projectId);
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
         var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("Project not found");
-
         var existingLayers = ctx.Db.layer.layer_project.Filter(projectId).ToList();
         int nextIndex = existingLayers.Count > 0 ? existingLayers.Max(l => l.Index) + 1 : 0;
 
@@ -28,6 +28,6 @@ public static partial class Module
             nextIndex
         );
         ctx.Db.layer.Insert(newLayer);
-        Log.Info("Added layer " + newLayer.Id);
+        Log.Info("Added layer called for " + projectId);
     }
 }

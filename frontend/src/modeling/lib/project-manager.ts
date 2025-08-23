@@ -5,7 +5,6 @@ import {
   DbConnection,
   EventContext,
   Layer,
-  PlayerCursor,
   Project,
   ProjectBlocks,
 } from "../../module_bindings";
@@ -42,10 +41,9 @@ export const ProjectManager = class {
     this.dbConn = dbConn;
     this.project = project;
     this.chunkManager = new ChunkManager(scene, project.dimensions);
-    this.cursorManager = new CursorManager(scene, project.id);
+    this.cursorManager = new CursorManager(scene, project.id, dbConn);
     this.editHistory = new EditHistory(dbConn, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
-    this.setupEvents();
     this.builder = new Builder(
       this.dbConn,
       this.project.id,
@@ -70,7 +68,6 @@ export const ProjectManager = class {
     );
     this.setupLayers();
     this.setupLayerSubscription();
-    this.setupCursors();
   }
 
   private setupKeyboardEvents = () => {
@@ -159,12 +156,6 @@ export const ProjectManager = class {
     }
   };
 
-  setupEvents = () => {
-    this.dbConn.db.playerCursor.onUpdate(this.onCursorUpdate);
-    this.dbConn.db.playerCursor.onInsert(this.onCursorInsert);
-    this.dbConn.db.playerCursor.onDelete(this.onCursorDelete);
-  };
-
   setupLayers = async () => {
     this.refreshLayers();
     await this.updateChunkManager();
@@ -230,34 +221,8 @@ export const ProjectManager = class {
     if (this.layers.length !== before) this.updateChunkManager();
   };
 
-  setupCursors = () => {
-    this.cursorManager.updateFromDatabase(this.dbConn);
-  };
-
   onPreviewUpdate = () => {
     this.updateChunkManager();
-  };
-
-  onCursorUpdate = (
-    ctx: EventContext,
-    oldRow: PlayerCursor,
-    newRow: PlayerCursor
-  ) => {
-    if (newRow.projectId === this.project.id) {
-      this.cursorManager.updateFromDatabase(this.dbConn);
-    }
-  };
-
-  onCursorInsert = (ctx: EventContext, row: PlayerCursor) => {
-    if (row.projectId === this.project.id) {
-      this.cursorManager.updateFromDatabase(this.dbConn);
-    }
-  };
-
-  onCursorDelete = (ctx: EventContext, row: PlayerCursor) => {
-    if (row.projectId === this.project.id) {
-      this.cursorManager.updateFromDatabase(this.dbConn);
-    }
   };
 
   public applyOptimisticRectEdit(
@@ -309,9 +274,6 @@ export const ProjectManager = class {
     this.builder.dispose();
     this.chunkManager.dispose();
     this.cursorManager.dispose();
-    this.dbConn.db.playerCursor.removeOnUpdate(this.onCursorUpdate);
-    this.dbConn.db.playerCursor.removeOnInsert(this.onCursorInsert);
-    this.dbConn.db.playerCursor.removeOnDelete(this.onCursorDelete);
     this.layerSub?.unsubscribe();
     this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);

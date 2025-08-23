@@ -32,7 +32,6 @@ export const BlockFacePreview = ({
 
   const createTextSprite = (text: string, color: string = "#ffffff") => {
     const canvas = document.createElement("canvas");
-    console.log("createTextSprite - Created canvas for text sprite");
     const context = canvas.getContext("2d");
     if (!context) return null;
 

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Vector3, DbConnection, PlayerCursor } from "../../module_bindings";
 import { layers } from "./layers";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
+import { QueryRunner } from "@/lib/queryRunner";
 
 export const CURSOR_COLORS = [
   new THREE.Color("#EE5A32"), // Vivid Orange
@@ -23,24 +24,21 @@ export class CursorManager {
   private colorIndex: number = 0;
   private projectId: string;
   private dbConn: DbConnection | null = null;
+  private queryRunner: QueryRunner<PlayerCursor>;
 
-  constructor(scene: THREE.Scene, projectId: string) {
+  constructor(scene: THREE.Scene, projectId: string, dbConn: DbConnection) {
     this.scene = scene;
     this.projectId = projectId;
-  }
 
-  updateFromDatabase(dbConn: DbConnection): void {
-    this.dbConn = dbConn;
-    const cursors: PlayerCursor[] = [];
-
-    for (const cursor of dbConn.db.playerCursor.tableCache.iter()) {
-      const c = cursor as PlayerCursor;
-      if (c.projectId === this.projectId) {
-        cursors.push(c);
+    const query = `SELECT * FROM player_cursor WHERE ProjectId='${this.projectId}'`;
+    this.queryRunner = new QueryRunner<PlayerCursor>(
+      dbConn,
+      query,
+      (db: DbConnection) => db.db.playerCursor,
+      (data) => {
+        this.update(data);
       }
-    }
-
-    this.update(cursors);
+    );
   }
 
   updateLocalCursor(position: THREE.Vector3, normal: THREE.Vector3): void {
@@ -146,9 +144,8 @@ export class CursorManager {
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(cursor.position.x, cursor.position.y, cursor.position.z);
     mesh.layers.set(layers.ghost);
-
+    mesh.position.set(cursor.position.x, cursor.position.y, cursor.position.z);
     this.orientCursorToNormal(mesh, cursor.normal);
 
     this.cursors.set(cursor.id, mesh);
@@ -190,6 +187,10 @@ export class CursorManager {
   }
 
   dispose(): void {
+    if (this.queryRunner) {
+      this.queryRunner.dispose();
+    }
+
     for (const [cursorId] of this.cursors) {
       this.removeCursor(cursorId);
     }

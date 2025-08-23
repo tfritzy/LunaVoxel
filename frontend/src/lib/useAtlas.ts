@@ -70,7 +70,6 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
   const initializeCanvas = (cellSize: number) => {
     if (!canvasRef.current) {
       canvasRef.current = document.createElement("canvas");
-      console.log("useAtlas - Created new canvas for atlas texture");
       ctxRef.current = canvasRef.current.getContext("2d");
     }
 

@@ -43,7 +43,6 @@ export const TextureDropZone = ({
         return;
       }
 
-      console.log(`Loaded image: ${img.width}x${img.height}`);
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
@@ -107,12 +106,6 @@ export const TextureDropZone = ({
     const canvas = document.createElement("canvas");
     canvas.width = imageData.width;
     canvas.height = imageData.height;
-    console.log(
-      "createAtlasCanvas - Created canvas with dimensions:",
-      canvas.width,
-      "x",
-      canvas.height
-    );
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.putImageData(imageData, 0, 0);

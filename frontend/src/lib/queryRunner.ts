@@ -1,199 +1,102 @@
 import { DbConnection, EventContext } from "@/module_bindings";
+import { TableCache } from "@clockworklabs/spacetimedb-sdk";
 
-export interface QueryState<T> {
-    data: T | null;
-    loading: boolean;
-    error: Error | null;
-}
+export type TableHandle<T> = {
+  tableCache: TableCache<T>;
+  count: () => number;
+  iter: () => Iterable<T>;
+  onInsert: (cb: (ctx: EventContext, row: T) => void) => void;
+  onDelete: (cb: (ctx: EventContext, row: T) => void) => void;
+  onUpdate: (cb: (ctx: EventContext, oldRow: T, newRow: T) => void) => void;
+  removeOnInsert?: (cb: (ctx: EventContext, row: T) => void) => void;
+  removeOnDelete?: (cb: (ctx: EventContext, row: T) => void) => void;
+  removeOnUpdate?: (
+    cb: (ctx: EventContext, oldRow: T, newRow: T) => void
+  ) => void;
+};
 
 export class QueryRunner<T> {
-    private state: QueryState<T> = {
-        data: null,
-        loading: true,
-        error: null,
+  private data: T[];
+  private onDataUpdate: (data: T[]) => void;
+  private subscription?: { unsubscribe: () => void };
+  private insertCleanup?: () => void;
+  private deleteCleanup?: () => void;
+  private updateCleanup?: () => void;
+  private isDisposed = false;
+
+  constructor(
+    db: DbConnection,
+    query: string,
+    getTable: (db: DbConnection) => TableHandle<T>,
+    onDataUpdate: (data: T[]) => void
+  ) {
+    const table = getTable(db);
+    this.data = [];
+    this.onDataUpdate = onDataUpdate;
+
+    this.subscription = db
+      .subscriptionBuilder()
+      .onApplied(() => {
+        if (this.isDisposed) return;
+        this.data = table.tableCache.iter();
+        onDataUpdate(this.data);
+      })
+      .onError((error) => {
+        console.error("subscription error:", error);
+      })
+      .subscribe([query]);
+
+    const handleDelete = () => {
+      if (this.isDisposed) return;
+      this.data = table.tableCache.iter();
+      onDataUpdate(this.data);
     };
 
-    private listeners: Set<(state: QueryState<T>) => void> = new Set();
-    private subscription: ReturnType<ReturnType<DbConnection['subscriptionBuilder']>['subscribe']> | null = null;
-    private eventHandlers: Array<() => void> = [];
-    private isDestroyed = false;
+    const handleUpdate = () => {
+      if (this.isDisposed) return;
+      this.data = table.tableCache.iter();
+      onDataUpdate(this.data);
+    };
 
-    constructor(
-        private sqlQuery: string,
-        private filterFn: ((row: any) => boolean) | null,
-        private connection: DbConnection | null
-    ) {
-        this.executeQuery();
-    }
+    const handleInsert = () => {
+      if (this.isDisposed) return;
+      this.data = table.tableCache.iter();
+      onDataUpdate(this.data);
+    };
 
-    private async executeQuery(): Promise<void> {
-        if (!this.connection || this.isDestroyed) {
-            this.updateState({ data: null, loading: false, error: null });
-            return;
-        }
+    table.onDelete(handleDelete);
+    table.onUpdate(handleUpdate);
+    table.onInsert(handleInsert);
 
-        try {
-            this.updateState({ ...this.state, loading: true, error: null });
+    this.insertCleanup = () => table.removeOnInsert?.(handleInsert);
+    this.deleteCleanup = () => table.removeOnDelete?.(handleDelete);
+    this.updateCleanup = () => table.removeOnUpdate?.(handleUpdate);
+  }
 
-            this.subscription = this.connection
-                .subscriptionBuilder()
-                .onApplied(() => {
-                    if (!this.isDestroyed) {
-                        const data = this.getTableData();
-                        this.updateState({
-                            data: data as T,
-                            loading: false,
-                            error: null
-                        });
-                    }
-                })
-                .onError((error) => {
-                    if (!this.isDestroyed) {
-                        this.updateState({
-                            data: null,
-                            loading: false,
-                            error: error instanceof Error ? error : new Error(String(error)),
-                        });
-                    }
-                })
-                .subscribe([this.sqlQuery]);
+  setDataOptimistically(data: T[]) {
+    if (this.isDisposed) return;
+    this.data = data;
+    this.onDataUpdate(this.data);
+  }
 
-            this.attachEventHandlers();
+  dispose() {
+    if (this.isDisposed) return;
 
-        } catch (error) {
-            if (!this.isDestroyed) {
-                this.updateState({
-                    data: null,
-                    loading: false,
-                    error: error instanceof Error ? error : new Error(String(error)),
-                });
-            }
-        }
-    }
+    this.isDisposed = true;
 
-    private getTableData(): any {
-        if (!this.connection) return null;
+    this.subscription?.unsubscribe();
+    this.insertCleanup?.();
+    this.deleteCleanup?.();
+    this.updateCleanup?.();
 
-        const tableName = this.extractTableName(this.sqlQuery);
-        if (!tableName) return null;
+    this.subscription = undefined;
+    this.insertCleanup = undefined;
+    this.deleteCleanup = undefined;
+    this.updateCleanup = undefined;
+    this.data = [];
+  }
 
-        const table = (this.connection.db as any)[tableName];
-        if (!table?.tableCache?.iter) return null;
-
-        const results = Array.from(table.tableCache.iter());
-
-        if (!this.filterFn) return results;
-
-        return results.filter(this.filterFn);
-    }
-
-    private extractTableName(query: string): string | null {
-        const fromMatch = query.match(/FROM\s+(\w+)/i);
-        return fromMatch ? fromMatch[1] : null;
-    }
-
-    private attachEventHandlers(): void {
-        if (!this.connection) return;
-
-        const tableName = this.extractTableName(this.sqlQuery);
-        if (!tableName) return;
-
-        const table = (this.connection.db as any)[tableName];
-        if (!table) return;
-
-        const onInsert = (ctx: EventContext, row: any) => {
-            if (!this.isDestroyed) {
-                const data = this.getTableData();
-                this.updateState({
-                    data: data as T,
-                    loading: false,
-                    error: null
-                });
-            }
-        };
-
-        const onUpdate = (ctx: EventContext, oldRow: any, newRow: any) => {
-            if (!this.isDestroyed) {
-                const data = this.getTableData();
-                this.updateState({
-                    data: data as T,
-                    loading: false,
-                    error: null
-                });
-            }
-        };
-
-        const onDelete = (ctx: EventContext, row: any) => {
-            if (!this.isDestroyed) {
-                const data = this.getTableData();
-                this.updateState({
-                    data: data as T,
-                    loading: false,
-                    error: null
-                });
-            }
-        };
-
-        table.onInsert(onInsert);
-        table.onUpdate(onUpdate);
-        table.onDelete(onDelete);
-
-        this.eventHandlers.push(() => {
-            table.removeOnInsert(onInsert);
-            table.removeOnUpdate(onUpdate);
-            table.removeOnDelete(onDelete);
-        });
-    }
-
-    private updateState(newState: QueryState<T>): void {
-        this.state = newState;
-        this.notifyListeners();
-    }
-
-    private notifyListeners(): void {
-        this.listeners.forEach((listener) => listener(this.state));
-    }
-
-    public subscribe(listener: (state: QueryState<T>) => void): () => void {
-        this.listeners.add(listener);
-        listener(this.state);
-
-        return () => {
-            this.listeners.delete(listener);
-        };
-    }
-
-    public updateConnection(connection: DbConnection | null): void {
-        this.cleanup();
-        this.connection = connection;
-        this.executeQuery();
-    }
-
-    public getState(): QueryState<T> {
-        return { ...this.state };
-    }
-
-    public setOptimisticData(data: T): void {
-        this.updateState({
-            data,
-            loading: false,
-            error: null,
-        });
-    }
-
-    private cleanup(): void {
-        if (this.subscription) {
-            this.subscription.unsubscribe();
-            this.subscription = null;
-        }
-
-        this.eventHandlers.forEach(cleanup => cleanup());
-        this.eventHandlers = [];
-    }
-
-    public destroy(): void {
-        this.isDestroyed = true;
-        this.listeners.clear();
-        this.cleanup();
-    }
+  get disposed() {
+    return this.isDisposed;
+  }
 }

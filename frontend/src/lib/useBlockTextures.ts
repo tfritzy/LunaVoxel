@@ -1,20 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  useAtlasContext,
-  useBlocksContext,
-} from "@/contexts/CurrentProjectContext";
+import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import {
   getBlockTextureRenderer,
   releaseBlockTextureRenderer,
 } from "./blockTextureRenderer";
+import { DbConnection, ProjectBlocks } from "@/module_bindings";
+import { useQueryRunner } from "./useQueryRunner";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { useParams } from "react-router-dom";
 
 interface UseBlockTexturesOptions {
   textureSize?: number;
 }
 
 export const useBlockTextures = (options: UseBlockTexturesOptions = {}) => {
+  const projectId = useParams().projectId || "";
+  const { connection } = useDatabase();
   const { atlas, textureAtlas } = useAtlasContext();
-  const { blocks } = useBlocksContext();
+  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
+  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
+    connection,
+    `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
+    getTable
+  );
+  const blocks = allBlocks[0];
 
   const rendererRef = useRef<ReturnType<typeof getBlockTextureRenderer> | null>(
     null

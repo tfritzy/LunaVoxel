@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "lucide-react";
-import { useProjectMeta } from "@/contexts/CurrentProjectContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { EventContext, UserProject } from "@/module_bindings";
+import { DbConnection, EventContext, UserProject } from "@/module_bindings";
 import { InviteForm } from "./InviteForm";
 import { GeneralAccessRow } from "./GeneralAccessRow";
 import { PersonRow } from "./PersonRow";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "sonner";
+import { useParams } from "react-router-dom";
+import { useQueryRunner } from "@/lib/useQueryRunner";
 
 interface ShareModalProps {
   projectId: string;
@@ -17,15 +18,22 @@ interface ShareModalProps {
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
-  const { project } = useProjectMeta();
+  const projectId = useParams().projectId || "";
   const { connection } = useDatabase();
   const [userProjects, setUserProjects] = useState<UserProject[]>([]);
   const [showTopBorder, setShowTopBorder] = useState(false);
   const [showBottomBorder, setShowBottomBorder] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
+  const { data: projects } = useQueryRunner(
+    connection,
+    `SELECT * FROM projects WHERE Id='${projectId}'`,
+    getTable
+  );
+  const project = projects[0];
 
   const handleCopyLink = () => {
-    const shareUrl = `${window.location.origin}/project/${project.id}`;
+    const shareUrl = `${window.location.origin}/project/${projectId}`;
     navigator.clipboard.writeText(shareUrl);
     toast.success("Link copied to clipboard");
   };
@@ -57,7 +65,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   }, [userProjects]);
 
   useEffect(() => {
-    if (!connection?.identity || !project.id) return;
+    if (!connection?.identity || !projectId) return;
 
     const userProjectsSub = connection
       .subscriptionBuilder()
@@ -65,7 +73,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
         const projectUserProjects = Array.from(
           connection.db.userProjects.iter()
         )
-          .filter((up) => up.projectId === project.id)
+          .filter((up) => up.projectId === projectId)
           .filter((up) => up.accessType.tag !== "Inherited");
         setUserProjects(projectUserProjects);
       })
@@ -73,12 +81,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
         console.error("User projects subscription error:", error);
       })
       .subscribe([
-        `SELECT * FROM user_projects WHERE ProjectId='${project.id}'`,
+        `SELECT * FROM user_projects WHERE ProjectId='${projectId}'`,
       ]);
 
     const onInsert = (_ctx: EventContext, userProject: UserProject) => {
       if (
-        userProject.projectId === project.id &&
+        userProject.projectId === projectId &&
         userProject.accessType.tag !== "Inherited"
       ) {
         setUserProjects((prev) => {
@@ -93,7 +101,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
       oldUserProject: UserProject,
       newUserProject: UserProject
     ) => {
-      if (newUserProject.projectId === project.id) {
+      if (newUserProject.projectId === projectId) {
         if (newUserProject.accessType.tag !== "Inherited") {
           setUserProjects((prev) =>
             prev.map((up) =>
@@ -109,7 +117,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
     };
 
     const onDelete = (_ctx: EventContext, userProject: UserProject) => {
-      if (userProject.projectId === project.id) {
+      if (userProject.projectId === projectId) {
         setUserProjects((prev) =>
           prev.filter((up) => up.email !== userProject.email)
         );
@@ -126,12 +134,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
       connection.db.userProjects.removeOnUpdate(onUpdate);
       connection.db.userProjects.removeOnDelete(onDelete);
     };
-  }, [connection, project.id]);
+  }, [connection, projectId]);
+
+  if (!project) return null;
 
   const modalContent = (
     <>
       <div className="flex flex-row space-x-2 justify-between mb-4">
-        <InviteForm connection={connection!} projectId={project.id} />
+        <InviteForm connection={connection!} projectId={projectId} />
       </div>
       <h3 className="text-sm font-medium text-card-foreground my-4">
         People with access
