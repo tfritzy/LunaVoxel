@@ -1,51 +1,18 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import { EventContext, Project } from "@/module_bindings";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { DbConnection } from "@/module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
+import { useQueryRunner } from "@/lib/useQueryRunner";
 
 export function ProjectNameInput() {
   const { projectId } = useParams<{ projectId: string }>();
   const { connection } = useDatabase();
   const [localName, setLocalName] = useState("");
-  const [project, setProject] = useState<Project | null>(null);
   const debounceRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!projectId || !connection) return;
-
-    const subscription = connection
-      .subscriptionBuilder()
-      .onApplied(() => {
-        const projectData = connection.db.projects.id.find(projectId);
-        if (projectData) {
-          setProject(projectData);
-          setLocalName(projectData.name || "");
-        }
-      })
-      .onError((error) => {
-        console.error("Project subscription error:", error);
-      })
-      .subscribe([`SELECT * FROM projects WHERE Id='${projectId}'`]);
-
-    const onProjectUpdate = (
-      ctx: EventContext,
-      oldProject: Project,
-      newProject: Project
-    ) => {
-      if (newProject.id === projectId) {
-        setProject(newProject);
-        setLocalName(newProject.name);
-      }
-    };
-
-    connection.db.projects.onUpdate(onProjectUpdate);
-
-    return () => {
-      connection.db.projects.removeOnUpdate(onProjectUpdate);
-      subscription.unsubscribe();
-    };
-  }, [projectId, connection]);
+  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
+  const { data: projects } = useQueryRunner(connection, getTable);
+  const project = projects[0];
 
   useEffect(() => {
     if (!project || localName === project.name) return;
@@ -67,25 +34,31 @@ export function ProjectNameInput() {
     };
   }, [localName, project, projectId, connection]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     if (inputRef.current) {
       inputRef.current.select();
     }
-  };
+  }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      inputRef.current?.blur();
-    } else if (e.key === "Escape") {
-      setLocalName(project?.name || "");
-      inputRef.current?.blur();
-    }
-  };
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        inputRef.current?.blur();
+      } else if (e.key === "Escape") {
+        setLocalName(project?.name || "");
+        inputRef.current?.blur();
+      }
+    },
+    [project?.name]
+  );
 
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    setLocalName(e.target.value);
-  };
+  const handleValueChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.stopPropagation();
+      setLocalName(e.target.value);
+    },
+    []
+  );
 
   if (!project) {
     return <div />;

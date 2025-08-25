@@ -197,19 +197,25 @@ export const Builder = class {
     faceCenter: THREE.Vector3,
     worldNormal: THREE.Vector3
   ): void {
-    if (this.onLocalCursorUpdate) {
+    const now = Date.now();
+
+    const hasPositionChanged = !this.vectorsApproximatelyEqual(
+      this.lastSentCursorPos,
+      faceCenter,
+      0.01
+    );
+
+    const hasNormalChanged = !this.vectorsApproximatelyEqual(
+      this.lastSentCursorNormal,
+      worldNormal,
+      0.01
+    );
+
+    if ((hasPositionChanged || hasNormalChanged) && this.onLocalCursorUpdate) {
       this.onLocalCursorUpdate(faceCenter, worldNormal);
     }
 
-    const now = Date.now();
     if (now - this.lastCursorUpdateTime >= this.CURSOR_UPDATE_THROTTLE_MS) {
-      const hasPositionChanged =
-        !this.lastSentCursorPos || !this.lastSentCursorPos.equals(faceCenter);
-
-      const hasNormalChanged =
-        !this.lastSentCursorNormal ||
-        !this.lastSentCursorNormal.equals(worldNormal);
-
       if (hasPositionChanged || hasNormalChanged) {
         this.dbConn.reducers.updateCursorPos(
           this.projectId,
@@ -220,7 +226,6 @@ export const Builder = class {
 
         this.lastSentCursorPos = faceCenter.clone();
         this.lastSentCursorNormal = worldNormal.clone();
-        this.lastCursorUpdateTime = now;
       }
 
       this.lastCursorUpdateTime = now;
@@ -385,6 +390,20 @@ export const Builder = class {
       endPos,
       0,
       this.selectedLayer
+    );
+  }
+
+  private vectorsApproximatelyEqual(
+    a: THREE.Vector3 | null,
+    b: THREE.Vector3,
+    epsilon: number = 0.001
+  ): boolean {
+    if (!a) return false;
+
+    return (
+      Math.abs(a.x - b.x) < epsilon &&
+      Math.abs(a.y - b.y) < epsilon &&
+      Math.abs(a.z - b.z) < epsilon
     );
   }
 

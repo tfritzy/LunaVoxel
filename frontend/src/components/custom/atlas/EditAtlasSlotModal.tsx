@@ -9,10 +9,8 @@ import { Button } from "@/components/ui/button";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { SelectionCard } from "./SelectionCard";
 import { functions } from "@/firebase/firebase";
-import {
-  useAtlasContext,
-  useProjectMeta,
-} from "@/contexts/CurrentProjectContext";
+import { useAtlasContext } from "@/contexts/CurrentProjectContext";
+import { useParams } from "react-router-dom";
 
 type SelectionMode = "color" | "texture";
 
@@ -31,12 +29,6 @@ const createColorTexture = (color: string, size: number): string => {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  console.log(
-    "createColorTexture - Created canvas with size:",
-    size,
-    "x",
-    size
-  );
   const ctx = canvas.getContext("2d");
 
   if (!ctx) {
@@ -79,7 +71,7 @@ export const EditAtlasSlotModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { project } = useProjectMeta();
+  const { projectId } = useParams();
   const { atlas, atlasSlots } = useAtlasContext();
   const [selectedColor, setSelectedColor] = useState<string>("#ffffff");
   const [textureData, setTextureData] = useState<ImageData | null>(null);
@@ -152,7 +144,7 @@ export const EditAtlasSlotModal = ({
 
     try {
       await deleteAtlasIndex({
-        projectId: project.id,
+        projectId: projectId,
         index,
         targetCellPixelSize: newCellPixelSize,
         currentGridSize: atlas.gridSize,
@@ -175,7 +167,7 @@ export const EditAtlasSlotModal = ({
     atlasSlots,
     index,
     onClose,
-    project.id,
+    projectId,
   ]);
 
   const handleDeleteCancel = () => {
@@ -195,12 +187,6 @@ export const EditAtlasSlotModal = ({
       const canvas = document.createElement("canvas");
       canvas.width = textureData.width;
       canvas.height = textureData.height;
-      console.log(
-        "createAtlasCanvas - Created canvas with dimensions:",
-        canvas.width,
-        "x",
-        canvas.height
-      );
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.putImageData(textureData, 0, 0);
@@ -212,7 +198,7 @@ export const EditAtlasSlotModal = ({
       if (index === "new") {
         const addToAtlas = httpsCallable(functions, "addToAtlas");
         await addToAtlas({
-          projectId: project.id,
+          projectId: projectId,
           texture: textureBase64,
           targetCellPixelSize: textureData?.width || atlas.cellPixelWidth,
           currentUsedSlots: atlas.usedSlots,
@@ -221,7 +207,7 @@ export const EditAtlasSlotModal = ({
       } else {
         const updateAtlasIndex = httpsCallable(functions, "updateAtlasIndex");
         await updateAtlasIndex({
-          projectId: project.id,
+          projectId: projectId,
           index,
           texture: textureBase64,
           targetCellPixelSize: textureData?.width || atlas.cellPixelWidth,
@@ -246,7 +232,7 @@ export const EditAtlasSlotModal = ({
     atlas.gridSize,
     selectedColor,
     index,
-    project.id,
+    projectId,
   ]);
 
   const isSubmitDisabled =

@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import * as THREE from "three";
-import { Atlas, EventContext } from "@/module_bindings";
+import { Atlas, DbConnection } from "@/module_bindings";
 import { ref, getDownloadURL } from "firebase/storage";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { storage } from "@/firebase/firebase";
+import { useQueryRunner } from "./useQueryRunner";
 
 export interface AtlasSlot {
   index: number;
@@ -13,18 +14,26 @@ export interface AtlasSlot {
   isSolidColor: boolean;
 }
 
-interface UseAtlasReturn {
+interface UseAtlasDataReturn {
   atlas: Atlas | null;
-  slots: AtlasSlot[];
-  texture: THREE.Texture | null;
+  atlasSlots: AtlasSlot[];
+  textureAtlas: THREE.Texture | null;
   isLoading: boolean;
   error: string | null;
   totalSlots: number;
 }
 
-export const useAtlas = (projectId: string): UseAtlasReturn => {
+export const useAtlasData = (projectId: string): UseAtlasDataReturn => {
   const { connection } = useDatabase();
-  const [atlas, setAtlas] = useState<Atlas | null>(null);
+  const getTable = useCallback((db: DbConnection) => db.db.atlas, []);
+  const { data: atlasData } = useQueryRunner<Atlas>(
+    connection,
+    `SELECT * FROM atlas WHERE ProjectId='${projectId}'`,
+    getTable
+  );
+
+  const atlas = atlasData.length > 0 ? atlasData[0] : null;
+
   const [allSlots, setAllSlots] = useState<AtlasSlot[]>([]);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,28 +41,19 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
   const lastVersionRef = useRef<number>(-1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const projectIdRef = useRef(projectId);
 
-  // Update ref when projectId changes
-  useEffect(() => {
-    projectIdRef.current = projectId;
-  }, [projectId]);
+  const createThreeTexture = (image: HTMLImageElement): THREE.Texture => {
+    const threeTexture = new THREE.Texture(image);
+    threeTexture.magFilter = THREE.NearestFilter;
+    threeTexture.minFilter = THREE.NearestFilter;
+    threeTexture.wrapS = THREE.ClampToEdgeWrapping;
+    threeTexture.wrapT = THREE.ClampToEdgeWrapping;
+    threeTexture.generateMipmaps = false;
+    threeTexture.needsUpdate = true;
+    return threeTexture;
+  };
 
-  const createThreeTexture = useCallback(
-    (image: HTMLImageElement): THREE.Texture => {
-      const threeTexture = new THREE.Texture(image);
-      threeTexture.magFilter = THREE.NearestFilter;
-      threeTexture.minFilter = THREE.NearestFilter;
-      threeTexture.wrapS = THREE.ClampToEdgeWrapping;
-      threeTexture.wrapT = THREE.ClampToEdgeWrapping;
-      threeTexture.generateMipmaps = false;
-      threeTexture.needsUpdate = true;
-      return threeTexture;
-    },
-    []
-  );
-
-  const isSolidColorImageData = useCallback((imageData: ImageData): boolean => {
+  const isSolidColorImageData = (imageData: ImageData): boolean => {
     const data = imageData.data;
     if (data.length === 0) return false;
 
@@ -74,9 +74,9 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     }
 
     return true;
-  }, []);
+  };
 
-  const initializeCanvas = useCallback((cellSize: number): boolean => {
+  const initializeCanvas = (cellSize: number) => {
     if (!canvasRef.current) {
       canvasRef.current = document.createElement("canvas");
       ctxRef.current = canvasRef.current.getContext("2d");
@@ -94,14 +94,14 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
     }
 
     return true;
-  }, []);
+  };
 
   const extractSlotsFromImage = useCallback(
     async (
       texture: THREE.Texture | null,
-      cellSize: number,
-      totalSlots: number
+      cellSize: number
     ): Promise<AtlasSlot[]> => {
+      const totalSlots = atlas?.usedSlots || 0;
       const extractedSlots: AtlasSlot[] = [];
 
       if (!texture?.image || !cellSize || !initializeCanvas(cellSize)) {
@@ -180,7 +180,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
 
       return extractedSlots;
     },
-    [initializeCanvas, isSolidColorImageData]
+    [atlas]
   );
 
   const downloadAtlasImage = useCallback(
@@ -189,7 +189,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         setIsLoading(true);
         setError(null);
 
-        const atlasRef = ref(storage, `atlases/${projectIdRef.current}.png`);
+        const atlasRef = ref(storage, `atlases/${projectId}.png`);
 
         try {
           const downloadUrl = await getDownloadURL(atlasRef);
@@ -217,63 +217,21 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         setIsLoading(false);
       }
     },
-    [createThreeTexture]
+    [projectId]
   );
-
-  const onAtlasUpdate = useCallback(
-    (ctx: EventContext, oldAtlas: Atlas, newAtlas: Atlas) => {
-      if (newAtlas.projectId === projectIdRef.current) {
-        setAtlas(newAtlas);
-        if (newAtlas.version !== lastVersionRef.current) {
-          downloadAtlasImage(newAtlas.version);
-        }
-      }
-    },
-    [downloadAtlasImage]
-  );
-
-  const onAtlasInsert = useCallback(
-    (ctx: EventContext, newAtlas: Atlas) => {
-      if (newAtlas.projectId === projectIdRef.current) {
-        setAtlas(newAtlas);
-        downloadAtlasImage(newAtlas.version);
-      }
-    },
-    [downloadAtlasImage]
-  );
-
-  // Memoize connection to prevent unnecessary re-renders
-  const stableConnection = useMemo(() => connection, [connection]);
 
   useEffect(() => {
-    if (!stableConnection) return;
-
-    stableConnection.db.atlas.onUpdate(onAtlasUpdate);
-    stableConnection.db.atlas.onInsert(onAtlasInsert);
-
-    return () => {
-      stableConnection.db.atlas.removeOnUpdate(onAtlasUpdate);
-      stableConnection.db.atlas.removeOnInsert(onAtlasInsert);
-    };
-  }, [stableConnection, onAtlasUpdate, onAtlasInsert]);
+    if (atlas && atlas.version !== lastVersionRef.current) {
+      downloadAtlasImage(atlas.version);
+    }
+  }, [atlas, downloadAtlasImage]);
 
   useEffect(() => {
-    allSlots.forEach((slot) => {
-      if (slot.blobUrl) {
-        URL.revokeObjectURL(slot.blobUrl);
-      }
-    });
-
     if (atlas && texture) {
-      extractSlotsFromImage(
-        texture,
-        atlas.cellPixelWidth,
-        atlas.usedSlots
-      ).then(setAllSlots);
+      extractSlotsFromImage(texture, atlas.cellPixelWidth).then(setAllSlots);
     } else {
       setAllSlots([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atlas, texture, extractSlotsFromImage]);
 
   useEffect(() => {
@@ -289,8 +247,7 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         ctxRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [allSlots]);
 
   useEffect(() => {
     return () => {
@@ -298,18 +255,14 @@ export const useAtlas = (projectId: string): UseAtlasReturn => {
         texture.dispose();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [texture]);
 
-  const nonEmptySlots = useMemo(
-    () => allSlots.filter((slot) => !slot.isEmpty),
-    [allSlots]
-  );
+  const nonEmptySlots = allSlots.filter((slot) => !slot.isEmpty);
 
   return {
     atlas,
-    slots: nonEmptySlots,
-    texture,
+    atlasSlots: nonEmptySlots,
+    textureAtlas: texture,
     isLoading,
     error,
     totalSlots: atlas?.usedSlots || 0,

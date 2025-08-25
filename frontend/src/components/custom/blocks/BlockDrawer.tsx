@@ -3,9 +3,11 @@ import { HexagonOverlay } from "./HexagonOverlay";
 import { BlockFacePreview } from "./BlockFacePreview";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { BlockModal } from "./BlockModal";
-import { useBlocksContext } from "@/contexts/CurrentProjectContext";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { DbConnection, ProjectBlocks } from "@/module_bindings";
+import { useQueryRunner } from "@/lib/useQueryRunner";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4rem";
@@ -13,51 +15,72 @@ const HORIZONTAL_OFFSET = "1.5rem";
 const VERTICAL_OVERLAP = "-1.5rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
-export const BlockDrawer = () => {
-  const { blocks, selectedBlock, setSelectedBlock } = useBlocksContext();
+export const BlockDrawer = ({
+  selectedBlock,
+  setSelectedBlock,
+}: {
+  projectId: string;
+  selectedBlock: number;
+  setSelectedBlock: (index: number) => void;
+}) => {
+  const { connection } = useDatabase();
+  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
+  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
+    connection,
+    getTable
+  );
+  const blocks = allBlocks[0];
   const [editingBlockIndex, setEditingBlockIndex] = useState<
     number | "new" | null
   >(null);
 
-  const createBlockPreview = (index: number) => (
-    <div
-      className="relative rounded-full pointer-events-none"
-      key={index}
-      style={{
-        width: BLOCK_WIDTH,
-        height: BLOCK_HEIGHT,
-      }}
-    >
-      <BlockPreview key={index} blockIndex={index - 1} />
-      <HexagonOverlay
-        isSelected={index === selectedBlock}
-        onClick={() => setSelectedBlock(index)}
-      />
-    </div>
+  const createBlockPreview = useCallback(
+    (index: number) => (
+      <div
+        className="relative rounded-full pointer-events-none"
+        key={index}
+        style={{
+          width: BLOCK_WIDTH,
+          height: BLOCK_HEIGHT,
+        }}
+      >
+        <BlockPreview key={index} blockIndex={index - 1} />
+        <HexagonOverlay
+          isSelected={index === selectedBlock}
+          onClick={() => setSelectedBlock(index)}
+        />
+      </div>
+    ),
+    [selectedBlock, setSelectedBlock]
   );
 
-  const createAddNewHex = (index: number) => (
-    <div
-      className="relative rounded-full pointer-events-none"
-      key={`add-${index}`}
-      style={{
-        width: BLOCK_WIDTH,
-        height: BLOCK_HEIGHT,
-      }}
-    >
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Plus className="w-6 h-6 text-muted-foreground" />
-      </div>
-      <HexagonOverlay
-        isSelected={false}
-        onClick={() => {
-          setEditingBlockIndex("new");
+  const createAddNewHex = useCallback(
+    (index: number) => (
+      <div
+        className="relative rounded-full pointer-events-none"
+        key={`add-${index}`}
+        style={{
+          width: BLOCK_WIDTH,
+          height: BLOCK_HEIGHT,
         }}
-      />
-    </div>
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Plus className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <HexagonOverlay
+          isSelected={false}
+          onClick={() => {
+            setEditingBlockIndex("new");
+          }}
+        />
+      </div>
+    ),
+    [setEditingBlockIndex]
   );
 
   const memoizedRows = useMemo(() => {
+    if (!blocks) return [];
+
     const rows = [];
     let currentIndex = 0;
     let rowIndex = 0;
@@ -95,7 +118,9 @@ export const BlockDrawer = () => {
       rowIndex++;
     }
     return rows;
-  }, [blocks.blockFaceAtlasIndexes, selectedBlock, setSelectedBlock]);
+  }, [blocks, createBlockPreview, createAddNewHex]);
+
+  if (!blocks) return;
 
   const selectedBlockFaces =
     selectedBlock <= blocks.blockFaceAtlasIndexes.length

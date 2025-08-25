@@ -7,7 +7,7 @@ import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ProjectModal } from "./ProjectModal";
 import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
@@ -24,34 +24,38 @@ export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
   const { connection } = useDatabase();
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
 
-  const handleSignIn = async () => {
+  const handleSignIn = useCallback(async () => {
     try {
       await signInWithGoogle();
     } catch (error) {
       console.error("Error signing in with Google:", error);
     }
-  };
+  }, [signInWithGoogle]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
       navigate("/projects");
     } catch (error) {
       console.error("Error signing out:", error);
     }
-  };
+  }, [signOut, navigate]);
 
-  const handleNewProject = async () => {
+  const handleNewProject = useCallback(async () => {
     try {
       await createProject(connection, navigate);
     } catch (error) {
       console.error("Error creating project:", error);
     }
-  };
+  }, [connection, navigate]);
 
-  const handleOpenProject = () => {
+  const handleOpenProject = useCallback(() => {
     setOpenProjectOpen(true);
-  };
+  }, []);
+
+  const handleCloseProjectModal = useCallback(() => {
+    setOpenProjectOpen(false);
+  }, []);
 
   return (
     <>
@@ -64,7 +68,6 @@ export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
             >
               <Logo />
             </Link>
-
             <div>
               <div className="flex-1 flex justify-center">
                 {projectId && <ProjectNameInput />}
@@ -79,7 +82,6 @@ export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
               </div>
             </div>
           </div>
-
           <div className="flex items-center space-x-4">
             {projectId && <PresenceIndicator />}
             {projectId && <ShareButton />}
@@ -89,10 +91,9 @@ export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
               onSignOut={handleSignOut}
             />
           </div>
-
           <ProjectModal
             isOpen={openProjectOpen}
-            onClose={() => setOpenProjectOpen(false)}
+            onClose={handleCloseProjectModal}
           />
         </div>
       </nav>

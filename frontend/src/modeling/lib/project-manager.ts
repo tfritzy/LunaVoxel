@@ -5,7 +5,6 @@ import {
   DbConnection,
   EventContext,
   Layer,
-  PlayerCursor,
   Project,
   ProjectBlocks,
 } from "../../module_bindings";
@@ -15,6 +14,7 @@ import { ChunkManager } from "./chunk-manager";
 import { BlenderExporter } from "../export/blender-exporter";
 import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
+import { QueryRunner } from "@/lib/queryRunner";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
@@ -27,10 +27,10 @@ export const ProjectManager = class {
   private layers: DecompressedLayer[] = [];
   private atlas: Atlas | null = null;
   private blocks: ProjectBlocks | null = null;
-  private layerSub?: { unsubscribe: () => void };
   private textureAtlas: THREE.Texture | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
+  private blockQueryRunner;
 
   constructor(
     scene: THREE.Scene,
@@ -42,10 +42,17 @@ export const ProjectManager = class {
     this.dbConn = dbConn;
     this.project = project;
     this.chunkManager = new ChunkManager(scene, project.dimensions);
-    this.cursorManager = new CursorManager(scene, project.id);
+    this.cursorManager = new CursorManager(scene, project.id, dbConn);
     this.editHistory = new EditHistory(dbConn, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
-    this.setupEvents();
+    this.blockQueryRunner = new QueryRunner(
+      dbConn,
+      dbConn.db.projectBlocks,
+      (blocks) => {
+        this.blocks = blocks[0];
+      }
+    );
+
     this.builder = new Builder(
       this.dbConn,
       this.project.id,
@@ -68,9 +75,10 @@ export const ProjectManager = class {
         this.cursorManager.updateLocalCursor(position, normal);
       }
     );
+    this.dbConn.db.layer.onInsert(this.onLayerInsert);
+    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
+    this.dbConn.db.layer.onDelete(this.onLayerDelete);
     this.setupLayers();
-    this.setupLayerSubscription();
-    this.setupCursors();
   }
 
   private setupKeyboardEvents = () => {
@@ -159,30 +167,9 @@ export const ProjectManager = class {
     }
   };
 
-  setupEvents = () => {
-    this.dbConn.db.playerCursor.onUpdate(this.onCursorUpdate);
-    this.dbConn.db.playerCursor.onInsert(this.onCursorInsert);
-    this.dbConn.db.playerCursor.onDelete(this.onCursorDelete);
-  };
-
   setupLayers = async () => {
     this.refreshLayers();
     await this.updateChunkManager();
-  };
-
-  private setupLayerSubscription = () => {
-    this.layerSub = this.dbConn
-      .subscriptionBuilder()
-      .onApplied(() => {
-        this.refreshLayers();
-        this.updateChunkManager();
-      })
-      .onError((e) => console.error("Layer subscription error", e))
-      .subscribe([`SELECT * FROM layer WHERE ProjectId='${this.project.id}'`]);
-
-    this.dbConn.db.layer.onInsert(this.onLayerInsert);
-    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
-    this.dbConn.db.layer.onDelete(this.onLayerDelete);
   };
 
   updateLayers = async (layers: Layer[]) => {
@@ -230,34 +217,8 @@ export const ProjectManager = class {
     if (this.layers.length !== before) this.updateChunkManager();
   };
 
-  setupCursors = () => {
-    this.cursorManager.updateFromDatabase(this.dbConn);
-  };
-
   onPreviewUpdate = () => {
     this.updateChunkManager();
-  };
-
-  onCursorUpdate = (
-    ctx: EventContext,
-    oldRow: PlayerCursor,
-    newRow: PlayerCursor
-  ) => {
-    if (newRow.projectId === this.project.id) {
-      this.cursorManager.updateFromDatabase(this.dbConn);
-    }
-  };
-
-  onCursorInsert = (ctx: EventContext, row: PlayerCursor) => {
-    if (row.projectId === this.project.id) {
-      this.cursorManager.updateFromDatabase(this.dbConn);
-    }
-  };
-
-  onCursorDelete = (ctx: EventContext, row: PlayerCursor) => {
-    if (row.projectId === this.project.id) {
-      this.cursorManager.updateFromDatabase(this.dbConn);
-    }
   };
 
   public applyOptimisticRectEdit(
@@ -309,10 +270,6 @@ export const ProjectManager = class {
     this.builder.dispose();
     this.chunkManager.dispose();
     this.cursorManager.dispose();
-    this.dbConn.db.playerCursor.removeOnUpdate(this.onCursorUpdate);
-    this.dbConn.db.playerCursor.removeOnInsert(this.onCursorInsert);
-    this.dbConn.db.playerCursor.removeOnDelete(this.onCursorDelete);
-    this.layerSub?.unsubscribe();
     this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);

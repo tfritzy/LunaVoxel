@@ -1,16 +1,15 @@
 // src/components/BlockModal.tsx
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import {
-  useBlocksContext,
-  useProjectMeta,
-} from "@/contexts/CurrentProjectContext";
 import { AtlasTextureDropdown } from "./AtlasTextureDropdown";
 import { BlockFacePreview } from "./BlockFacePreview";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useDatabase } from "@/contexts/DatabaseContext";
+import { useParams } from "react-router-dom";
+import { useQueryRunner } from "@/lib/useQueryRunner";
+import { DbConnection, ProjectBlocks } from "@/module_bindings";
 
 interface BlockModalProps {
   isOpen: boolean;
@@ -23,9 +22,16 @@ export const BlockModal = ({
   onClose,
   blockIndex,
 }: BlockModalProps) => {
+  const projectId = useParams().projectId || "";
+  const { connection } = useDatabase();
   const isNewBlock = blockIndex === "new";
-  const { blocks } = useBlocksContext();
-  const { project } = useProjectMeta();
+  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
+  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
+    connection,
+    getTable
+  );
+  const blocks = allBlocks[0];
+
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
   const [selectedFaces, setSelectedFaces] = useState<number[]>(() =>
     isNewBlock
@@ -33,7 +39,6 @@ export const BlockModal = ({
       : blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
   );
   const [submitPending, setSubmitPending] = useState(false);
-  const { connection } = useDatabase();
 
   useEffect(() => {
     if (isOpen) {
@@ -74,10 +79,10 @@ export const BlockModal = ({
   const handleSubmit = () => {
     setSubmitPending(true);
     if (isNewBlock) {
-      connection?.reducers.addBlock(project.id, selectedFaces);
+      connection?.reducers.addBlock(projectId, selectedFaces);
     } else {
       connection?.reducers.updateBlock(
-        project.id,
+        projectId,
         blockIndex as number,
         selectedFaces
       );

@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Users } from "lucide-react";
 import { ShareModal } from "./ShareModal";
 import { Button } from "@/components/ui/button";
-import { useProjectMeta } from "@/contexts/CurrentProjectContext";
+import { useParams } from "react-router-dom";
 
 export function ShareButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const { project } = useProjectMeta();
+  const projectId = useParams().projectId || "";
 
   return (
     <>
@@ -21,7 +21,7 @@ export function ShareButton() {
       </Button>
 
       <ShareModal
-        projectId={project.id}
+        projectId={projectId}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
       />
