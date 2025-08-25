@@ -30,11 +30,9 @@ export class CursorManager {
     this.scene = scene;
     this.projectId = projectId;
 
-    const query = `SELECT * FROM player_cursor WHERE ProjectId='${this.projectId}'`;
     this.queryRunner = new QueryRunner<PlayerCursor>(
       dbConn,
-      query,
-      (db: DbConnection) => db.db.playerCursor,
+      dbConn.db.playerCursor,
       (data) => {
         this.update(data);
       }

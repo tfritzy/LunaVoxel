@@ -28,7 +28,6 @@ export const BlockModal = ({
   const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
   const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
     connection,
-    `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
     getTable
   );
   const blocks = allBlocks[0];

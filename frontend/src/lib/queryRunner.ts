@@ -26,25 +26,12 @@ export class QueryRunner<T> {
 
   constructor(
     db: DbConnection,
-    query: string,
-    getTable: (db: DbConnection) => TableHandle<T>,
+    table: TableHandle<T>,
     onDataUpdate: (data: T[]) => void
   ) {
-    const table = getTable(db);
-    this.data = [];
     this.onDataUpdate = onDataUpdate;
-
-    this.subscription = db
-      .subscriptionBuilder()
-      .onApplied(() => {
-        if (this.isDisposed) return;
-        this.data = table.tableCache.iter();
-        onDataUpdate(this.data);
-      })
-      .onError((error) => {
-        console.error("subscription error:", error);
-      })
-      .subscribe([query]);
+    this.data = table.tableCache.iter();
+    onDataUpdate(this.data);
 
     const handleDelete = () => {
       if (this.isDisposed) return;

@@ -40,7 +40,6 @@ export const LayersSection = ({
   const getTable = useCallback((db: DbConnection) => db.db.layer, []);
   const { data: layers, setDataOptimistically } = useQueryRunner<Layer>(
     connection,
-    `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
     getTable
   );
 

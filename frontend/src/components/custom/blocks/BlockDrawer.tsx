@@ -16,7 +16,6 @@ const VERTICAL_OVERLAP = "-1.5rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = ({
-  projectId,
   selectedBlock,
   setSelectedBlock,
 }: {
@@ -28,7 +27,6 @@ export const BlockDrawer = ({
   const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
   const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
     connection,
-    `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
     getTable
   );
   const blocks = allBlocks[0];
@@ -36,42 +34,48 @@ export const BlockDrawer = ({
     number | "new" | null
   >(null);
 
-  const createBlockPreview = (index: number) => (
-    <div
-      className="relative rounded-full pointer-events-none"
-      key={index}
-      style={{
-        width: BLOCK_WIDTH,
-        height: BLOCK_HEIGHT,
-      }}
-    >
-      <BlockPreview key={index} blockIndex={index - 1} />
-      <HexagonOverlay
-        isSelected={index === selectedBlock}
-        onClick={() => setSelectedBlock(index)}
-      />
-    </div>
+  const createBlockPreview = useCallback(
+    (index: number) => (
+      <div
+        className="relative rounded-full pointer-events-none"
+        key={index}
+        style={{
+          width: BLOCK_WIDTH,
+          height: BLOCK_HEIGHT,
+        }}
+      >
+        <BlockPreview key={index} blockIndex={index - 1} />
+        <HexagonOverlay
+          isSelected={index === selectedBlock}
+          onClick={() => setSelectedBlock(index)}
+        />
+      </div>
+    ),
+    [selectedBlock, setSelectedBlock]
   );
 
-  const createAddNewHex = (index: number) => (
-    <div
-      className="relative rounded-full pointer-events-none"
-      key={`add-${index}`}
-      style={{
-        width: BLOCK_WIDTH,
-        height: BLOCK_HEIGHT,
-      }}
-    >
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Plus className="w-6 h-6 text-muted-foreground" />
-      </div>
-      <HexagonOverlay
-        isSelected={false}
-        onClick={() => {
-          setEditingBlockIndex("new");
+  const createAddNewHex = useCallback(
+    (index: number) => (
+      <div
+        className="relative rounded-full pointer-events-none"
+        key={`add-${index}`}
+        style={{
+          width: BLOCK_WIDTH,
+          height: BLOCK_HEIGHT,
         }}
-      />
-    </div>
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Plus className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <HexagonOverlay
+          isSelected={false}
+          onClick={() => {
+            setEditingBlockIndex("new");
+          }}
+        />
+      </div>
+    ),
+    [setEditingBlockIndex]
   );
 
   const memoizedRows = useMemo(() => {
@@ -114,7 +118,7 @@ export const BlockDrawer = ({
       rowIndex++;
     }
     return rows;
-  }, [blocks?.blockFaceAtlasIndexes.length, createBlockPreview]);
+  }, [blocks, createBlockPreview, createAddNewHex]);
 
   if (!blocks) return;
 

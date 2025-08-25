@@ -25,11 +25,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   const [showBottomBorder, setShowBottomBorder] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const getTable = useCallback((db: DbConnection) => db.db.projects, []);
-  const { data: projects } = useQueryRunner(
-    connection,
-    `SELECT * FROM projects WHERE Id='${projectId}'`,
-    getTable
-  );
+  const { data: projects } = useQueryRunner(connection, getTable);
   const project = projects[0];
 
   const handleCopyLink = () => {

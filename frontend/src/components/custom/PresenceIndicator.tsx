@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useParams } from "react-router-dom";
-import { PlayerCursor } from "@/module_bindings";
+import { DbConnection, PlayerCursor } from "@/module_bindings";
 import { CURSOR_COLORS } from "@/modeling/lib/cursor-manager";
 import { Avatar } from "./Avatar";
 import {
@@ -10,11 +10,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useQueryRunner } from "@/lib/useQueryRunner";
 
 export const PresenceIndicator = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { connection } = useDatabase();
   const [presenceUsers, setPresenceUsers] = useState<PlayerCursor[]>([]);
+  const getTable = useCallback((db: DbConnection) => db.db.playerCursor, []);
+  const { data: allCursors } = useQueryRunner(connection, getTable);
 
   const getColorForPlayer = React.useCallback(
     (playerId: string, index: number): string => {
@@ -23,60 +26,48 @@ export const PresenceIndicator = () => {
     []
   );
 
+  const updatePresence = React.useCallback(() => {
+    const cursors: PlayerCursor[] = [];
+    for (const cursor of allCursors) {
+      const c = cursor as PlayerCursor;
+      if (c.projectId === projectId) {
+        cursors.push(c);
+      }
+    }
+
+    const currentUserIdentity = connection?.identity;
+    const otherUsers = cursors.filter(
+      (cursor) =>
+        currentUserIdentity && !cursor.player.isEqual(currentUserIdentity)
+    );
+
+    const uniqueUsers = new Map<string, PlayerCursor>();
+    otherUsers.forEach((cursor) => {
+      const playerKey = cursor.player.toHexString();
+      if (!uniqueUsers.has(playerKey)) {
+        uniqueUsers.set(playerKey, cursor);
+      }
+    });
+
+    const users: PlayerCursor[] = Array.from(uniqueUsers.values());
+
+    const now = new Date();
+    const filteredUsers = users.filter((user) => {
+      if (!user.lastUpdated) return true;
+      const minutesSince = Math.floor(
+        (now.getTime() - user.lastUpdated.toDate().getTime()) / (1000 * 60)
+      );
+      return minutesSince <= 10;
+    });
+
+    setPresenceUsers(filteredUsers);
+  }, [allCursors, connection?.identity, projectId]);
+
   useEffect(() => {
     if (!projectId || !connection) return;
 
-    const updatePresence = () => {
-      const cursors: PlayerCursor[] = [];
-      for (const cursor of connection.db.playerCursor.tableCache.iter()) {
-        const c = cursor as PlayerCursor;
-        if (c.projectId === projectId) {
-          cursors.push(c);
-        }
-      }
-
-      const currentUserIdentity = connection.identity;
-      const otherUsers = cursors.filter(
-        (cursor) =>
-          currentUserIdentity && !cursor.player.isEqual(currentUserIdentity)
-      );
-
-      const uniqueUsers = new Map<string, PlayerCursor>();
-      otherUsers.forEach((cursor) => {
-        const playerKey = cursor.player.toHexString();
-        if (!uniqueUsers.has(playerKey)) {
-          uniqueUsers.set(playerKey, cursor);
-        }
-      });
-
-      const users: PlayerCursor[] = Array.from(uniqueUsers.values());
-
-      const now = new Date();
-      const filteredUsers = users.filter((user) => {
-        if (!user.lastUpdated) return true;
-        const minutesSince = Math.floor(
-          (now.getTime() - user.lastUpdated.toDate().getTime()) / (1000 * 60)
-        );
-        return minutesSince <= 10;
-      });
-
-      setPresenceUsers(filteredUsers);
-    };
-
     updatePresence();
-
-    connection.db.playerCursor.onInsert(() => {
-      updatePresence();
-    });
-
-    connection.db.playerCursor.onDelete(() => {
-      updatePresence();
-    });
-
-    connection.db.playerCursor.onUpdate(() => {
-      updatePresence();
-    });
-  }, [projectId, connection, getColorForPlayer]);
+  }, [projectId, connection, getColorForPlayer, allCursors, updatePresence]);
 
   if (presenceUsers.length === 0) {
     return null;

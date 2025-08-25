@@ -25,8 +25,10 @@ export function DatabaseProvider({
   children: React.ReactNode;
   connection: DbConnection | null;
 }) {
+  const value = React.useMemo(() => ({ connection }), [connection]);
+
   return (
-    <DatabaseContext.Provider value={{ connection }}>
+    <DatabaseContext.Provider value={value}>
       {children}
     </DatabaseContext.Provider>
   );

@@ -31,7 +31,7 @@ export const CurrentProjectProvider = ({
   const { atlas, slots, texture } = useAtlas(projectId || "");
 
   const atlasValue = useMemo<AtlasContextType | undefined>(
-    () => ({ atlas: atlas!, atlasSlots: slots, textureAtlas: texture }),
+    () => ({ atlas, atlasSlots: slots, textureAtlas: texture }),
     [atlas, slots, texture]
   );
 
@@ -39,19 +39,6 @@ export const CurrentProjectProvider = ({
     <AtlasContext.Provider value={atlasValue}>{children}</AtlasContext.Provider>
   );
 };
-
-// const LoadingState = ({ status }: { status: "loading" | "poke-attempted" }) => (
-//   <div className="h-screen flex items-center justify-center bg-background">
-//     <div className="flex flex-col items-center gap-4">
-//       <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
-//       <p className="text-lg font-medium">
-//         {status === "poke-attempted"
-//           ? "Checking project access..."
-//           : "Loading project..."}
-//       </p>
-//     </div>
-//   </div>
-// );
 
 // const NotFoundState = ({
 //   retryProjectLoad,
