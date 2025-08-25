@@ -4,6 +4,7 @@ import { Atlas, ProjectBlocks, Project } from "../../module_bindings";
 import { MeshConsolidator } from "./mesh-consolidator";
 import { OBJExporter } from "./obj-exporter";
 import { GLTFExporter } from "./gltf-exporter";
+import { STLExporter } from "./stl-exporter";
 import {
   downloadFile,
   downloadImageFromCanvas,
@@ -11,7 +12,7 @@ import {
 } from "./file-utils";
 import { toast } from "sonner";
 
-export type ExportType = "GLTF" | "OBJ";
+export type ExportType = "GLTF" | "OBJ" | "STL";
 
 export class ModelExporter {
   private chunkManager: ChunkManager;
@@ -41,6 +42,9 @@ export class ModelExporter {
         break;
       case "OBJ":
         this.exportOBJ();
+        break;
+      case "STL":
+        this.exportSTL();
         break;
       default:
         throw "Unknown export type " + type;
@@ -89,6 +93,24 @@ export class ModelExporter {
       const gltfContent = exporter.generateGLTF(textureDataUri);
 
       downloadFile(gltfContent, `${projectName}.gltf`, "application/json");
+
+      toast.success("Export successful");
+    } catch {
+      toast.error("Sorry, export failed.");
+    }
+  }
+
+  private exportSTL(): void {
+    try {
+      const consolidatedMesh = this.getConsolidatedMesh();
+      if (!consolidatedMesh) return;
+
+      const projectName = this.sanitizeFilename(this.project.name);
+      const exporter = new STLExporter(consolidatedMesh, projectName);
+
+      const stlContent = exporter.generateSTL();
+
+      downloadFile(stlContent, `${projectName}.stl`, "text/plain");
 
       toast.success("Export successful");
     } catch {

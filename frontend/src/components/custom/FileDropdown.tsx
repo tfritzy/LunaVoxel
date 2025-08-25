@@ -26,6 +26,7 @@ export function FileDropdown({
 }: FileDropdownProps) {
   const obj = useCallback(() => onExport("OBJ"), [onExport]);
   const gltf = useCallback(() => onExport("GLTF"), [onExport]);
+  const stl = useCallback(() => onExport("STL"), [onExport]);
 
   return (
     <DropdownMenu>
@@ -56,7 +57,7 @@ export function FileDropdown({
           <DropdownMenuSubContent>
             <DropdownMenuItem onClick={obj}>Wavefront (.obj)</DropdownMenuItem>
             <DropdownMenuItem onClick={gltf}>GLTF (.gltf)</DropdownMenuItem>
-            <DropdownMenuItem disabled>STL (Coming Soon)</DropdownMenuItem>
+            <DropdownMenuItem onClick={stl}>STL (.stl)</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
       </DropdownMenuContent>
