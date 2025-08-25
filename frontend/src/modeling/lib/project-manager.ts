@@ -11,7 +11,7 @@ import {
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
-import { BlenderExporter } from "../export/blender-exporter";
+import { ExportType, ModelExporter } from "../export/model-exporter";
 import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { QueryRunner } from "@/lib/queryRunner";
@@ -98,15 +98,15 @@ export const ProjectManager = class {
     return handler;
   };
 
-  public exportToOBJ = (): void => {
-    const exporter = new BlenderExporter(
+  public export = (type: ExportType): void => {
+    const exporter = new ModelExporter(
       this.chunkManager,
       this.atlas,
       this.blocks,
       this.project,
       this.textureAtlas
     );
-    exporter.exportOBJ();
+    exporter.export(type);
   };
 
   applyEdit = (

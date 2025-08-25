@@ -12,12 +12,13 @@ import { ProjectModal } from "./ProjectModal";
 import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
 import { UserDropdown } from "./Share/UserDropdown";
+import { ExportType } from "@/modeling/export/model-exporter";
 
 interface ProjectHeaderProps {
-  onExportOBJ?: () => void;
+  onExport: (format: ExportType) => void;
 }
 
-export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
+export function ProjectHeader({ onExport }: ProjectHeaderProps) {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -76,7 +77,7 @@ export function ProjectHeader({ onExportOBJ }: ProjectHeaderProps) {
                 <FileDropdown
                   onNewProject={handleNewProject}
                   onOpenProject={handleOpenProject}
-                  onExportOBJ={onExportOBJ}
+                  onExport={onExport}
                 />
                 {projectId && <EditDropdown />}
               </div>

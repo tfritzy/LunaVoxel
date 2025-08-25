@@ -15,6 +15,7 @@ import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { useQueryRunner } from "@/lib/useQueryRunner";
 import { useAtlasContext } from "@/contexts/CurrentProjectContext";
+import { ExportType } from "@/modeling/export/model-exporter";
 
 export const ProjectViewPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -36,9 +37,9 @@ export const ProjectViewPage = () => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
   }, []);
 
-  const handleExportOBJ = useCallback(() => {
+  const handleExport = useCallback((type: ExportType) => {
     if (engineRef.current?.projectManager) {
-      engineRef.current.projectManager.exportToOBJ();
+      engineRef.current.projectManager.export(type);
     }
   }, []);
 
@@ -169,7 +170,7 @@ export const ProjectViewPage = () => {
 
   return (
     <div>
-      <ProjectHeader onExportOBJ={handleExportOBJ} />
+      <ProjectHeader onExport={handleExport} />
       <div className="h-full flex">
         <div className="flex-1 relative">
           <BlockDrawer
