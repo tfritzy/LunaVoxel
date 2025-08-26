@@ -73,7 +73,7 @@ export function ProjectHeader({ onExport }: ProjectHeaderProps) {
               <div className="flex-1 flex justify-center">
                 {projectId && <ProjectNameInput />}
               </div>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center">
                 <FileDropdown
                   onNewProject={handleNewProject}
                   onOpenProject={handleOpenProject}

@@ -71,7 +71,7 @@ export function ProjectNameInput() {
       onChange={handleValueChange}
       onFocus={handleFocus}
       onKeyDown={handleKeyDown}
-      className="bg-transparent border-none outline-none text-lg font-medium px-3 rounded focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all"
+      className="bg-transparent border-none outline-none text-lg placeholder-foreground-muted font-medium px-3 rounded focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all"
       placeholder="Untitled Project"
     />
   );

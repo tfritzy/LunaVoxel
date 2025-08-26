@@ -52,20 +52,20 @@ export const findExteriorFaces = (
       axis === 0
         ? chunkDimensions.x
         : axis === 1
-        ? chunkDimensions.y
-        : chunkDimensions.z;
+          ? chunkDimensions.y
+          : chunkDimensions.z;
     const uSize =
       u === 0
         ? chunkDimensions.x
         : u === 1
-        ? chunkDimensions.y
-        : chunkDimensions.z;
+          ? chunkDimensions.y
+          : chunkDimensions.z;
     const vSize =
       v === 0
         ? chunkDimensions.x
         : v === 1
-        ? chunkDimensions.y
-        : chunkDimensions.z;
+          ? chunkDimensions.y
+          : chunkDimensions.z;
 
     for (let dir = -1; dir <= 1; dir += 2) {
       const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
@@ -93,26 +93,33 @@ export const findExteriorFaces = (
             const nz = z + (axis === 2 ? dir : 0);
             const neighborValue = getNeighborBlock(nx, ny, nz);
 
-            if (
-              blockPresent &&
-              (!isBlockPresent(neighborValue) || isPreview(neighborValue))
-            ) {
-              const textureIndex =
-                projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
-
-              aoMask[maskIndex] = calculateAmbientOcclusion(
-                nx,
-                ny,
-                nz,
-                faceDir,
-                getNeighborBlock,
-                previewHidden
-              );
+            if (blockPresent) {
+              let shouldRenderFace = false;
 
               if (blockIsPreview) {
-                previewMask[maskIndex] = textureIndex;
+                shouldRenderFace = !isBlockPresent(neighborValue) || !isPreview(neighborValue);
               } else {
-                realMask[maskIndex] = textureIndex;
+                shouldRenderFace = !isBlockPresent(neighborValue) || isPreview(neighborValue);
+              }
+
+              if (shouldRenderFace) {
+                const textureIndex =
+                  projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
+
+                aoMask[maskIndex] = calculateAmbientOcclusion(
+                  nx,
+                  ny,
+                  nz,
+                  faceDir,
+                  getNeighborBlock,
+                  previewHidden
+                );
+
+                if (blockIsPreview) {
+                  previewMask[maskIndex] = textureIndex;
+                } else {
+                  realMask[maskIndex] = textureIndex;
+                }
               }
             }
           }
@@ -171,7 +178,7 @@ const generateGreedyMesh = (
   processed.fill(0, 0, width * height);
 
   for (let j = 0; j < height; j++) {
-    for (let i = 0; i < width; ) {
+    for (let i = 0; i < width;) {
       const maskIndex = i + j * width;
 
       if (processed[maskIndex] || mask[maskIndex] < 0) {

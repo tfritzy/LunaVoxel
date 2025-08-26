@@ -18,7 +18,7 @@ import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { ExportType } from "@/modeling/export/model-exporter";
 
 export const ProjectViewPage = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+  const projectId = useParams<{ projectId: string }>().projectId || "";
   const { connection } = useDatabase();
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
@@ -46,6 +46,7 @@ export const ProjectViewPage = () => {
   useEffect(() => {
     if (!connection) return;
 
+    connection.reducers.pokeProject(projectId);
     const subscription = connection
       .subscriptionBuilder()
       .onApplied(() => {
