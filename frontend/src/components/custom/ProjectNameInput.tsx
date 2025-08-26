@@ -3,16 +3,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DbConnection } from "@/module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useQueryRunner } from "@/lib/useQueryRunner";
+import { useCurrentProject } from "@/lib/useCurrentProject";
 
 export function ProjectNameInput() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const projectId = useParams<{ projectId: string }>().projectId || "";
   const { connection } = useDatabase();
   const [localName, setLocalName] = useState("");
   const debounceRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
-  const { data: projects } = useQueryRunner(connection, getTable);
-  const project = projects[0];
+  const project = useCurrentProject(connection, projectId);
 
   useEffect(() => {
     if (!project || localName === project.name) return;

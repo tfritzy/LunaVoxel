@@ -16,6 +16,7 @@ import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persist
 import { useQueryRunner } from "@/lib/useQueryRunner";
 import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { ExportType } from "@/modeling/export/model-exporter";
+import { useCurrentProject } from "@/lib/useCurrentProject";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -26,9 +27,7 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
   });
-  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
-  const { data: projects } = useQueryRunner(connection, getTable);
-  const project = projects[0] as Project | null;
+  const project = useCurrentProject(connection, projectId);
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
   const { atlas, textureAtlas } = useAtlasContext();
@@ -112,7 +111,7 @@ export const ProjectViewPage = () => {
       selectedBlock,
       currentTool,
       atlas,
-      textureAtlas,
+      textureAtlas
     ]
   );
 

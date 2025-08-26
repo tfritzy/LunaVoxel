@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { useQueryRunner } from "@/lib/useQueryRunner";
+import { useCurrentProject } from "@/lib/useCurrentProject";
 
 interface ShareModalProps {
   projectId: string;
@@ -24,9 +25,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   const [showTopBorder, setShowTopBorder] = useState(false);
   const [showBottomBorder, setShowBottomBorder] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
-  const { data: projects } = useQueryRunner(connection, getTable);
-  const project = projects[0];
+  const project = useCurrentProject(connection, projectId);
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/project/${projectId}`;

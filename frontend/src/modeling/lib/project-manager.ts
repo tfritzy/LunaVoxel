@@ -75,6 +75,7 @@ export const ProjectManager = class {
         this.cursorManager.updateLocalCursor(position, normal);
       }
     );
+
     this.dbConn.db.layer.onInsert(this.onLayerInsert);
     this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.onDelete(this.onLayerDelete);
@@ -167,14 +168,14 @@ export const ProjectManager = class {
     }
   };
 
-  setupLayers = async () => {
+  setupLayers = () => {
     this.refreshLayers();
-    await this.updateChunkManager();
+    this.updateChunkManager();
   };
 
   updateLayers = async (layers: Layer[]) => {
     this.layers = layers.map(this.decompressLayer);
-    await this.updateChunkManager();
+    this.updateChunkManager();
   };
 
   private refreshLayers = () => {
