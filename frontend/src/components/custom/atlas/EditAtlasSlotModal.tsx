@@ -247,7 +247,7 @@ export const EditAtlasSlotModal = ({
   }
 
   const footer = (
-    <div className="flex flex-row justify-between items-center w-full">
+    <div className="flex flex-row justify-between items-center w-full px-2">
       {!isAdd && (
         <Button variant="outline" onClick={handleDeleteClick}>
           <Trash className="h-4 w-4" />
@@ -279,8 +279,8 @@ export const EditAtlasSlotModal = ({
       title={title}
       footer={footer}
     >
-      <div className="flex flex-col min-h-0">
-        <div className="flex-1 p-6">
+      <div className="flex flex-col min-h-0 pt-2">
+        <div className="flex-1">
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <SelectionCard

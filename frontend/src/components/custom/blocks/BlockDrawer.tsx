@@ -10,7 +10,7 @@ import { DbConnection, ProjectBlocks } from "@/module_bindings";
 import { useQueryRunner } from "@/lib/useQueryRunner";
 
 const BLOCK_WIDTH = "3em";
-const BLOCK_HEIGHT = "4rem";
+const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.5rem";
 const VERTICAL_OVERLAP = "-1.5rem";
 const HORIZONTAL_GAP = "-1.5rem";
