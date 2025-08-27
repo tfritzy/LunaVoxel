@@ -88,7 +88,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center z-100 transition-all duration-200 ease-out ${
+      className={`fixed inset-0 flex items-center justify-center z-100 transition-opacity duration-200 ease-out ${
         isVisible ? "bg-black/10" : "bg-black/0"
       }`}
       onClick={handleBackdropClick}
@@ -100,7 +100,7 @@ export const Modal: React.FC<ModalProps> = ({
         ref={modalRef}
         className={`max-h-[${maxHeight}] ${
           sizeClasses[size]
-        } overflow-y-auto transition-all duration-200 ease-out ${
+        } overflow-y-auto transition-opacity duration-200 ease-out ${
           isVisible
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-95 translate-y-4"
@@ -108,7 +108,7 @@ export const Modal: React.FC<ModalProps> = ({
         tabIndex={-1}
       >
         <div className="bg-background rounded-lg mx-4 shadow-lg border border-border">
-          <div className="p-6">
+          <div className="pl-6 py-2 pr-2">
             <div className="flex items-center justify-between">
               <h2
                 id="modal-title"

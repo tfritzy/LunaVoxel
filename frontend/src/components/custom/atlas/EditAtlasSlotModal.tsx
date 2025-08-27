@@ -11,56 +11,15 @@ import { SelectionCard } from "./SelectionCard";
 import { functions } from "@/firebase/firebase";
 import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { useParams } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useDatabase } from "@/contexts/DatabaseContext";
+import { useQueryRunner } from "@/lib/useQueryRunner";
+import { DbConnection, ProjectBlocks } from "@/module_bindings";
+import { useCallback, useMemo } from "react";
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { createColorTexture, getColorFromTextureData } from "./texture-utils";
 
 type SelectionMode = "color" | "texture";
-
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : { r: 255, g: 255, b: 255 };
-};
-
-const createColorTexture = (color: string, size: number): string => {
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    throw new Error("Could not get canvas context");
-  }
-
-  const rgb = hexToRgb(color);
-  const imageData = ctx.createImageData(size, size);
-
-  for (let i = 0; i < imageData.data.length; i += 4) {
-    imageData.data[i] = rgb.r;
-    imageData.data[i + 1] = rgb.g;
-    imageData.data[i + 2] = rgb.b;
-    imageData.data[i + 3] = 255;
-  }
-
-  ctx.putImageData(imageData, 0, 0);
-  return canvas.toDataURL("image/png").split(",")[1];
-};
-
-const rgbToHex = (r: number, g: number, b: number): string => {
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-};
-
-const getColorFromTextureData = (textureData: ImageData): string => {
-  const data = textureData.data;
-  const r = data[0];
-  const g = data[1];
-  const b = data[2];
-
-  return rgbToHex(r, g, b);
-};
 
 export const EditAtlasSlotModal = ({
   index,
@@ -71,23 +30,44 @@ export const EditAtlasSlotModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { projectId } = useParams();
+  const projectId = useParams().projectId || "";
   const { atlas, atlasSlots } = useAtlasContext();
+  const { connection } = useDatabase();
+  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
+  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
+    connection,
+    getTable
+  );
+  const blocks = allBlocks[0];
   const [selectedColor, setSelectedColor] = useState<string>("#ffffff");
   const [textureData, setTextureData] = useState<ImageData | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("color");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [createNewBlock, setCreateNewBlock] = useState(true);
 
   const slot: AtlasSlot | null = index !== "new" ? atlasSlots[index] : null;
   const isAdd = index === "new";
+
+  const blocksUsingSlot = useMemo(() => {
+    if (!blocks || isAdd) return 0;
+
+    let count = 0;
+    blocks.blockFaceAtlasIndexes.forEach((blockFaces) => {
+      if (blockFaces.some((faceIndex) => faceIndex === index)) {
+        count++;
+      }
+    });
+    return count;
+  }, [blocks, index, isAdd]);
 
   useEffect(() => {
     if (!slot) {
       setSelectedColor("#ffffff");
       setTextureData(null);
       setSelectionMode("color");
+      setCreateNewBlock(true);
       return;
     }
 
@@ -204,6 +184,12 @@ export const EditAtlasSlotModal = ({
           currentUsedSlots: atlas.usedSlots,
           currentGridSize: atlas.gridSize,
         });
+
+        if (createNewBlock) {
+          const newAtlasIndex = atlas.usedSlots;
+          const blockFaces = Array(6).fill(newAtlasIndex);
+          connection?.reducers.addBlock(projectId, blockFaces);
+        }
       } else {
         const updateAtlasIndex = httpsCallable(functions, "updateAtlasIndex");
         await updateAtlasIndex({
@@ -233,6 +219,8 @@ export const EditAtlasSlotModal = ({
     selectedColor,
     index,
     projectId,
+    createNewBlock,
+    connection,
   ]);
 
   const isSubmitDisabled =
@@ -247,36 +235,14 @@ export const EditAtlasSlotModal = ({
 
   if (showDeleteConfirmation) {
     return (
-      <Modal
+      <DeleteConfirmationModal
         isOpen={isOpen}
         onClose={onClose}
-        size="xl"
-        title="Confirm Delete"
-        footer={
-          <div className="flex items-center w-full justify-end space-x-3">
-            <Button variant="outline" onClick={handleDeleteCancel}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              pending={isSubmitting}
-            >
-              <Trash className="h-4 w-4" />
-              Delete
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col min-h-0">
-          <div className="flex-1">
-            <p className="text-sm text-foreground">
-              Are you sure you want to delete this atlas slot? This action
-              cannot be undone.
-            </p>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        isSubmitting={isSubmitting}
+        blocksUsingSlot={blocksUsingSlot}
+      />
     );
   }
 
@@ -345,6 +311,26 @@ export const EditAtlasSlotModal = ({
                 />
               </SelectionCard>
             </div>
+
+            {isAdd && (
+              <div className="bg-background rounded-lg p-4 border border-border shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="create-block"
+                    checked={createNewBlock}
+                    onCheckedChange={(checked) =>
+                      setCreateNewBlock(checked === true)
+                    }
+                  />
+                  <label
+                    htmlFor="create-block"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Create new block with this texture on all sides
+                  </label>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="text-destructive text-sm bg-destructive/10 p-3 rounded-md flex items-start justify-between">

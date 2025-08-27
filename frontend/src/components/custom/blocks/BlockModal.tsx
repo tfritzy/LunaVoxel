@@ -30,25 +30,27 @@ export const BlockModal = ({
     connection,
     getTable
   );
-  const blocks = allBlocks[0];
+  const blocks = allBlocks?.[0];
 
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
   const [selectedFaces, setSelectedFaces] = useState<number[]>(() =>
     isNewBlock
       ? [0, 0, 0, 0, 0, 0]
-      : blocks.blockFaceAtlasIndexes[blockIndex] || [0, 0, 0, 0, 0, 0]
+      : blocks?.blockFaceAtlasIndexes?.[blockIndex as number] || [
+          0, 0, 0, 0, 0, 0,
+        ]
   );
   const [submitPending, setSubmitPending] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && blocks) {
       if (isNewBlock) {
         setApplyToAllFaces(true);
         setSelectedFaces([0, 0, 0, 0, 0, 0]);
       } else {
-        const existingFaces = blocks.blockFaceAtlasIndexes[blockIndex] || [
-          0, 0, 0, 0, 0, 0,
-        ];
+        const existingFaces = blocks.blockFaceAtlasIndexes?.[
+          blockIndex as number
+        ] || [0, 0, 0, 0, 0, 0];
         const allSame = existingFaces.every(
           (index) => index === existingFaces[0]
         );
@@ -56,7 +58,7 @@ export const BlockModal = ({
         setSelectedFaces(existingFaces);
       }
     }
-  }, [isOpen, blockIndex, blocks.blockFaceAtlasIndexes]);
+  }, [isOpen, blockIndex, blocks]);
 
   const handleFaceChange = (faceIndex: number, textureIndex: number) => {
     if (applyToAllFaces) {
@@ -90,6 +92,16 @@ export const BlockModal = ({
     setSubmitPending(false);
     onClose();
   };
+
+  if (!blocks && !isNewBlock) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Loading..." size="md">
+        <div className="flex items-center justify-center h-32">
+          <div className="text-muted-foreground">Loading block data...</div>
+        </div>
+      </Modal>
+    );
+  }
 
   const faceNames = ["Right", "Left", "Top", "Bottom", "Front", "Back"];
   const title = isNewBlock ? "Create New Block" : "Edit Block";
