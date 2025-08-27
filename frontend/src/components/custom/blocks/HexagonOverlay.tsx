@@ -31,7 +31,7 @@ export const HexagonOverlay = ({
         <polygon
           className="fill-transparent"
           points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
-          stroke={isSelected ? "white" : "#ffffff88"}
+          stroke={isSelected ? "white" : "#ffffff66"}
           strokeWidth={isSelected ? 1 : 2}
           opacity={isSelected ? 1 : 1}
         />

@@ -17,7 +17,6 @@ export const FloatingToolbar = ({
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return;
       }
-
       switch (event.key.toLowerCase()) {
         case 'a':
           onToolChange({ tag: "Build" });
@@ -30,13 +29,12 @@ export const FloatingToolbar = ({
           break;
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onToolChange]);
 
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
       <div className="flex items-center gap-1">
         <Button
           onClick={() => onToolChange({ tag: "Build" })}
@@ -51,7 +49,6 @@ export const FloatingToolbar = ({
             A
           </div>
         </Button>
-
         <Button
           onClick={() => onToolChange({ tag: "Erase" })}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${currentTool.tag === "Erase"
@@ -65,7 +62,6 @@ export const FloatingToolbar = ({
             E
           </div>
         </Button>
-
         <Button
           onClick={() => onToolChange({ tag: "Paint" })}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${currentTool.tag === "Paint"
@@ -79,7 +75,6 @@ export const FloatingToolbar = ({
             T
           </div>
         </Button>
-
         {Array.from({ length: 5 }, (_, i) => (
           <div
             key={i}

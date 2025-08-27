@@ -2,21 +2,13 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { FloatingToolbar } from "@/components/custom/FloatingToolbar";
-import {
-  BlockModificationMode,
-  DbConnection,
-  Project,
-} from "@/module_bindings";
-import { ProjectHeader } from "@/components/custom/ProjectHeader";
-import { BlockDrawer } from "@/components/custom/blocks/BlockDrawer";
-import { RightSideDrawer } from "@/components/custom/RightSideDrawer";
+import { BlockModificationMode } from "@/module_bindings";
 import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
-import { useQueryRunner } from "@/lib/useQueryRunner";
 import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useCurrentProject } from "@/lib/useCurrentProject";
+import { ProjectLayout } from "@/components/custom/ProjectLayout";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -91,18 +83,24 @@ export const ProjectViewPage = () => {
       if (!node || !connection || !project || !projectId) return;
       if (engineRef.current) return;
 
-      const savedCameraState = CameraStatePersistence.load(projectId);
-      engineRef.current = new VoxelEngine({
-        container: node,
-        connection,
-        project,
-        initialCameraState: savedCameraState || undefined,
-      });
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!node.isConnected) return; // Check if node is still in DOM
 
-      engineRef.current.projectManager.setSelectedBlock(selectedBlock);
-      engineRef.current.projectManager.setTool(currentTool);
-      engineRef.current.projectManager.setAtlas(atlas);
-      engineRef.current.projectManager.setTextureAtlas(textureAtlas);
+          const savedCameraState = CameraStatePersistence.load(projectId);
+          engineRef.current = new VoxelEngine({
+            container: node,
+            connection,
+            project,
+            initialCameraState: savedCameraState || undefined,
+          });
+
+          engineRef.current.projectManager.setSelectedBlock(selectedBlock);
+          engineRef.current.projectManager.setTool(currentTool);
+          engineRef.current.projectManager.setAtlas(atlas);
+          engineRef.current.projectManager.setTextureAtlas(textureAtlas);
+        });
+      });
     },
     [
       connection,
@@ -158,44 +156,27 @@ export const ProjectViewPage = () => {
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
-          <p className="text-lg font-medium">
-            {status === "poke-attempted"
-              ? "Checking project access..."
-              : "Loading project..."}
-          </p>
+          <p className="text-lg font-medium">Loading project...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <ProjectHeader onExport={handleExport} />
-      <div className="h-full flex">
-        <div className="flex-1 relative">
-          <BlockDrawer
-            projectId={projectId || ""}
-            selectedBlock={selectedBlock}
-            setSelectedBlock={setSelectedBlock}
-          />
-
-          <div
-            ref={containerCallbackRef}
-            className="h-full"
-            style={{ height: "calc(100vh - 64px)", cursor: customCursor }}
-          />
-
-          <FloatingToolbar
-            currentTool={currentTool}
-            onToolChange={handleToolChange}
-          />
-
-          <RightSideDrawer
-            projectId={projectId || ""}
-            onSelectLayer={handleLayerSelect}
-          />
-        </div>
-      </div>
-    </div>
+    <ProjectLayout
+      projectId={projectId}
+      selectedBlock={selectedBlock}
+      setSelectedBlock={setSelectedBlock}
+      currentTool={currentTool}
+      onToolChange={handleToolChange}
+      onExport={handleExport}
+      onSelectLayer={handleLayerSelect}
+    >
+      <div
+        ref={containerCallbackRef}
+        className="h-full w-full"
+        style={{ cursor: customCursor }}
+      />
+    </ProjectLayout>
   );
 };
