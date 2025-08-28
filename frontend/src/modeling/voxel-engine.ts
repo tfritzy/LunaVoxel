@@ -66,7 +66,6 @@ export class VoxelEngine {
     window.addEventListener("resize", this.handleResize);
 
     this.animate();
-    this.setupPerformanceMonitoring();
   }
 
   getCameraState(): CameraState {

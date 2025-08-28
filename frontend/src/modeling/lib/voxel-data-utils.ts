@@ -69,6 +69,25 @@ export const setVersion = (blockValue: number, version: number): number => {
   );
 };
 
+const countRuns = (data: number[]): number => {
+  let runCount = 0;
+  let i = 0;
+  while (i < data.length) {
+    const value = data[i];
+    let runLength = 1;
+    let j = i + 1;
+
+    while (j < data.length && data[j] === value && runLength < 0xffff) {
+      runLength++;
+      j++;
+    }
+
+    runCount++;
+    i = j;
+  }
+  return runCount;
+};
+
 const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
   const data = Array.isArray(voxelData) ? voxelData : Array.from(voxelData);
 
@@ -76,14 +95,17 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
     throw new Error("Voxel data must not be empty");
   }
 
-  const compressed: number[] = [];
+  const runCount = countRuns(data);
+  const totalSize = 4 + (runCount * 6);
+  const compressed = new Uint8Array(totalSize);
 
   const originalLength = data.length;
-  compressed.push(originalLength & 0xff);
-  compressed.push((originalLength >> 8) & 0xff);
-  compressed.push((originalLength >> 16) & 0xff);
-  compressed.push((originalLength >> 24) & 0xff);
+  compressed[0] = originalLength & 0xff;
+  compressed[1] = (originalLength >> 8) & 0xff;
+  compressed[2] = (originalLength >> 16) & 0xff;
+  compressed[3] = (originalLength >> 24) & 0xff;
 
+  let writeIndex = 4;
   let i = 0;
   while (i < data.length) {
     const value = data[i];
@@ -98,17 +120,18 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
     const valueLow = value & 0xffff;
     const valueHigh = (value >> 16) & 0xffff;
 
-    compressed.push(valueLow & 0xff);
-    compressed.push((valueLow >> 8) & 0xff);
-    compressed.push(valueHigh & 0xff);
-    compressed.push((valueHigh >> 8) & 0xff);
-    compressed.push(runLength & 0xff);
-    compressed.push((runLength >> 8) & 0xff);
+    compressed[writeIndex] = valueLow & 0xff;
+    compressed[writeIndex + 1] = (valueLow >> 8) & 0xff;
+    compressed[writeIndex + 2] = valueHigh & 0xff;
+    compressed[writeIndex + 3] = (valueHigh >> 8) & 0xff;
+    compressed[writeIndex + 4] = runLength & 0xff;
+    compressed[writeIndex + 5] = (runLength >> 8) & 0xff;
 
+    writeIndex += 6;
     i = j;
   }
 
-  return new Uint8Array(compressed);
+  return compressed;
 };
 
 const rleDecompress = (rleData: Uint8Array): Uint32Array => {
@@ -124,7 +147,8 @@ const rleDecompress = (rleData: Uint8Array): Uint32Array => {
     throw new Error("RLE data must be in 6-byte groups");
   }
 
-  const decompressed: number[] = [];
+  const decompressed = new Uint32Array(originalLength);
+  let writeIndex = 0;
 
   for (let i = dataStartIndex; i < rleData.length; i += 6) {
     const valueLow = rleData[i] | (rleData[i + 1] << 8);
@@ -134,11 +158,11 @@ const rleDecompress = (rleData: Uint8Array): Uint32Array => {
     const value = (valueLow & 0xffff) | ((valueHigh & 0xffff) << 16);
 
     for (let j = 0; j < runLength; j++) {
-      decompressed.push(value);
+      decompressed[writeIndex++] = value;
     }
   }
 
-  return new Uint32Array(decompressed);
+  return decompressed;
 };
 
 export const compressVoxelData = (

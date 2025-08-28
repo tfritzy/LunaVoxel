@@ -2,8 +2,8 @@ import { DbConnection } from "@/module_bindings";
 import { compressVoxelData } from "./voxel-data-utils";
 
 type HistoryEntry = {
-  beforeDiff: Uint8Array;
-  afterDiff: Uint8Array;
+  beforeDiff: Uint32Array;
+  afterDiff: Uint32Array;
   layer: number;
   isUndone: boolean;
 };
@@ -25,15 +25,14 @@ export class EditHistory {
 
     for (let i = 0; i < previous.length; i++) {
       if (previous[i] == updated[i]) {
-        // Not part of the diff.
         previous[i] = 0;
         updated[i] = 0;
       }
     }
 
     this.entries.push({
-      beforeDiff: compressVoxelData(previous),
-      afterDiff: compressVoxelData(updated),
+      beforeDiff: previous,
+      afterDiff: updated,
       layer: layer,
       isUndone: false,
     });
@@ -42,12 +41,14 @@ export class EditHistory {
   undo() {
     const headIndex = this.entries.findLastIndex((e) => !e.isUndone);
     if (headIndex < 0) return;
+
     const head = this.entries[headIndex];
     head.isUndone = true;
+
     this.db.reducers.undoEdit(
       this.projectId,
-      head.beforeDiff,
-      head.afterDiff,
+      compressVoxelData(head.beforeDiff),
+      compressVoxelData(head.afterDiff),
       head.layer
     );
   }
@@ -55,12 +56,14 @@ export class EditHistory {
   redo() {
     const firstUndoneIndex = this.entries.findIndex((e) => e.isUndone);
     if (firstUndoneIndex < 0) return;
+
     const firstUndone = this.entries[firstUndoneIndex];
     firstUndone.isUndone = false;
+
     this.db.reducers.undoEdit(
       this.projectId,
-      firstUndone.afterDiff,
-      firstUndone.beforeDiff,
+      compressVoxelData(firstUndone.afterDiff),
+      compressVoxelData(firstUndone.beforeDiff),
       firstUndone.layer
     );
   }
