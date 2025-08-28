@@ -153,7 +153,7 @@ public static partial class Module
                 yDim = yDim,
                 zDim = zDim,
                 Index = index,
-                Voxels = VoxelRLE.Compress(voxels),
+                Voxels = VoxelCompression.Compress(voxels),
                 Visible = true,
                 Locked = false,
                 Name = $"Layer {index}"

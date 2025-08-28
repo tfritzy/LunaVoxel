@@ -12,7 +12,7 @@ public static partial class Module
     {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
              ?? throw new ArgumentException("No layer for this project");
-        var diffData = VoxelRLE.Decompress(compressedDiffData);
+        var diffData = VoxelCompression.Decompress(compressedDiffData);
         ModifyBlock(ctx, projectId, diffData, layerIndex);
     }
 }

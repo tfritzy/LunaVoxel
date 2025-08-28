@@ -12,7 +12,7 @@ public static partial class Module
 
         if (layer.Locked) return;
 
-        uint[] voxels = VoxelRLE.Decompress(layer.Voxels);
+        uint[] voxels = VoxelCompression.Decompress(layer.Voxels);
         for (int i = 0; i < diffData.Length; i++)
         {
             if (diffData[i] != 0)
@@ -21,7 +21,7 @@ public static partial class Module
             }
         }
 
-        layer.Voxels = VoxelRLE.Compress(voxels);
+        layer.Voxels = VoxelCompression.Compress(voxels);
         ctx.Db.layer.Id.Update(layer);
 
         var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("No such project");

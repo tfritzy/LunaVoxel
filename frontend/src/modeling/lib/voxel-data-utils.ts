@@ -1,3 +1,5 @@
+import LZ4 from 'lz4js';
+
 export const PREVIEW_BIT_MASK = 0x08;
 export const BLOCK_TYPE_SHIFT = 6;
 export const BLOCK_TYPE_MASK = 0x3ff;
@@ -67,9 +69,7 @@ export const setVersion = (blockValue: number, version: number): number => {
   );
 };
 
-export const compressVoxelData = (
-  voxelData: Uint32Array | number[]
-): Uint8Array => {
+const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
   const data = Array.isArray(voxelData) ? voxelData : Array.from(voxelData);
 
   if (data.length === 0) {
@@ -77,8 +77,14 @@ export const compressVoxelData = (
   }
 
   const compressed: number[] = [];
-  let i = 0;
 
+  const originalLength = data.length;
+  compressed.push(originalLength & 0xff);
+  compressed.push((originalLength >> 8) & 0xff);
+  compressed.push((originalLength >> 16) & 0xff);
+  compressed.push((originalLength >> 24) & 0xff);
+
+  let i = 0;
   while (i < data.length) {
     const value = data[i];
     let runLength = 1;
@@ -105,30 +111,25 @@ export const compressVoxelData = (
   return new Uint8Array(compressed);
 };
 
-export const decompressVoxelData = (
-  compressedData: Uint8Array | number[]
-): Uint32Array => {
-  const data = Array.isArray(compressedData)
-    ? compressedData
-    : new Array(compressedData.length);
-  if (!Array.isArray(compressedData)) {
-    for (let i = 0; i < compressedData.length; i++) {
-      data[i] = compressedData[i];
-    }
-  }
+const rleDecompress = (rleData: Uint8Array): Uint32Array => {
+  const originalLength =
+    rleData[0] |
+    (rleData[1] << 8) |
+    (rleData[2] << 16) |
+    (rleData[3] << 24);
 
-  if (data.length % 6 !== 0) {
-    throw new Error(
-      "Compressed data must be in 6-byte groups (valueLow_bytes, valueHigh_bytes, runLength_bytes)"
-    );
+  const dataStartIndex = 4;
+
+  if ((rleData.length - dataStartIndex) % 6 !== 0) {
+    throw new Error("RLE data must be in 6-byte groups");
   }
 
   const decompressed: number[] = [];
 
-  for (let i = 0; i < data.length; i += 6) {
-    const valueLow = data[i] | (data[i + 1] << 8);
-    const valueHigh = data[i + 2] | (data[i + 3] << 8);
-    const runLength = data[i + 4] | (data[i + 5] << 8);
+  for (let i = dataStartIndex; i < rleData.length; i += 6) {
+    const valueLow = rleData[i] | (rleData[i + 1] << 8);
+    const valueHigh = rleData[i + 2] | (rleData[i + 3] << 8);
+    const runLength = rleData[i + 4] | (rleData[i + 5] << 8);
 
     const value = (valueLow & 0xffff) | ((valueHigh & 0xffff) << 16);
 
@@ -140,42 +141,41 @@ export const decompressVoxelData = (
   return new Uint32Array(decompressed);
 };
 
+export const compressVoxelData = (
+  voxelData: Uint32Array | number[]
+): Uint8Array => {
+  const rleCompressed = rleCompress(voxelData);
+
+  const lz4Compressed = LZ4.compress(rleCompressed);
+
+  return new Uint8Array(lz4Compressed);
+};
+
+export const decompressVoxelData = (
+  compressedData: Uint8Array | number[]
+): Uint32Array => {
+  const data = compressedData instanceof Uint8Array
+    ? compressedData
+    : new Uint8Array(compressedData);
+
+  const rleData = LZ4.decompress(data);
+
+  return rleDecompress(new Uint8Array(rleData));
+};
+
 export const getVoxelAt = (
   compressedData: Uint8Array | number[],
   voxelIndex: number
 ): number => {
-  const data = Array.isArray(compressedData)
-    ? compressedData
-    : new Array(compressedData.length);
-  if (!Array.isArray(compressedData)) {
-    for (let i = 0; i < compressedData.length; i++) {
-      data[i] = compressedData[i];
-    }
-  }
-
-  if (data.length % 6 !== 0) {
-    throw new Error(
-      "Compressed data must be in 6-byte groups (valueLow_bytes, valueHigh_bytes, runLength_bytes)"
-    );
-  }
-
   if (voxelIndex < 0) {
     throw new Error("Voxel index must be non-negative");
   }
 
-  let currentVoxelIndex = 0;
+  const decompressedData = decompressVoxelData(compressedData);
 
-  for (let i = 0; i < data.length; i += 6) {
-    const valueLow = data[i] | (data[i + 1] << 8);
-    const valueHigh = data[i + 2] | (data[i + 3] << 8);
-    const runLength = data[i + 4] | (data[i + 5] << 8);
-
-    if (voxelIndex < currentVoxelIndex + runLength) {
-      return (valueLow & 0xffff) | ((valueHigh & 0xffff) << 16);
-    }
-
-    currentVoxelIndex += runLength;
+  if (voxelIndex >= decompressedData.length) {
+    throw new Error("Voxel index is beyond the data range");
   }
 
-  throw new Error("Voxel index is beyond the compressed data range");
+  return decompressedData[voxelIndex];
 };

@@ -17,7 +17,7 @@ public static partial class Module
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
              ?? throw new ArgumentException("No layer for this project");
         uint[] diffData = new uint[layer.xDim * layer.yDim * layer.zDim];
-        var existingData = VoxelRLE.Decompress(layer.Voxels);
+        var existingData = VoxelCompression.Decompress(layer.Voxels);
 
         int minX = Math.Max(Math.Min(start.X, end.X), 0);
         int maxX = Math.Min(Math.Max(start.X, end.X), layer.xDim - 1);

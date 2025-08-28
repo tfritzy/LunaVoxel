@@ -13,9 +13,9 @@ public static partial class Module
     {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
              ?? throw new ArgumentException("No layer for this project");
-        var beforeData = VoxelRLE.Decompress(beforeDiff);
-        var afterData = VoxelRLE.Decompress(afterDiff);
-        var layerData = VoxelRLE.Decompress(layer.Voxels);
+        var beforeData = VoxelCompression.Decompress(beforeDiff);
+        var afterData = VoxelCompression.Decompress(afterDiff);
+        var layerData = VoxelCompression.Decompress(layer.Voxels);
 
         for (int i = 0; i < beforeData.Length; i++)
         {
