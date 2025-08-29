@@ -292,15 +292,17 @@ export class ChunkManager {
     try {
       if (!this.textureAtlas) return;
 
-      const visibleLayers = layers.filter((layer) => layer.visible);
+      const visibleLayers = layers
+        .filter((layer) => layer.visible)
+        .sort((l1, l2) => l2.index - l1.index);
 
       if (visibleLayers.length === 0) {
         this.clearBlocks(this.blocksToRender);
       } else {
-        const firstLayer = visibleLayers[0];
+        const firstLayer = visibleLayers[visibleLayers.length - 1];
         this.blocksToRender.set(firstLayer.voxels);
 
-        for (let i = 1; i < visibleLayers.length; i++) {
+        for (let i = visibleLayers.length - 2; i >= 0; i--) {
           this.addLayerToBlocks(visibleLayers[i], this.blocksToRender);
         }
       }

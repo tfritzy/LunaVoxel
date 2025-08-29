@@ -44,7 +44,7 @@ export const LayersSection = ({
   );
 
   const sortedLayers = useMemo(() => {
-    return layers ? [...layers].sort((a, b) => a.index - b.index) : [];
+    return layers ? [...layers].sort((a, b) => b.index - a.index) : [];
   }, [layers]);
 
   useEffect(() => {
