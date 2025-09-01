@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,12 +7,13 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDatabase } from "@/contexts/DatabaseContext";
 
-export const EditDropdown = () => {
-  const { projectId } = useParams<{ projectId: string }>();
-  const { connection } = useDatabase();
+interface EditDropdownProps {
+  onUndo: () => void;
+  onRedo: () => void;
+}
 
+export const EditDropdown = ({ onUndo, onRedo }: EditDropdownProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -22,18 +21,18 @@ export const EditDropdown = () => {
           Edit
         </Button>
       </DropdownMenuTrigger>
-      {/* <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={handleUndo}>
+      <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem onClick={onUndo} >
           <Undo2 className="mr-2 h-4 w-4" />
           Undo
           <DropdownMenuShortcut>⌘Z</DropdownMenuShortcut>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleRedo}>
+        <DropdownMenuItem onClick={onRedo} >
           <Redo2 className="mr-2 h-4 w-4" />
           Redo
           <DropdownMenuShortcut>⌘⇧Z</DropdownMenuShortcut>
         </DropdownMenuItem>
-      </DropdownMenuContent> */}
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 };

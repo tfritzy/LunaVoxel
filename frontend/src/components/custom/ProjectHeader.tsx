@@ -16,9 +16,11 @@ import { ExportType } from "@/modeling/export/model-exporter";
 
 interface ProjectHeaderProps {
   onExport: (format: ExportType) => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
-export function ProjectHeader({ onExport }: ProjectHeaderProps) {
+export function ProjectHeader({ onExport, onUndo, onRedo }: ProjectHeaderProps) {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -79,7 +81,12 @@ export function ProjectHeader({ onExport }: ProjectHeaderProps) {
                   onOpenProject={handleOpenProject}
                   onExport={onExport}
                 />
-                {projectId && <EditDropdown />}
+                {projectId && onUndo && onRedo && (
+                  <EditDropdown
+                    onUndo={onUndo}
+                    onRedo={onRedo}
+                  />
+                )}
               </div>
             </div>
           </div>

@@ -34,6 +34,18 @@ export const ProjectViewPage = () => {
     }
   }, []);
 
+  const handleUndo = useCallback(() => {
+    if (engineRef.current?.projectManager) {
+      engineRef.current.projectManager.undo();
+    }
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (engineRef.current?.projectManager) {
+      engineRef.current.projectManager.redo();
+    }
+  }, []);
+
   useEffect(() => {
     if (!connection) return;
 
@@ -85,7 +97,7 @@ export const ProjectViewPage = () => {
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (!node.isConnected) return; // Check if node is still in DOM
+          if (!node.isConnected) return;
 
           const savedCameraState = CameraStatePersistence.load(projectId);
           engineRef.current = new VoxelEngine({
@@ -102,15 +114,7 @@ export const ProjectViewPage = () => {
         });
       });
     },
-    [
-      connection,
-      project,
-      projectId,
-      selectedBlock,
-      currentTool,
-      atlas,
-      textureAtlas
-    ]
+    [connection, project, projectId, selectedBlock, currentTool, atlas, textureAtlas]
   );
 
   useEffect(() => {
@@ -136,13 +140,13 @@ export const ProjectViewPage = () => {
   }, [currentTool]);
 
   useEffect(() => {
-    if (engineRef.current) {
+    if (engineRef.current?.projectManager && atlas) {
       engineRef.current.projectManager.setAtlas(atlas);
     }
   }, [atlas]);
 
   useEffect(() => {
-    if (engineRef.current && textureAtlas) {
+    if (engineRef.current?.projectManager && textureAtlas) {
       engineRef.current.projectManager.setTextureAtlas(textureAtlas);
     }
   }, [textureAtlas]);
@@ -168,13 +172,15 @@ export const ProjectViewPage = () => {
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
-      onToolChange={handleToolChange}
+      onToolChange={setCurrentTool}
       onExport={handleExport}
       onSelectLayer={handleLayerSelect}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
     >
       <div
         ref={containerCallbackRef}
-        className="h-full w-full"
+        className="w-full h-full bg-background"
         style={{ cursor: customCursor }}
       />
     </ProjectLayout>

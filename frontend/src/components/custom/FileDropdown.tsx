@@ -45,10 +45,6 @@ export function FileDropdown({
           Open
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled onClick={onOpenProject}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Import (WIP)
-        </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <FileUp className="mr-2 h-4 w-4" />

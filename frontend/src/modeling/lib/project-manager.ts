@@ -82,6 +82,14 @@ export const ProjectManager = class {
     this.setupLayers();
   }
 
+  public undo = (): void => {
+    this.editHistory.undo();
+  };
+
+  public redo = (): void => {
+    this.editHistory.redo();
+  };
+
   private setupKeyboardEvents = () => {
     const handler = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey) {

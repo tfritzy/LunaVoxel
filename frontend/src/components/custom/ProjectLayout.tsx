@@ -13,6 +13,8 @@ interface ProjectLayoutProps {
     onToolChange: (tool: BlockModificationMode) => void;
     onExport: (format: ExportType) => void;
     onSelectLayer?: (layerIndex: number) => void;
+    onUndo: () => void;
+    onRedo: () => void;
     children: React.ReactNode;
 }
 
@@ -24,11 +26,17 @@ export const ProjectLayout = ({
     onToolChange,
     onExport,
     onSelectLayer,
+    onUndo,
+    onRedo,
     children,
 }: ProjectLayoutProps) => {
     return (
         <div className="h-screen w-screen flex flex-col bg-background">
-            <ProjectHeader onExport={onExport} />
+            <ProjectHeader
+                onExport={onExport}
+                onUndo={onUndo}
+                onRedo={onRedo}
+            />
 
             <div className="flex flex-1 min-h-0">
                 <BlockDrawer
