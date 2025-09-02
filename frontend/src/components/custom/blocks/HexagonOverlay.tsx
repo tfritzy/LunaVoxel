@@ -32,7 +32,7 @@ export const HexagonOverlay = ({
           className="fill-transparent"
           points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
           stroke={isSelected ? "white" : "#ffffff44"}
-          strokeWidth={isSelected ? 1 : 2}
+          strokeWidth={isSelected ? 4 : 2}
           opacity={isSelected ? 1 : 1}
         />
       </svg>

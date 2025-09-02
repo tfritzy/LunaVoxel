@@ -41,9 +41,9 @@ export const createProject = async (
     const result = await createProjectFunction({
       id,
       name,
-      xDim: 64,
-      yDim: 64,
-      zDim: 64,
+      xDim: 32,
+      yDim: 32,
+      zDim: 32,
       userIdentity: connection.identity.toHexString(),
       spacetimeToken: connection.token,
     });

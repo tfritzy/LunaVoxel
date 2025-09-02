@@ -144,20 +144,23 @@ function createBatchedGridLines(
     transparent: true,
   });
 
-  const lineWidths = [0.01, 0.02, 0.04, 0.06];
+  const lineWidths = [0.01, 0.02, 0.04, 0.08];
   const geometries: THREE.BufferGeometry[] = [];
   const lineThickness = 0.001;
   const lineYPosition = 0.001;
 
-  function getLineWidthForGrid(index: number): number {
-    if (index % 20 === 0) return lineWidths[3];
-    if (index % 4 === 0) return lineWidths[2];
-    if (index % 2 === 0) return lineWidths[1];
+  function getLineWidthForGrid(index: number, worldDim: number): number {
+    const center = worldDim / 2;
+    const offsetIndex = Math.round(index - center);
+
+    if (offsetIndex % 20 === 0) return lineWidths[3];
+    if (offsetIndex % 4 === 0) return lineWidths[2];
+    if (offsetIndex % 2 === 0) return lineWidths[1];
     return lineWidths[0];
   }
 
   for (let i = 0; i <= worldXDim; i++) {
-    const dynamicLineWidth = getLineWidthForGrid(i);
+    const dynamicLineWidth = getLineWidthForGrid(i, worldXDim);
     const vLineGeom = new THREE.BoxGeometry(
       dynamicLineWidth,
       lineThickness,
@@ -168,7 +171,7 @@ function createBatchedGridLines(
   }
 
   for (let i = 0; i <= worldYDim; i++) {
-    const dynamicLineWidth = getLineWidthForGrid(i);
+    const dynamicLineWidth = getLineWidthForGrid(i, worldYDim);
     const hLineGeom = new THREE.BoxGeometry(
       worldXDim,
       lineThickness,

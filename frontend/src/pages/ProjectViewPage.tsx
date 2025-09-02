@@ -15,6 +15,7 @@ export const ProjectViewPage = () => {
   const { connection } = useDatabase();
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
+  const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
     tag: "Build",
@@ -46,6 +47,18 @@ export const ProjectViewPage = () => {
     }
   }, []);
 
+  const disposeEngine = useCallback(() => {
+    if (engineRef.current) {
+      if (projectId) {
+        const cameraState = engineRef.current.getCameraState();
+        CameraStatePersistence.save(projectId, cameraState);
+      }
+      engineRef.current.dispose();
+      engineRef.current = null;
+      isInitializedRef.current = false;
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!connection) return;
 
@@ -76,28 +89,22 @@ export const ProjectViewPage = () => {
   }, [selectedBlock]);
 
   useEffect(() => {
-    if (!projectId || !connection) return;
-
     return () => {
-      if (engineRef.current) {
-        if (projectId) {
-          const cameraState = engineRef.current.getCameraState();
-          CameraStatePersistence.save(projectId, cameraState);
-        }
-        engineRef.current.dispose();
-        engineRef.current = null;
-      }
+      disposeEngine();
     };
-  }, [projectId, connection]);
+  }, [projectId, disposeEngine]);
 
   const containerCallbackRef = useCallback(
     (node: HTMLDivElement | null) => {
-      if (!node || !connection || !project || !projectId) return;
-      if (engineRef.current) return;
+      containerRef.current = node;
+
+      if (!node || !connection || !project || !projectId || isInitializedRef.current) return;
+
+      isInitializedRef.current = true;
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (!node.isConnected) return;
+          if (!node.isConnected || engineRef.current) return;
 
           const savedCameraState = CameraStatePersistence.load(projectId);
           engineRef.current = new VoxelEngine({
@@ -172,7 +179,7 @@ export const ProjectViewPage = () => {
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
-      onToolChange={setCurrentTool}
+      onToolChange={handleToolChange}
       onExport={handleExport}
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}
