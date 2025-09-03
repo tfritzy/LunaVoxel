@@ -127,12 +127,24 @@ export class ChunkManager {
     }
   }
 
-  setTextureAtlas = (textureAtlas: THREE.Texture) => {
+  setTextureAtlas = (
+    textureAtlas: THREE.Texture,
+    buildMode: BlockModificationMode,
+    blocks: ProjectBlocks | null,
+    atlas: Atlas | null
+  ) => {
     this.textureAtlas = textureAtlas;
     for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
       for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
         for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
           this.chunks[chunkX][chunkY][chunkZ].setTextureAtlas(textureAtlas);
+          this.copyChunkData(chunkX, chunkY, chunkZ, this.renderedBlocks);
+          if (blocks && atlas)
+            this.chunks[chunkX][chunkY][chunkZ].update(
+              buildMode,
+              blocks,
+              atlas
+            );
         }
       }
     }

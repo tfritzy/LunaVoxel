@@ -171,7 +171,7 @@ export const ProjectManager = class {
   setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
     this.textureAtlas = textureAtlas;
     if (textureAtlas) {
-      this.chunkManager.setTextureAtlas(textureAtlas);
+      this.chunkManager.setTextureAtlas(textureAtlas, this.builder.getTool(), this.blocks, this.atlas);
       this.updateChunkManager();
     }
   };
