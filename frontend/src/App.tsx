@@ -111,7 +111,7 @@ function AppContent() {
 
         DbConnection.builder()
           .withUri(config.uri)
-          .withModuleName("lunavoxel")
+          .withModuleName("lunavoxel-db")
           .withToken(idToken || localStorage.getItem("auth_token") || "")
           .onConnect(handleConnect)
           .onDisconnect(handleDisconnect)

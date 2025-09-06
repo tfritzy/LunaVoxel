@@ -37,7 +37,7 @@ export const syncUser = onCall<SyncUserRequest, Promise<SyncUserResponse>>(
         };
       }
 
-      await callSpacetimeDB("/v1/database/lunavoxel/call/SyncUser", "POST", [
+      await callSpacetimeDB("/v1/database/lunavoxel-db/call/SyncUser", "POST", [
         identity,
         decodedToken.email || "",
         decodedToken.name || "",

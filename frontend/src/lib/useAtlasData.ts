@@ -26,11 +26,7 @@ interface UseAtlasDataReturn {
 export const useAtlasData = (projectId: string): UseAtlasDataReturn => {
   const { connection } = useDatabase();
   const getTable = useCallback((db: DbConnection) => db.db.atlas, []);
-  const { data: atlasData } = useQueryRunner<Atlas>(
-    connection,
-    `SELECT * FROM atlas WHERE ProjectId='${projectId}'`,
-    getTable
-  );
+  const { data: atlasData } = useQueryRunner<Atlas>(connection, getTable);
 
   const atlas = atlasData.length > 0 ? atlasData[0] : null;
 

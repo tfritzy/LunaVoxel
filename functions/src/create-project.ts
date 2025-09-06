@@ -124,7 +124,7 @@ export const createProject = onCall<
     logger.info(`Creating project: ${id} - ${name} for user: ${userIdentity}`);
 
     const createProjectResponse = await callSpacetimeDB(
-      "/v1/database/lunavoxel/call/CreateProject",
+      "/v1/database/lunavoxel-db/call/CreateProject",
       "POST",
       [id, name, xDim, yDim, zDim],
       spacetimeToken
@@ -174,7 +174,7 @@ export const createProject = onCall<
     logger.info("Atlas uploaded, updating atlas in SpacetimeDB");
 
     const updateAtlasResponse = await callSpacetimeDB(
-      "/v1/database/lunavoxel/call/UpdateAtlas",
+      "/v1/database/lunavoxel-db/call/UpdateAtlas",
       "POST",
       [id, gridSize, 1, 64]
     );

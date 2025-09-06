@@ -31,7 +31,7 @@ export const CurrentProjectProvider = ({
   const { atlas, slots, texture } = useAtlas(projectId || "");
 
   const atlasValue = useMemo<AtlasContextType | undefined>(
-    () => ({ atlas, atlasSlots: slots, textureAtlas: texture }),
+    () => ({ atlas: atlas!, atlasSlots: slots, textureAtlas: texture }),
     [atlas, slots, texture]
   );
 

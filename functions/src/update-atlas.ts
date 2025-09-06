@@ -48,7 +48,7 @@ const callSpacetimeUpdateAtlas = async (
   newUsedSlots: number
 ): Promise<void> => {
   const response = await callSpacetimeDB(
-    "/v1/database/lunavoxel/call/UpdateAtlas",
+    "/v1/database/lunavoxel-db/call/UpdateAtlas",
     "POST",
     [projectId, newGridSize, newCellPixelWidth, newUsedSlots]
   );
@@ -68,7 +68,7 @@ const callSpacetimeDeleteAtlasIndex = async (
   newUsedSlots: number
 ): Promise<void> => {
   const response = await callSpacetimeDB(
-    "/v1/database/lunavoxel/call/DeleteAtlasIndex",
+    "/v1/database/lunavoxel-db/call/DeleteAtlasIndex",
     "POST",
     [projectId, index, newGridSize, actualCellPixelWidth, newUsedSlots]
   );

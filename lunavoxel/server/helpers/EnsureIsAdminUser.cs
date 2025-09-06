@@ -6,7 +6,7 @@ public static class EnsureIsAdminUser
     {
         var callerIdentity = ctx.Sender.ToString();
         var isDev = callerIdentity.ToLower() == "c200ae0b3cfef9874dc4d22349c31d54e2a63737bab422d1339d2780a4a1f3aa";
-        var isProd = callerIdentity.ToLower() == "c200cbc423731cb43c1a9185ac9df0ddc76494eef51a95999bc015ba01a8d1e5";
+        var isProd = callerIdentity.ToLower() == "c200a66ecc0876a0e621dc5a47de270237aaac6d3ba3c2915f490aeabcd9c599";
 
         if (!isDev && !isProd)
         {

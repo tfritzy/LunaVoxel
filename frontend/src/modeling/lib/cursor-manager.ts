@@ -143,8 +143,16 @@ export class CursorManager {
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.layers.set(layers.ghost);
-    mesh.position.set(cursor.position.x, cursor.position.y, cursor.position.z);
-    this.orientCursorToNormal(mesh, cursor.normal);
+    if (cursor.position) {
+      mesh.position.set(
+        cursor.position.x,
+        cursor.position.y,
+        cursor.position.z
+      );
+    }
+    if (cursor.normal) {
+      this.orientCursorToNormal(mesh, cursor.normal);
+    }
 
     this.cursors.set(cursor.id, mesh);
     this.scene.add(mesh);
