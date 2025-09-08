@@ -1,57 +1,72 @@
-import { BlockPreview } from "./BlockPreview";
 import { HexagonOverlay } from "./HexagonOverlay";
-import { BlockFacePreview } from "./BlockFacePreview";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { FileQuestion, Plus } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { BlockModal } from "./BlockModal";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { DbConnection, ProjectBlocks } from "@/module_bindings";
-import { useQueryRunner } from "@/lib/useQueryRunner";
+import { Texture } from "three";
+import { useBlockTextures } from "@/lib/useBlockTextures";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
-const HORIZONTAL_OFFSET = "1.5rem";
-const VERTICAL_OVERLAP = "-1.5rem";
+const HORIZONTAL_OFFSET = "1.44rem";
+const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = ({
   selectedBlock,
   setSelectedBlock,
+  blockFaceMappings,
+  textureAtlas,
 }: {
   projectId: string;
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
+  blockFaceMappings: number[][];
+  textureAtlas: Texture;
 }) => {
-  const { connection } = useDatabase();
-  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
-  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
-    connection,
-    getTable
-  );
-  const blocks = allBlocks[0];
   const [editingBlockIndex, setEditingBlockIndex] = useState<
     number | "new" | null
   >(null);
 
+  const { getBlockTexture, isReady } = useBlockTextures(
+    textureAtlas,
+    blockFaceMappings,
+    256
+  );
+
   const createBlockPreview = useCallback(
-    (index: number) => (
-      <div
-        className="relative rounded-full pointer-events-none"
-        key={index}
-        style={{
-          width: BLOCK_WIDTH,
-          height: BLOCK_HEIGHT,
-        }}
-      >
-        <BlockPreview key={index} blockIndex={index - 1} />
-        <HexagonOverlay
-          isSelected={index === selectedBlock}
-          onClick={() => setSelectedBlock(index)}
-        />
-      </div>
-    ),
-    [selectedBlock, setSelectedBlock]
+    (index: number) => {
+      const blockTexture = isReady ? getBlockTexture(index - 1) : null;
+
+      return (
+        <div
+          className="relative pointer-events-none"
+          key={index}
+          style={{
+            width: BLOCK_WIDTH,
+            height: BLOCK_HEIGHT,
+          }}
+        >
+          {blockTexture ? (
+            <img
+              src={blockTexture}
+              alt={`Block ${index}`}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <FileQuestion className="w-6 h-6 text-muted-foreground" />
+            </div>
+          )}
+
+          <HexagonOverlay
+            isSelected={index === selectedBlock}
+            onClick={() => setSelectedBlock(index)}
+          />
+        </div>
+      );
+    },
+    [selectedBlock, setSelectedBlock, getBlockTexture, isReady]
   );
 
   const createAddNewHex = useCallback(
@@ -79,12 +94,10 @@ export const BlockDrawer = ({
   );
 
   const memoizedRows = useMemo(() => {
-    if (!blocks) return [];
-
     const rows = [];
     let currentIndex = 0;
     let rowIndex = 0;
-    const totalItems = blocks.blockFaceAtlasIndexes.length + 1; // +1 for the add new hex
+    const totalItems = blockFaceMappings.length + 1;
 
     while (currentIndex < totalItems) {
       const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
@@ -92,7 +105,7 @@ export const BlockDrawer = ({
       const rowItems = [];
 
       for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
-        if (currentIndex < blocks.blockFaceAtlasIndexes.length) {
+        if (currentIndex < blockFaceMappings.length) {
           rowItems.push(createBlockPreview(currentIndex + 1));
         } else {
           rowItems.push(createAddNewHex(currentIndex));
@@ -103,7 +116,7 @@ export const BlockDrawer = ({
       rows.push(
         <div
           key={rowIndex}
-          className="flex pointer-events-none"
+          className="flex flex-row -space-x-[2px] pointer-events-none"
           style={{
             transform: isOddRow
               ? `translateX(${HORIZONTAL_OFFSET})`
@@ -118,14 +131,15 @@ export const BlockDrawer = ({
       rowIndex++;
     }
     return rows;
-  }, [blocks, createBlockPreview, createAddNewHex]);
-
-  if (!blocks) return;
+  }, [blockFaceMappings.length, createBlockPreview, createAddNewHex]);
 
   const selectedBlockFaces =
-    selectedBlock <= blocks.blockFaceAtlasIndexes.length
-      ? blocks.blockFaceAtlasIndexes[selectedBlock - 1]
+    selectedBlock <= blockFaceMappings.length
+      ? blockFaceMappings[selectedBlock - 1]
       : null;
+
+  const selectedBlockTexture =
+    selectedBlockFaces && isReady ? getBlockTexture(selectedBlock - 1) : null;
 
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
@@ -140,10 +154,17 @@ export const BlockDrawer = ({
           <div className="">
             <div className="bg-muted/30 rounded-lg border border-border mb-4">
               <div className="h-48 flex items-center justify-center">
-                <BlockFacePreview
-                  faces={selectedBlockFaces}
-                  showLabels={false}
-                />
+                {selectedBlockTexture ? (
+                  <img
+                    src={selectedBlockTexture}
+                    alt={`Block ${selectedBlock} Preview`}
+                    className="w-32"
+                  />
+                ) : (
+                  <span className="text-muted-foreground">
+                    Loading preview...
+                  </span>
+                )}
               </div>
             </div>
             <Button
@@ -164,6 +185,7 @@ export const BlockDrawer = ({
             isOpen={editingBlockIndex !== null}
             onClose={() => setEditingBlockIndex(null)}
             blockIndex={editingBlockIndex}
+            blockFaceMappings={blockFaceMappings}
           />
         )}
       </div>

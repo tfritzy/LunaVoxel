@@ -65,33 +65,12 @@ public static partial class Module
         }
     }
 
-    [Table(Name = "color_palette", Public = true)]
-    public partial class ColorPalette
-    {
-        [PrimaryKey]
-        public string ProjectId;
-        public int[] Colors = [];
-    }
-
-    [Table(Name = "atlas", Public = true)]
-    public partial class Atlas
-    {
-        [PrimaryKey]
-        public string ProjectId;
-        public int Version;
-        public int CellPixelWidth;
-        public int PixelWidth => CellPixelWidth * GridSize;
-        public int GridSize;
-        public int SlotCount => GridSize * GridSize;
-        public int UsedSlots;
-    }
-
     [Table(Name = "project_blocks", Public = true)]
     public partial class ProjectBlocks
     {
         [PrimaryKey]
         public string ProjectId;
-        public int[][] BlockFaceAtlasIndexes = []; // 2d array of block faces, each face is an index in the atlas
+        public int[][] FaceColors = []; // Array of 6 hex codes, for the color of each face
     }
 
     [Table(Name = "player_cursor", Public = true)]
@@ -129,8 +108,8 @@ public static partial class Module
         // rL0, rL1: 16-bit run length for RLE compression (little-endian)
         //
         // Voxel format (32-bit int when decompressed):
-        // Byte 1: [NEW_15][NEW_14][NEW_13][NEW_12][NEW_11][NEW_10][NEW_9][NEW_8]
-        // Byte 2: [NEW_7][NEW_6][NEW_5][NEW_4][NEW_3][NEW_2][NEW_1][NEW_0]
+        // Byte 1: [NA_15][NA_14][NA_13][NA_12][NA_11][NA_10][NA_9][NA_8]
+        // Byte 2: [VERSION_7][VERSION_6][VERSION_5][VERSION_4][VERSION_3][VERSION_2][VERSION_1][VERSION_0]
         // Byte 3: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
         // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][UNUSED][UNUSED][ROT_2][ROT_1][ROT_0]
         // note: Is preview is only used client side

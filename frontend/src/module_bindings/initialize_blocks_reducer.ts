@@ -31,17 +31,14 @@ import {
   deepEqual,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type UpdateAtlas = {
+export type InitializeBlocks = {
   projectId: string,
-  gridSize: number,
-  cellPixelWidth: number,
-  usedSlots: number,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace UpdateAtlas {
+export namespace InitializeBlocks {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -49,18 +46,15 @@ export namespace UpdateAtlas {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("gridSize", AlgebraicType.createI32Type()),
-      new ProductTypeElement("cellPixelWidth", AlgebraicType.createI32Type()),
-      new ProductTypeElement("usedSlots", AlgebraicType.createI32Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: UpdateAtlas): void {
-    UpdateAtlas.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: InitializeBlocks): void {
+    InitializeBlocks.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): UpdateAtlas {
-    return UpdateAtlas.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): InitializeBlocks {
+    return InitializeBlocks.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

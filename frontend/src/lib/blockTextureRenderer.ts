@@ -3,18 +3,6 @@ import { createVoxelMaterial } from "@/modeling/lib/shader";
 import { faces } from "@/modeling/lib/voxel-constants";
 import { getTextureCoordinates } from "@/modeling/lib/texture-coords";
 
-interface BlockTextureRendererOptions {
-  atlas: {
-    gridSize: number;
-    cellPixelWidth: number;
-  };
-  textureAtlas: THREE.Texture;
-  blocks: {
-    blockFaceAtlasIndexes: number[][];
-  };
-  textureSize?: number;
-}
-
 class BlockTextureRenderer {
   private scene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
@@ -26,11 +14,13 @@ class BlockTextureRenderer {
   private ctx: CanvasRenderingContext2D;
   private textureCache = new Map<string, string>();
   private currentAtlas: THREE.Texture | null = null;
-  private currentBlocks: { blockFaceAtlasIndexes: number[][] } | null = null;
+  private currentBlockFaceAtlases: number[][] | null = null;
 
-  constructor(options: BlockTextureRendererOptions) {
-    const { atlas, textureAtlas, blocks, textureSize = 128 } = options;
-
+  constructor(
+    textureAtlas: THREE.Texture,
+    blockFaceAtlases: number[][],
+    textureSize = 128
+  ) {
     this.canvas = document.createElement("canvas");
     this.canvas.width = textureSize;
     this.canvas.height = textureSize;
@@ -66,7 +56,7 @@ class BlockTextureRenderer {
       type: THREE.UnsignedByteType,
     });
 
-    const geometry = this.createCubeGeometry(0, atlas, blocks);
+    const geometry = this.createCubeGeometry(0, textureAtlas, blockFaceAtlases);
     this.material = createVoxelMaterial(textureAtlas);
     this.mesh = new THREE.Mesh(geometry, this.material);
 
@@ -80,13 +70,13 @@ class BlockTextureRenderer {
     this.scene.add(directionalLight);
 
     this.currentAtlas = textureAtlas;
-    this.currentBlocks = blocks;
+    this.currentBlockFaceAtlases = blockFaceAtlases;
   }
 
   private createCubeGeometry(
     blockIndex: number,
-    atlas: { gridSize: number; cellPixelWidth: number },
-    blocks: { blockFaceAtlasIndexes: number[][] }
+    textureAtlas: THREE.Texture,
+    blockFaceAtlases: number[][]
   ): THREE.BufferGeometry {
     const geometry = new THREE.BufferGeometry();
 
@@ -103,12 +93,11 @@ class BlockTextureRenderer {
       const faceVertices = face.vertices;
       const faceNormal = face.normal;
 
-      const textureIndex = blocks.blockFaceAtlasIndexes[blockIndex][faceIndex];
+      const textureIndex = blockFaceAtlases[blockIndex][faceIndex];
 
       const textureCoords = getTextureCoordinates(
         textureIndex,
-        atlas.gridSize,
-        atlas.cellPixelWidth
+        textureAtlas.image.width
       );
 
       const startVertexIndex = vertexIndex;
@@ -156,9 +145,8 @@ class BlockTextureRenderer {
   }
 
   public updateContext(
-    atlas: { gridSize: number; cellPixelWidth: number },
     textureAtlas: THREE.Texture,
-    blocks: { blockFaceAtlasIndexes: number[][] }
+    blockFaceAtlases: number[][]
   ): void {
     if (this.currentAtlas !== textureAtlas) {
       this.currentAtlas = textureAtlas;
@@ -168,24 +156,28 @@ class BlockTextureRenderer {
       this.textureCache.clear();
     }
 
-    if (this.currentBlocks !== blocks) {
-      this.currentBlocks = blocks;
+    if (this.currentBlockFaceAtlases !== blockFaceAtlases) {
+      this.currentBlockFaceAtlases = blockFaceAtlases;
       this.textureCache.clear();
     }
   }
 
   public renderBlockToTexture(
     blockIndex: number,
-    atlas: { gridSize: number; cellPixelWidth: number },
-    blocks: { blockFaceAtlasIndexes: number[][] }
+    textureAtlas: THREE.Texture,
+    blockFaceAtlases: number[][]
   ): string {
-    const cacheKey = `${blockIndex}-${atlas.gridSize}-${atlas.cellPixelWidth}`;
+    const cacheKey = `${blockIndex}`;
 
     if (this.textureCache.has(cacheKey)) {
       return this.textureCache.get(cacheKey)!;
     }
 
-    const newGeometry = this.createCubeGeometry(blockIndex, atlas, blocks);
+    const newGeometry = this.createCubeGeometry(
+      blockIndex,
+      textureAtlas,
+      blockFaceAtlases
+    );
     this.mesh.geometry.dispose();
     this.mesh.geometry = newGeometry;
 
@@ -240,16 +232,18 @@ let globalRenderer: BlockTextureRenderer | null = null;
 let refCount = 0;
 
 export const getBlockTextureRenderer = (
-  options: BlockTextureRendererOptions
+  textureAtlas: THREE.Texture,
+  blockFaceAtlases: number[][],
+  textureSize?: number
 ): BlockTextureRenderer => {
   if (!globalRenderer) {
-    globalRenderer = new BlockTextureRenderer(options);
-  } else {
-    globalRenderer.updateContext(
-      options.atlas,
-      options.textureAtlas,
-      options.blocks
+    globalRenderer = new BlockTextureRenderer(
+      textureAtlas,
+      blockFaceAtlases,
+      textureSize
     );
+  } else {
+    globalRenderer.updateContext(textureAtlas, blockFaceAtlases);
   }
 
   refCount++;

@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from "./firebase/AuthContext";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
 import { Layout } from "./components/custom/Layout";
 import { ProjectsProvider } from "./contexts/ProjectsContext";
-import { CurrentProjectProvider } from "./contexts/CurrentProjectContext";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 import { Toaster } from "sonner";
@@ -134,14 +133,7 @@ function AppContent() {
           <Routes>
             <Route path="/project" element={<ProjectsPage />} />
             <Route path="/create" element={<CreateNewPage />} />
-            <Route
-              path="/project/:projectId"
-              element={
-                <CurrentProjectProvider>
-                  <ProjectViewPage />
-                </CurrentProjectProvider>
-              }
-            />
+            <Route path="/project/:projectId" element={<ProjectViewPage />} />
             <Route path="*" element={<Navigate to="/project" replace />} />
           </Routes>
         </Layout>

@@ -23,7 +23,7 @@ public static partial class Module
             throw new ArgumentException("Atlas face indexes must be an array of length 6.");
         }
 
-        projectBlocks.BlockFaceAtlasIndexes = projectBlocks.BlockFaceAtlasIndexes.Append(atlasFaceIndexes).ToArray();
+        projectBlocks.FaceColors = projectBlocks.FaceColors.Append(atlasFaceIndexes).ToArray();
         ctx.Db.project_blocks.ProjectId.Update(projectBlocks);
     }
 }

@@ -32,7 +32,7 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 export type ProjectBlocks = {
   projectId: string,
-  blockFaceAtlasIndexes: number[][],
+  faceColors: number[][],
 };
 
 /**
@@ -46,7 +46,7 @@ export namespace ProjectBlocks {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("blockFaceAtlasIndexes", AlgebraicType.createArrayType(AlgebraicType.createArrayType(AlgebraicType.createI32Type()))),
+      new ProductTypeElement("faceColors", AlgebraicType.createArrayType(AlgebraicType.createArrayType(AlgebraicType.createI32Type()))),
     ]);
   }
 

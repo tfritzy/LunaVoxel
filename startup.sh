@@ -115,7 +115,7 @@ echo -e "\e[33mWaiting for SpaceTimeDB to initialize...\e[0m"
 sleep 5
 
 write_step "Step 2: Rebuilding database with clean flag"
-spacetime publish -c --project-path lunavoxel/server lunavoxel -y
+spacetime publish -c --project-path lunavoxel/server lunavoxel-db -y
 write_success "Database rebuilt successfully"
 
 write_step "Step 3: Generating TypeScript bindings"
@@ -157,7 +157,7 @@ sed -i.bak "s/var isDev = callerIdentity\.ToLower() == \"[^\"]*\";/var isDev = c
 write_success "Admin user helper updated with new identity"
 
 write_step "Step 8: Updating database without clean flag"
-spacetime publish --project-path lunavoxel/server lunavoxel
+spacetime publish --project-path lunavoxel/server lunavoxel-db
 write_success "Database updated"
 
 write_step "Step 9: Building functions"

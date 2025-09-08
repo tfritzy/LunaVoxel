@@ -1,4 +1,4 @@
-import { Atlas, ProjectBlocks, Vector3 } from "@/module_bindings";
+import { Vector3 } from "@/module_bindings";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
@@ -12,8 +12,8 @@ export const DISABLE_GREEDY_MESHING = false;
 
 export const findExteriorFaces = (
   chunkData: Uint32Array[][],
-  atlas: Atlas,
-  projectBlocks: ProjectBlocks,
+  textureWidth: number,
+  blockAtlasMappings: number[][],
   chunkDimensions: Vector3,
   meshArrays: MeshArrays,
   previewMeshArrays: MeshArrays,
@@ -52,20 +52,20 @@ export const findExteriorFaces = (
       axis === 0
         ? chunkDimensions.x
         : axis === 1
-          ? chunkDimensions.y
-          : chunkDimensions.z;
+        ? chunkDimensions.y
+        : chunkDimensions.z;
     const uSize =
       u === 0
         ? chunkDimensions.x
         : u === 1
-          ? chunkDimensions.y
-          : chunkDimensions.z;
+        ? chunkDimensions.y
+        : chunkDimensions.z;
     const vSize =
       v === 0
         ? chunkDimensions.x
         : v === 1
-          ? chunkDimensions.y
-          : chunkDimensions.z;
+        ? chunkDimensions.y
+        : chunkDimensions.z;
 
     for (let dir = -1; dir <= 1; dir += 2) {
       const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
@@ -97,14 +97,15 @@ export const findExteriorFaces = (
               let shouldRenderFace = false;
 
               if (blockIsPreview) {
-                shouldRenderFace = !isBlockPresent(neighborValue) || !isPreview(neighborValue);
+                shouldRenderFace =
+                  !isBlockPresent(neighborValue) || !isPreview(neighborValue);
               } else {
-                shouldRenderFace = !isBlockPresent(neighborValue) || isPreview(neighborValue);
+                shouldRenderFace =
+                  !isBlockPresent(neighborValue) || isPreview(neighborValue);
               }
 
               if (shouldRenderFace) {
-                const textureIndex =
-                  projectBlocks.blockFaceAtlasIndexes[blockType - 1][faceDir];
+                const textureIndex = blockAtlasMappings[blockType - 1][faceDir];
 
                 aoMask[maskIndex] = calculateAmbientOcclusion(
                   nx,
@@ -137,7 +138,7 @@ export const findExteriorFaces = (
           v,
           dir,
           faceDir,
-          atlas,
+          textureWidth,
           meshArrays
         );
         generateGreedyMesh(
@@ -152,7 +153,7 @@ export const findExteriorFaces = (
           v,
           dir,
           faceDir,
-          atlas,
+          textureWidth,
           previewMeshArrays
         );
       }
@@ -172,13 +173,13 @@ const generateGreedyMesh = (
   v: number,
   dir: number,
   faceDir: number,
-  atlas: Atlas,
+  textureWidth: number,
   meshArrays: MeshArrays
 ): void => {
   processed.fill(0, 0, width * height);
 
   for (let j = 0; j < height; j++) {
-    for (let i = 0; i < width;) {
+    for (let i = 0; i < width; ) {
       const maskIndex = i + j * width;
 
       if (processed[maskIndex] || mask[maskIndex] < 0) {
@@ -285,11 +286,7 @@ const generateGreedyMesh = (
         vertices[3] = temp;
       }
 
-      const textureCoords = getTextureCoordinates(
-        textureIndex,
-        atlas.gridSize,
-        atlas.cellPixelWidth
-      );
+      const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
 
       const faceData = faces[faceDir];
       const normal = faceData.normal;

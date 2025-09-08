@@ -46,12 +46,10 @@ import { ClientDisconnected } from "./client_disconnected_reducer.ts";
 export { ClientDisconnected };
 import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
-import { DeleteAtlasIndex } from "./delete_atlas_index_reducer.ts";
-export { DeleteAtlasIndex };
 import { DeleteLayer } from "./delete_layer_reducer.ts";
 export { DeleteLayer };
-import { InitializeAtlas } from "./initialize_atlas_reducer.ts";
-export { InitializeAtlas };
+import { InitializeBlocks } from "./initialize_blocks_reducer.ts";
+export { InitializeBlocks };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
 export { InviteToProject };
 import { ModifyBlock } from "./modify_block_reducer.ts";
@@ -62,8 +60,6 @@ import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
 import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
-import { RemoveColorFromPalette } from "./remove_color_from_palette_reducer.ts";
-export { RemoveColorFromPalette };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
 export { ReorderLayers };
 import { SyncUser } from "./sync_user_reducer.ts";
@@ -74,8 +70,6 @@ import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
 export { ToggleLayerVisibility };
 import { UndoEdit } from "./undo_edit_reducer.ts";
 export { UndoEdit };
-import { UpdateAtlas } from "./update_atlas_reducer.ts";
-export { UpdateAtlas };
 import { UpdateBlock } from "./update_block_reducer.ts";
 export { UpdateBlock };
 import { UpdateCursorPos } from "./update_cursor_pos_reducer.ts";
@@ -84,10 +78,6 @@ import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
 // Import and reexport all table handle types
-import { AtlasTableHandle } from "./atlas_table.ts";
-export { AtlasTableHandle };
-import { ColorPaletteTableHandle } from "./color_palette_table.ts";
-export { ColorPaletteTableHandle };
 import { LayerTableHandle } from "./layer_table.ts";
 export { LayerTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
@@ -104,12 +94,8 @@ export { UserProjectsTableHandle };
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
 export { AccessType };
-import { Atlas } from "./atlas_type.ts";
-export { Atlas };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
-import { ColorPalette } from "./color_palette_type.ts";
-export { ColorPalette };
 import { Layer } from "./layer_type.ts";
 export { Layer };
 import { PlayerCursor } from "./player_cursor_type.ts";
@@ -129,16 +115,6 @@ export { Vector3Float };
 
 const REMOTE_MODULE = {
   tables: {
-    atlas: {
-      tableName: "atlas",
-      rowType: Atlas.getTypeScriptAlgebraicType(),
-      primaryKey: "projectId",
-    },
-    color_palette: {
-      tableName: "color_palette",
-      rowType: ColorPalette.getTypeScriptAlgebraicType(),
-      primaryKey: "projectId",
-    },
     layer: {
       tableName: "layer",
       rowType: Layer.getTypeScriptAlgebraicType(),
@@ -199,17 +175,13 @@ const REMOTE_MODULE = {
       reducerName: "CreateProject",
       argsType: CreateProject.getTypeScriptAlgebraicType(),
     },
-    DeleteAtlasIndex: {
-      reducerName: "DeleteAtlasIndex",
-      argsType: DeleteAtlasIndex.getTypeScriptAlgebraicType(),
-    },
     DeleteLayer: {
       reducerName: "DeleteLayer",
       argsType: DeleteLayer.getTypeScriptAlgebraicType(),
     },
-    InitializeAtlas: {
-      reducerName: "InitializeAtlas",
-      argsType: InitializeAtlas.getTypeScriptAlgebraicType(),
+    InitializeBlocks: {
+      reducerName: "InitializeBlocks",
+      argsType: InitializeBlocks.getTypeScriptAlgebraicType(),
     },
     InviteToProject: {
       reducerName: "InviteToProject",
@@ -231,10 +203,6 @@ const REMOTE_MODULE = {
       reducerName: "PokeProject",
       argsType: PokeProject.getTypeScriptAlgebraicType(),
     },
-    RemoveColorFromPalette: {
-      reducerName: "RemoveColorFromPalette",
-      argsType: RemoveColorFromPalette.getTypeScriptAlgebraicType(),
-    },
     ReorderLayers: {
       reducerName: "ReorderLayers",
       argsType: ReorderLayers.getTypeScriptAlgebraicType(),
@@ -254,10 +222,6 @@ const REMOTE_MODULE = {
     UndoEdit: {
       reducerName: "UndoEdit",
       argsType: UndoEdit.getTypeScriptAlgebraicType(),
-    },
-    UpdateAtlas: {
-      reducerName: "UpdateAtlas",
-      argsType: UpdateAtlas.getTypeScriptAlgebraicType(),
     },
     UpdateBlock: {
       reducerName: "UpdateBlock",
@@ -305,21 +269,18 @@ export type Reducer = never
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
-| { name: "DeleteAtlasIndex", args: DeleteAtlasIndex }
 | { name: "DeleteLayer", args: DeleteLayer }
-| { name: "InitializeAtlas", args: InitializeAtlas }
+| { name: "InitializeBlocks", args: InitializeBlocks }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
-| { name: "RemoveColorFromPalette", args: RemoveColorFromPalette }
 | { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
 | { name: "UndoEdit", args: UndoEdit }
-| { name: "UpdateAtlas", args: UpdateAtlas }
 | { name: "UpdateBlock", args: UpdateBlock }
 | { name: "UpdateCursorPos", args: UpdateCursorPos }
 | { name: "UpdateProjectName", args: UpdateProjectName }
@@ -424,22 +385,6 @@ export class RemoteReducers {
     this.connection.offReducer("CreateProject", callback);
   }
 
-  deleteAtlasIndex(projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) {
-    const __args = { projectId, index, gridSize, cellPixelWidth, usedSlots };
-    let __writer = new BinaryWriter(1024);
-    DeleteAtlasIndex.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("DeleteAtlasIndex", __argsBuffer, this.setCallReducerFlags.deleteAtlasIndexFlags);
-  }
-
-  onDeleteAtlasIndex(callback: (ctx: ReducerEventContext, projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
-    this.connection.onReducer("DeleteAtlasIndex", callback);
-  }
-
-  removeOnDeleteAtlasIndex(callback: (ctx: ReducerEventContext, projectId: string, index: number, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
-    this.connection.offReducer("DeleteAtlasIndex", callback);
-  }
-
   deleteLayer(id: string) {
     const __args = { id };
     let __writer = new BinaryWriter(1024);
@@ -456,20 +401,20 @@ export class RemoteReducers {
     this.connection.offReducer("DeleteLayer", callback);
   }
 
-  initializeAtlas(projectId: string) {
+  initializeBlocks(projectId: string) {
     const __args = { projectId };
     let __writer = new BinaryWriter(1024);
-    InitializeAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    InitializeBlocks.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("InitializeAtlas", __argsBuffer, this.setCallReducerFlags.initializeAtlasFlags);
+    this.connection.callReducer("InitializeBlocks", __argsBuffer, this.setCallReducerFlags.initializeBlocksFlags);
   }
 
-  onInitializeAtlas(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.onReducer("InitializeAtlas", callback);
+  onInitializeBlocks(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("InitializeBlocks", callback);
   }
 
-  removeOnInitializeAtlas(callback: (ctx: ReducerEventContext, projectId: string) => void) {
-    this.connection.offReducer("InitializeAtlas", callback);
+  removeOnInitializeBlocks(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("InitializeBlocks", callback);
   }
 
   inviteToProject(projectId: string, email: string, accessType: AccessType) {
@@ -552,22 +497,6 @@ export class RemoteReducers {
     this.connection.offReducer("PokeProject", callback);
   }
 
-  removeColorFromPalette(projectId: string, colorIndex: number) {
-    const __args = { projectId, colorIndex };
-    let __writer = new BinaryWriter(1024);
-    RemoveColorFromPalette.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("RemoveColorFromPalette", __argsBuffer, this.setCallReducerFlags.removeColorFromPaletteFlags);
-  }
-
-  onRemoveColorFromPalette(callback: (ctx: ReducerEventContext, projectId: string, colorIndex: number) => void) {
-    this.connection.onReducer("RemoveColorFromPalette", callback);
-  }
-
-  removeOnRemoveColorFromPalette(callback: (ctx: ReducerEventContext, projectId: string, colorIndex: number) => void) {
-    this.connection.offReducer("RemoveColorFromPalette", callback);
-  }
-
   reorderLayers(projectId: string, newOrder: string[]) {
     const __args = { projectId, newOrder };
     let __writer = new BinaryWriter(1024);
@@ -648,35 +577,19 @@ export class RemoteReducers {
     this.connection.offReducer("UndoEdit", callback);
   }
 
-  updateAtlas(projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) {
-    const __args = { projectId, gridSize, cellPixelWidth, usedSlots };
-    let __writer = new BinaryWriter(1024);
-    UpdateAtlas.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("UpdateAtlas", __argsBuffer, this.setCallReducerFlags.updateAtlasFlags);
-  }
-
-  onUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
-    this.connection.onReducer("UpdateAtlas", callback);
-  }
-
-  removeOnUpdateAtlas(callback: (ctx: ReducerEventContext, projectId: string, gridSize: number, cellPixelWidth: number, usedSlots: number) => void) {
-    this.connection.offReducer("UpdateAtlas", callback);
-  }
-
-  updateBlock(projectId: string, index: number, atlasFaceIndexes: number[]) {
-    const __args = { projectId, index, atlasFaceIndexes };
+  updateBlock(projectId: string, index: number, faceColors: number[]) {
+    const __args = { projectId, index, faceColors };
     let __writer = new BinaryWriter(1024);
     UpdateBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("UpdateBlock", __argsBuffer, this.setCallReducerFlags.updateBlockFlags);
   }
 
-  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[]) => void) {
+  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, faceColors: number[]) => void) {
     this.connection.onReducer("UpdateBlock", callback);
   }
 
-  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, atlasFaceIndexes: number[]) => void) {
+  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, faceColors: number[]) => void) {
     this.connection.offReducer("UpdateBlock", callback);
   }
 
@@ -740,19 +653,14 @@ export class SetReducerFlags {
     this.createProjectFlags = flags;
   }
 
-  deleteAtlasIndexFlags: CallReducerFlags = 'FullUpdate';
-  deleteAtlasIndex(flags: CallReducerFlags) {
-    this.deleteAtlasIndexFlags = flags;
-  }
-
   deleteLayerFlags: CallReducerFlags = 'FullUpdate';
   deleteLayer(flags: CallReducerFlags) {
     this.deleteLayerFlags = flags;
   }
 
-  initializeAtlasFlags: CallReducerFlags = 'FullUpdate';
-  initializeAtlas(flags: CallReducerFlags) {
-    this.initializeAtlasFlags = flags;
+  initializeBlocksFlags: CallReducerFlags = 'FullUpdate';
+  initializeBlocks(flags: CallReducerFlags) {
+    this.initializeBlocksFlags = flags;
   }
 
   inviteToProjectFlags: CallReducerFlags = 'FullUpdate';
@@ -780,11 +688,6 @@ export class SetReducerFlags {
     this.pokeProjectFlags = flags;
   }
 
-  removeColorFromPaletteFlags: CallReducerFlags = 'FullUpdate';
-  removeColorFromPalette(flags: CallReducerFlags) {
-    this.removeColorFromPaletteFlags = flags;
-  }
-
   reorderLayersFlags: CallReducerFlags = 'FullUpdate';
   reorderLayers(flags: CallReducerFlags) {
     this.reorderLayersFlags = flags;
@@ -810,11 +713,6 @@ export class SetReducerFlags {
     this.undoEditFlags = flags;
   }
 
-  updateAtlasFlags: CallReducerFlags = 'FullUpdate';
-  updateAtlas(flags: CallReducerFlags) {
-    this.updateAtlasFlags = flags;
-  }
-
   updateBlockFlags: CallReducerFlags = 'FullUpdate';
   updateBlock(flags: CallReducerFlags) {
     this.updateBlockFlags = flags;
@@ -834,14 +732,6 @@ export class SetReducerFlags {
 
 export class RemoteTables {
   constructor(private connection: DbConnectionImpl) {}
-
-  get atlas(): AtlasTableHandle {
-    return new AtlasTableHandle(this.connection.clientCache.getOrCreateTable<Atlas>(REMOTE_MODULE.tables.atlas));
-  }
-
-  get colorPalette(): ColorPaletteTableHandle {
-    return new ColorPaletteTableHandle(this.connection.clientCache.getOrCreateTable<ColorPalette>(REMOTE_MODULE.tables.color_palette));
-  }
 
   get layer(): LayerTableHandle {
     return new LayerTableHandle(this.connection.clientCache.getOrCreateTable<Layer>(REMOTE_MODULE.tables.layer));

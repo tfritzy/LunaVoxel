@@ -34,7 +34,7 @@ import {
 export type UpdateBlock = {
   projectId: string,
   index: number,
-  atlasFaceIndexes: number[],
+  faceColors: number[],
 };
 
 /**
@@ -49,7 +49,7 @@ export namespace UpdateBlock {
     return AlgebraicType.createProductType([
       new ProductTypeElement("projectId", AlgebraicType.createStringType()),
       new ProductTypeElement("index", AlgebraicType.createI32Type()),
-      new ProductTypeElement("atlasFaceIndexes", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
+      new ProductTypeElement("faceColors", AlgebraicType.createArrayType(AlgebraicType.createI32Type())),
     ]);
   }
 

@@ -5,10 +5,10 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { BlockModificationMode } from "@/module_bindings";
 import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
-import { useAtlasContext } from "@/contexts/CurrentProjectContext";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useCurrentProject } from "@/lib/useCurrentProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
+import { useAtlas } from "@/lib/useAtlas";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -23,7 +23,7 @@ export const ProjectViewPage = () => {
   const project = useCurrentProject(connection, projectId);
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
-  const { atlas, textureAtlas } = useAtlasContext();
+  const { blockAtlasMappings, texture } = useAtlas();
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
@@ -76,7 +76,6 @@ export const ProjectViewPage = () => {
         `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
         `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
         `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM atlas WHERE ProjectId='${projectId}'`,
       ]);
 
     return () => {
@@ -98,7 +97,14 @@ export const ProjectViewPage = () => {
     (node: HTMLDivElement | null) => {
       containerRef.current = node;
 
-      if (!node || !connection || !project || !projectId || isInitializedRef.current) return;
+      if (
+        !node ||
+        !connection ||
+        !project ||
+        !projectId ||
+        isInitializedRef.current
+      )
+        return;
 
       isInitializedRef.current = true;
 
@@ -116,12 +122,22 @@ export const ProjectViewPage = () => {
 
           engineRef.current.projectManager.setSelectedBlock(selectedBlock);
           engineRef.current.projectManager.setTool(currentTool);
-          engineRef.current.projectManager.setAtlas(atlas);
-          engineRef.current.projectManager.setTextureAtlas(textureAtlas);
+          engineRef.current.projectManager.setTextureAtlas(
+            texture,
+            blockAtlasMappings
+          );
         });
       });
     },
-    [connection, project, projectId, selectedBlock, currentTool, atlas, textureAtlas]
+    [
+      connection,
+      project,
+      projectId,
+      selectedBlock,
+      currentTool,
+      texture,
+      blockAtlasMappings,
+    ]
   );
 
   useEffect(() => {
@@ -147,16 +163,13 @@ export const ProjectViewPage = () => {
   }, [currentTool]);
 
   useEffect(() => {
-    if (engineRef.current?.projectManager && atlas) {
-      engineRef.current.projectManager.setAtlas(atlas);
+    if (engineRef.current?.projectManager && texture) {
+      engineRef.current.projectManager.setTextureAtlas(
+        texture,
+        blockAtlasMappings
+      );
     }
-  }, [atlas]);
-
-  useEffect(() => {
-    if (engineRef.current?.projectManager && textureAtlas) {
-      engineRef.current.projectManager.setTextureAtlas(textureAtlas);
-    }
-  }, [textureAtlas]);
+  }, [blockAtlasMappings, texture]);
 
   const handleToolChange = useCallback((tool: BlockModificationMode) => {
     setCurrentTool(tool);
@@ -184,6 +197,8 @@ export const ProjectViewPage = () => {
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}
       onRedo={handleRedo}
+      blockFaceMappings={blockAtlasMappings}
+      textureAtlas={texture}
     >
       <div
         ref={containerCallbackRef}
