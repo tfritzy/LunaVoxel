@@ -1,10 +1,5 @@
 import * as THREE from "three";
-import {
-  Atlas,
-  BlockModificationMode,
-  ProjectBlocks,
-  Vector3,
-} from "@/module_bindings";
+import { BlockModificationMode, Vector3 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
@@ -113,15 +108,14 @@ export class ChunkMesh {
 
   update = (
     buildMode: BlockModificationMode,
-    blocks: ProjectBlocks,
-    atlas: Atlas
+    blockAtlasMappings: number[][]
   ) => {
     if (!this.textureAtlas) return;
 
     findExteriorFaces(
       this.voxelData,
-      atlas,
-      blocks,
+      this.textureAtlas.image.width,
+      blockAtlasMappings,
       this.chunkDimensions,
       this.meshArrays,
       this.previewMeshArrays,

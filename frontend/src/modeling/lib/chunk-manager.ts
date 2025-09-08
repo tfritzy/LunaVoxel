@@ -1,10 +1,5 @@
 import * as THREE from "three";
-import {
-  Atlas,
-  BlockModificationMode,
-  ProjectBlocks,
-  Vector3,
-} from "@/module_bindings";
+import { BlockModificationMode, Vector3 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import { DecompressedLayer } from "./project-manager";
 import {
@@ -130,8 +125,7 @@ export class ChunkManager {
   setTextureAtlas = (
     textureAtlas: THREE.Texture,
     buildMode: BlockModificationMode,
-    blocks: ProjectBlocks | null,
-    atlas: Atlas | null
+    blockAtlasMappings: number[][]
   ) => {
     this.textureAtlas = textureAtlas;
     for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
@@ -139,12 +133,10 @@ export class ChunkManager {
         for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
           this.chunks[chunkX][chunkY][chunkZ].setTextureAtlas(textureAtlas);
           this.copyChunkData(chunkX, chunkY, chunkZ, this.renderedBlocks);
-          if (blocks && atlas)
-            this.chunks[chunkX][chunkY][chunkZ].update(
-              buildMode,
-              blocks,
-              atlas
-            );
+          this.chunks[chunkX][chunkY][chunkZ].update(
+            buildMode,
+            blockAtlasMappings
+          );
         }
       }
     }
@@ -298,8 +290,7 @@ export class ChunkManager {
     layers: DecompressedLayer[],
     previewBlocks: Uint32Array,
     buildMode: BlockModificationMode,
-    blocks: ProjectBlocks,
-    atlas: Atlas
+    blockAtlasMappings: number[][]
   ) => {
     try {
       if (!this.textureAtlas) return;
@@ -341,7 +332,10 @@ export class ChunkManager {
       for (const chunkKey of chunksToUpdate) {
         const [chunkX, chunkY, chunkZ] = chunkKey.split(",").map(Number);
         this.copyChunkData(chunkX, chunkY, chunkZ, this.blocksToRender);
-        this.chunks[chunkX][chunkY][chunkZ].update(buildMode, blocks, atlas);
+        this.chunks[chunkX][chunkY][chunkZ].update(
+          buildMode,
+          blockAtlasMappings
+        );
       }
 
       this.renderedBlocks.set(this.blocksToRender);

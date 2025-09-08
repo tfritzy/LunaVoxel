@@ -7,7 +7,7 @@ public static partial class Module
         ReducerContext ctx,
         string projectId,
         int index,
-        int[] atlasFaceIndexes)
+        int[] faceColors)
     {
         if (string.IsNullOrEmpty(projectId))
         {
@@ -19,17 +19,17 @@ public static partial class Module
 
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
-        if (index < 0 || index >= projectBlocks.BlockFaceAtlasIndexes.Length)
+        if (index < 0 || index >= projectBlocks.FaceColors.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(index), "Block index is out of range.");
         }
 
-        if (atlasFaceIndexes == null || atlasFaceIndexes.Length != 6)
+        if (faceColors == null || faceColors.Length != 6)
         {
             throw new ArgumentException("Atlas face indexes must be an array of length 6.");
         }
 
-        projectBlocks.BlockFaceAtlasIndexes[index] = atlasFaceIndexes;
+        projectBlocks.FaceColors[index] = faceColors;
         ctx.Db.project_blocks.ProjectId.Update(projectBlocks);
     }
 }

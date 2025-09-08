@@ -1,12 +1,10 @@
 import * as THREE from "three";
 import {
-  Atlas,
   BlockModificationMode,
   DbConnection,
   EventContext,
   Layer,
   Project,
-  ProjectBlocks,
 } from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
@@ -14,7 +12,6 @@ import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
-import { QueryRunner } from "@/lib/queryRunner";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
@@ -25,12 +22,10 @@ export const ProjectManager = class {
   private dbConn: DbConnection;
   private project: Project;
   private layers: DecompressedLayer[] = [];
-  private atlas: Atlas | null = null;
-  private blocks: ProjectBlocks | null = null;
   private textureAtlas: THREE.Texture | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
-  private blockQueryRunner;
+  private blockAtlasMappings: number[][] = [];
 
   constructor(
     scene: THREE.Scene,
@@ -45,13 +40,6 @@ export const ProjectManager = class {
     this.cursorManager = new CursorManager(scene, project.id, dbConn);
     this.editHistory = new EditHistory(dbConn, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
-    this.blockQueryRunner = new QueryRunner(
-      dbConn,
-      dbConn.db.projectBlocks,
-      (blocks) => {
-        this.blocks = blocks[0];
-      }
-    );
 
     this.builder = new Builder(
       this.dbConn,
@@ -110,8 +98,7 @@ export const ProjectManager = class {
   public export = (type: ExportType): void => {
     const exporter = new ModelExporter(
       this.chunkManager,
-      this.atlas,
-      this.blocks,
+      this.blockAtlasMappings,
       this.project,
       this.textureAtlas
     );
@@ -158,20 +145,18 @@ export const ProjectManager = class {
     this.builder.setSelectedBlock(block);
   };
 
-  setAtlas = (atlas: Atlas) => {
-    this.atlas = atlas;
-    this.updateChunkManager();
-  };
-
-  setBlocks = (blocks: ProjectBlocks) => {
-    this.blocks = blocks;
-    this.updateChunkManager();
-  };
-
-  setTextureAtlas = (textureAtlas: THREE.Texture | null) => {
+  setTextureAtlas = (
+    textureAtlas: THREE.Texture | null,
+    blockAtlasMappings: number[][]
+  ) => {
     this.textureAtlas = textureAtlas;
+    this.blockAtlasMappings = blockAtlasMappings;
     if (textureAtlas) {
-      this.chunkManager.setTextureAtlas(textureAtlas, this.builder.getTool(), this.blocks, this.atlas);
+      this.chunkManager.setTextureAtlas(
+        textureAtlas,
+        this.builder.getTool(),
+        this.blockAtlasMappings
+      );
       this.updateChunkManager();
     }
   };
@@ -255,7 +240,7 @@ export const ProjectManager = class {
   }
 
   private updateChunkManager = () => {
-    if (!this.atlas || !this.blocks) return;
+    if (!this.blockAtlasMappings) return;
 
     const start = performance.now();
 
@@ -263,8 +248,7 @@ export const ProjectManager = class {
       this.layers,
       this.builder.previewBlocks,
       this.builder.getTool(),
-      this.blocks,
-      this.atlas
+      this.blockAtlasMappings
     );
 
     const end = performance.now();

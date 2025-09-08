@@ -1,56 +1,46 @@
 // src/components/BlockModal.tsx
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { AtlasTextureDropdown } from "./AtlasTextureDropdown";
-import { BlockFacePreview } from "./BlockFacePreview";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useParams } from "react-router-dom";
-import { useQueryRunner } from "@/lib/useQueryRunner";
-import { DbConnection, ProjectBlocks } from "@/module_bindings";
 
 interface BlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   blockIndex: number | "new";
+  blockFaceMappings: number[][];
 }
 
 export const BlockModal = ({
   isOpen,
   onClose,
   blockIndex,
+  blockFaceMappings,
 }: BlockModalProps) => {
   const projectId = useParams().projectId || "";
   const { connection } = useDatabase();
   const isNewBlock = blockIndex === "new";
-  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
-  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
-    connection,
-    getTable
-  );
-  const blocks = allBlocks?.[0];
 
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
   const [selectedFaces, setSelectedFaces] = useState<number[]>(() =>
     isNewBlock
       ? [0, 0, 0, 0, 0, 0]
-      : blocks?.blockFaceAtlasIndexes?.[blockIndex as number] || [
-          0, 0, 0, 0, 0, 0,
-        ]
+      : blockFaceMappings?.[blockIndex as number] || [0, 0, 0, 0, 0, 0]
   );
   const [submitPending, setSubmitPending] = useState(false);
 
   useEffect(() => {
-    if (isOpen && blocks) {
+    if (isOpen) {
       if (isNewBlock) {
         setApplyToAllFaces(true);
         setSelectedFaces([0, 0, 0, 0, 0, 0]);
       } else {
-        const existingFaces = blocks.blockFaceAtlasIndexes?.[
-          blockIndex as number
-        ] || [0, 0, 0, 0, 0, 0];
+        const existingFaces = blockFaceMappings?.[blockIndex as number] || [
+          0, 0, 0, 0, 0, 0,
+        ];
         const allSame = existingFaces.every(
           (index) => index === existingFaces[0]
         );
@@ -58,17 +48,7 @@ export const BlockModal = ({
         setSelectedFaces(existingFaces);
       }
     }
-  }, [isOpen, blockIndex, blocks]);
-
-  const handleFaceChange = (faceIndex: number, textureIndex: number) => {
-    if (applyToAllFaces) {
-      setSelectedFaces(Array(6).fill(textureIndex));
-    } else {
-      const newFaces = [...selectedFaces];
-      newFaces[faceIndex] = textureIndex;
-      setSelectedFaces(newFaces);
-    }
-  };
+  }, [isOpen, blockIndex, isNewBlock, blockFaceMappings]);
 
   const handleApplyToAllChange = (checked: boolean | "indeterminate") => {
     const isApplyingAll = checked === false;
@@ -93,7 +73,7 @@ export const BlockModal = ({
     onClose();
   };
 
-  if (!blocks && !isNewBlock) {
+  if (!isNewBlock) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Loading..." size="md">
         <div className="flex items-center justify-center h-32">
@@ -111,11 +91,6 @@ export const BlockModal = ({
       <label className="text-xs font-medium text-center block text-muted-foreground">
         {faceNames[faceIndex]}
       </label>
-      <AtlasTextureDropdown
-        selectedTexture={selectedFaces[faceIndex]}
-        onSelect={(textureIndex) => handleFaceChange(faceIndex, textureIndex)}
-        isLinked={applyToAllFaces}
-      />
     </div>
   );
 
@@ -200,10 +175,7 @@ export const BlockModal = ({
           </div>
           <div className="w-3xl flex flex-col rounded-lg border border-border">
             <div className="flex-1 flex items-center justify-center">
-              <BlockFacePreview
-                faces={selectedFaces}
-                showLabels={!applyToAllFaces}
-              />
+              Preview
             </div>
           </div>
         </div>

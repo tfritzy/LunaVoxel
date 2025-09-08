@@ -48,7 +48,7 @@ try {
     Start-Sleep -Seconds 5
 
     Write-Step "Step 2: Rebuilding database with clean flag"
-    & spacetime publish -c --project-path lunavoxel/server lunavoxel -y
+    & spacetime publish -c --project-path lunavoxel/server lunavoxel-db -y
     if ($LASTEXITCODE -ne 0) { throw "Failed to rebuild database" }
     Write-Success "Database rebuilt successfully"
 
@@ -87,7 +87,7 @@ SPACETIME_TOKEN=$($identityResponse.token)
     Write-Success "Admin user helper updated with new identity"
 
     Write-Step "Step 8: Updating database without clean flag"
-    & spacetime publish --project-path lunavoxel/server lunavoxel
+    & spacetime publish --project-path lunavoxel/server lunavoxel-db
     if ($LASTEXITCODE -ne 0) { throw "Failed to update database" }
     Write-Success "Database updated"
 

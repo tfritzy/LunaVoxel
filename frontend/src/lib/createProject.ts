@@ -1,23 +1,6 @@
-import { getFunctions, httpsCallable } from "firebase/functions";
 import { generateId } from "./idGenerator";
 import { NavigateFunction } from "react-router-dom";
 import { DbConnection } from "@/module_bindings";
-
-interface CreateProjectRequest {
-  id: string;
-  name: string;
-  xDim: number;
-  yDim: number;
-  zDim: number;
-  userIdentity: string;
-  spacetimeToken: string;
-}
-
-interface CreateProjectResponse {
-  success: boolean;
-  projectId?: string;
-  error?: string;
-}
 
 export const createProject = async (
   connection: DbConnection | null,
@@ -31,32 +14,5 @@ export const createProject = async (
     return { success: false, error: "No valid connection or identity found" };
   }
 
-  try {
-    const functions = getFunctions();
-    const createProjectFunction = httpsCallable<
-      CreateProjectRequest,
-      CreateProjectResponse
-    >(functions, "createProject");
-
-    const result = await createProjectFunction({
-      id,
-      name,
-      xDim: 32,
-      yDim: 32,
-      zDim: 32,
-      userIdentity: connection.identity.toHexString(),
-      spacetimeToken: connection.token,
-    });
-
-    if (result.data.success) {
-      navigate(`/project/${id}`);
-      return { success: true, projectId: id };
-    } else {
-      console.error("Failed to create project:", result.data.error);
-      return { success: false, error: result.data.error };
-    }
-  } catch (error) {
-    console.error("Error calling createProject function:", error);
-    return { success: false, error: "Failed to create project" };
-  }
+  connection.reducers.createProject(id, name, 32, 32, 32);
 };

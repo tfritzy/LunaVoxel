@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { ChunkManager } from "../lib/chunk-manager";
-import { Atlas, ProjectBlocks, Project } from "../../module_bindings";
+import { Project } from "../../module_bindings";
 import { MeshConsolidator } from "./mesh-consolidator";
 import { OBJExporter } from "./obj-exporter";
 import { GLTFExporter } from "./gltf-exporter";
@@ -16,21 +16,18 @@ export type ExportType = "GLTF" | "OBJ" | "STL";
 
 export class ModelExporter {
   private chunkManager: ChunkManager;
-  private atlas: Atlas | null;
-  private blocks: ProjectBlocks | null;
+  private blockAtlasMappings: number[][];
   private project: Project;
   private textureAtlas: THREE.Texture | null;
 
   constructor(
     chunkManager: ChunkManager,
-    atlas: Atlas | null,
-    blocks: ProjectBlocks | null,
+    blockAtlasMappings: number[][],
     project: Project,
     textureAtlas: THREE.Texture | null
   ) {
     this.chunkManager = chunkManager;
-    this.atlas = atlas;
-    this.blocks = blocks;
+    this.blockAtlasMappings = blockAtlasMappings;
     this.project = project;
     this.textureAtlas = textureAtlas;
   }

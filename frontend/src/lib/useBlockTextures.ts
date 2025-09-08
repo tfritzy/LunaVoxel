@@ -1,45 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAtlasContext } from "@/contexts/CurrentProjectContext";
+import * as THREE from "three";
 import {
   getBlockTextureRenderer,
   releaseBlockTextureRenderer,
 } from "./blockTextureRenderer";
-import { DbConnection, ProjectBlocks } from "@/module_bindings";
-import { useQueryRunner } from "./useQueryRunner";
-import { useDatabase } from "@/contexts/DatabaseContext";
 
-interface UseBlockTexturesOptions {
-  textureSize?: number;
-}
-
-export const useBlockTextures = (options: UseBlockTexturesOptions = {}) => {
-  const { connection } = useDatabase();
-  const { atlas, textureAtlas } = useAtlasContext();
-  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
-  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
-    connection,
-    getTable
-  );
-  const blocks = allBlocks[0];
-
+export const useBlockTextures = (
+  textureAtlas: THREE.Texture,
+  blockFaceAtlases: number[][],
+  textureSize?: number
+) => {
   const rendererRef = useRef<ReturnType<typeof getBlockTextureRenderer> | null>(
     null
   );
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!atlas || !textureAtlas || !blocks) {
+    if (!textureAtlas || !blockFaceAtlases) {
       setIsReady(false);
       return;
     }
 
     try {
-      rendererRef.current = getBlockTextureRenderer({
-        atlas,
+      rendererRef.current = getBlockTextureRenderer(
         textureAtlas,
-        blocks,
-        textureSize: options.textureSize,
-      });
+        blockFaceAtlases,
+        textureSize
+      );
       setIsReady(true);
     } catch (error) {
       console.error("Failed to get BlockTextureRenderer:", error);
@@ -52,26 +39,26 @@ export const useBlockTextures = (options: UseBlockTexturesOptions = {}) => {
         rendererRef.current = null;
       }
     };
-  }, [atlas, textureAtlas, blocks, options.textureSize]);
+  }, [textureAtlas, blockFaceAtlases, textureSize]);
 
   const getBlockTexture = useCallback(
     (blockIndex: number): string | null => {
-      if (!rendererRef.current || !atlas || !blocks || !isReady) {
+      if (!rendererRef.current || !blockFaceAtlases || !isReady) {
         return null;
       }
 
       try {
         return rendererRef.current.renderBlockToTexture(
           blockIndex,
-          atlas,
-          blocks
+          textureAtlas,
+          blockFaceAtlases
         );
       } catch (error) {
         console.error("Failed to render block texture:", error);
         return null;
       }
     },
-    [atlas, blocks, isReady]
+    [blockFaceAtlases, isReady, textureAtlas]
   );
 
   const clearCache = useCallback(() => {
