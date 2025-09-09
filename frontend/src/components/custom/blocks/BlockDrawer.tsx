@@ -8,8 +8,8 @@ import { useBlockTextures } from "@/lib/useBlockTextures";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
-const HORIZONTAL_OFFSET = "1.5rem";
-const VERTICAL_OVERLAP = "-1.5rem";
+const HORIZONTAL_OFFSET = "1.44rem";
+const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
 
 export const BlockDrawer = ({
@@ -31,7 +31,7 @@ export const BlockDrawer = ({
   const { getBlockTexture, isReady } = useBlockTextures(
     textureAtlas,
     blockFaceMappings,
-    128
+    256
   );
 
   const createBlockPreview = useCallback(
@@ -40,7 +40,7 @@ export const BlockDrawer = ({
 
       return (
         <div
-          className="relative rounded-full pointer-events-none"
+          className="relative pointer-events-none"
           key={index}
           style={{
             width: BLOCK_WIDTH,
@@ -51,7 +51,7 @@ export const BlockDrawer = ({
             <img
               src={blockTexture}
               alt={`Block ${index}`}
-              className="w-full h-full object-cover rounded-full"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -116,7 +116,7 @@ export const BlockDrawer = ({
       rows.push(
         <div
           key={rowIndex}
-          className="flex pointer-events-none"
+          className="flex flex-row -space-x-[2px] pointer-events-none"
           style={{
             transform: isOddRow
               ? `translateX(${HORIZONTAL_OFFSET})`
@@ -158,7 +158,7 @@ export const BlockDrawer = ({
                   <img
                     src={selectedBlockTexture}
                     alt={`Block ${selectedBlock} Preview`}
-                    className="max-w-full max-h-full object-contain"
+                    className="w-32"
                   />
                 ) : (
                   <span className="text-muted-foreground">
