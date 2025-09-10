@@ -185,7 +185,6 @@ export const BlockDrawer = ({
             isOpen={editingBlockIndex !== null}
             onClose={() => setEditingBlockIndex(null)}
             blockIndex={editingBlockIndex}
-            blockFaceMappings={blockFaceMappings}
           />
         )}
       </div>

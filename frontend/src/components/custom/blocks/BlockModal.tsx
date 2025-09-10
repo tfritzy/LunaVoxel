@@ -1,72 +1,176 @@
-// src/components/BlockModal.tsx
-
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useParams } from "react-router-dom";
+import { HexColorPicker } from "react-colorful";
+import "@/components/custom/color-picker.css";
+import { Block3DPreview } from "./Block3dPreview";
+
+const getTextColor = (hexColor: string): string => {
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 128 ? "#000000" : "#ffffff";
+};
+
+const isValidHex = (hex: string): boolean => {
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex);
+};
+
+export const ColorPicker = ({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (color: string) => void;
+}) => {
+  const [inputValue, setInputValue] = useState(color);
+
+  useEffect(() => {
+    if (isValidHex(color)) {
+      setInputValue(color);
+    }
+  }, [color]);
+
+  const handleColorChange = (newColor: string) => {
+    onChange(newColor);
+    setInputValue(newColor);
+  };
+
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    if (isValidHex(value)) {
+      onChange(value);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (!isValidHex(inputValue)) {
+      setInputValue(color);
+    }
+  };
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
+
+  const textColor = getTextColor(isValidHex(inputValue) ? inputValue : color);
+  const backgroundColor = isValidHex(inputValue) ? inputValue : color;
+
+  return (
+    <div className={`relative`}>
+      <HexColorPicker color={color} onChange={handleColorChange} />
+      <input
+        type="text"
+        value={inputValue}
+        onChange={handleHexInputChange}
+        onBlur={handleInputBlur}
+        onFocus={handleInputFocus}
+        className="w-full mt-2 text-xs py-2 font-mono text-center border border-border rounded"
+        style={{
+          backgroundColor,
+          color: textColor,
+        }}
+        placeholder="#ffffff"
+      />
+    </div>
+  );
+};
 
 interface BlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   blockIndex: number | "new";
-  blockFaceMappings: number[][];
+  blockColors: number[][];
 }
 
 export const BlockModal = ({
   isOpen,
   onClose,
   blockIndex,
-  blockFaceMappings,
+  blockColors,
 }: BlockModalProps) => {
   const projectId = useParams().projectId || "";
   const { connection } = useDatabase();
   const isNewBlock = blockIndex === "new";
 
+  const defaultColor = "#ffffff";
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
-  const [selectedFaces, setSelectedFaces] = useState<number[]>(() =>
-    isNewBlock
-      ? [0, 0, 0, 0, 0, 0]
-      : blockFaceMappings?.[blockIndex as number] || [0, 0, 0, 0, 0, 0]
-  );
+  const [selectedColors, setSelectedColors] = useState<string[]>(() => {
+    if (isNewBlock) {
+      return Array(6).fill(defaultColor);
+    } else {
+      const existingColors = blockColors?.[blockIndex as number];
+      if (existingColors) {
+        return existingColors.map(
+          (num) => "#" + num.toString(16).padStart(6, "0")
+        );
+      }
+      return Array(6).fill(defaultColor);
+    }
+  });
   const [submitPending, setSubmitPending] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (isNewBlock) {
         setApplyToAllFaces(true);
-        setSelectedFaces([0, 0, 0, 0, 0, 0]);
+        setSelectedColors(Array(6).fill(defaultColor));
       } else {
-        const existingFaces = blockFaceMappings?.[blockIndex as number] || [
-          0, 0, 0, 0, 0, 0,
-        ];
-        const allSame = existingFaces.every(
-          (index) => index === existingFaces[0]
-        );
-        setApplyToAllFaces(allSame);
-        setSelectedFaces(existingFaces);
+        const existingColorNumbers = blockColors?.[blockIndex as number];
+        if (existingColorNumbers) {
+          const existingColors = existingColorNumbers.map(
+            (num) => "#" + num.toString(16).padStart(6, "0")
+          );
+          const allSame = existingColors.every(
+            (color) => color === existingColors[0]
+          );
+          setApplyToAllFaces(allSame);
+          setSelectedColors(existingColors);
+        } else {
+          setApplyToAllFaces(true);
+          setSelectedColors(Array(6).fill(defaultColor));
+        }
       }
     }
-  }, [isOpen, blockIndex, isNewBlock, blockFaceMappings]);
+  }, [isOpen, blockIndex, isNewBlock, blockColors]);
 
   const handleApplyToAllChange = (checked: boolean | "indeterminate") => {
     const isApplyingAll = checked === false;
     setApplyToAllFaces(isApplyingAll);
     if (isApplyingAll) {
-      setSelectedFaces(Array(6).fill(selectedFaces[0]));
+      setSelectedColors(Array(6).fill(selectedColors[0]));
+    }
+  };
+
+  const handleColorChange = (color: string, faceIndex?: number) => {
+    if (applyToAllFaces || faceIndex === undefined) {
+      setSelectedColors(Array(6).fill(color));
+    } else {
+      const newColors = [...selectedColors];
+      newColors[faceIndex] = color;
+      setSelectedColors(newColors);
     }
   };
 
   const handleSubmit = () => {
     setSubmitPending(true);
+    const colorNumbers = selectedColors.map((hex) =>
+      parseInt(hex.replace("#", ""), 16)
+    );
+
     if (isNewBlock) {
-      connection?.reducers.addBlock(projectId, selectedFaces);
+      connection?.reducers.addBlock(projectId, colorNumbers);
     } else {
       connection?.reducers.updateBlock(
         projectId,
         blockIndex as number,
-        selectedFaces
+        colorNumbers
       );
     }
     setSubmitPending(false);
@@ -76,11 +180,15 @@ export const BlockModal = ({
   const faceNames = ["Right", "Left", "Top", "Bottom", "Front", "Back"];
   const title = isNewBlock ? "Create New Block" : "Edit Block";
 
-  const renderFaceSelector = (faceIndex: number) => (
+  const renderFaceColorPicker = (faceIndex: number) => (
     <div className="space-y-1 items-center flex flex-col">
-      <label className="text-xs font-medium text-center block text-muted-foreground">
+      <label className="text-xs font-medium text-center block text-muted-foreground mb-2">
         {faceNames[faceIndex]}
       </label>
+      <ColorPicker
+        color={selectedColors[faceIndex]}
+        onChange={(color) => handleColorChange(color, faceIndex)}
+      />
     </div>
   );
 
@@ -119,7 +227,7 @@ export const BlockModal = ({
                       htmlFor="apply-all"
                       className="text-sm font-medium leading-none cursor-pointer"
                     >
-                      Specify face mappings individually
+                      Specify face colors individually
                     </label>
                   </div>
                 </div>
@@ -128,45 +236,46 @@ export const BlockModal = ({
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-foreground mb-2">
                       {applyToAllFaces
-                        ? "Single atlas coordinate for all faces"
-                        : "Individual coordinate for each face"}
+                        ? "Single color for all faces"
+                        : "Individual color for each face"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {applyToAllFaces
-                        ? "Select a texture to apply to all linked faces."
-                        : "Select a mapping for each face of the block."}
+                        ? "Select a color to apply to all faces of the block."
+                        : "Select a color for each face of the block."}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-4 items-center">
-                    <div />
-                    {renderFaceSelector(2)}
-                    <div />
-                    <div />
+                  {applyToAllFaces ? (
+                    <div className="flex justify-center">
+                      <div className="w-64">
+                        <ColorPicker
+                          color={selectedColors[0]}
+                          onChange={(color) => handleColorChange(color)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-6 justify-items-center">
+                      <div />
+                      {renderFaceColorPicker(2)}
+                      <div />
 
-                    {renderFaceSelector(1)}
-                    {renderFaceSelector(4)}
-                    {renderFaceSelector(0)}
-                    {renderFaceSelector(5)}
+                      {renderFaceColorPicker(1)}
+                      {renderFaceColorPicker(4)}
+                      {renderFaceColorPicker(0)}
 
-                    <div />
-                    {renderFaceSelector(3)}
-                    <div />
-                    <div />
-                  </div>
-
-                  <div className="text-foreground-muted mt-auto pt-6">
-                    To edit or add more texture options, you need to edit the
-                    texture atlas.
-                  </div>
+                      <div />
+                      {renderFaceColorPicker(3)}
+                      {renderFaceColorPicker(5)}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
           <div className="w-3xl flex flex-col rounded-lg border border-border">
-            <div className="flex-1 flex items-center justify-center">
-              Preview
-            </div>
+            <Block3DPreview faceColors={selectedColors} />
           </div>
         </div>
       </div>
