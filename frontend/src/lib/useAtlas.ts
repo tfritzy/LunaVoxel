@@ -1,20 +1,20 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import { DbConnection, ProjectBlocks } from "@/module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useQueryRunner } from "./useQueryRunner";
 
-interface UseAtlasReturn {
+export interface AtlasData {
   blockAtlasMappings: number[][];
   texture: THREE.Texture | null;
   colors: number[];
 }
 
-export const useAtlas = (): UseAtlasReturn => {
+export const useAtlas = (): AtlasData => {
   const { connection } = useDatabase();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const textureRef = useRef<THREE.Texture | null>(null);
 
   const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
   const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
@@ -22,9 +22,14 @@ export const useAtlas = (): UseAtlasReturn => {
     getTable
   );
 
-  const { blockAtlasMappings, colors } = useMemo(() => {
+  const atlasData = useMemo(() => {
+    if (textureRef.current) {
+      textureRef.current.dispose();
+      textureRef.current = null;
+    }
+
     if (!allBlocks || allBlocks.length === 0) {
-      return { blockAtlasMappings: [], colors: [] };
+      return { blockAtlasMappings: [], colors: [], texture: null };
     }
 
     const blocks = allBlocks[0];
@@ -45,11 +50,9 @@ export const useAtlas = (): UseAtlasReturn => {
       blockAtlasMappings.push(blockAtlasIndexes);
     }
 
-    return { blockAtlasMappings, colors };
-  }, [allBlocks]);
-
-  useEffect(() => {
-    if (!colors.length) return;
+    if (!colors.length) {
+      return { blockAtlasMappings, colors, texture: null };
+    }
 
     if (!canvasRef.current) {
       canvasRef.current = document.createElement("canvas");
@@ -59,7 +62,9 @@ export const useAtlas = (): UseAtlasReturn => {
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
 
-    if (!ctx) return;
+    if (!ctx) {
+      return { blockAtlasMappings, colors, texture: null };
+    }
 
     const requiredSlots = colors.length;
     const gridSize = getNextPowerOfTwo(Math.ceil(Math.sqrt(requiredSlots)));
@@ -76,26 +81,29 @@ export const useAtlas = (): UseAtlasReturn => {
       ctx.fillRect(col, row, 1, 1);
     }
 
-    const newTexture = new THREE.Texture(canvas);
-    newTexture.magFilter = THREE.NearestFilter;
-    newTexture.minFilter = THREE.NearestFilter;
-    newTexture.wrapS = THREE.ClampToEdgeWrapping;
-    newTexture.wrapT = THREE.ClampToEdgeWrapping;
-    newTexture.generateMipmaps = false;
-    newTexture.needsUpdate = true;
+    const texture = new THREE.Texture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
 
-    setTexture(newTexture);
+    textureRef.current = texture;
 
+    return { blockAtlasMappings, colors, texture };
+  }, [allBlocks]);
+
+  useEffect(() => {
     return () => {
-      newTexture.dispose();
+      if (textureRef.current) {
+        textureRef.current.dispose();
+        textureRef.current = null;
+      }
     };
-  }, [colors]);
+  }, []);
 
-  return {
-    blockAtlasMappings,
-    texture: texture!,
-    colors,
-  };
+  return atlasData;
 };
 
 const getNextPowerOfTwo = (n: number): number => {

@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import { ChunkManager } from "../lib/chunk-manager";
 import { Project } from "../../module_bindings";
 import { MeshConsolidator } from "./mesh-consolidator";
@@ -11,25 +10,23 @@ import {
   extractTextureAtlasImage,
 } from "./file-utils";
 import { toast } from "sonner";
+import { AtlasData } from "@/lib/useAtlas";
 
 export type ExportType = "GLTF" | "OBJ" | "STL";
 
 export class ModelExporter {
   private chunkManager: ChunkManager;
-  private blockAtlasMappings: number[][];
   private project: Project;
-  private textureAtlas: THREE.Texture | null;
+  private atlasData: AtlasData | null;
 
   constructor(
     chunkManager: ChunkManager,
-    blockAtlasMappings: number[][],
     project: Project,
-    textureAtlas: THREE.Texture | null
+    atlasData: AtlasData | null
   ) {
     this.chunkManager = chunkManager;
-    this.blockAtlasMappings = blockAtlasMappings;
     this.project = project;
-    this.textureAtlas = textureAtlas;
+    this.atlasData = atlasData;
   }
 
   public export(type: ExportType): void {
@@ -77,9 +74,9 @@ export class ModelExporter {
       const projectName = this.sanitizeFilename(this.project.name);
       let textureDataUri: string | undefined;
 
-      if (this.textureAtlas) {
+      if (this.atlasData?.texture) {
         try {
-          const canvas = extractTextureAtlasImage(this.textureAtlas);
+          const canvas = extractTextureAtlasImage(this.atlasData.texture);
           textureDataUri = canvas.toDataURL("image/png");
         } catch (error) {
           console.error("Failed to extract texture for GLTF:", error);
@@ -139,9 +136,9 @@ export class ModelExporter {
   }
 
   private exportTexture(projectName: string): void {
-    if (this.textureAtlas) {
+    if (this.atlasData?.texture) {
       try {
-        const canvas = extractTextureAtlasImage(this.textureAtlas);
+        const canvas = extractTextureAtlasImage(this.atlasData?.texture);
         downloadImageFromCanvas(canvas, `${projectName}_texture.png`);
       } catch (error) {
         console.error("Failed to export texture atlas:", error);

@@ -12,6 +12,7 @@ import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
+import { AtlasData } from "@/lib/useAtlas";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
@@ -22,10 +23,9 @@ export const ProjectManager = class {
   private dbConn: DbConnection;
   private project: Project;
   private layers: DecompressedLayer[] = [];
-  private textureAtlas: THREE.Texture | null = null;
+  private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
-  private blockAtlasMappings: number[][] = [];
 
   constructor(
     scene: THREE.Scene,
@@ -98,9 +98,8 @@ export const ProjectManager = class {
   public export = (type: ExportType): void => {
     const exporter = new ModelExporter(
       this.chunkManager,
-      this.blockAtlasMappings,
       this.project,
-      this.textureAtlas
+      this.atlasData
     );
     exporter.export(type);
   };
@@ -145,18 +144,10 @@ export const ProjectManager = class {
     this.builder.setSelectedBlock(block);
   };
 
-  setTextureAtlas = (
-    textureAtlas: THREE.Texture | null,
-    blockAtlasMappings: number[][]
-  ) => {
-    this.textureAtlas = textureAtlas;
-    this.blockAtlasMappings = blockAtlasMappings;
-    if (textureAtlas) {
-      this.chunkManager.setTextureAtlas(
-        textureAtlas,
-        this.builder.getTool(),
-        this.blockAtlasMappings
-      );
+  setAtlasData = (atlasData: AtlasData) => {
+    this.atlasData = atlasData;
+    if (atlasData) {
+      this.chunkManager.setTextureAtlas(atlasData, this.builder.getTool());
       this.updateChunkManager();
     }
   };
@@ -240,15 +231,14 @@ export const ProjectManager = class {
   }
 
   private updateChunkManager = () => {
-    if (!this.blockAtlasMappings) return;
-
+    if (!this.atlasData) return;
     const start = performance.now();
 
     this.chunkManager.update(
       this.layers,
       this.builder.previewBlocks,
       this.builder.getTool(),
-      this.blockAtlasMappings
+      this.atlasData
     );
 
     const end = performance.now();

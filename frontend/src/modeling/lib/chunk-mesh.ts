@@ -4,6 +4,7 @@ import { findExteriorFaces } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
+import { AtlasData } from "@/lib/useAtlas";
 
 export const CHUNK_SIZE = 16;
 
@@ -13,7 +14,6 @@ export class ChunkMesh {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private previewMesh: THREE.Mesh | null = null;
-  private textureAtlas: THREE.Texture | null = null;
 
   private meshArrays: MeshArrays;
   private previewMeshArrays: MeshArrays;
@@ -30,8 +30,7 @@ export class ChunkMesh {
     chunkY: number,
     chunkZ: number,
     chunkDimensions: Vector3,
-    worldDimensions: Vector3,
-    textureAtlas: THREE.Texture | null = null
+    worldDimensions: Vector3
   ) {
     this.scene = scene;
     this.chunkX = chunkX;
@@ -39,7 +38,6 @@ export class ChunkMesh {
     this.chunkZ = chunkZ;
     this.chunkDimensions = chunkDimensions;
     this.worldDimensions = worldDimensions;
-    this.textureAtlas = textureAtlas;
 
     const maxFaces =
       chunkDimensions.x * chunkDimensions.y * chunkDimensions.z * 6;
@@ -93,45 +91,37 @@ export class ChunkMesh {
     return 0;
   }
 
-  setTextureAtlas = (textureAtlas: THREE.Texture) => {
-    this.textureAtlas = textureAtlas;
+  setTextureAtlas = (atlasData: AtlasData) => {
     if (this.material) {
-      this.material.uniforms.map.value = textureAtlas;
+      this.material.uniforms.map.value = atlasData.texture;
       this.material.needsUpdate = true;
     }
     if (this.previewMesh?.material) {
       (this.previewMesh.material as THREE.ShaderMaterial).uniforms.map.value =
-        textureAtlas;
+        atlasData.texture;
       (this.previewMesh.material as THREE.ShaderMaterial).needsUpdate = true;
     }
   };
 
-  update = (
-    buildMode: BlockModificationMode,
-    blockAtlasMappings: number[][]
-  ) => {
-    if (!this.textureAtlas) return;
-
+  update = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
     findExteriorFaces(
       this.voxelData,
-      this.textureAtlas.image.width,
-      blockAtlasMappings,
+      atlasData.texture?.image.width,
+      atlasData.blockAtlasMappings,
       this.chunkDimensions,
       this.meshArrays,
       this.previewMeshArrays,
       buildMode.tag === BlockModificationMode.Erase.tag
     );
 
-    this.updateMesh();
-    this.updatePreviewMesh(buildMode);
+    this.updateMesh(atlasData);
+    this.updatePreviewMesh(buildMode, atlasData);
   };
 
-  private updateMesh = (): void => {
-    if (!this.textureAtlas) return;
-
+  private updateMesh = (atlasData: AtlasData): void => {
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
-      this.material = createVoxelMaterial(this.textureAtlas);
+      this.material = createVoxelMaterial(atlasData.texture);
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.mesh.castShadow = true;
       this.mesh.receiveShadow = true;
@@ -186,12 +176,13 @@ export class ChunkMesh {
     this.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
 
-  private updatePreviewMesh = (buildMode: BlockModificationMode): void => {
-    if (!this.textureAtlas) return;
-
+  private updatePreviewMesh = (
+    buildMode: BlockModificationMode,
+    atlasData: AtlasData
+  ): void => {
     if (!this.previewMesh) {
       const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(this.textureAtlas, 1);
+      const material = createVoxelMaterial(atlasData.texture, 1);
       this.previewMesh = new THREE.Mesh(geometry, material);
 
       this.previewMesh.position.set(

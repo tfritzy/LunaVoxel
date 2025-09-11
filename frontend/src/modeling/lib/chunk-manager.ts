@@ -11,13 +11,13 @@ import {
   isBlockPresent,
   getVersion,
 } from "./voxel-data-utils";
+import { AtlasData } from "@/lib/useAtlas";
 
 export const CHUNK_SIZE = 16;
 
 export class ChunkManager {
   private scene: THREE.Scene;
   private chunks: ChunkMesh[][][];
-  private textureAtlas: THREE.Texture | null = null;
   private dimensions: Vector3;
   private renderedBlocks: Uint32Array;
   private blocksToRender: Uint32Array;
@@ -60,8 +60,7 @@ export class ChunkManager {
             chunkY,
             chunkZ,
             chunkDims,
-            dimensions,
-            this.textureAtlas
+            dimensions
           );
         }
       }
@@ -123,20 +122,15 @@ export class ChunkManager {
   }
 
   setTextureAtlas = (
-    textureAtlas: THREE.Texture,
-    buildMode: BlockModificationMode,
-    blockAtlasMappings: number[][]
+    atlasData: AtlasData,
+    buildMode: BlockModificationMode
   ) => {
-    this.textureAtlas = textureAtlas;
     for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
       for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
         for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
-          this.chunks[chunkX][chunkY][chunkZ].setTextureAtlas(textureAtlas);
+          this.chunks[chunkX][chunkY][chunkZ].setTextureAtlas(atlasData);
           this.copyChunkData(chunkX, chunkY, chunkZ, this.renderedBlocks);
-          this.chunks[chunkX][chunkY][chunkZ].update(
-            buildMode,
-            blockAtlasMappings
-          );
+          this.chunks[chunkX][chunkY][chunkZ].update(buildMode, atlasData);
         }
       }
     }
@@ -290,7 +284,7 @@ export class ChunkManager {
     layers: DecompressedLayer[],
     previewBlocks: Uint32Array,
     buildMode: BlockModificationMode,
-    blockAtlasMappings: number[][]
+    atlasData: AtlasData
   ) => {
     try {
       const visibleLayers = layers
@@ -330,10 +324,7 @@ export class ChunkManager {
       for (const chunkKey of chunksToUpdate) {
         const [chunkX, chunkY, chunkZ] = chunkKey.split(",").map(Number);
         this.copyChunkData(chunkX, chunkY, chunkZ, this.blocksToRender);
-        this.chunks[chunkX][chunkY][chunkZ].update(
-          buildMode,
-          blockAtlasMappings
-        );
+        this.chunks[chunkX][chunkY][chunkZ].update(buildMode, atlasData);
       }
 
       this.renderedBlocks.set(this.blocksToRender);

@@ -46,7 +46,7 @@ void main() {
 `;
 
 export const createVoxelMaterial = (
-  textureAtlas: THREE.Texture,
+  textureAtlas: THREE.Texture | null,
   opacity: number = 1
 ) => {
   return new THREE.ShaderMaterial({

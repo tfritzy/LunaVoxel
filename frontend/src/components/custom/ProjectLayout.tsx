@@ -6,6 +6,12 @@ import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
 
+interface AtlasData {
+  blockAtlasMappings: number[][];
+  texture: Texture | null;
+  colors: number[];
+}
+
 interface ProjectLayoutProps {
   projectId: string;
   selectedBlock: number;
@@ -17,8 +23,7 @@ interface ProjectLayoutProps {
   onUndo: () => void;
   onRedo: () => void;
   children: React.ReactNode;
-  blockFaceMappings: number[][];
-  textureAtlas: Texture;
+  atlasData: AtlasData;
 }
 
 export const ProjectLayout = ({
@@ -32,8 +37,7 @@ export const ProjectLayout = ({
   onUndo,
   onRedo,
   children,
-  blockFaceMappings,
-  textureAtlas,
+  atlasData,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
@@ -44,8 +48,7 @@ export const ProjectLayout = ({
           projectId={projectId}
           selectedBlock={selectedBlock}
           setSelectedBlock={setSelectedBlock}
-          blockFaceMappings={blockFaceMappings}
-          textureAtlas={textureAtlas}
+          atlasData={atlasData}
         />
 
         <div className="flex-1 relative bg-muted/5 min-w-0">

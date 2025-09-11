@@ -7,6 +7,7 @@ import { useParams } from "react-router-dom";
 import { HexColorPicker } from "react-colorful";
 import "@/components/custom/color-picker.css";
 import { Block3DPreview } from "./Block3dPreview";
+import { Texture } from "three";
 
 const getTextColor = (hexColor: string): string => {
   const hex = hexColor.replace("#", "");
@@ -82,18 +83,24 @@ export const ColorPicker = ({
   );
 };
 
+interface AtlasData {
+  blockAtlasMappings: number[][];
+  texture: Texture | null;
+  colors: number[];
+}
+
 interface BlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   blockIndex: number | "new";
-  blockColors: number[][];
+  atlasData: AtlasData;
 }
 
 export const BlockModal = ({
   isOpen,
   onClose,
   blockIndex,
-  blockColors,
+  atlasData,
 }: BlockModalProps) => {
   const projectId = useParams().projectId || "";
   const { connection } = useDatabase();
@@ -105,10 +112,12 @@ export const BlockModal = ({
     if (isNewBlock) {
       return Array(6).fill(defaultColor);
     } else {
-      const existingColors = blockColors?.[blockIndex as number];
-      if (existingColors) {
-        return existingColors.map(
-          (num) => "#" + num.toString(16).padStart(6, "0")
+      const blockAtlasIndices =
+        atlasData.blockAtlasMappings?.[blockIndex as number];
+      if (blockAtlasIndices) {
+        return blockAtlasIndices.map(
+          (atlasIndex) =>
+            "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
         );
       }
       return Array(6).fill(defaultColor);
@@ -122,10 +131,12 @@ export const BlockModal = ({
         setApplyToAllFaces(true);
         setSelectedColors(Array(6).fill(defaultColor));
       } else {
-        const existingColorNumbers = blockColors?.[blockIndex as number];
-        if (existingColorNumbers) {
-          const existingColors = existingColorNumbers.map(
-            (num) => "#" + num.toString(16).padStart(6, "0")
+        const blockAtlasIndices =
+          atlasData.blockAtlasMappings?.[blockIndex as number];
+        if (blockAtlasIndices) {
+          const existingColors = blockAtlasIndices.map(
+            (atlasIndex) =>
+              "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
           );
           const allSame = existingColors.every(
             (color) => color === existingColors[0]
@@ -138,7 +149,7 @@ export const BlockModal = ({
         }
       }
     }
-  }, [isOpen, blockIndex, isNewBlock, blockColors]);
+  }, [isOpen, blockIndex, isNewBlock, atlasData]);
 
   const handleApplyToAllChange = (checked: boolean | "indeterminate") => {
     const isApplyingAll = checked === false;

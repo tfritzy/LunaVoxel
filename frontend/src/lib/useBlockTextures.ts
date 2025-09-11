@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import * as THREE from "three";
 import {
   getBlockTextureRenderer,
   releaseBlockTextureRenderer,
 } from "./blockTextureRenderer";
+import { AtlasData } from "./useAtlas";
 
 export const useBlockTextures = (
-  textureAtlas: THREE.Texture,
-  blockFaceAtlases: number[][],
+  atlasData: AtlasData,
   textureSize?: number
 ) => {
   const rendererRef = useRef<ReturnType<typeof getBlockTextureRenderer> | null>(
@@ -16,17 +15,13 @@ export const useBlockTextures = (
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!textureAtlas || !blockFaceAtlases) {
+    if (!atlasData) {
       setIsReady(false);
       return;
     }
 
     try {
-      rendererRef.current = getBlockTextureRenderer(
-        textureAtlas,
-        blockFaceAtlases,
-        textureSize
-      );
+      rendererRef.current = getBlockTextureRenderer(atlasData, textureSize);
       setIsReady(true);
     } catch (error) {
       console.error("Failed to get BlockTextureRenderer:", error);
@@ -39,26 +34,22 @@ export const useBlockTextures = (
         rendererRef.current = null;
       }
     };
-  }, [textureAtlas, blockFaceAtlases, textureSize]);
+  }, [atlasData, textureSize]);
 
   const getBlockTexture = useCallback(
     (blockIndex: number): string | null => {
-      if (!rendererRef.current || !blockFaceAtlases || !isReady) {
+      if (!rendererRef.current || !atlasData || !isReady) {
         return null;
       }
 
       try {
-        return rendererRef.current.renderBlockToTexture(
-          blockIndex,
-          textureAtlas,
-          blockFaceAtlases
-        );
+        return rendererRef.current.renderBlockToTexture(blockIndex, atlasData);
       } catch (error) {
         console.error("Failed to render block texture:", error);
         return null;
       }
     },
-    [blockFaceAtlases, isReady, textureAtlas]
+    [atlasData, isReady]
   );
 
   const clearCache = useCallback(() => {

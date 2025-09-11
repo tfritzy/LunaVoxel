@@ -23,7 +23,7 @@ export const ProjectViewPage = () => {
   const project = useCurrentProject(connection, projectId);
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
-  const { blockAtlasMappings, texture } = useAtlas();
+  const atlasData = useAtlas();
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
@@ -102,7 +102,7 @@ export const ProjectViewPage = () => {
         !connection ||
         !project ||
         !projectId ||
-        !texture ||
+        !atlasData ||
         isInitializedRef.current
       )
         return;
@@ -123,22 +123,11 @@ export const ProjectViewPage = () => {
 
           engineRef.current.projectManager.setSelectedBlock(selectedBlock);
           engineRef.current.projectManager.setTool(currentTool);
-          engineRef.current.projectManager.setTextureAtlas(
-            texture,
-            blockAtlasMappings
-          );
+          engineRef.current.projectManager.setAtlasData(atlasData);
         });
       });
     },
-    [
-      connection,
-      project,
-      projectId,
-      selectedBlock,
-      currentTool,
-      texture,
-      blockAtlasMappings,
-    ]
+    [connection, project, projectId, atlasData, selectedBlock, currentTool]
   );
 
   useEffect(() => {
@@ -164,13 +153,10 @@ export const ProjectViewPage = () => {
   }, [currentTool]);
 
   useEffect(() => {
-    if (engineRef.current?.projectManager && texture) {
-      engineRef.current.projectManager.setTextureAtlas(
-        texture,
-        blockAtlasMappings
-      );
+    if (engineRef.current?.projectManager && atlasData) {
+      engineRef.current.projectManager.setAtlasData(atlasData);
     }
-  }, [blockAtlasMappings, texture]);
+  }, [atlasData]);
 
   const handleToolChange = useCallback((tool: BlockModificationMode) => {
     setCurrentTool(tool);
@@ -198,8 +184,7 @@ export const ProjectViewPage = () => {
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}
       onRedo={handleRedo}
-      blockFaceMappings={blockAtlasMappings}
-      textureAtlas={texture}
+      atlasData={atlasData}
     >
       <div
         ref={containerCallbackRef}

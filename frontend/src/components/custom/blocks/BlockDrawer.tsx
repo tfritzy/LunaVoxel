@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { FileQuestion, Plus } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { BlockModal } from "./BlockModal";
-import { Texture } from "three";
 import { useBlockTextures } from "@/lib/useBlockTextures";
+import { AtlasData } from "@/lib/useAtlas";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
@@ -15,24 +15,18 @@ const HORIZONTAL_GAP = "-1.5rem";
 export const BlockDrawer = ({
   selectedBlock,
   setSelectedBlock,
-  blockFaceMappings,
-  textureAtlas,
+  atlasData,
 }: {
   projectId: string;
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
-  blockFaceMappings: number[][];
-  textureAtlas: Texture;
+  atlasData: AtlasData;
 }) => {
   const [editingBlockIndex, setEditingBlockIndex] = useState<
     number | "new" | null
   >(null);
 
-  const { getBlockTexture, isReady } = useBlockTextures(
-    textureAtlas,
-    blockFaceMappings,
-    256
-  );
+  const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
 
   const createBlockPreview = useCallback(
     (index: number) => {
@@ -97,7 +91,7 @@ export const BlockDrawer = ({
     const rows = [];
     let currentIndex = 0;
     let rowIndex = 0;
-    const totalItems = blockFaceMappings.length + 1;
+    const totalItems = atlasData.blockAtlasMappings.length + 1;
 
     while (currentIndex < totalItems) {
       const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
@@ -105,7 +99,7 @@ export const BlockDrawer = ({
       const rowItems = [];
 
       for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
-        if (currentIndex < blockFaceMappings.length) {
+        if (currentIndex < atlasData.blockAtlasMappings.length) {
           rowItems.push(createBlockPreview(currentIndex + 1));
         } else {
           rowItems.push(createAddNewHex(currentIndex));
@@ -131,11 +125,15 @@ export const BlockDrawer = ({
       rowIndex++;
     }
     return rows;
-  }, [blockFaceMappings.length, createBlockPreview, createAddNewHex]);
+  }, [
+    atlasData.blockAtlasMappings.length,
+    createBlockPreview,
+    createAddNewHex,
+  ]);
 
   const selectedBlockFaces =
-    selectedBlock <= blockFaceMappings.length
-      ? blockFaceMappings[selectedBlock - 1]
+    selectedBlock <= atlasData.blockAtlasMappings.length
+      ? atlasData.blockAtlasMappings[selectedBlock - 1]
       : null;
 
   const selectedBlockTexture =
@@ -185,6 +183,7 @@ export const BlockDrawer = ({
             isOpen={editingBlockIndex !== null}
             onClose={() => setEditingBlockIndex(null)}
             blockIndex={editingBlockIndex}
+            atlasData={atlasData}
           />
         )}
       </div>

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { createVoxelMaterial } from "@/modeling/lib/shader";
 import { faces } from "@/modeling/lib/voxel-constants";
 import { getTextureCoordinates } from "@/modeling/lib/texture-coords";
+import { AtlasData } from "./useAtlas";
 
 class BlockTextureRenderer {
   private scene: THREE.Scene;
@@ -13,14 +14,9 @@ class BlockTextureRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private textureCache = new Map<string, string>();
-  private currentAtlas: THREE.Texture | null = null;
-  private currentBlockFaceAtlases: number[][] | null = null;
+  private currentAtlas: AtlasData | null = null;
 
-  constructor(
-    textureAtlas: THREE.Texture,
-    blockFaceAtlases: number[][],
-    textureSize = 128
-  ) {
+  constructor(atlasData: AtlasData, textureSize = 128) {
     this.canvas = document.createElement("canvas");
     this.canvas.width = textureSize;
     this.canvas.height = textureSize;
@@ -56,8 +52,8 @@ class BlockTextureRenderer {
       type: THREE.UnsignedByteType,
     });
 
-    const geometry = this.createCubeGeometry(0, textureAtlas, blockFaceAtlases);
-    this.material = createVoxelMaterial(textureAtlas);
+    const geometry = this.createCubeGeometry(0, atlasData);
+    this.material = createVoxelMaterial(atlasData.texture);
     this.mesh = new THREE.Mesh(geometry, this.material);
 
     this.scene.add(this.mesh);
@@ -69,14 +65,12 @@ class BlockTextureRenderer {
     directionalLight.position.set(1, 1, 1);
     this.scene.add(directionalLight);
 
-    this.currentAtlas = textureAtlas;
-    this.currentBlockFaceAtlases = blockFaceAtlases;
+    this.currentAtlas = atlasData;
   }
 
   private createCubeGeometry(
     blockIndex: number,
-    textureAtlas: THREE.Texture,
-    blockFaceAtlases: number[][]
+    atlasData: AtlasData
   ): THREE.BufferGeometry {
     const geometry = new THREE.BufferGeometry();
 
@@ -93,11 +87,11 @@ class BlockTextureRenderer {
       const faceVertices = face.vertices;
       const faceNormal = face.normal;
 
-      const textureIndex = blockFaceAtlases[blockIndex][faceIndex];
+      const textureIndex = atlasData.blockAtlasMappings[blockIndex][faceIndex];
 
       const textureCoords = getTextureCoordinates(
         textureIndex,
-        textureAtlas.image.width
+        atlasData.texture?.image.width
       );
 
       const startVertexIndex = vertexIndex;
@@ -144,28 +138,19 @@ class BlockTextureRenderer {
     return geometry;
   }
 
-  public updateContext(
-    textureAtlas: THREE.Texture,
-    blockFaceAtlases: number[][]
-  ): void {
-    if (this.currentAtlas !== textureAtlas) {
-      this.currentAtlas = textureAtlas;
+  public updateContext(atlas: AtlasData): void {
+    if (this.currentAtlas !== atlas) {
+      this.currentAtlas = atlas;
       if (this.material.uniforms?.map) {
-        this.material.uniforms.map.value = textureAtlas;
+        this.material.uniforms.map.value = atlas;
       }
-      this.textureCache.clear();
-    }
-
-    if (this.currentBlockFaceAtlases !== blockFaceAtlases) {
-      this.currentBlockFaceAtlases = blockFaceAtlases;
       this.textureCache.clear();
     }
   }
 
   public renderBlockToTexture(
     blockIndex: number,
-    textureAtlas: THREE.Texture,
-    blockFaceAtlases: number[][]
+    atlasData: AtlasData
   ): string {
     const cacheKey = `${blockIndex}`;
 
@@ -173,11 +158,7 @@ class BlockTextureRenderer {
       return this.textureCache.get(cacheKey)!;
     }
 
-    const newGeometry = this.createCubeGeometry(
-      blockIndex,
-      textureAtlas,
-      blockFaceAtlases
-    );
+    const newGeometry = this.createCubeGeometry(blockIndex, atlasData);
     this.mesh.geometry.dispose();
     this.mesh.geometry = newGeometry;
 
@@ -232,18 +213,13 @@ let globalRenderer: BlockTextureRenderer | null = null;
 let refCount = 0;
 
 export const getBlockTextureRenderer = (
-  textureAtlas: THREE.Texture,
-  blockFaceAtlases: number[][],
+  atlas: AtlasData,
   textureSize?: number
 ): BlockTextureRenderer => {
   if (!globalRenderer) {
-    globalRenderer = new BlockTextureRenderer(
-      textureAtlas,
-      blockFaceAtlases,
-      textureSize
-    );
+    globalRenderer = new BlockTextureRenderer(atlas, textureSize);
   } else {
-    globalRenderer.updateContext(textureAtlas, blockFaceAtlases);
+    globalRenderer.updateContext(atlas);
   }
 
   refCount++;
