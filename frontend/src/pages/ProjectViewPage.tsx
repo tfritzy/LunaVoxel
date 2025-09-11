@@ -102,6 +102,7 @@ export const ProjectViewPage = () => {
         !connection ||
         !project ||
         !projectId ||
+        !texture ||
         isInitializedRef.current
       )
         return;

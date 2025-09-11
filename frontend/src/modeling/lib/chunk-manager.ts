@@ -293,8 +293,6 @@ export class ChunkManager {
     blockAtlasMappings: number[][]
   ) => {
     try {
-      if (!this.textureAtlas) return;
-
       const visibleLayers = layers
         .filter((layer) => layer.visible)
         .sort((l1, l2) => l2.index - l1.index);
