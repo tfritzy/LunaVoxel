@@ -7,7 +7,7 @@ import { useParams } from "react-router-dom";
 import { HexColorPicker } from "react-colorful";
 import "@/components/custom/color-picker.css";
 import { Block3DPreview } from "./Block3dPreview";
-import { Texture } from "three";
+import { AtlasData } from "@/lib/useAtlas";
 
 const getTextColor = (hexColor: string): string => {
   const hex = hexColor.replace("#", "");
@@ -82,12 +82,6 @@ export const ColorPicker = ({
     </div>
   );
 };
-
-interface AtlasData {
-  blockAtlasMappings: number[][];
-  texture: Texture | null;
-  colors: number[];
-}
 
 interface BlockModalProps {
   isOpen: boolean;
@@ -224,7 +218,7 @@ export const BlockModal = ({
     >
       <div className="w-full h-[60vh] flex flex-col text-foreground">
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-lg overflow-y-auto">
+          <div className="">
             <div className="pr-6 h-full">
               <div className="flex flex-col h-full space-y-4">
                 <div className="bg-background rounded-lg p-4 border border-border shadow-sm">
@@ -243,13 +237,8 @@ export const BlockModal = ({
                   </div>
                 </div>
 
-                <div className="bg-background rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1">
+                <div className="bg-background rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1 overflow-y-auto">
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {applyToAllFaces
-                        ? "Single color for all faces"
-                        : "Individual color for each face"}
-                    </h3>
                     <p className="text-sm text-muted-foreground">
                       {applyToAllFaces
                         ? "Select a color to apply to all faces of the block."
@@ -259,24 +248,17 @@ export const BlockModal = ({
 
                   {applyToAllFaces ? (
                     <div className="flex justify-center">
-                      <div className="w-64">
-                        <ColorPicker
-                          color={selectedColors[0]}
-                          onChange={(color) => handleColorChange(color)}
-                        />
-                      </div>
+                      <ColorPicker
+                        color={selectedColors[0]}
+                        onChange={(color) => handleColorChange(color)}
+                      />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-6 justify-items-center">
-                      <div />
+                    <div className="flex flex-col space-y-8 justify-items-center">
                       {renderFaceColorPicker(2)}
-                      <div />
-
                       {renderFaceColorPicker(1)}
                       {renderFaceColorPicker(4)}
                       {renderFaceColorPicker(0)}
-
-                      <div />
                       {renderFaceColorPicker(3)}
                       {renderFaceColorPicker(5)}
                     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { faces } from "@/modeling/lib/voxel-constants";
 
@@ -6,9 +6,8 @@ interface Block3DPreviewProps {
   faceColors: string[];
 }
 
-const createColorMaterial = (opacity: number = 1) => {
+const createBlockMaterial = (opacity: number = 1) => {
   const vertexShader = `
-    attribute vec3 color;
     attribute float aochannel;
     varying vec3 vColor;
     varying vec3 vNormal;
@@ -66,7 +65,6 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
   const frameRef = useRef<number | null>(null);
   const mouseRef = useRef({ x: 0, y: 0, isDown: false });
   const cameraRotationRef = useRef({ theta: Math.PI / 4, phi: Math.PI / 4 });
@@ -75,8 +73,6 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     phi: Math.PI / 4,
   });
   const lastTimeRef = useRef(0);
-
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const createCubeGeometry = (colors: string[]): THREE.BufferGeometry => {
     const geometry = new THREE.BufferGeometry();
@@ -93,7 +89,7 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
       const faceVertices = face.vertices;
       const faceNormal = face.normal;
 
-      const color = new THREE.Color(colors[faceIndex]);
+      const color = new THREE.Color(colors[faceIndex] || "#ffffff");
 
       const startVertexIndex = vertexIndex;
 
@@ -157,7 +153,7 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     cameraRef.current.position.y = radius * Math.cos(phi);
     cameraRef.current.position.z = radius * Math.sin(phi) * Math.sin(theta);
 
-    cameraRef.current.lookAt(0, 0, 0);
+    cameraRef.current.lookAt(0, 0.5, 0);
   };
 
   const animate = (time: number) => {
@@ -204,9 +200,9 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     targetCameraRotationRef.current.theta += deltaX * 0.01;
     targetCameraRotationRef.current.phi -= deltaY * 0.01;
 
-    targetCameraRotationRef.current.phi = Math.min(
-      Math.PI - 0.01,
-      targetCameraRotationRef.current.phi
+    targetCameraRotationRef.current.phi = Math.max(
+      0.1,
+      Math.min(Math.PI - 0.1, targetCameraRotationRef.current.phi)
     );
 
     mouseRef.current.x = event.clientX;
@@ -224,16 +220,22 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
+    if (width === 0 || height === 0) return;
+
     rendererRef.current.setSize(width, height);
     cameraRef.current.aspect = width / height;
     cameraRef.current.updateProjectionMatrix();
   };
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (!mountRef.current || faceColors.length === 0) return;
+
+    const container = mountRef.current;
+    const width = container.clientWidth || 400;
+    const height = container.clientHeight || 400;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -241,11 +243,11 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     });
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setSize(400, 400);
+    renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     const geometry = createCubeGeometry(faceColors);
-    const material = createColorMaterial();
+    const material = createBlockMaterial();
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.y = 0.5;
 
@@ -254,15 +256,15 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
 
     scene.add(mesh);
     scene.add(gridHelper);
-    updateCameraPosition();
-
-    mountRef.current.appendChild(renderer.domElement);
 
     sceneRef.current = scene;
     rendererRef.current = renderer;
     cameraRef.current = camera;
     meshRef.current = mesh;
-    materialRef.current = material;
+
+    updateCameraPosition();
+
+    container.appendChild(renderer.domElement);
 
     const canvas = renderer.domElement;
     canvas.addEventListener("mousedown", handleMouseDown);
@@ -270,7 +272,6 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     window.addEventListener("mouseup", handleMouseUp);
 
     animate(performance.now());
-    setIsInitialized(true);
 
     return () => {
       if (frameRef.current) {
@@ -281,24 +282,21 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
 
-      if (
-        mountRef.current &&
-        renderer.domElement.parentNode === mountRef.current
-      ) {
-        mountRef.current.removeChild(renderer.domElement);
+      if (container && renderer.domElement.parentNode === container) {
+        container.removeChild(renderer.domElement);
       }
 
       geometry.dispose();
       material.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [faceColors]);
 
   useEffect(() => {
-    if (isInitialized) {
+    if (meshRef.current && faceColors.length > 0) {
       updateGeometry();
     }
-  }, [faceColors, isInitialized]);
+  }, [faceColors]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(handleResize);
@@ -309,13 +307,13 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [isInitialized]);
+  }, []);
 
   return (
     <div
       ref={mountRef}
       className="w-full h-full cursor-grab active:cursor-grabbing"
-      style={{ userSelect: "none" }}
+      style={{ userSelect: "none", minHeight: "300px" }}
     />
   );
 };
