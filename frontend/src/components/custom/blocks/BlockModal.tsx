@@ -187,7 +187,7 @@ export const BlockModal = ({
 
   const renderFaceColorPicker = (faceIndex: number) => (
     <div className="space-y-1 items-center flex flex-col">
-      <label className="text-xs font-medium text-center block text-muted-foreground mb-2">
+      <label className="text-muted-foreground mb-2">
         {faceNames[faceIndex]}
       </label>
       <ColorPicker
@@ -216,12 +216,11 @@ export const BlockModal = ({
         </div>
       }
     >
-      <div className="w-full h-[60vh] flex flex-col text-foreground">
-        <div className="flex flex-1 overflow-hidden">
-          <div className="">
+      <div className="w-full h-[50vh] flex flex-col text-foreground relative">
+          <div className="absolute max-h-full pb-4 pt-2 px-4 h-full overflow-y-auto">
             <div className="pr-6 h-full">
               <div className="flex flex-col h-full space-y-4">
-                <div className="bg-background rounded-lg p-4 border border-border shadow-sm">
+                <div className="rounded-lg p-4 border border-border shadow-sm">
                   <div className="flex items-center space-x-3">
                     <Checkbox
                       id="apply-all"
@@ -232,20 +231,12 @@ export const BlockModal = ({
                       htmlFor="apply-all"
                       className="text-sm font-medium leading-none cursor-pointer"
                     >
-                      Specify face colors individually
+                      Individual face colors
                     </label>
                   </div>
                 </div>
 
-                <div className="bg-background rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1 overflow-y-auto">
-                  <div className="mb-6">
-                    <p className="text-sm text-muted-foreground">
-                      {applyToAllFaces
-                        ? "Select a color to apply to all faces of the block."
-                        : "Select a color for each face of the block."}
-                    </p>
-                  </div>
-
+                <div className="rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1 overflow-y-auto bg-background">
                   {applyToAllFaces ? (
                     <div className="flex justify-center">
                       <ColorPicker
@@ -267,10 +258,7 @@ export const BlockModal = ({
               </div>
             </div>
           </div>
-          <div className="w-3xl flex flex-col rounded-lg border border-border">
-            <Block3DPreview faceColors={selectedColors} />
-          </div>
-        </div>
+          <Block3DPreview faceColors={selectedColors} />
       </div>
     </Modal>
   );

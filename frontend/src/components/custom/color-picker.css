@@ -1,11 +1,11 @@
 .react-colorful .react-colorful__saturation {
   border-radius: 4px 4px 0 0;
-  height: 50px;
+  height: 10px;
 }
 .react-colorful .react-colorful__hue {
   border-radius: 0 0 0px 0px;
 }
 .react-colorful .react-colorful__pointer{
-    width: 4px;
-    height: 4px;
+    width: 10px;
+    height: 10px;
 } 

@@ -42,7 +42,7 @@ const createBlockMaterial = (opacity: number = 1) => {
         darknessFactor = 0.8;
       }
       
-      vec3 finalColor = vColor * darknessFactor * vAO;
+      vec3 finalColor = vColor * darknessFactor;
       
       gl_FragColor = vec4(finalColor, opacity);
     }
@@ -242,7 +242,6 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
       preserveDrawingBuffer: true,
     });
 
-    renderer.setClearColor(0x000000, 0);
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 

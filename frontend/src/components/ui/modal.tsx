@@ -108,7 +108,7 @@ export const Modal: React.FC<ModalProps> = ({
         tabIndex={-1}
       >
         <div className="bg-background rounded-lg mx-4 shadow-lg border border-border">
-          <div className="pl-6 py-4 pr-2 mb-2">
+          <div className="pl-6 py-4 pr-2 mb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <h2
                 id="modal-title"
@@ -125,9 +125,9 @@ export const Modal: React.FC<ModalProps> = ({
               </Button>
             </div>
           </div>
-          <div className="px-6 pb-6">{children}</div>
+          <div className="">{children}</div>
           {footer && (
-            <div className="flex flex-row justify-between px-4 py-4">
+            <div className="flex flex-row justify-between px-4 py-4 border-t border-border">
               {footer}
             </div>
           )}
