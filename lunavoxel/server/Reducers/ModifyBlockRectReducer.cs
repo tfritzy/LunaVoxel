@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SpacetimeDB;
+
 public static partial class Module
 {
     [Reducer]
@@ -15,16 +16,17 @@ public static partial class Module
         int layerIndex)
     {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
-             ?? throw new ArgumentException("No layer for this project");
+            ?? throw new ArgumentException("No layer for this project");
+
         uint[] diffData = new uint[layer.xDim * layer.yDim * layer.zDim];
         var existingData = VoxelCompression.Decompress(layer.Voxels);
 
-        int minX = Math.Max(Math.Min(start.X, end.X), 0);
-        int maxX = Math.Min(Math.Max(start.X, end.X), layer.xDim - 1);
-        int minY = Math.Max(Math.Min(start.Y, end.Y), 0);
-        int maxY = Math.Min(Math.Max(start.Y, end.Y), layer.yDim - 1);
-        int minZ = Math.Max(Math.Min(start.Z, end.Z), 0);
-        int maxZ = Math.Min(Math.Max(start.Z, end.Z), layer.zDim - 1);
+        int minX = Math.Max(0, Math.Min(Math.Min(start.X, end.X), (int)layer.xDim - 1));
+        int maxX = Math.Min((int)layer.xDim - 1, Math.Max(Math.Max(start.X, end.X), 0));
+        int minY = Math.Max(0, Math.Min(Math.Min(start.Y, end.Y), (int)layer.yDim - 1));
+        int maxY = Math.Min((int)layer.yDim - 1, Math.Max(Math.Max(start.Y, end.Y), 0));
+        int minZ = Math.Max(0, Math.Min(Math.Min(start.Z, end.Z), (int)layer.zDim - 1));
+        int maxZ = Math.Min((int)layer.zDim - 1, Math.Max(Math.Max(start.Z, end.Z), 0));
 
         for (int x = minX; x <= maxX; x++)
         {
@@ -34,7 +36,6 @@ public static partial class Module
                 {
                     int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
                     var cur = BlockType.FromInt(existingData[index]);
-
                     uint? newValue = mode switch
                     {
                         BlockModificationMode.Build =>

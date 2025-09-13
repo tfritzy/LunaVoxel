@@ -20,7 +20,11 @@ interface ProjectHeaderProps {
   onRedo: () => void;
 }
 
-export function ProjectHeader({ onExport, onUndo, onRedo }: ProjectHeaderProps) {
+export function ProjectHeader({
+  onExport,
+  onUndo,
+  onRedo,
+}: ProjectHeaderProps) {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -82,10 +86,7 @@ export function ProjectHeader({ onExport, onUndo, onRedo }: ProjectHeaderProps) 
                   onExport={onExport}
                 />
                 {projectId && onUndo && onRedo && (
-                  <EditDropdown
-                    onUndo={onUndo}
-                    onRedo={onRedo}
-                  />
+                  <EditDropdown onUndo={onUndo} onRedo={onRedo} />
                 )}
               </div>
             </div>

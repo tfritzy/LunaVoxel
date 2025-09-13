@@ -107,7 +107,7 @@ export const BlockModal = ({
       return Array(6).fill(defaultColor);
     } else {
       const blockAtlasIndices =
-        atlasData.blockAtlasMappings?.[blockIndex as number];
+        atlasData.blockAtlasMappings?.[(blockIndex as number) - 1];
       if (blockAtlasIndices) {
         return blockAtlasIndices.map(
           (atlasIndex) =>
@@ -126,7 +126,7 @@ export const BlockModal = ({
         setSelectedColors(Array(6).fill(defaultColor));
       } else {
         const blockAtlasIndices =
-          atlasData.blockAtlasMappings?.[blockIndex as number];
+          atlasData.blockAtlasMappings?.[(blockIndex as number) - 1];
         if (blockAtlasIndices) {
           const existingColors = blockAtlasIndices.map(
             (atlasIndex) =>
@@ -174,7 +174,7 @@ export const BlockModal = ({
     } else {
       connection?.reducers.updateBlock(
         projectId,
-        blockIndex as number,
+        (blockIndex as number) - 1,
         colorNumbers
       );
     }
@@ -217,48 +217,48 @@ export const BlockModal = ({
       }
     >
       <div className="w-full h-[50vh] flex flex-col text-foreground relative">
-          <div className="absolute max-h-full pb-4 pt-2 px-4 h-full overflow-y-auto">
-            <div className="pr-6 h-full">
-              <div className="flex flex-col h-full space-y-4">
-                <div className="rounded-lg p-4 border border-border shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="apply-all"
-                      checked={!applyToAllFaces}
-                      onCheckedChange={handleApplyToAllChange}
-                    />
-                    <label
-                      htmlFor="apply-all"
-                      className="text-sm font-medium leading-none cursor-pointer"
-                    >
-                      Individual face colors
-                    </label>
-                  </div>
+        <div className="absolute max-h-full pb-4 pt-2 px-4 h-full overflow-y-auto">
+          <div className="pr-6 h-full">
+            <div className="flex flex-col h-full space-y-4">
+              <div className="rounded-lg p-4 border border-border shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="apply-all"
+                    checked={!applyToAllFaces}
+                    onCheckedChange={handleApplyToAllChange}
+                  />
+                  <label
+                    htmlFor="apply-all"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Individual face colors
+                  </label>
                 </div>
+              </div>
 
-                <div className="rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1 overflow-y-auto bg-background">
-                  {applyToAllFaces ? (
-                    <div className="flex justify-center">
-                      <ColorPicker
-                        color={selectedColors[0]}
-                        onChange={(color) => handleColorChange(color)}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col space-y-8 justify-items-center">
-                      {renderFaceColorPicker(2)}
-                      {renderFaceColorPicker(1)}
-                      {renderFaceColorPicker(4)}
-                      {renderFaceColorPicker(0)}
-                      {renderFaceColorPicker(3)}
-                      {renderFaceColorPicker(5)}
-                    </div>
-                  )}
-                </div>
+              <div className="rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1 overflow-y-auto bg-background">
+                {applyToAllFaces ? (
+                  <div className="flex justify-center">
+                    <ColorPicker
+                      color={selectedColors[0]}
+                      onChange={(color) => handleColorChange(color)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col space-y-8 justify-items-center">
+                    {renderFaceColorPicker(2)}
+                    {renderFaceColorPicker(1)}
+                    {renderFaceColorPicker(4)}
+                    {renderFaceColorPicker(0)}
+                    {renderFaceColorPicker(3)}
+                    {renderFaceColorPicker(5)}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <Block3DPreview faceColors={selectedColors} />
+        </div>
+        <Block3DPreview faceColors={selectedColors} camRadius={8} />
       </div>
     </Modal>
   );

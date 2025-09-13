@@ -339,12 +339,32 @@ export const Builder = class {
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
     this.clearPreviewBlocks();
 
-    const minX = Math.min(startPos.x, endPos.x);
-    const maxX = Math.max(startPos.x, endPos.x);
-    const minY = Math.min(startPos.y, endPos.y);
-    const maxY = Math.max(startPos.y, endPos.y);
-    const minZ = Math.min(startPos.z, endPos.z);
-    const maxZ = Math.max(startPos.z, endPos.z);
+    const minX = Math.max(
+      0,
+      Math.min(startPos.x, endPos.x, this.dimensions.x - 1)
+    );
+    const maxX = Math.min(
+      this.dimensions.x - 1,
+      Math.max(startPos.x, endPos.x, 0)
+    );
+    const minY = Math.max(
+      0,
+      Math.min(startPos.y, endPos.y, this.dimensions.y - 1)
+    );
+    const maxY = Math.min(
+      this.dimensions.y - 1,
+      Math.max(startPos.y, endPos.y, 0)
+    );
+    const minZ = Math.max(
+      0,
+      Math.min(startPos.z, endPos.z, this.dimensions.z - 1)
+    );
+    const maxZ = Math.min(
+      this.dimensions.z - 1,
+      Math.max(startPos.z, endPos.z, 0)
+    );
+
+    console.log(minX, minY, minZ, maxX, maxY, maxZ);
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {

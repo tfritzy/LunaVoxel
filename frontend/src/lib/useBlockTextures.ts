@@ -12,20 +12,26 @@ export const useBlockTextures = (
   const rendererRef = useRef<ReturnType<typeof getBlockTextureRenderer> | null>(
     null
   );
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState<number>(0);
+
+  const atlasDataRef = useRef(atlasData);
+  const isReadyRef = useRef(isReady);
+
+  atlasDataRef.current = atlasData;
+  isReadyRef.current = isReady;
 
   useEffect(() => {
     if (!atlasData) {
-      setIsReady(false);
+      setIsReady(0);
       return;
     }
 
     try {
       rendererRef.current = getBlockTextureRenderer(atlasData, textureSize);
-      setIsReady(true);
+      setIsReady(isReady + 1);
     } catch (error) {
       console.error("Failed to get BlockTextureRenderer:", error);
-      setIsReady(false);
+      setIsReady(0);
     }
 
     return () => {
@@ -36,21 +42,21 @@ export const useBlockTextures = (
     };
   }, [atlasData, textureSize]);
 
-  const getBlockTexture = useCallback(
-    (blockIndex: number): string | null => {
-      if (!rendererRef.current || !atlasData || !isReady) {
-        return null;
-      }
+  const getBlockTexture = useCallback((blockIndex: number): string | null => {
+    if (!rendererRef.current || !atlasDataRef.current || !isReadyRef.current) {
+      return null;
+    }
 
-      try {
-        return rendererRef.current.renderBlockToTexture(blockIndex, atlasData);
-      } catch (error) {
-        console.error("Failed to render block texture:", error);
-        return null;
-      }
-    },
-    [atlasData, isReady]
-  );
+    try {
+      return rendererRef.current.renderBlockToTexture(
+        blockIndex,
+        atlasDataRef.current
+      );
+    } catch (error) {
+      console.error("Failed to render block texture:", error);
+      return null;
+    }
+  }, []);
 
   const clearCache = useCallback(() => {
     if (rendererRef.current) {

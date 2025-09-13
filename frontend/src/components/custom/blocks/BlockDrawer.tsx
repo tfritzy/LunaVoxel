@@ -1,16 +1,128 @@
 import { HexagonOverlay } from "./HexagonOverlay";
 import { Button } from "@/components/ui/button";
 import { FileQuestion, Plus } from "lucide-react";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { BlockModal } from "./BlockModal";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
+import { Block3DPreview } from "./Block3dPreview";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
+
+const HexagonGrid = memo(
+  ({
+    blockCount,
+    selectedBlock,
+    onSelectBlock,
+    onAddNew,
+    atlasData,
+  }: {
+    blockCount: number;
+    selectedBlock: number;
+    onSelectBlock: (index: number) => void;
+    onAddNew: () => void;
+    atlasData: AtlasData;
+  }) => {
+    const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
+
+    const rows = useMemo(() => {
+      const result = [];
+      let currentIndex = 0;
+      let rowIndex = 0;
+      const totalItems = blockCount + 1;
+
+      while (currentIndex < totalItems) {
+        const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
+        const isOddRow = rowIndex % 2 === 1;
+        const rowItems = [];
+
+        for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
+          if (currentIndex < blockCount) {
+            const blockIndex = currentIndex + 1;
+            const blockTexture = isReady ? getBlockTexture(currentIndex) : null;
+
+            rowItems.push(
+              <div
+                key={blockIndex}
+                className="relative pointer-events-none"
+                style={{
+                  width: BLOCK_WIDTH,
+                  height: BLOCK_HEIGHT,
+                }}
+              >
+                {blockTexture ? (
+                  <img
+                    src={blockTexture}
+                    alt={`Block ${blockIndex}`}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FileQuestion className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+
+                <HexagonOverlay
+                  isSelected={blockIndex === selectedBlock}
+                  onClick={() => onSelectBlock(blockIndex)}
+                />
+              </div>
+            );
+          } else {
+            rowItems.push(
+              <div
+                key={`add-${currentIndex}`}
+                className="relative rounded-full pointer-events-none"
+                style={{
+                  width: BLOCK_WIDTH,
+                  height: BLOCK_HEIGHT,
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <HexagonOverlay isSelected={false} onClick={onAddNew} />
+              </div>
+            );
+          }
+          currentIndex++;
+        }
+
+        result.push(
+          <div
+            key={rowIndex}
+            className="flex flex-row -space-x-[2px] pointer-events-none"
+            style={{
+              transform: isOddRow
+                ? `translateX(${HORIZONTAL_OFFSET})`
+                : "translateX(0)",
+              marginTop: rowIndex === 0 ? "0" : VERTICAL_OVERLAP,
+              marginLeft: `-${HORIZONTAL_GAP}`,
+            }}
+          >
+            {rowItems}
+          </div>
+        );
+        rowIndex++;
+      }
+      return result;
+    }, [
+      blockCount,
+      selectedBlock,
+      onSelectBlock,
+      onAddNew,
+      getBlockTexture,
+      isReady,
+      atlasData,
+    ]);
+
+    return <div className="flex flex-col">{rows}</div>;
+  }
+);
 
 export const BlockDrawer = ({
   selectedBlock,
@@ -26,118 +138,23 @@ export const BlockDrawer = ({
     number | "new" | null
   >(null);
 
-  const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
-
-  const createBlockPreview = useCallback(
+  const handleSelectBlock = useCallback(
     (index: number) => {
-      const blockTexture = isReady ? getBlockTexture(index - 1) : null;
-
-      return (
-        <div
-          className="relative pointer-events-none"
-          key={index}
-          style={{
-            width: BLOCK_WIDTH,
-            height: BLOCK_HEIGHT,
-          }}
-        >
-          {blockTexture ? (
-            <img
-              src={blockTexture}
-              alt={`Block ${index}`}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <FileQuestion className="w-6 h-6 text-muted-foreground" />
-            </div>
-          )}
-
-          <HexagonOverlay
-            isSelected={index === selectedBlock}
-            onClick={() => setSelectedBlock(index)}
-          />
-        </div>
-      );
+      setSelectedBlock(index);
     },
-    [selectedBlock, setSelectedBlock, getBlockTexture, isReady]
+    [setSelectedBlock]
   );
 
-  const createAddNewHex = useCallback(
-    (index: number) => (
-      <div
-        className="relative rounded-full pointer-events-none"
-        key={`add-${index}`}
-        style={{
-          width: BLOCK_WIDTH,
-          height: BLOCK_HEIGHT,
-        }}
-      >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Plus className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <HexagonOverlay
-          isSelected={false}
-          onClick={() => {
-            setEditingBlockIndex("new");
-          }}
-        />
-      </div>
-    ),
-    [setEditingBlockIndex]
-  );
+  const handleAddNew = useCallback(() => {
+    setEditingBlockIndex("new");
+  }, []);
 
-  const memoizedRows = useMemo(() => {
-    const rows = [];
-    let currentIndex = 0;
-    let rowIndex = 0;
-    const totalItems = atlasData.blockAtlasMappings.length + 1;
-
-    while (currentIndex < totalItems) {
-      const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
-      const isOddRow = rowIndex % 2 === 1;
-      const rowItems = [];
-
-      for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
-        if (currentIndex < atlasData.blockAtlasMappings.length) {
-          rowItems.push(createBlockPreview(currentIndex + 1));
-        } else {
-          rowItems.push(createAddNewHex(currentIndex));
-        }
-        currentIndex++;
-      }
-
-      rows.push(
-        <div
-          key={rowIndex}
-          className="flex flex-row -space-x-[2px] pointer-events-none"
-          style={{
-            transform: isOddRow
-              ? `translateX(${HORIZONTAL_OFFSET})`
-              : "translateX(0)",
-            marginTop: rowIndex === 0 ? "0" : VERTICAL_OVERLAP,
-            marginLeft: `-${HORIZONTAL_GAP}`,
-          }}
-        >
-          {rowItems}
-        </div>
-      );
-      rowIndex++;
-    }
-    return rows;
-  }, [
-    atlasData.blockAtlasMappings.length,
-    createBlockPreview,
-    createAddNewHex,
-  ]);
-
-  const selectedBlockFaces =
+  const faceColors =
     selectedBlock <= atlasData.blockAtlasMappings.length
       ? atlasData.blockAtlasMappings[selectedBlock - 1]
+          .map((face) => atlasData.colors[face])
+          .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
-
-  const selectedBlockTexture =
-    selectedBlockFaces && isReady ? getBlockTexture(selectedBlock - 1) : null;
 
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
@@ -146,23 +163,19 @@ export const BlockDrawer = ({
       </div>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="flex flex-col">{memoizedRows}</div>
+          <HexagonGrid
+            blockCount={atlasData.blockAtlasMappings.length}
+            selectedBlock={selectedBlock}
+            onSelectBlock={handleSelectBlock}
+            onAddNew={handleAddNew}
+            atlasData={atlasData}
+          />
         </div>
-        {selectedBlockFaces && (
+        {faceColors && (
           <div className="">
             <div className="bg-muted/30 rounded-lg border border-border mb-4">
               <div className="h-48 flex items-center justify-center">
-                {selectedBlockTexture ? (
-                  <img
-                    src={selectedBlockTexture}
-                    alt={`Block ${selectedBlock} Preview`}
-                    className="w-32"
-                  />
-                ) : (
-                  <span className="text-muted-foreground">
-                    Loading preview...
-                  </span>
-                )}
+                <Block3DPreview faceColors={faceColors} camRadius={4} />
               </div>
             </div>
             <Button

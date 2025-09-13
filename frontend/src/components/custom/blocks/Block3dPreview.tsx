@@ -4,6 +4,7 @@ import { faces } from "@/modeling/lib/voxel-constants";
 
 interface Block3DPreviewProps {
   faceColors: string[];
+  camRadius: number;
 }
 
 const createBlockMaterial = (opacity: number = 1) => {
@@ -42,7 +43,7 @@ const createBlockMaterial = (opacity: number = 1) => {
         darknessFactor = 0.8;
       }
       
-      vec3 finalColor = vColor * darknessFactor;
+      vec3 finalColor = pow(vColor * darknessFactor, vec3(1.0/2.2));
       
       gl_FragColor = vec4(finalColor, opacity);
     }
@@ -59,7 +60,10 @@ const createBlockMaterial = (opacity: number = 1) => {
   });
 };
 
-export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
+export const Block3DPreview = ({
+  faceColors,
+  camRadius,
+}: Block3DPreviewProps) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -145,7 +149,7 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
   const updateCameraPosition = () => {
     if (!cameraRef.current) return;
 
-    const radius = 8;
+    const radius = camRadius;
     const theta = cameraRotationRef.current.theta;
     const phi = cameraRotationRef.current.phi;
 
@@ -163,7 +167,6 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     lastTimeRef.current = time;
 
     const rotationSpeed = 5;
-    const autoRotationSpeed = 0.05;
 
     cameraRotationRef.current.theta +=
       (targetCameraRotationRef.current.theta -
@@ -174,10 +177,6 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
       (targetCameraRotationRef.current.phi - cameraRotationRef.current.phi) *
       rotationSpeed *
       deltaTime;
-
-    if (!mouseRef.current.isDown) {
-      targetCameraRotationRef.current.theta += autoRotationSpeed * deltaTime;
-    }
 
     updateCameraPosition();
 
@@ -312,7 +311,7 @@ export const Block3DPreview = ({ faceColors }: Block3DPreviewProps) => {
     <div
       ref={mountRef}
       className="w-full h-full cursor-grab active:cursor-grabbing"
-      style={{ userSelect: "none", minHeight: "300px" }}
+      style={{ userSelect: "none" }}
     />
   );
 };
