@@ -364,8 +364,6 @@ export const Builder = class {
       Math.max(startPos.z, endPos.z, 0)
     );
 
-    console.log(minX, minY, minZ, maxX, maxY, maxZ);
-
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {

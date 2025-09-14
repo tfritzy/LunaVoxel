@@ -134,7 +134,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   if (!project) return null;
 
   const modalContent = (
-    <>
+    <div className="px-6 py-4">
       <div className="flex flex-row space-x-2 justify-between mb-4">
         <InviteForm connection={connection!} projectId={projectId} />
       </div>
@@ -171,7 +171,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
         </h3>
         <GeneralAccessRow project={project} />
       </div>
-    </>
+    </div>
   );
 
   const modalFooter = (

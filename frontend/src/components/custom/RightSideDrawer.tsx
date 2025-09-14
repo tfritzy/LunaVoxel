@@ -12,10 +12,6 @@ export const RightSideDrawer = ({
 }: RightSideDrawerProps) => {
   return (
     <div className="h-full bg-background border-l border-border overflow-y-auto w-56">
-      <div className="p-4">
-        <AtlasSection />
-      </div>
-      <div className="border-b border-border" />
       <div className="">
         <LayersSection onSelectLayer={onSelectLayer} projectId={projectId} />
       </div>
