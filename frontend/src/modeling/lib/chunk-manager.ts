@@ -12,6 +12,7 @@ import {
   getVersion,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
+import { calculateRectBounds } from "@/lib/rect-utils";
 
 export const CHUNK_SIZE = 16;
 
@@ -233,20 +234,16 @@ export class ChunkManager {
   ) {
     if (layer.locked) return;
 
-    const minX = Math.max(0, Math.min(start.x, end.x));
-    const maxX = Math.min(layer.xDim - 1, Math.max(start.x, end.x));
-    const minY = Math.max(0, Math.min(start.y, end.y));
-    const maxY = Math.min(layer.yDim - 1, Math.max(start.y, end.y));
-    const minZ = Math.max(0, Math.min(start.z, end.z));
-    const maxZ = Math.min(layer.zDim - 1, Math.max(start.z, end.z));
+    const layerDims = { x: layer.xDim, y: layer.yDim, z: layer.zDim };
+    const bounds = calculateRectBounds(start, end, layerDims);
 
     const yDim = layer.yDim;
     const zDim = layer.zDim;
 
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
+    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+      for (let y = bounds.minY; y <= bounds.maxY; y++) {
         const base = x * yDim * zDim + y * zDim;
-        for (let z = minZ; z <= maxZ; z++) {
+        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
           const idx = base + z;
           const currentVal = layer.voxels[idx];
           const currentType = getBlockType(currentVal);

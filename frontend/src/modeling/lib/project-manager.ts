@@ -16,7 +16,7 @@ import { AtlasData } from "@/lib/useAtlas";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
-export const ProjectManager = class {
+export class ProjectManager {
   public builder;
   private chunkManager;
   private cursorManager: CursorManager;
@@ -48,20 +48,7 @@ export const ProjectManager = class {
       camera,
       scene,
       container,
-      this.onPreviewUpdate,
-      (tool, start, end, blockType, layerIndex) => {
-        this.applyOptimisticRectEdit(
-          layerIndex,
-          tool,
-          start,
-          end,
-          blockType,
-          0
-        );
-      },
-      (position: THREE.Vector3, normal: THREE.Vector3) => {
-        this.cursorManager.updateLocalCursor(position, normal);
-      }
+      this
     );
 
     this.dbConn.db.layer.onInsert(this.onLayerInsert);
@@ -69,6 +56,13 @@ export const ProjectManager = class {
     this.dbConn.db.layer.onDelete(this.onLayerDelete);
     this.setupLayers();
   }
+
+  public onLocalCursorUpdate = (
+    position: THREE.Vector3,
+    normal: THREE.Vector3
+  ) => {
+    this.cursorManager.updateLocalCursor(position, normal);
+  };
 
   public undo = (): void => {
     this.editHistory.undo();
@@ -206,15 +200,16 @@ export const ProjectManager = class {
     this.updateChunkManager();
   };
 
-  public applyOptimisticRectEdit(
+  public applyOptimisticRectEdit = (
     layerIndex: number,
     tool: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
     rotation: number
-  ) {
+  ) => {
     const layer = this.layers.find((l) => l.index === layerIndex);
+    console.log("layer", layer);
     if (!layer) return;
     const previousVoxels = new Uint32Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
@@ -228,7 +223,7 @@ export const ProjectManager = class {
     const updated = new Uint32Array(layer.voxels);
     this.editHistory.addEntry(previousVoxels, updated, layer.index);
     this.updateChunkManager();
-  }
+  };
 
   private updateChunkManager = () => {
     if (!this.atlasData) return;
@@ -258,4 +253,4 @@ export const ProjectManager = class {
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
     window.removeEventListener("keydown", this.keydownHandler);
   }
-};
+}

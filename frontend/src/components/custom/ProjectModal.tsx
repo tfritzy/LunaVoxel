@@ -4,7 +4,6 @@ import { Modal } from "../ui/modal";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { useAuth } from "@/firebase/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { createProject } from "@/lib/createProject";
@@ -55,7 +54,6 @@ const getProjectPreview = (project: Project): string => {
 
 export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
   const { userProjects, sharedProjects } = useProjects();
   const { connection } = useDatabase();
 
@@ -241,10 +239,24 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Open project" size="5xl">
-      <div className="min-h-[70vh] max-h-[85vh] flex flex-col">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Open project"
+      size="5xl"
+      footer={
+        <div className="flex items-center w-full justify-between text-sm text-muted-foreground">
+          <span>
+            {filteredProjects.length} project
+            {filteredProjects.length !== 1 ? "s" : ""}
+          </span>
+          <span>Press ↵ to open first project</span>
+        </div>
+      }
+    >
+      <div className="min-h-[70vh] max-h-[85vh] flex flex-col px-6 py-2">
         {/* Header */}
-        <div className="border-b border-border pb-6">
+        <div className="">
           {/* Search and filters */}
           <div className="flex items-center gap-4 w-full justify-between">
             <div className="flex items-center gap-4">
@@ -345,17 +357,6 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
             </div>
           )}
         </div>
-
-        {/* Footer stats */}
-        {filteredProjects.length > 0 && (
-          <div className="border-t border-border pt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              {filteredProjects.length} project
-              {filteredProjects.length !== 1 ? "s" : ""}
-            </span>
-            <span>Press ↵ to open first project</span>
-          </div>
-        )}
       </div>
     </Modal>
   );

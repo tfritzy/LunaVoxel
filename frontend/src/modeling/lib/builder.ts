@@ -6,24 +6,15 @@ import {
   Vector3,
 } from "../../module_bindings";
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
+import type { ProjectManager } from "./project-manager";
+import { calculateRectBounds } from "@/lib/rect-utils";
 
 export const Builder = class {
   public previewBlocks: Uint32Array;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
-  private onPreviewUpdate: () => void;
-  private onCommitRect?: (
-    tool: BlockModificationMode,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    blockType: number,
-    layerIndex: number
-  ) => void;
-  private onLocalCursorUpdate?: (
-    position: THREE.Vector3,
-    normal: THREE.Vector3
-  ) => void;
+  private projectManager: ProjectManager;
   private selectedBlock: number = 1;
   private selectedLayer: number = 0;
 
@@ -57,18 +48,7 @@ export const Builder = class {
     camera: THREE.Camera,
     scene: THREE.Scene,
     domElement: HTMLElement,
-    onPreviewUpdate: () => void,
-    onCommitRect?: (
-      tool: BlockModificationMode,
-      start: THREE.Vector3,
-      end: THREE.Vector3,
-      blockType: number,
-      layerIndex: number
-    ) => void,
-    onLocalCursorUpdate?: (
-      position: THREE.Vector3,
-      normal: THREE.Vector3
-    ) => void
+    projectManager: ProjectManager
   ) {
     this.dbConn = dbConn;
     this.projectId = projectId;
@@ -76,9 +56,7 @@ export const Builder = class {
     this.camera = camera;
     this.scene = scene;
     this.domElement = domElement;
-    this.onPreviewUpdate = onPreviewUpdate;
-    this.onCommitRect = onCommitRect;
-    this.onLocalCursorUpdate = onLocalCursorUpdate;
+    this.projectManager = projectManager;
     this.selectedBlock = 1;
 
     this.raycaster = new THREE.Raycaster();
@@ -211,8 +189,8 @@ export const Builder = class {
       0.01
     );
 
-    if ((hasPositionChanged || hasNormalChanged) && this.onLocalCursorUpdate) {
-      this.onLocalCursorUpdate(faceCenter, worldNormal);
+    if (hasPositionChanged || hasNormalChanged) {
+      this.projectManager.onLocalCursorUpdate?.(faceCenter, worldNormal);
     }
 
     if (now - this.lastCursorUpdateTime >= this.CURSOR_UPDATE_THROTTLE_MS) {
@@ -339,34 +317,11 @@ export const Builder = class {
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
     this.clearPreviewBlocks();
 
-    const minX = Math.max(
-      0,
-      Math.min(startPos.x, endPos.x, this.dimensions.x - 1)
-    );
-    const maxX = Math.min(
-      this.dimensions.x - 1,
-      Math.max(startPos.x, endPos.x, 0)
-    );
-    const minY = Math.max(
-      0,
-      Math.min(startPos.y, endPos.y, this.dimensions.y - 1)
-    );
-    const maxY = Math.min(
-      this.dimensions.y - 1,
-      Math.max(startPos.y, endPos.y, 0)
-    );
-    const minZ = Math.max(
-      0,
-      Math.min(startPos.z, endPos.z, this.dimensions.z - 1)
-    );
-    const maxZ = Math.min(
-      this.dimensions.z - 1,
-      Math.max(startPos.z, endPos.z, 0)
-    );
+    const bounds = calculateRectBounds(startPos, endPos, this.dimensions);
 
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        for (let z = minZ; z <= maxZ; z++) {
+    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+      for (let y = bounds.minY; y <= bounds.maxY; y++) {
+        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
           if (
             x >= 0 &&
             x < this.dimensions.x &&
@@ -381,7 +336,7 @@ export const Builder = class {
       }
     }
 
-    this.onPreviewUpdate();
+    this.projectManager.onPreviewUpdate();
   }
 
   private modifyBlock(
@@ -392,12 +347,13 @@ export const Builder = class {
     if (!this.dbConn.isActive) return;
 
     this.clearPreviewBlocks();
-    this.onCommitRect?.(
+    this.projectManager.applyOptimisticRectEdit(
+      this.selectedLayer,
       tool,
       startPos.clone(),
       endPos.clone(),
       this.selectedBlock,
-      this.selectedLayer
+      0
     );
 
     this.dbConn.reducers.modifyBlockRect(
