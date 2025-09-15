@@ -4,6 +4,10 @@ using SpacetimeDB;
 
 public static partial class Module
 {
+    static int Clamp(int value, int max) =>
+        Math.Max(0, Math.Min(value, max - 1));
+
+
     [Reducer]
     public static void ModifyBlockRect(
         ReducerContext ctx,
@@ -21,12 +25,20 @@ public static partial class Module
         uint[] diffData = new uint[layer.xDim * layer.yDim * layer.zDim];
         var existingData = VoxelCompression.Decompress(layer.Voxels);
 
-        int minX = Math.Max(0, Math.Min(Math.Min(start.X, end.X), (int)layer.xDim - 1));
-        int maxX = Math.Min((int)layer.xDim - 1, Math.Max(Math.Max(start.X, end.X), 0));
-        int minY = Math.Max(0, Math.Min(Math.Min(start.Y, end.Y), (int)layer.yDim - 1));
-        int maxY = Math.Min((int)layer.yDim - 1, Math.Max(Math.Max(start.Y, end.Y), 0));
-        int minZ = Math.Max(0, Math.Min(Math.Min(start.Z, end.Z), (int)layer.zDim - 1));
-        int maxZ = Math.Min((int)layer.zDim - 1, Math.Max(Math.Max(start.Z, end.Z), 0));
+        int sx = Clamp(start.X, layer.xDim);
+        int sy = Clamp(start.Y, layer.yDim);
+        int sz = Clamp(start.Z, layer.zDim);
+
+        int ex = Clamp(end.X, layer.xDim);
+        int ey = Clamp(end.Y, layer.yDim);
+        int ez = Clamp(end.Z, layer.zDim);
+
+        int minX = Math.Min(sx, ex);
+        int maxX = Math.Max(sx, ex);
+        int minY = Math.Min(sy, ey);
+        int maxY = Math.Max(sy, ey);
+        int minZ = Math.Min(sz, ez);
+        int maxZ = Math.Max(sz, ez);
 
         for (int x = minX; x <= maxX; x++)
         {

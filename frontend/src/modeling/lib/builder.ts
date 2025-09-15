@@ -322,16 +322,7 @@ export const Builder = class {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          if (
-            x >= 0 &&
-            x < this.dimensions.x &&
-            y >= 0 &&
-            y < this.dimensions.y &&
-            z >= 0 &&
-            z < this.dimensions.z
-          ) {
-            this.setPreviewBlock(x, y, z, this.selectedBlock);
-          }
+          this.setPreviewBlock(x, y, z, this.selectedBlock);
         }
       }
     }

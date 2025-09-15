@@ -14,12 +14,23 @@ export const calculateRectBounds = (
   end: Vector3,
   dimensions: Vector3
 ): RectBounds => {
+  const clamp = (val: number, max: number) =>
+    Math.max(0, Math.min(val, max - 1));
+
+  const sx = clamp(start.x, dimensions.x);
+  const sy = clamp(start.y, dimensions.y);
+  const sz = clamp(start.z, dimensions.z);
+
+  const ex = clamp(end.x, dimensions.x);
+  const ey = clamp(end.y, dimensions.y);
+  const ez = clamp(end.z, dimensions.z);
+
   return {
-    minX: Math.max(0, Math.min(start.x, end.x)),
-    maxX: Math.min(dimensions.x - 1, Math.max(start.x, end.x)),
-    minY: Math.max(0, Math.min(start.y, end.y)),
-    maxY: Math.min(dimensions.y - 1, Math.max(start.y, end.y)),
-    minZ: Math.max(0, Math.min(start.z, end.z)),
-    maxZ: Math.min(dimensions.z - 1, Math.max(start.z, end.z)),
+    minX: Math.min(sx, ex),
+    maxX: Math.max(sx, ex),
+    minY: Math.min(sy, ey),
+    maxY: Math.max(sy, ey),
+    minZ: Math.min(sz, ez),
+    maxZ: Math.max(sz, ez),
   };
 };
