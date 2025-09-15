@@ -1,4 +1,3 @@
-import { AtlasSection } from "./atlas/AtlasSection";
 import { LayersSection } from "./layers/LayersSection";
 
 interface RightSideDrawerProps {

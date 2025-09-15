@@ -209,7 +209,6 @@ export class ProjectManager {
     rotation: number
   ) => {
     const layer = this.layers.find((l) => l.index === layerIndex);
-    console.log("layer", layer);
     if (!layer) return;
     const previousVoxels = new Uint32Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(

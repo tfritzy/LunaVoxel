@@ -8,6 +8,8 @@ Publish
 spacetime publish --project-path lunavoxel/server lunavoxel-db
 spacetime publish -c --project-path lunavoxel/server lunavoxel-db -y
 
+spacetime publish -s maincloud -c --project-path lunavoxel/server lunavoxel-db -y
+
 Create world
 spacetime call lunavoxel-db CreateWorld "Cool world 1" 16, 16, 16
 

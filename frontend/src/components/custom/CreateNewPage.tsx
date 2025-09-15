@@ -12,9 +12,9 @@ export function CreateNewPage() {
     const createAndRedirect = async () => {
       try {
         const result = await createProject(connection, navigate);
-        if (!result.success) {
+        if (!result?.success) {
           setError(
-            result.error || "Failed to create project. Please try again."
+            result?.error || "Failed to create project. Please try again."
           );
         }
       } catch (err) {
