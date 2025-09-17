@@ -127,7 +127,7 @@ export class VoxelEngine {
       fov,
       this.container.clientWidth / this.container.clientHeight,
       0.1,
-      paddedDistance * 4
+      300
     );
 
     camera.layers.enable(layers.ghost);
