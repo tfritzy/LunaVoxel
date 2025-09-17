@@ -114,7 +114,7 @@ export class VoxelEngine {
     const horizontalDistance =
       maxHorizontalDimension / 2 / Math.tan(fovRadians / 2);
 
-    const paddedDistance = horizontalDistance * 3;
+    const paddedDistance = horizontalDistance;
 
     const cameraHeight = paddedDistance;
     const cameraPosition = new THREE.Vector3(

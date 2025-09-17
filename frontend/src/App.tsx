@@ -9,6 +9,7 @@ import { Layout } from "./components/custom/Layout";
 import { ProjectsProvider } from "./contexts/ProjectsContext";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
+import { SignInPage } from "./pages/SignInPage";
 import { Toaster } from "sonner";
 import { ProjectsPage } from "./pages/ProjectsPage";
 
@@ -123,6 +124,16 @@ function AppContent() {
 
     connectToSpaceTime();
   }, [currentUser, conn, handleConnect, handleDisconnect, handleConnectError]);
+
+  const isAnonymous = currentUser?.isAnonymous === true;
+
+  if (isAnonymous) {
+    return (
+      <DatabaseProvider connection={conn}>
+        <SignInPage />
+      </DatabaseProvider>
+    );
+  }
 
   if (!conn) return null;
 

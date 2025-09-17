@@ -100,10 +100,10 @@ export function ProjectHeader({
               onSignOut={handleSignOut}
             />
           </div>
-          <ProjectModal
+          {/* <ProjectModal
             isOpen={openProjectOpen}
             onClose={handleCloseProjectModal}
-          />
+          /> */}
         </div>
       </nav>
     </>
