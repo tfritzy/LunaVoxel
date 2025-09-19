@@ -9,7 +9,8 @@ import { VoxelEngine } from "@/modeling/voxel-engine";
 import { Button } from "@/components/ui/button";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useAtlas } from "@/lib/useAtlas";
-import { Mail } from "lucide-react";
+import { Mail, X } from "lucide-react";
+import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 
 export const SignInPage = () => {
   const {
@@ -17,6 +18,8 @@ export const SignInPage = () => {
     signInWithGithub,
     signInWithMicrosoft,
     signInWithApple,
+    error,
+    clearError,
   } = useAuth();
   const { connection } = useDatabase();
   const navigate = useNavigate();
@@ -69,8 +72,8 @@ export const SignInPage = () => {
     id: "demo",
     name: "Demo Project",
     dimensions: { x: 32, y: 32, z: 32 },
-    created: { microseconds: BigInt(Date.now() * 1000) },
-    updated: { microseconds: BigInt(Date.now() * 1000) },
+    created: Timestamp.fromDate(new Date()),
+    updated: Timestamp.fromDate(new Date()),
     owner: connection?.identity || ({} as any),
     publicAccess: { tag: "None" } as any,
   };
@@ -185,10 +188,21 @@ export const SignInPage = () => {
           <div className="bg-background border border-border rounded-lg p-8 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">
             <div className="text-center space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-12">
+                <h1 className="text-3xl font-bold text-foreground mb-8">
                   Welcome to LunaVoxel
                 </h1>
               </div>
+
+              {error && (
+                <div className="bg-destructive/10 border border-destructive rounded-md p-3 flex items-start gap-2">
+                  <div className="flex-1 text-sm text-destructive-foreground text-left">
+                    {error}
+                  </div>
+                  <button onClick={clearError} className="text-destructive">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <button
@@ -217,32 +231,6 @@ export const SignInPage = () => {
                 </button>
 
                 <button
-                  onClick={() => handleProviderSignIn("microsoft")}
-                  className="flex flex-row cursor-pointer rounded items-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-                >
-                  <svg className="h-5 ml-16 mr-3" viewBox="0 0 24 24">
-                    <path fill="#F25022" d="M11.4 11.4H0V0h11.4v11.4z" />
-                    <path fill="#00A4EF" d="M24 11.4H12.6V0H24v11.4z" />
-                    <path fill="#7FBA00" d="M11.4 24H0V12.6h11.4V24z" />
-                    <path fill="#FFB900" d="M24 24H12.6V12.6H24V24z" />
-                  </svg>
-                  <span>Continue with Microsoft</span>
-                </button>
-
-                <button
-                  onClick={() => handleProviderSignIn("apple")}
-                  className="flex flex-row cursor-pointer rounded items-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-                >
-                  <svg className="h-6 ml-16 mr-3" viewBox="0 0 24 24">
-                    <path
-                      fill="#ffffff"
-                      d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
-                    />
-                  </svg>
-                  <span>Continue with Apple</span>
-                </button>
-
-                <button
                   onClick={() => handleProviderSignIn("github")}
                   className="flex flex-row cursor-pointer rounded items-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
                 >
@@ -253,6 +241,19 @@ export const SignInPage = () => {
                     />
                   </svg>
                   <span>Continue with GitHub</span>
+                </button>
+
+                <button
+                  onClick={() => handleProviderSignIn("microsoft")}
+                  className="flex flex-row cursor-pointer rounded items-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                >
+                  <svg className="h-5 ml-16 mr-3" viewBox="0 0 24 24">
+                    <path fill="#F25022" d="M11.4 11.4H0V0h11.4v11.4z" />
+                    <path fill="#00A4EF" d="M24 11.4H12.6V0H24v11.4z" />
+                    <path fill="#7FBA00" d="M11.4 24H0V12.6h11.4V24z" />
+                    <path fill="#FFB900" d="M24 24H12.6V12.6H24V24z" />
+                  </svg>
+                  <span>Continue with Microsoft</span>
                 </button>
               </div>
             </div>

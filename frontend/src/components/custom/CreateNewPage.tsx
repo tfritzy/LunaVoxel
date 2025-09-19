@@ -11,12 +11,7 @@ export function CreateNewPage() {
   useEffect(() => {
     const createAndRedirect = async () => {
       try {
-        const result = await createProject(connection, navigate);
-        if (!result?.success) {
-          setError(
-            result?.error || "Failed to create project. Please try again."
-          );
-        }
+        await createProject(connection, navigate);
       } catch (err) {
         console.error("Error creating project:", err);
         setError("Failed to create project. Please try again.");
