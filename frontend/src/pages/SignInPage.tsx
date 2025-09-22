@@ -188,9 +188,12 @@ export const SignInPage = () => {
           <div className="bg-background border border-border rounded-lg p-8 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">
             <div className="text-center space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-8">
+                <h1 className="text-3xl font-bold text-foreground mb-3">
                   Welcome to LunaVoxel
                 </h1>
+                <div className="text-muted-foreground">
+                  You must signed in to create or edit projects
+                </div>
               </div>
 
               {error && (

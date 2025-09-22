@@ -83,12 +83,11 @@ export const Builder = class {
       (data) => {
         this.updateWriteAccess(data);
       },
-      (p) => p.user === dbConn.identity
+      (p) => p.user.toHexString() === dbConn.identity?.toHexString()
     );
   }
 
   private updateWriteAccess(projects: UserProject[]) {
-    console.log(projects, this.projectId);
     var project = projects[0];
     console.log("found?", project);
     this.hasWriteAccess = project?.accessType.tag === "ReadWrite";

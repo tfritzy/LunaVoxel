@@ -27,7 +27,6 @@ public static partial class Module
             throw new ArgumentException("You do not have permission to invite users to this project.");
         }
 
-        var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("Project not found");
         var userProject = ctx.Db.user_projects.idx_project_id_email.Filter((projectId, email)).FirstOrDefault();
         if (userProject != null)
         {
