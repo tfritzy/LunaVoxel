@@ -4,7 +4,8 @@ import { DbConnection } from "@/module_bindings";
 
 export function useQueryRunner<T>(
   db: DbConnection | null,
-  getTable: (db: DbConnection) => TableHandle<T>
+  getTable: (db: DbConnection) => TableHandle<T>,
+  filter?: (data: T) => boolean
 ): { data: T[] } & { setDataOptimistically: (data: T[]) => void } {
   const queryRunnerRef = useRef<QueryRunner<T> | null>(null);
   const [data, setData] = useState<T[]>([]);
@@ -20,7 +21,7 @@ export function useQueryRunner<T>(
   useEffect(() => {
     if (!db) return;
 
-    const queryRunner = new QueryRunner<T>(db, getTable(db), onDataUpdate);
+    const queryRunner = new QueryRunner<T>(getTable(db), onDataUpdate, filter);
     queryRunnerRef.current = queryRunner;
 
     return () => {

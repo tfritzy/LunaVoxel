@@ -4,12 +4,15 @@ import {
   BlockModificationMode,
   DbConnection,
   Vector3,
+  UserProject,
 } from "../../module_bindings";
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
 import { calculateRectBounds } from "@/lib/rect-utils";
+import { QueryRunner } from "@/lib/queryRunner";
 
 export const Builder = class {
+  private queryRunner: QueryRunner<UserProject>;
   public previewBlocks: Uint32Array;
   private dbConn: DbConnection;
   private projectId: string;
@@ -17,6 +20,7 @@ export const Builder = class {
   private projectManager: ProjectManager;
   private selectedBlock: number = 1;
   private selectedLayer: number = 0;
+  private hasWriteAccess: boolean = false;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -73,6 +77,22 @@ export const Builder = class {
     this.boundContextMenu = this.onContextMenu.bind(this);
 
     this.addEventListeners();
+
+    this.queryRunner = new QueryRunner<UserProject>(
+      dbConn.db.userProjects,
+      (data) => {
+        this.updateWriteAccess(data);
+      },
+      (p) => p.user === dbConn.identity
+    );
+  }
+
+  private updateWriteAccess(projects: UserProject[]) {
+    console.log(projects, this.projectId);
+    var project = projects[0];
+    console.log("found?", project);
+    this.hasWriteAccess = project?.accessType.tag === "ReadWrite";
+    console.log("has write access?", this.hasWriteAccess);
   }
 
   private getBlockIndex(x: number, y: number, z: number): number {
@@ -132,7 +152,7 @@ export const Builder = class {
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-    if (gridPos) {
+    if (gridPos && this.hasWriteAccess) {
       this.preview(gridPos);
     }
   }
@@ -141,6 +161,11 @@ export const Builder = class {
     if (event.button !== 0) {
       return;
     }
+
+    if (!this.hasWriteAccess) {
+      return;
+    }
+
     this.updateMousePosition(event);
     const gridPos = this.checkIntersection();
 
@@ -152,6 +177,10 @@ export const Builder = class {
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
+      if (!this.hasWriteAccess) {
+        return;
+      }
+
       this.isMouseDown = true;
 
       const gridPos = this.checkIntersection();
@@ -273,7 +302,7 @@ export const Builder = class {
   }
 
   private preview(gridPos: THREE.Vector3): void {
-    if (!this.dbConn.isActive) return;
+    if (!this.dbConn.isActive || !this.hasWriteAccess) return;
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
@@ -297,7 +326,7 @@ export const Builder = class {
   }
 
   private onMouseClickHandler(position: THREE.Vector3): void {
-    if (!this.dbConn.isActive) return;
+    if (!this.dbConn.isActive || !this.hasWriteAccess) return;
 
     const endPos = position;
     const startPos = this.startPosition || position;
@@ -335,7 +364,7 @@ export const Builder = class {
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
   ): void {
-    if (!this.dbConn.isActive) return;
+    if (!this.dbConn.isActive || !this.hasWriteAccess) return;
 
     this.clearPreviewBlocks();
     this.projectManager.applyOptimisticRectEdit(

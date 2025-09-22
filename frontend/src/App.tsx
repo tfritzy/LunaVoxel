@@ -130,7 +130,10 @@ function AppContent() {
   if (isAnonymous) {
     return (
       <DatabaseProvider connection={conn}>
-        <SignInPage />
+        <Routes>
+          <Route path="/project/:projectId" element={<ProjectViewPage />} />
+          <Route path="*" element={<SignInPage />} />
+        </Routes>
       </DatabaseProvider>
     );
   }
