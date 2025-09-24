@@ -5,6 +5,8 @@ import {
   DbConnection,
   Vector3,
   UserProject,
+  Project,
+  AccessType,
 } from "../../module_bindings";
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
@@ -12,7 +14,8 @@ import { calculateRectBounds } from "@/lib/rect-utils";
 import { QueryRunner } from "@/lib/queryRunner";
 
 export const Builder = class {
-  private queryRunner: QueryRunner<UserProject>;
+  private projectQueryRunner: QueryRunner<Project>;
+  private userQueryRunner: QueryRunner<UserProject>;
   public previewBlocks: Uint32Array;
   private dbConn: DbConnection;
   private projectId: string;
@@ -44,6 +47,8 @@ export const Builder = class {
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
   private lastSentCursorPos: THREE.Vector3 | null = null;
   private lastSentCursorNormal: THREE.Vector3 | null = null;
+  private projectAccessLevel?: AccessType;
+  private userProject?: UserProject;
 
   constructor(
     dbConn: DbConnection,
@@ -78,20 +83,29 @@ export const Builder = class {
 
     this.addEventListeners();
 
-    this.queryRunner = new QueryRunner<UserProject>(
+    this.userQueryRunner = new QueryRunner<UserProject>(
       dbConn.db.userProjects,
       (data) => {
-        this.updateWriteAccess(data);
+        this.userProject = data[0];
+        this.updateWriteAccess();
       },
       (p) => p.user.toHexString() === dbConn.identity?.toHexString()
     );
+    this.projectQueryRunner = new QueryRunner<Project>(
+      dbConn.db.projects,
+      (data) => {
+        this.projectAccessLevel = data[0].publicAccess;
+        this.updateWriteAccess();
+      },
+      (p) => p.id === projectId
+    );
   }
 
-  private updateWriteAccess(projects: UserProject[]) {
-    var project = projects[0];
-    console.log("found?", project);
-    this.hasWriteAccess = project?.accessType.tag === "ReadWrite";
-    console.log("has write access?", this.hasWriteAccess);
+  private updateWriteAccess() {
+    this.hasWriteAccess =
+      this.userProject?.accessType.tag === "ReadWrite" ||
+      (this.userProject?.accessType.tag === "Inherited" &&
+        this.projectAccessLevel?.tag === "ReadWrite");
   }
 
   private getBlockIndex(x: number, y: number, z: number): number {
