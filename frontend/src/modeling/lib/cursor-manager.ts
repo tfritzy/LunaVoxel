@@ -31,7 +31,6 @@ export class CursorManager {
     this.projectId = projectId;
 
     this.queryRunner = new QueryRunner<PlayerCursor>(
-      dbConn,
       dbConn.db.playerCursor,
       (data) => {
         this.update(data);

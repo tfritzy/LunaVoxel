@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { BlockModificationMode } from "@/module_bindings";
@@ -9,6 +9,10 @@ import { ExportType } from "@/modeling/export/model-exporter";
 import { useCurrentProject } from "@/lib/useCurrentProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
 import { useAtlas } from "@/lib/useAtlas";
+import { FileQuestion } from "lucide-react";
+import { useAuth } from "@/firebase/AuthContext";
+import { SignInModal } from "@/components/custom/SignInModal";
+import { createProject } from "@/lib/createProject";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -24,6 +28,8 @@ export const ProjectViewPage = () => {
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
   const atlasData = useAtlas();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
@@ -76,6 +82,7 @@ export const ProjectViewPage = () => {
         `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
         `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
         `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
+        `SELECT * FROM user_projects WHERE ProjectId='${projectId}'`,
       ]);
 
     return () => {
@@ -162,6 +169,10 @@ export const ProjectViewPage = () => {
     setCurrentTool(tool);
   }, []);
 
+  const createNewProject = useCallback(() => {
+    createProject(connection, navigate);
+  }, []);
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -169,6 +180,44 @@ export const ProjectViewPage = () => {
           <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
           <p className="text-lg font-medium">Loading project...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    const isAnonymous = currentUser?.isAnonymous;
+
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        {isAnonymous ? (
+          <SignInModal
+            title="Sign in"
+            subheader="To continue to LunaVoxel"
+            onSignIn={() => {}}
+          />
+        ) : (
+          <div className="bg-background border border-border rounded-lg p-12 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">
+            <div className="space-y-6">
+              <div className="">
+                <h1 className="text-3xl font-bold text-foreground mb-3">
+                  Project not found
+                </h1>
+                <div className="text-muted-foreground">
+                  This project hasn't been shared with you or may not exist.
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={createNewProject}
+                  className="flex flex-row cursor-pointer rounded items-center justify-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                >
+                  <span>Create New Project</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

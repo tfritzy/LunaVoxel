@@ -56,6 +56,18 @@
             box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
         }
 
+        .btn-disabled {
+            background: linear-gradient(135deg, #4b5563, #6b7280);
+            box-shadow: 0 4px 15px rgba(107, 114, 128, 0.2);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 15px rgba(107, 114, 128, 0.2);
+        }
+
         .section-bg {
             background: radial-gradient(ellipse at center, rgba(96, 165, 250, 0.05) 0%, transparent 80%);
         }
@@ -93,6 +105,18 @@
             border-color: rgba(96, 165, 250, 0.3);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
+
+        .beta-badge {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 
@@ -120,6 +144,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
 
                     <div class="text-center md:text-left">
+                        <div class="beta-badge">Beta Coming Soon</div>
                         <h1 class="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-tight">
                             Make voxel art <span class="hero-gradient-text">together</span>.
                         </h1>
@@ -127,11 +152,10 @@
                             class="text-xl md:text-2xl text-slate-300 max-w-xl mx-auto md:mx-0 mt-8 mb-12 leading-relaxed">
                             A voxel art editor that runs in the browser with real-time collaboration, like Google Drive.
                         </p>
-                        <a href="/projects"
-                            class="btn-primary text-white font-bold py-4 px-10 rounded-lg text-xl shadow-xl">
-                            Create a Project
-                        </a>
-                        <p class="text-slate-500 text-sm mt-4">No sign up required. Just click and create.</p>
+                        <button disabled
+                            class="btn-disabled text-white font-bold py-4 px-10 rounded-lg text-xl shadow-xl">
+                            Coming Soon
+                        </button>
                     </div>
 
                     <div class="w-full h-full flex items-center justify-center">
@@ -190,9 +214,9 @@
                 </div>
 
                 <div class="text-center mt-16">
-                    <a href="/app.html" class="btn-primary text-white font-semibold py-4 px-8 rounded-lg text-lg">
-                        Start Building
-                    </a>
+                    <button disabled class="btn-disabled text-white font-semibold py-4 px-8 rounded-lg text-lg">
+                        Beta Launching Soon
+                    </button>
                 </div>
             </div>
         </section>

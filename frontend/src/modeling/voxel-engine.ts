@@ -114,7 +114,7 @@ export class VoxelEngine {
     const horizontalDistance =
       maxHorizontalDimension / 2 / Math.tan(fovRadians / 2);
 
-    const paddedDistance = horizontalDistance * 3;
+    const paddedDistance = horizontalDistance;
 
     const cameraHeight = paddedDistance;
     const cameraPosition = new THREE.Vector3(
@@ -127,7 +127,7 @@ export class VoxelEngine {
       fov,
       this.container.clientWidth / this.container.clientHeight,
       0.1,
-      paddedDistance * 4
+      300
     );
 
     camera.layers.enable(layers.ghost);

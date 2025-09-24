@@ -18,6 +18,7 @@ public static partial class Module
         }
 
         var userAccess = ctx.Db.user_projects.idx_user_project.Filter((projectId, ctx.Sender)).FirstOrDefault();
+        Log.Info("user access: " + userAccess);
         if (userAccess == null || userAccess.AccessType != AccessType.ReadWrite)
         {
             throw new ArgumentException("You do not have permission to edit user access in this project.");

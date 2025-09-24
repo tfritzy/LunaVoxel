@@ -21,11 +21,17 @@ interface ShareModalProps {
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   const projectId = useParams().projectId || "";
   const { connection } = useDatabase();
-  const [userProjects, setUserProjects] = useState<UserProject[]>([]);
   const [showTopBorder, setShowTopBorder] = useState(false);
   const [showBottomBorder, setShowBottomBorder] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const project = useCurrentProject(connection, projectId);
+  const getTable = useCallback((db: DbConnection) => db.db.userProjects, []);
+  const filter = useCallback(
+    (data: UserProject) => data.accessType.tag !== "Inherited",
+    []
+  );
+  const { data: userProjects } = useQueryRunner(connection, getTable, filter);
+  console.log(userProjects);
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/project/${projectId}`;
@@ -58,78 +64,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
       element.removeEventListener("scroll", handleScroll);
     };
   }, [userProjects]);
-
-  useEffect(() => {
-    if (!connection?.identity || !projectId) return;
-
-    const userProjectsSub = connection
-      .subscriptionBuilder()
-      .onApplied(() => {
-        const projectUserProjects = Array.from(
-          connection.db.userProjects.iter()
-        )
-          .filter((up) => up.projectId === projectId)
-          .filter((up) => up.accessType.tag !== "Inherited");
-        setUserProjects(projectUserProjects);
-      })
-      .onError((error) => {
-        console.error("User projects subscription error:", error);
-      })
-      .subscribe([
-        `SELECT * FROM user_projects WHERE ProjectId='${projectId}'`,
-      ]);
-
-    const onInsert = (_ctx: EventContext, userProject: UserProject) => {
-      if (
-        userProject.projectId === projectId &&
-        userProject.accessType.tag !== "Inherited"
-      ) {
-        setUserProjects((prev) => {
-          const exists = prev.some((up) => up.email === userProject.email);
-          return exists ? prev : [...prev, userProject];
-        });
-      }
-    };
-
-    const onUpdate = (
-      _ctx: EventContext,
-      oldUserProject: UserProject,
-      newUserProject: UserProject
-    ) => {
-      if (newUserProject.projectId === projectId) {
-        if (newUserProject.accessType.tag !== "Inherited") {
-          setUserProjects((prev) =>
-            prev.map((up) =>
-              up.email === oldUserProject.email ? newUserProject : up
-            )
-          );
-        } else {
-          setUserProjects((prev) =>
-            prev.filter((up) => up.email !== oldUserProject.email)
-          );
-        }
-      }
-    };
-
-    const onDelete = (_ctx: EventContext, userProject: UserProject) => {
-      if (userProject.projectId === projectId) {
-        setUserProjects((prev) =>
-          prev.filter((up) => up.email !== userProject.email)
-        );
-      }
-    };
-
-    connection.db.userProjects.onInsert(onInsert);
-    connection.db.userProjects.onUpdate(onUpdate);
-    connection.db.userProjects.onDelete(onDelete);
-
-    return () => {
-      userProjectsSub.unsubscribe();
-      connection.db.userProjects.removeOnInsert(onInsert);
-      connection.db.userProjects.removeOnUpdate(onUpdate);
-      connection.db.userProjects.removeOnDelete(onDelete);
-    };
-  }, [connection, projectId]);
 
   if (!project) return null;
 

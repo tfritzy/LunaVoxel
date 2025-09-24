@@ -23,31 +23,37 @@ export class QueryRunner<T> {
   private deleteCleanup?: () => void;
   private updateCleanup?: () => void;
   private isDisposed = false;
+  private filter?: (data: T) => boolean;
 
   constructor(
-    db: DbConnection,
     table: TableHandle<T>,
-    onDataUpdate: (data: T[]) => void
+    onDataUpdate: (data: T[]) => void,
+    filter?: (data: T) => boolean
   ) {
+    this.filter = filter;
     this.onDataUpdate = onDataUpdate;
     this.data = table.tableCache.iter();
+    if (this.filter) this.data = this.data.filter(this.filter);
     onDataUpdate(this.data);
 
     const handleDelete = () => {
       if (this.isDisposed) return;
       this.data = table.tableCache.iter();
+      if (this.filter) this.data = this.data.filter(this.filter);
       onDataUpdate(this.data);
     };
 
     const handleUpdate = () => {
       if (this.isDisposed) return;
       this.data = table.tableCache.iter();
+      if (this.filter) this.data = this.data.filter(this.filter);
       onDataUpdate(this.data);
     };
 
     const handleInsert = () => {
       if (this.isDisposed) return;
       this.data = table.tableCache.iter();
+      if (this.filter) this.data = this.data.filter(this.filter);
       onDataUpdate(this.data);
     };
 

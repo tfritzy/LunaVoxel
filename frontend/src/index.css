@@ -1,65 +1,34 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
+
 :root {
   --background: hsl(240 21% 15%);
-  /* Catppuccin Mocha Base */
   --foreground: hsl(226 64% 88%);
-  /* Catppuccin Mocha Text */
-
   --muted: hsl(237 16% 23%);
-  /* Catppuccin Mocha Surface0 */
   --muted-foreground: hsl(228 24% 72%);
-  /* Catppuccin Mocha Subtext0 */
-
   --popover: hsl(240 21% 12%);
-  /* Catppuccin Mocha Mantle */
   --popover-foreground: hsl(226 64% 88%);
-  /* Catppuccin Mocha Text */
-
   --card: hsl(237 16% 23%);
-  /* Catppuccin Mocha Surface0 */
   --card-foreground: hsl(226 64% 88%);
-  /* Catppuccin Mocha Text */
-
   --border: hsl(234 13% 31%);
-  /* Catppuccin Mocha Surface1 */
   --input: hsl(233 12% 39%);
-  /* Catppuccin Mocha Surface2 */
-
   --primary: hsl(217 92% 76%);
-  /* Catppuccin Mocha Blue */
   --primary-foreground: hsl(240 21% 15%);
-  /* Catppuccin Mocha Base */
-
   --secondary: hsl(234 13% 31%);
-  /* Catppuccin Mocha Surface1 */
   --secondary-foreground: hsl(226 64% 88%);
-  /* Catppuccin Mocha Text */
-
   --accent: hsl(267 84% 81%);
-  /* Catppuccin Mocha Mauve */
   --accent-foreground: hsl(240 21% 15%);
-  /* Catppuccin Mocha Base */
-
   --destructive: hsl(343 81% 75%);
-  /* Catppuccin Mocha Red */
   --destructive-foreground: hsl(0 100% 100%);
-  /* White */
-
   --ring: hsl(217 92% 76%);
-  /* Catppuccin Mocha Blue */
-
   --chart-1: hsl(217 92% 76%);
-  /* Mocha Blue */
   --chart-2: hsl(115 54% 76%);
-  /* Mocha Green */
   --chart-3: hsl(23 92% 75%);
-  /* Mocha Peach */
   --chart-4: hsl(267 84% 81%);
-  /* Mocha Mauve */
   --chart-5: hsl(343 81% 75%);
-  /* Mocha Red */
 }
 
 @theme inline {
@@ -95,9 +64,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: Montserrat, sans-serif;
-  --font-mono: Fira Code, monospace;
-  --font-serif: Georgia, serif;
+  
+  /* Fixed font stack with proper quotes and fallbacks */
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, Consolas, monospace;
+  --font-serif: Georgia, Cambria, "Times New Roman", Times, serif;
+  
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -133,8 +105,12 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     letter-spacing: var(--tracking-normal);
+  }
+  
+  code, pre {
+    @apply font-mono;
   }
 }
 
