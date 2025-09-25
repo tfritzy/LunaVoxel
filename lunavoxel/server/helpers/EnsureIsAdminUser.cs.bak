@@ -5,7 +5,7 @@ public static class EnsureIsAdminUser
     public static void Check(SpacetimeDB.ReducerContext ctx)
     {
         var callerIdentity = ctx.Sender.ToString();
-        var isDev = callerIdentity.ToLower() == "c20047f4d8a09ab9195006dda39d396abbc172c8bfc2b26722eb935ee1be2c89";
+        var isDev = callerIdentity.ToLower() == "c2006dbb9da94d3e39e02ac59a9333f1926e679abf831adaad74571567dfe643";
         var isProd = callerIdentity.ToLower() == "c200a66ecc0876a0e621dc5a47de270237aaac6d3ba3c2915f490aeabcd9c599";
 
         if (!isDev && !isProd)

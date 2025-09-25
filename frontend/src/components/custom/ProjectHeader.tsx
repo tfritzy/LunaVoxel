@@ -13,17 +13,21 @@ import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
 import { UserDropdown } from "./Share/UserDropdown";
 import { ExportType } from "@/modeling/export/model-exporter";
+import { Eye } from "lucide-react";
+import { AccessType } from "@/module_bindings";
 
 interface ProjectHeaderProps {
   onExport: (format: ExportType) => void;
   onUndo: () => void;
   onRedo: () => void;
+  accessLevel: AccessType | null;
 }
 
 export function ProjectHeader({
   onExport,
   onUndo,
   onRedo,
+  accessLevel,
 }: ProjectHeaderProps) {
   const { currentUser, signInWithGoogle, signOut } = useAuth();
   const navigate = useNavigate();
@@ -92,6 +96,12 @@ export function ProjectHeader({
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            {projectId && accessLevel?.tag !== "ReadWrite" && (
+              <div className="border border-border px-4 py-2 rounded-full bg-muted flex flex-row space-x-2 items-center">
+                <Eye size={20} />
+                <div>View only</div>
+              </div>
+            )}
             {projectId && <PresenceIndicator />}
             {projectId && <ShareButton />}
             <UserDropdown

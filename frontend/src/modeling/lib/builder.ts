@@ -4,18 +4,14 @@ import {
   BlockModificationMode,
   DbConnection,
   Vector3,
-  UserProject,
-  Project,
-  AccessType,
 } from "../../module_bindings";
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
 import { calculateRectBounds } from "@/lib/rect-utils";
-import { QueryRunner } from "@/lib/queryRunner";
+import { ProjectAccessManager } from "@/lib/projectAccessManager";
 
 export const Builder = class {
-  private projectQueryRunner: QueryRunner<Project>;
-  private userQueryRunner: QueryRunner<UserProject>;
+  private accessManager: ProjectAccessManager;
   public previewBlocks: Uint32Array;
   private dbConn: DbConnection;
   private projectId: string;
@@ -23,7 +19,6 @@ export const Builder = class {
   private projectManager: ProjectManager;
   private selectedBlock: number = 1;
   private selectedLayer: number = 0;
-  private hasWriteAccess: boolean = false;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -47,8 +42,6 @@ export const Builder = class {
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
   private lastSentCursorPos: THREE.Vector3 | null = null;
   private lastSentCursorNormal: THREE.Vector3 | null = null;
-  private projectAccessLevel?: AccessType;
-  private userProject?: UserProject;
 
   constructor(
     dbConn: DbConnection,
@@ -83,29 +76,11 @@ export const Builder = class {
 
     this.addEventListeners();
 
-    this.userQueryRunner = new QueryRunner<UserProject>(
-      dbConn.db.userProjects,
-      (data) => {
-        this.userProject = data[0];
-        this.updateWriteAccess();
-      },
-      (p) => p.user.toHexString() === dbConn.identity?.toHexString()
+    this.accessManager = new ProjectAccessManager(
+      dbConn,
+      projectId,
+      dbConn.identity?.toHexString()
     );
-    this.projectQueryRunner = new QueryRunner<Project>(
-      dbConn.db.projects,
-      (data) => {
-        this.projectAccessLevel = data[0].publicAccess;
-        this.updateWriteAccess();
-      },
-      (p) => p.id === projectId
-    );
-  }
-
-  private updateWriteAccess() {
-    this.hasWriteAccess =
-      this.userProject?.accessType.tag === "ReadWrite" ||
-      (this.userProject?.accessType.tag === "Inherited" &&
-        this.projectAccessLevel?.tag === "ReadWrite");
   }
 
   private getBlockIndex(x: number, y: number, z: number): number {
@@ -165,7 +140,7 @@ export const Builder = class {
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-    if (gridPos && this.hasWriteAccess) {
+    if (gridPos && this.accessManager.hasWriteAccess) {
       this.preview(gridPos);
     }
   }
@@ -175,7 +150,7 @@ export const Builder = class {
       return;
     }
 
-    if (!this.hasWriteAccess) {
+    if (!this.accessManager.hasWriteAccess) {
       return;
     }
 
@@ -190,7 +165,7 @@ export const Builder = class {
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
-      if (!this.hasWriteAccess) {
+      if (!this.accessManager.hasWriteAccess) {
         return;
       }
 
@@ -315,7 +290,7 @@ export const Builder = class {
   }
 
   private preview(gridPos: THREE.Vector3): void {
-    if (!this.dbConn.isActive || !this.hasWriteAccess) return;
+    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
@@ -339,7 +314,7 @@ export const Builder = class {
   }
 
   private onMouseClickHandler(position: THREE.Vector3): void {
-    if (!this.dbConn.isActive || !this.hasWriteAccess) return;
+    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     const endPos = position;
     const startPos = this.startPosition || position;
@@ -377,7 +352,7 @@ export const Builder = class {
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
   ): void {
-    if (!this.dbConn.isActive || !this.hasWriteAccess) return;
+    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     this.clearPreviewBlocks();
     this.projectManager.applyOptimisticRectEdit(

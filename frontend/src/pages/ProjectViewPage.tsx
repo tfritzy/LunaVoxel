@@ -2,17 +2,17 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { BlockModificationMode } from "@/module_bindings";
+import { BlockModificationMode, DbConnection } from "@/module_bindings";
 import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useCurrentProject } from "@/lib/useCurrentProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
 import { useAtlas } from "@/lib/useAtlas";
-import { FileQuestion } from "lucide-react";
 import { useAuth } from "@/firebase/AuthContext";
 import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
+import { useProjectAccess } from "@/lib/useProjectAccess";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -30,6 +30,7 @@ export const ProjectViewPage = () => {
   const atlasData = useAtlas();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const { accessLevel } = useProjectAccess(connection, projectId);
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
@@ -234,6 +235,7 @@ export const ProjectViewPage = () => {
       onUndo={handleUndo}
       onRedo={handleRedo}
       atlasData={atlasData}
+      accessLevel={accessLevel}
     >
       <div
         ref={containerCallbackRef}

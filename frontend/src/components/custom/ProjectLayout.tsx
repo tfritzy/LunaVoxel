@@ -1,7 +1,7 @@
 import { ProjectHeader } from "./ProjectHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
-import { BlockModificationMode } from "@/module_bindings";
+import { AccessType, BlockModificationMode } from "@/module_bindings";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
@@ -24,6 +24,7 @@ interface ProjectLayoutProps {
   onRedo: () => void;
   children: React.ReactNode;
   atlasData: AtlasData;
+  accessLevel: AccessType | null;
 }
 
 export const ProjectLayout = ({
@@ -38,10 +39,16 @@ export const ProjectLayout = ({
   onRedo,
   children,
   atlasData,
+  accessLevel,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
-      <ProjectHeader onExport={onExport} onUndo={onUndo} onRedo={onRedo} />
+      <ProjectHeader
+        onExport={onExport}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        accessLevel={accessLevel}
+      />
 
       <div className="flex flex-1 min-h-0">
         <BlockDrawer
@@ -53,10 +60,12 @@ export const ProjectLayout = ({
 
         <div className="flex-1 relative bg-muted/5 min-w-0">
           {children}
-          <FloatingToolbar
-            currentTool={currentTool}
-            onToolChange={onToolChange}
-          />
+          {accessLevel?.tag === "ReadWrite" && (
+            <FloatingToolbar
+              currentTool={currentTool}
+              onToolChange={onToolChange}
+            />
+          )}
         </div>
 
         <RightSideDrawer onSelectLayer={onSelectLayer} projectId={projectId} />
