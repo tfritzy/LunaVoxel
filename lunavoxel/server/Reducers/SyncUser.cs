@@ -26,6 +26,13 @@ public static partial class Module
             userProject.User = identity;
             ctx.Db.user_projects.Id.Update(userProject);
         }
+
+        var noEmailUserProjects = ctx.Db.user_projects.idx_user_email.Filter((identity, null)).ToList();
+        foreach (var userProject in noEmailUserProjects)
+        {
+            userProject.Email = email;
+            ctx.Db.user_projects.Id.Update(userProject);
+        }
     }
 }
 

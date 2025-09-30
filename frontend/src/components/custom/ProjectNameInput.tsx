@@ -1,8 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { DbConnection } from "@/module_bindings";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useQueryRunner } from "@/lib/useQueryRunner";
 import { useCurrentProject } from "@/lib/useCurrentProject";
 
 export function ProjectNameInput() {
@@ -39,6 +37,12 @@ export function ProjectNameInput() {
     }
   }, []);
 
+  useEffect(() => {
+    if (project?.name !== undefined) {
+      setLocalName(project.name);
+    }
+  }, [project?.name]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
@@ -59,10 +63,6 @@ export function ProjectNameInput() {
     []
   );
 
-  if (!project) {
-    return <div />;
-  }
-
   return (
     <input
       ref={inputRef}
@@ -72,6 +72,11 @@ export function ProjectNameInput() {
       onKeyDown={handleKeyDown}
       className="bg-transparent border-none outline-none text-lg placeholder-foreground-muted font-medium px-3 rounded focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all"
       placeholder="Untitled Project"
+      disabled={
+        !project ||
+        !connection?.identity ||
+        !project.owner.isEqual(connection.identity)
+      }
     />
   );
 }

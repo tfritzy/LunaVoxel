@@ -1,5 +1,5 @@
 import { getAuth } from "firebase-admin/auth";
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { adminApp } from "./index";
 import { validateSpacetimeIdentity } from "./identity-validation";
@@ -12,9 +12,7 @@ interface SyncUserRequest {
 }
 
 interface SyncUserResponse {
-  success: boolean;
-  uid?: string;
-  error?: string;
+  uid: string;
 }
 
 export const syncUser = onCall<SyncUserRequest, Promise<SyncUserResponse>>(
@@ -31,10 +29,7 @@ export const syncUser = onCall<SyncUserRequest, Promise<SyncUserResponse>>(
       );
 
       if (!isValidIdentity) {
-        return {
-          success: false,
-          error: "Invalid SpaceTime identity",
-        };
+        throw new HttpsError("invalid-argument", "Invalid SpaceTime identity");
       }
 
       await callSpacetimeDB("/v1/database/lunavoxel-db/call/SyncUser", "POST", [
@@ -43,16 +38,18 @@ export const syncUser = onCall<SyncUserRequest, Promise<SyncUserResponse>>(
         decodedToken.name || "",
       ]);
 
-      return {
-        success: true,
-        uid,
-      };
+      return { uid };
     } catch (error) {
       logger.error("Error in syncUser:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError(
+        "internal",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     }
   }
 );

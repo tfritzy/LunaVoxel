@@ -47,19 +47,14 @@ function AppContent() {
           "syncUser"
         );
 
-        const result = await syncUser({
+        await syncUser({
           idToken,
           identity: identity.toHexString(),
           spacetimeToken,
         });
 
-        if (result.data.success) {
-          setUserSynced(true);
-          return true;
-        } else {
-          console.error("Failed to sync user:", result.data.error);
-          return false;
-        }
+        setUserSynced(true);
+        return true;
       } catch (error) {
         console.error("Error calling syncUser:", error);
         return false;

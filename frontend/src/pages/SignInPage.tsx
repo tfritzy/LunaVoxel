@@ -181,6 +181,7 @@ export const SignInPage = () => {
       onUndo={handleUndo}
       onRedo={handleRedo}
       atlasData={atlasData}
+      accessLevel={{ tag: "Read" }}
     >
       <div className="w-full h-full bg-background relative">
         <div ref={containerCallbackRef} className="w-full h-full" />

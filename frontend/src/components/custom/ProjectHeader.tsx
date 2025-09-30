@@ -8,12 +8,10 @@ import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { useState, useCallback } from "react";
-import { ProjectModal } from "./ProjectModal";
 import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
 import { UserDropdown } from "./Share/UserDropdown";
 import { ExportType } from "@/modeling/export/model-exporter";
-import { Eye } from "lucide-react";
 import { AccessType } from "@/module_bindings";
 
 interface ProjectHeaderProps {
@@ -81,7 +79,7 @@ export function ProjectHeader({
             </Link>
             <div>
               <div className="flex-1 flex justify-center">
-                {projectId && <ProjectNameInput />}
+                <ProjectNameInput />
               </div>
               <div className="flex items-center">
                 <FileDropdown
@@ -89,21 +87,15 @@ export function ProjectHeader({
                   onOpenProject={handleOpenProject}
                   onExport={onExport}
                 />
-                {projectId && onUndo && onRedo && (
+                {onUndo && onRedo && (
                   <EditDropdown onUndo={onUndo} onRedo={onRedo} />
                 )}
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            {projectId && accessLevel?.tag !== "ReadWrite" && (
-              <div className="border border-border px-4 py-2 rounded-full bg-muted flex flex-row space-x-2 items-center">
-                <Eye size={20} />
-                <div>View only</div>
-              </div>
-            )}
             {projectId && <PresenceIndicator />}
-            {projectId && <ShareButton />}
+            {projectId && <ShareButton accessLevel={accessLevel} />}
             <UserDropdown
               currentUser={currentUser}
               onSignIn={handleSignIn}
