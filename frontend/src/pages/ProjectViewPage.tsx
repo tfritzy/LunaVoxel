@@ -67,6 +67,7 @@ export const ProjectViewPage = () => {
   }, [projectId]);
 
   useEffect(() => {
+    setLoading(true);
     if (!connection) return;
 
     connection.reducers.pokeProject(projectId);
@@ -179,7 +180,6 @@ export const ProjectViewPage = () => {
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
-          <p className="text-lg font-medium">Loading project...</p>
         </div>
       </div>
     );
