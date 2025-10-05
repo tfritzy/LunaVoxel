@@ -1,67 +1,109 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
-   width="180"
-   height="180"
-   viewBox="0 0 180 180"
+   width="200"
+   height="200"
+   viewBox="0 0 200 200"
    version="1.1"
-   id="svg1"
-   xml:space="preserve"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg"><defs
-     id="defs1"><linearGradient
-       id="topFace"
-       x1="-1.502539"
-       y1="-0.48555458"
-       x2="0.089284532"
-       y2="-63"
-       gradientTransform="matrix(2.3640219,0,0,1.2061336,1.7205619,-5.6141239)"
-       gradientUnits="userSpaceOnUse"><stop
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Yellow gradients -->
+    <linearGradient
+       id="leftFaceYellow"
+       x1="-105.83005"
+       y1="-52.915028"
+       x2="0"
+       y2="52.915028"
+       gradientTransform="scale(0.66143783,1.5118579)"
+       gradientUnits="userSpaceOnUse">
+      <stop
          offset="0%"
-         style="stop-color:#f4d361;stop-opacity:1"
-         id="stop1" /><stop
+         style="stop-color:#FFD700;stop-opacity:1" />
+      <stop
          offset="100%"
-         style="stop-color:#e8b537;stop-opacity:1"
-         id="stop2" /></linearGradient><linearGradient
-       id="leftFace"
-       x1="-41.894978"
-       y1="-12.275885"
-       x2="-68.032356"
-       y2="24.585072"
-       gradientTransform="matrix(1.3508697,0,0,2.1107338,-1.7545822,-0.2056353)"
-       gradientUnits="userSpaceOnUse"><stop
+         style="stop-color:#CC9900;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient
+       id="topFaceYellow"
+       x1="-52.915028"
+       y1="-105.83005"
+       x2="52.915028"
+       y2="0"
+       gradientTransform="scale(1.3228757,0.75592895)"
+       gradientUnits="userSpaceOnUse">
+      <stop
          offset="0%"
-         style="stop-color:#e8b537;stop-opacity:1"
-         id="stop3" /><stop
+         style="stop-color:#FFEE44;stop-opacity:1" />
+      <stop
          offset="100%"
-         style="stop-color:#c9861f;stop-opacity:1"
-         id="stop4" /></linearGradient><linearGradient
-       id="rightFace"
-       x1="48.063301"
-       y1="-14.530657"
-       x2="71.280945"
-       y2="29.017666"
-       gradientTransform="matrix(1.3508697,0,0,2.1107338,-2.1656669,-0.4238247)"
-       gradientUnits="userSpaceOnUse"><stop
+         style="stop-color:#E6B800;stop-opacity:1" />
+    </linearGradient>
+    <!-- Purple gradients -->
+    <linearGradient
+       id="topFacePurple"
+       x1="-52.915026"
+       y1="-105.83005"
+       x2="52.915026"
+       y2="0"
+       gradientTransform="scale(1.3228757,0.75592895)"
+       gradientUnits="userSpaceOnUse">
+      <stop
          offset="0%"
-         style="stop-color:#e8b537;stop-opacity:1"
-         id="stop5" /><stop
+         style="stop-color:#A855F7;stop-opacity:1" />
+      <stop
          offset="100%"
-         style="stop-color:#b87916;stop-opacity:1"
-         id="stop6" /></linearGradient></defs><g
-     id="layer1"><g
-       transform="translate(91.942966,93.539924)"
-       id="g8"><path
-         d="M 1.7205619,-90.043483 79.194865,-47.866859 -1.8742815,-5.6405089 -82.708794,-47.828803 Z"
-         fill="url(#topFace)"
-         id="path6"
-         style="fill:url(#topFace);stroke-width:1.68858" /><path
-         d="M -86.183936,-42.420313 -5.1317565,-0.2056362 V 84.223719 L -86.183936,42.009042 Z"
-         fill="url(#leftFace)"
-         id="path7"
-         style="fill:url(#leftFace);stroke-width:1.68858" /><path
-         d="M 1.2115062,-0.4238247 82.26369,-42.638502 V 41.790853 L 1.2115062,84.00553 Z"
-         fill="url(#rightFace)"
-         id="path8"
-         style="fill:url(#rightFace);stroke-width:1.68858" /></g></g></svg>
+         style="stop-color:#8B35D1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient
+       id="leftFacePurple"
+       x1="-105.83005"
+       y1="-52.915026"
+       x2="0"
+       y2="52.915026"
+       gradientTransform="scale(0.66143783,1.5118579)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0%"
+         style="stop-color:#8B35D1;stop-opacity:1" />
+      <stop
+         offset="100%"
+         style="stop-color:#6B21A8;stop-opacity:1" />
+    </linearGradient>
+    <!-- Applied gradients with transforms -->
+    <linearGradient
+       xlink:href="#leftFaceYellow"
+       id="yellowFace"
+       gradientTransform="matrix(-0.70485816,0,0,-1.6111044,1.7154903,-1.3160022)" />
+    <linearGradient
+       xlink:href="#topFaceYellow"
+       id="yellowTop"
+       gradientTransform="matrix(-1.4097164,0,0,-0.80555219,1.7154903,-86.260538)" />
+    <linearGradient
+       xlink:href="#leftFacePurple"
+       id="purpleFace"
+       gradientTransform="matrix(-0.70485816,0,0,-1.6111044,1.7154903,-1.3160022)" />
+    <linearGradient
+       xlink:href="#topFacePurple"
+       id="purpleTop"
+       gradientTransform="matrix(-1.4097164,0,0,-0.80555219,1.7154903,-86.260538)" />
+  </defs>
+  <!-- Isometric cube positioned in center -->
+  <g transform="matrix(1.1440957,0,0,1.1440957,100,100)">
+    <!-- Left side - Yellow -->
+    <path
+       d="M 1.7154899,83.935638 -72.879683,41.309818 v -85.251629 l 74.5951729,-42.62582 z"
+       style="fill:url(#yellowFace);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
+    <!-- Right side - Purple -->
+    <path
+       d="M 1.7154899,83.935638 76.310676,41.309818 V -43.941811 L 1.7154899,-86.567631 Z"
+       style="fill:url(#purpleFace);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
+    <!-- Top - Yellow triangle -->
+    <path
+       d="M 1.7154899,-1.0089013 1.7154899,-86.260536 -72.879683,-43.634722 Z"
+       style="fill:url(#yellowTop);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
+    <!-- Top - Purple triangle -->
+    <path
+       d="M 1.7154899,-1.0089013 76.310676,-43.634722 1.7154899,-86.260536 Z"
+       style="fill:url(#purpleTop);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
+  </g>
+</svg>

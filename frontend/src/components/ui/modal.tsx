@@ -88,7 +88,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center z-100 transition-opacity duration-200 ease-out ${
+      className={`fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-200 ease-out ${
         isVisible ? "bg-black/10" : "bg-black/0"
       }`}
       onClick={handleBackdropClick}

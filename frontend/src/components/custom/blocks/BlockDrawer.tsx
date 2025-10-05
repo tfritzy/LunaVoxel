@@ -1,8 +1,9 @@
 import { HexagonOverlay } from "./HexagonOverlay";
 import { Button } from "@/components/ui/button";
-import { FileQuestion, Plus } from "lucide-react";
+import { FileQuestion, Plus, Trash2 } from "lucide-react";
 import { useState, useMemo, useCallback, memo } from "react";
 import { BlockModal } from "./BlockModal";
+import { DeleteBlockModal } from "./DeleteBlockModal";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
 import { Block3DPreview } from "./Block3dPreview";
@@ -69,6 +70,7 @@ const HexagonGrid = memo(
                 <HexagonOverlay
                   isSelected={blockIndex === selectedBlock}
                   onClick={() => onSelectBlock(blockIndex)}
+                  stroke={false}
                 />
               </div>
             );
@@ -85,7 +87,11 @@ const HexagonGrid = memo(
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Plus className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <HexagonOverlay isSelected={false} onClick={onAddNew} />
+                <HexagonOverlay
+                  isSelected={false}
+                  onClick={onAddNew}
+                  stroke={false}
+                />
               </div>
             );
           }
@@ -125,6 +131,7 @@ const HexagonGrid = memo(
 );
 
 export const BlockDrawer = ({
+  projectId,
   selectedBlock,
   setSelectedBlock,
   atlasData,
@@ -137,6 +144,9 @@ export const BlockDrawer = ({
   const [editingBlockIndex, setEditingBlockIndex] = useState<
     number | "new" | null
   >(null);
+  const [deletingBlockIndex, setDeletingBlockIndex] = useState<number | null>(
+    null
+  );
 
   const handleSelectBlock = useCallback(
     (index: number) => {
@@ -148,6 +158,10 @@ export const BlockDrawer = ({
   const handleAddNew = useCallback(() => {
     setEditingBlockIndex("new");
   }, []);
+
+  const handleDelete = useCallback(() => {
+    setDeletingBlockIndex(selectedBlock);
+  }, [selectedBlock]);
 
   const faceColors =
     selectedBlock <= atlasData.blockAtlasMappings.length
@@ -173,21 +187,26 @@ export const BlockDrawer = ({
         </div>
         {faceColors && (
           <div className="">
-            <div className="bg-muted/30 rounded-lg border border-border mb-4">
+            <div className="flex gap-2 mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  setEditingBlockIndex(selectedBlock);
+                }}
+              >
+                Edit Block
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="bg-muted/30 rounded-lg border border-border">
               <div className="h-48 flex items-center justify-center">
                 <Block3DPreview faceColors={faceColors} camRadius={4} />
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                setEditingBlockIndex(selectedBlock);
-              }}
-            >
-              Edit Block
-            </Button>
           </div>
         )}
 
@@ -197,6 +216,16 @@ export const BlockDrawer = ({
             onClose={() => setEditingBlockIndex(null)}
             blockIndex={editingBlockIndex}
             atlasData={atlasData}
+          />
+        )}
+
+        {deletingBlockIndex !== null && (
+          <DeleteBlockModal
+            isOpen={deletingBlockIndex !== null}
+            onClose={() => setDeletingBlockIndex(null)}
+            blockIndex={deletingBlockIndex}
+            atlasData={atlasData}
+            projectId={projectId}
           />
         )}
       </div>

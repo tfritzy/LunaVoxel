@@ -71,14 +71,9 @@ export function ProjectHeader({
       <nav className="h-18 w-full bg-background border-b border-border relative z-10">
         <div className="w-full h-full py-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-4 pl-2">
-            <Link
-              to="/projects"
-              className="text-xl font-bold text-foreground hover:text-primary transition-colors"
-            >
-              <Logo />
-            </Link>
-            <div>
-              <div className="flex-1 flex justify-center">
+            <Logo />
+            <div className="-translate-x-2">
+              <div className="">
                 <ProjectNameInput />
               </div>
               <div className="flex items-center">

@@ -46,6 +46,8 @@ import { ClientDisconnected } from "./client_disconnected_reducer.ts";
 export { ClientDisconnected };
 import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
+import { DeleteBlock } from "./delete_block_reducer.ts";
+export { DeleteBlock };
 import { DeleteLayer } from "./delete_layer_reducer.ts";
 export { DeleteLayer };
 import { InitializeBlocks } from "./initialize_blocks_reducer.ts";
@@ -175,6 +177,10 @@ const REMOTE_MODULE = {
       reducerName: "CreateProject",
       argsType: CreateProject.getTypeScriptAlgebraicType(),
     },
+    DeleteBlock: {
+      reducerName: "DeleteBlock",
+      argsType: DeleteBlock.getTypeScriptAlgebraicType(),
+    },
     DeleteLayer: {
       reducerName: "DeleteLayer",
       argsType: DeleteLayer.getTypeScriptAlgebraicType(),
@@ -269,6 +275,7 @@ export type Reducer = never
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
 | { name: "CreateProject", args: CreateProject }
+| { name: "DeleteBlock", args: DeleteBlock }
 | { name: "DeleteLayer", args: DeleteLayer }
 | { name: "InitializeBlocks", args: InitializeBlocks }
 | { name: "InviteToProject", args: InviteToProject }
@@ -383,6 +390,22 @@ export class RemoteReducers {
 
   removeOnCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
     this.connection.offReducer("CreateProject", callback);
+  }
+
+  deleteBlock(projectId: string, blockIndex: number, replacementBlockType: number) {
+    const __args = { projectId, blockIndex, replacementBlockType };
+    let __writer = new BinaryWriter(1024);
+    DeleteBlock.getTypeScriptAlgebraicType().serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("DeleteBlock", __argsBuffer, this.setCallReducerFlags.deleteBlockFlags);
+  }
+
+  onDeleteBlock(callback: (ctx: ReducerEventContext, projectId: string, blockIndex: number, replacementBlockType: number) => void) {
+    this.connection.onReducer("DeleteBlock", callback);
+  }
+
+  removeOnDeleteBlock(callback: (ctx: ReducerEventContext, projectId: string, blockIndex: number, replacementBlockType: number) => void) {
+    this.connection.offReducer("DeleteBlock", callback);
   }
 
   deleteLayer(id: string) {
@@ -651,6 +674,11 @@ export class SetReducerFlags {
   createProjectFlags: CallReducerFlags = 'FullUpdate';
   createProject(flags: CallReducerFlags) {
     this.createProjectFlags = flags;
+  }
+
+  deleteBlockFlags: CallReducerFlags = 'FullUpdate';
+  deleteBlock(flags: CallReducerFlags) {
+    this.deleteBlockFlags = flags;
   }
 
   deleteLayerFlags: CallReducerFlags = 'FullUpdate';

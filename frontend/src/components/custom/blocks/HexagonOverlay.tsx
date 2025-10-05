@@ -7,11 +7,13 @@ const points = {
   topRight: { x: 94.175, y: 24.445000000000004 },
 };
 export const HexagonOverlay = ({
-  isSelected,
   onClick,
+  isSelected,
+  stroke,
 }: {
-  isSelected: boolean;
   onClick: () => void;
+  isSelected: boolean;
+  stroke: boolean;
 }) => {
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -22,20 +24,21 @@ export const HexagonOverlay = ({
         }}
         onMouseDown={onClick}
       />
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 100 100"
-        className="absolute inset-0"
-      >
-        <polygon
-          className="fill-transparent"
-          points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
-          stroke={isSelected ? "white" : "#ffffffaa"}
-          strokeWidth={isSelected ? 4 : 0}
-          opacity={isSelected ? 1 : 1}
-        />
-      </svg>
+      {stroke && (
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 100 100"
+          className="absolute inset-0"
+        >
+          <polygon
+            className="fill-transparent"
+            points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
+            stroke="white"
+            strokeWidth={stroke || isSelected ? 2 : 0}
+          />
+        </svg>
+      )}
     </div>
   );
 };
