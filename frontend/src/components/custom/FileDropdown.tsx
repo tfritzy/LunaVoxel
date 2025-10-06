@@ -1,4 +1,4 @@
-import { Plus, FolderOpen, FileDown, FileUp } from "lucide-react";
+import { Plus, FolderOpen, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

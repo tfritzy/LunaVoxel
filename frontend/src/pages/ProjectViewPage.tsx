@@ -80,7 +80,7 @@ export const ProjectViewPage = () => {
         console.error("subscription error:", error);
       })
       .subscribe([
-        `SELECT * FROM projects WHERE Id='${projectId}'`,
+        `SELECT * FROM projects`,
         `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
         `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
         `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,

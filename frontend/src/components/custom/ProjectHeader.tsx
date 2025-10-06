@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { FileDropdown } from "./FileDropdown";
 import { EditDropdown } from "./EditDropdown";
 import { useAuth } from "@/firebase/AuthContext";
@@ -13,6 +13,7 @@ import { ShareButton } from "./Share/ShareButton";
 import { UserDropdown } from "./Share/UserDropdown";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { AccessType } from "@/module_bindings";
+import { ProjectModal } from "./ProjectModal";
 
 interface ProjectHeaderProps {
   onExport: (format: ExportType) => void;
@@ -97,10 +98,10 @@ export function ProjectHeader({
               onSignOut={handleSignOut}
             />
           </div>
-          {/* <ProjectModal
+          <ProjectModal
             isOpen={openProjectOpen}
             onClose={handleCloseProjectModal}
-          /> */}
+          />
         </div>
       </nav>
     </>

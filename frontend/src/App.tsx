@@ -6,7 +6,6 @@ import { Identity } from "@clockworklabs/spacetimedb-sdk";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
 import { Layout } from "./components/custom/Layout";
-import { ProjectsProvider } from "./contexts/ProjectsContext";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 import { SignInPage } from "./pages/SignInPage";
@@ -137,16 +136,14 @@ function AppContent() {
 
   return (
     <DatabaseProvider connection={conn}>
-      <ProjectsProvider>
-        <Layout>
-          <Routes>
-            <Route path="/project" element={<ProjectsPage />} />
-            <Route path="/create" element={<CreateNewPage />} />
-            <Route path="/project/:projectId" element={<ProjectViewPage />} />
-            <Route path="*" element={<Navigate to="/project" replace />} />
-          </Routes>
-        </Layout>
-      </ProjectsProvider>
+      <Layout>
+        <Routes>
+          <Route path="/project" element={<ProjectsPage />} />
+          <Route path="/create" element={<CreateNewPage />} />
+          <Route path="/project/:projectId" element={<ProjectViewPage />} />
+          <Route path="*" element={<Navigate to="/project" replace />} />
+        </Routes>
+      </Layout>
       <Toaster />
     </DatabaseProvider>
   );

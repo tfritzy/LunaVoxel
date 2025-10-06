@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Grid3X3,
   List,
+  Layers,
 } from "lucide-react";
 
 interface ProjectModalProps {
@@ -32,18 +33,73 @@ const getRelativeTime = (timestamp: Timestamp): string => {
   const date = timestamp.toDate();
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+  if (diffSecs < 60) return `${diffSecs}s ago`;
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
 };
 
+const getTimeCategory = (timestamp: Timestamp): string => {
+  const date = timestamp.toDate();
+  const now = new Date();
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const projectDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+  const daysDiff = Math.floor(
+    (today.getTime() - projectDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysDiff === 0) return "Today";
+  if (daysDiff === 1) return "Yesterday";
+  if (daysDiff < 7) return "Last week";
+  if (daysDiff < 30) return "Last month";
+  if (daysDiff < 365) return "Earlier this year";
+  return "Older";
+};
+
+const groupProjectsByTime = (projects: Project[]): Map<string, Project[]> => {
+  const groups = new Map<string, Project[]>();
+  const categoryOrder = [
+    "Today",
+    "Yesterday",
+    "Last week",
+    "Last month",
+    "Earlier this year",
+    "Older",
+  ];
+
+  categoryOrder.forEach((category) => groups.set(category, []));
+
+  projects.forEach((project) => {
+    const category = getTimeCategory(project.updated);
+    const group = groups.get(category);
+    if (group) {
+      group.push(project);
+    }
+  });
+
+  const result = new Map<string, Project[]>();
+  categoryOrder.forEach((category) => {
+    const group = groups.get(category);
+    if (group && group.length > 0) {
+      result.set(category, group);
+    }
+  });
+
+  return result;
+};
+
 const getProjectPreview = (project: Project): string => {
-  // Generate a simple preview based on project name initials
   return project.name
     .split(" ")
     .map((word) => word[0])
@@ -52,17 +108,16 @@ const getProjectPreview = (project: Project): string => {
     .slice(0, 2);
 };
 
-export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
+export const ProjectModal = ({ isOpen, onClose }: ProjectModalProps) => {
   const navigate = useNavigate();
   const { userProjects, sharedProjects } = useProjects();
   const { connection } = useDatabase();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("recent");
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("grid");
   const [isCreating, setIsCreating] = useState(false);
 
-  // Combine and filter projects
   const allProjects = [...userProjects, ...sharedProjects];
   const recentProjects = allProjects
     .sort((a, b) => b.updated.toDate().getTime() - a.updated.toDate().getTime())
@@ -94,6 +149,8 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
   };
 
   const filteredProjects = getFilteredProjects();
+  const groupedProjects =
+    viewMode === "all" ? null : groupProjectsByTime(filteredProjects);
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
@@ -114,7 +171,6 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
     }
   };
 
-  // Reset search when modal opens
   useEffect(() => {
     if (isOpen) {
       setSearchTerm("");
@@ -135,7 +191,6 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
         onClick={() => handleProjectClick(project.id)}
         className="group relative bg-card border border-border rounded-xl p-6 hover:border-primary/30 hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
       >
-        {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
         <div className="relative">
@@ -254,11 +309,41 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
         </div>
       }
     >
-      <div className="min-h-[70vh] max-h-[85vh] flex flex-col px-6 py-2">
-        {/* Header */}
-        <div className="">
-          {/* Search and filters */}
-          <div className="flex items-center gap-4 w-full justify-between">
+      <div className="min-h-[70vh] max-h-[85vh] flex px-6 py-2">
+        <div className="flex flex-col gap-2 pr-6 border-r border-border min-w-[180px]">
+          <Button
+            onClick={handleCreateProject}
+            disabled={isCreating}
+            className="w-full justify-start gap-2 mb-4"
+            variant="outline"
+          >
+            <Plus className="w-4 h-4" />
+            {isCreating ? "Creating..." : "New Project"}
+          </Button>
+
+          {(["recent", "all", "shared"] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-left relative ${
+                viewMode === mode
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              {mode === "recent" && <Clock className="w-4 h-4" />}
+              {mode === "all" && <Layers className="w-4 h-4" />}
+              {mode === "shared" && <Users className="w-4 h-4" />}
+              {mode === "all" ? "All" : mode === "recent" ? "Recent" : "Shared"}
+              {viewMode === mode && (
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 flex flex-col pl-6 min-w-0">
+          <div className="flex items-center gap-4 w-full justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -271,26 +356,6 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex bg-muted rounded-lg p-1">
-                  {(["all", "recent", "shared"] as ViewMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setViewMode(mode)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        viewMode === mode
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {mode === "all"
-                        ? "All"
-                        : mode === "recent"
-                        ? "Recent"
-                        : "Shared"}
-                    </button>
-                  ))}
-                </div>
-
                 <div className="flex bg-muted rounded-lg p-1">
                   <button
                     onClick={() => setLayoutMode("grid")}
@@ -315,49 +380,91 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
                 </div>
               </div>
             </div>
-
-            <Button
-              onClick={handleCreateProject}
-              disabled={isCreating}
-              className=""
-            >
-              <Plus className="w-4 h-4" />
-              {isCreating ? "Creating..." : "New Project"}
-            </Button>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 min-h-0 py-6">
-          {filteredProjects.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="h-full overflow-y-auto">
-              {layoutMode === "grid" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredProjects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      isShared={sharedProjects.some((p) => p.id === project.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredProjects.map((project) => (
-                    <ProjectListItem
-                      key={project.id}
-                      project={project}
-                      isShared={sharedProjects.some((p) => p.id === project.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex-1 min-h-0">
+            {filteredProjects.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div className="h-full overflow-y-auto">
+                {groupedProjects ? (
+                  layoutMode === "grid" ? (
+                    <div className="space-y-8">
+                      {Array.from(groupedProjects.entries()).map(
+                        ([category, projects]) => (
+                          <div key={category}>
+                            <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
+                              {category}
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {projects.map((project) => (
+                                <ProjectCard
+                                  key={project.id}
+                                  project={project}
+                                  isShared={sharedProjects.some(
+                                    (p) => p.id === project.id
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {Array.from(groupedProjects.entries()).map(
+                        ([category, projects]) => (
+                          <div key={category}>
+                            <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
+                              {category}
+                            </h2>
+                            <div className="space-y-2">
+                              {projects.map((project) => (
+                                <ProjectListItem
+                                  key={project.id}
+                                  project={project}
+                                  isShared={sharedProjects.some(
+                                    (p) => p.id === project.id
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )
+                ) : layoutMode === "grid" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredProjects.map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        isShared={sharedProjects.some(
+                          (p) => p.id === project.id
+                        )}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredProjects.map((project) => (
+                      <ProjectListItem
+                        key={project.id}
+                        project={project}
+                        isShared={sharedProjects.some(
+                          (p) => p.id === project.id
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Modal>
   );
-}
+};
