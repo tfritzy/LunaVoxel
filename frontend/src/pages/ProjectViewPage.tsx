@@ -185,10 +185,11 @@ export const ProjectViewPage = () => {
     );
   }
 
+  let modal = null;
   if (!project) {
     const isAnonymous = currentUser?.isAnonymous;
 
-    return (
+    modal = (
       <div className="h-screen flex items-center justify-center bg-background">
         {isAnonymous ? (
           <SignInModal
@@ -237,6 +238,7 @@ export const ProjectViewPage = () => {
       atlasData={atlasData}
       accessLevel={accessLevel}
     >
+      {modal}
       <div
         ref={containerCallbackRef}
         className="w-full h-full bg-background"

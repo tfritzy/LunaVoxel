@@ -67,7 +67,7 @@ function AppContent() {
       setConn(connection);
       localStorage.setItem("auth_token", token);
 
-      if (currentUser && !userSynced) {
+      if (currentUser && !userSynced && !currentUser.isAnonymous) {
         const idToken = await currentUser.getIdToken();
         await syncUserWithCloudFunction(idToken, identity, token);
       }
@@ -91,17 +91,15 @@ function AppContent() {
       return;
     }
 
-    if (conn) {
-      console.log("Connection already exists, skipping");
-      return;
-    }
-
     const connectToSpaceTime = async () => {
       try {
+        console.log(
+          "Signing in with ",
+          currentUser.email,
+          currentUser.getIdToken()
+        );
         const idToken = await currentUser.getIdToken();
         const config = getSpacetimeConfig();
-
-        console.log("Connecting to SpacetimeDB:", config);
 
         DbConnection.builder()
           .withUri(config.uri)
@@ -117,7 +115,8 @@ function AppContent() {
     };
 
     connectToSpaceTime();
-  }, [currentUser, conn, handleConnect, handleDisconnect, handleConnectError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   const isAnonymous = currentUser?.isAnonymous === true;
 

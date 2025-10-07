@@ -16,7 +16,6 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<User>;
   signInWithGithub: () => Promise<User>;
   signInWithMicrosoft: () => Promise<User>;
-  signInWithApple: () => Promise<User>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -124,33 +123,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signInWithApple = async (): Promise<User> => {
-    setError(null);
-    try {
-      const provider = new OAuthProvider("apple.com");
-      const result = await signInWithPopup(auth, provider);
-      return result.user;
-    } catch (error) {
-      if (error instanceof Error && "code" in error) {
-        const authError = error as AuthError;
-        if (
-          authError.code === "auth/account-exists-with-different-credential"
-        ) {
-          setError(
-            "An account already exists with this email address. Please sign in with the provider you originally used."
-          );
-          throw new Error(
-            "An account already exists with this email address. Please sign in with the provider you originally used."
-          );
-        }
-      }
-      setError(
-        error instanceof Error ? error.message : "Failed to sign in with Apple"
-      );
-      throw error;
-    }
-  };
-
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
@@ -176,7 +148,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signInWithGoogle,
     signInWithGithub,
     signInWithMicrosoft,
-    signInWithApple,
     signOut,
     clearError,
   };
