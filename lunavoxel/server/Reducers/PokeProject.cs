@@ -5,6 +5,8 @@ public static partial class Module
     [Reducer]
     public static void PokeProject(ReducerContext ctx, string projectId)
     {
+        ctx.Db.test_user_projects.Insert(new TestUserProject { Id = IdGenerator.Generate("smthn"), User = ctx.Sender });
+
         var project = ctx.Db.projects.Id.Find(projectId);
         if (project == null)
         {

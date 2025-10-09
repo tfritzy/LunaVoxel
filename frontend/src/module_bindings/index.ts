@@ -88,6 +88,8 @@ import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
 export { ProjectBlocksTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
 export { ProjectsTableHandle };
+import { TestUserProjectsTableHandle } from "./test_user_projects_table.ts";
+export { TestUserProjectsTableHandle };
 import { UserTableHandle } from "./user_table.ts";
 export { UserTableHandle };
 import { UserProjectsTableHandle } from "./user_projects_table.ts";
@@ -106,6 +108,8 @@ import { Project } from "./project_type.ts";
 export { Project };
 import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
+import { TestUserProject } from "./test_user_project_type.ts";
+export { TestUserProject };
 import { User } from "./user_type.ts";
 export { User };
 import { UserProject } from "./user_project_type.ts";
@@ -135,6 +139,11 @@ const REMOTE_MODULE = {
     projects: {
       tableName: "projects",
       rowType: Project.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
+    },
+    test_user_projects: {
+      tableName: "test_user_projects",
+      rowType: TestUserProject.getTypeScriptAlgebraicType(),
       primaryKey: "id",
     },
     user: {
@@ -775,6 +784,10 @@ export class RemoteTables {
 
   get projects(): ProjectsTableHandle {
     return new ProjectsTableHandle(this.connection.clientCache.getOrCreateTable<Project>(REMOTE_MODULE.tables.projects));
+  }
+
+  get testUserProjects(): TestUserProjectsTableHandle {
+    return new TestUserProjectsTableHandle(this.connection.clientCache.getOrCreateTable<TestUserProject>(REMOTE_MODULE.tables.test_user_projects));
   }
 
   get user(): UserTableHandle {

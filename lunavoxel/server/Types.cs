@@ -4,15 +4,25 @@ using SpacetimeDB.Internal.TableHandles;
 public static partial class Module
 {
 #pragma warning disable STDB_UNSTABLE
+    [SpacetimeDB.ClientVisibilityFilter]
+    public static readonly Filter TEST_USER_PROJECTS_FILTER = new Filter.Sql(
+        "SELECT * FROM test_user_projects WHERE test_user_projects.User = :sender"
+    );
+    
     // [SpacetimeDB.ClientVisibilityFilter]
     // public static readonly Filter USER_PROJECTS_FILTER = new Filter.Sql(
     //     "SELECT * FROM user_projects WHERE user_projects.User = :sender"
     // );
 
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-       "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id where user_projects.User = :sender"
-   );
+//     [SpacetimeDB.ClientVisibilityFilter]
+    //     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
+    //        "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id where user_projects.User = :sender"
+    //    );
+
+    // [SpacetimeDB.ClientVisibilityFilter]
+    // public static readonly Filter FAKE_USER_PROJECT_FILTER = new Filter.Sql(
+    //    "SELECT * FROM fake_user_projects where Identity = :sender"
+    // );
 
     // [SpacetimeDB.ClientVisibilityFilter]
     // public static readonly Filter PLAYER_CURSOR_FILTER = new Filter.Sql(
@@ -51,12 +61,25 @@ public static partial class Module
         }
     }
 
+
+    [Table(Name = "test_user_projects", Public = true)]
+    public partial class TestUserProject
+    {
+        [PrimaryKey]
+        public string Id;
+
+        [SpacetimeDB.Index.BTree]
+        public string ProjectId;
+
+        [SpacetimeDB.Index.BTree]
+        public Identity User;
+    }
+
     [Table(Name = "user_projects", Public = true)]
     [SpacetimeDB.Index.BTree(Name = "idx_user_project", Columns = new[] { nameof(ProjectId), nameof(User) })]
     [SpacetimeDB.Index.BTree(Name = "idx_project_id_email", Columns = new[] { nameof(ProjectId), nameof(Email) })]
     [SpacetimeDB.Index.BTree(Name = "idx_project_id_only", Columns = new[] { nameof(ProjectId) })]
     [SpacetimeDB.Index.BTree(Name = "idx_user_email", Columns = new[] { nameof(User), nameof(Email) })]
-    [SpacetimeDB.Index.BTree(Name = "idx_user_only", Columns = new[] { nameof(User) })]
     public partial class UserProject
     {
         [PrimaryKey]

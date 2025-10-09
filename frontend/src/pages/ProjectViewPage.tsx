@@ -84,7 +84,29 @@ export const ProjectViewPage = () => {
         `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
         `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
         `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM user_projects WHERE ProjectId='${projectId}'`,
+        `SELECT * FROM user_projects`,
+      ]);
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [connection, projectId]);
+
+  useEffect(() => {
+    setLoading(true);
+    if (!connection) return;
+
+    connection.reducers.pokeProject(projectId);
+    const subscription = connection
+      .subscriptionBuilder()
+      .onApplied(() => {
+        setLoading(false);
+      })
+      .onError((error) => {
+        console.error("subscription error:", error);
+      })
+      .subscribe([
+        `SELECT * FROM test_user_projects WHERE ProjectId='${projectId}'`,
       ]);
 
     return () => {
