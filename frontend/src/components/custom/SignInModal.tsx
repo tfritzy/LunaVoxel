@@ -18,7 +18,6 @@ export const SignInModal = ({
     signInWithGoogle,
     signInWithGithub,
     signInWithMicrosoft,
-    signInWithApple,
     error,
     clearError,
   } = useAuth();
@@ -39,9 +38,6 @@ export const SignInModal = ({
           case "microsoft":
             user = await signInWithMicrosoft();
             break;
-          case "apple":
-            user = await signInWithApple();
-            break;
         }
 
         if (user && connection) {
@@ -55,7 +51,6 @@ export const SignInModal = ({
       signInWithGoogle,
       signInWithGithub,
       signInWithMicrosoft,
-      signInWithApple,
       connection,
       navigate,
     ]

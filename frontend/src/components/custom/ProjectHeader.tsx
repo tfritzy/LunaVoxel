@@ -28,24 +28,20 @@ export function ProjectHeader({
   onRedo,
   accessLevel,
 }: ProjectHeaderProps) {
-  const { currentUser, signInWithGoogle, signOut } = useAuth();
+  const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { connection } = useDatabase();
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
 
-  const handleSignIn = useCallback(async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
-    }
-  }, [signInWithGoogle]);
+  const handleSignIn = useCallback(() => {
+    navigate("/signin", { replace: true });
+  }, [navigate]);
 
   const handleSignOut = useCallback(async () => {
     try {
       await signOut();
-      navigate("/projects");
+      window.location.assign("")
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -89,6 +85,11 @@ export function ProjectHeader({
               </div>
             </div>
           </div>
+          <div>
+            <div>{currentUser?.uid}</div>
+            <div>{connection?.identity?.toHexString()}</div>
+          </div>
+        
           <div className="flex items-center space-x-4">
             {projectId && <PresenceIndicator />}
             {projectId && <ShareButton accessLevel={accessLevel} />}
@@ -104,6 +105,7 @@ export function ProjectHeader({
           />
         </div>
       </nav>
+
     </>
   );
 }

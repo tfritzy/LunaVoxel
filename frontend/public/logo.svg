@@ -7,103 +7,92 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Yellow gradients -->
-    <linearGradient
-       id="leftFaceYellow"
-       x1="-105.83005"
-       y1="-52.915028"
-       x2="0"
-       y2="52.915028"
-       gradientTransform="scale(0.66143783,1.5118579)"
-       gradientUnits="userSpaceOnUse">
-      <stop
-         offset="0%"
-         style="stop-color:#FFD700;stop-opacity:1" />
-      <stop
-         offset="100%"
-         style="stop-color:#CC9900;stop-opacity:1" />
+    <linearGradient id="topYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFEE44;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E6B800;stop-opacity:1" />
     </linearGradient>
-    <linearGradient
-       id="topFaceYellow"
-       x1="-52.915028"
-       y1="-105.83005"
-       x2="52.915028"
-       y2="0"
-       gradientTransform="scale(1.3228757,0.75592895)"
-       gradientUnits="userSpaceOnUse">
-      <stop
-         offset="0%"
-         style="stop-color:#FFEE44;stop-opacity:1" />
-      <stop
-         offset="100%"
-         style="stop-color:#E6B800;stop-opacity:1" />
+    
+    <linearGradient id="leftYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CC9900;stop-opacity:1" />
     </linearGradient>
-    <!-- Purple gradients -->
-    <linearGradient
-       id="topFacePurple"
-       x1="-52.915026"
-       y1="-105.83005"
-       x2="52.915026"
-       y2="0"
-       gradientTransform="scale(1.3228757,0.75592895)"
-       gradientUnits="userSpaceOnUse">
-      <stop
-         offset="0%"
-         style="stop-color:#A855F7;stop-opacity:1" />
-      <stop
-         offset="100%"
-         style="stop-color:#8B35D1;stop-opacity:1" />
+    
+    <linearGradient id="topPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B35D1;stop-opacity:1" />
     </linearGradient>
-    <linearGradient
-       id="leftFacePurple"
-       x1="-105.83005"
-       y1="-52.915026"
-       x2="0"
-       y2="52.915026"
-       gradientTransform="scale(0.66143783,1.5118579)"
-       gradientUnits="userSpaceOnUse">
-      <stop
-         offset="0%"
-         style="stop-color:#8B35D1;stop-opacity:1" />
-      <stop
-         offset="100%"
-         style="stop-color:#6B21A8;stop-opacity:1" />
+    
+    <linearGradient id="rightPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B35D1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6B21A8;stop-opacity:1" />
     </linearGradient>
-    <!-- Applied gradients with transforms -->
-    <linearGradient
-       xlink:href="#leftFaceYellow"
-       id="yellowFace"
-       gradientTransform="matrix(-0.70485816,0,0,-1.6111044,1.7154903,-1.3160022)" />
-    <linearGradient
-       xlink:href="#topFaceYellow"
-       id="yellowTop"
-       gradientTransform="matrix(-1.4097164,0,0,-0.80555219,1.7154903,-86.260538)" />
-    <linearGradient
-       xlink:href="#leftFacePurple"
-       id="purpleFace"
-       gradientTransform="matrix(-0.70485816,0,0,-1.6111044,1.7154903,-1.3160022)" />
-    <linearGradient
-       xlink:href="#topFacePurple"
-       id="purpleTop"
-       gradientTransform="matrix(-1.4097164,0,0,-0.80555219,1.7154903,-86.260538)" />
+    
+    <pattern id="squares-left" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="skewY(30)">
+      <rect x="10" y="10" width="12" height="12" fill="#000000" opacity="0.08" />
+      <rect x="40" y="25" width="8" height="8" fill="#000000" opacity="0.06"/>
+      <rect x="25" y="45" width="14" height="14" fill="#000000" opacity="0.09" />
+      <rect x="5" y="40" width="6" height="6" fill="#000000" opacity="0.06"/>
+      <rect x="48" y="48" width="9" height="9" fill="#000000" opacity="0.07" />
+      <rect x="30" y="5" width="7" height="7" fill="#000000" opacity="0.05" />
+    </pattern>
+    
+    <pattern id="squares-right" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="skewY(-30)">
+      <rect x="10" y="10" width="12" height="12" fill="#000000" opacity="0.08" />
+      <rect x="40" y="25" width="8" height="8" fill="#000000" opacity="0.06"/>
+      <rect x="25" y="45" width="14" height="14" fill="#000000" opacity="0.09" />
+      <rect x="5" y="40" width="6" height="6" fill="#000000" opacity="0.06"/>
+      <rect x="48" y="48" width="9" height="9" fill="#000000" opacity="0.07" />
+      <rect x="30" y="5" width="7" height="7" fill="#000000" opacity="0.05" />
+    </pattern>
+    
+    <pattern id="squares-top" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(90) scale(1, 0.5)">
+      <rect x="10" y="10" width="12" height="12" fill="#000000" opacity="0.08" />
+      <rect x="40" y="25" width="8" height="8" fill="#000000" opacity="0.06"/>
+      <rect x="25" y="45" width="14" height="14" fill="#000000" opacity="0.09" />
+      <rect x="5" y="40" width="6" height="6" fill="#000000" opacity="0.06"/>
+      <rect x="48" y="48" width="9" height="9" fill="#000000" opacity="0.07" />
+      <rect x="30" y="5" width="7" height="7" fill="#000000" opacity="0.05" />
+    </pattern>
   </defs>
-  <!-- Isometric cube positioned in center -->
-  <g transform="matrix(1.1440957,0,0,1.1440957,100,100)">
-    <!-- Left side - Yellow -->
-    <path
-       d="M 1.7154899,83.935638 -72.879683,41.309818 v -85.251629 l 74.5951729,-42.62582 z"
-       style="fill:url(#yellowFace);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
-    <!-- Right side - Purple -->
-    <path
-       d="M 1.7154899,83.935638 76.310676,41.309818 V -43.941811 L 1.7154899,-86.567631 Z"
-       style="fill:url(#purpleFace);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
-    <!-- Top - Yellow triangle -->
-    <path
-       d="M 1.7154899,-1.0089013 1.7154899,-86.260536 -72.879683,-43.634722 Z"
-       style="fill:url(#yellowTop);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
-    <!-- Top - Purple triangle -->
-    <path
-       d="M 1.7154899,-1.0089013 76.310676,-43.634722 1.7154899,-86.260536 Z"
-       style="fill:url(#purpleTop);stroke:#FFFFFF;stroke-width:1.5;stroke-linejoin:round" />
+  
+  <g transform="translate(100, 100)">
+    <path d="M -80,-40 L -80,60 L 0,100 L 0,0 Z"
+          style="fill:url(#leftYellow)" />
+    <path d="M -80,-40 L -80,60 L 0,100 L 0,0 Z"
+          style="fill:url(#squares-left);opacity:0.25" />
+    
+    <path d="M 0,0 L 0,100 L 80,60 L 80,-40 Z"
+          style="fill:url(#rightPurple)" />
+    <path d="M 0,0 L 0,100 L 80,60 L 80,-40 Z"
+          style="fill:url(#squares-right);opacity:0.22" />
+    
+    <path d="M -80,-40 L 0,-80 L 0,0 Z"
+          style="fill:url(#topYellow)" />
+    <path d="M -80,-40 L 0,-80 L 0,0 Z"
+          style="fill:url(#squares-top);opacity:0.15" />
+    
+    <path d="M 0,-80 L 80,-40 L 0,0 Z"
+          style="fill:url(#topPurple)" />
+    <path d="M 0,-80 L 80,-40 L 0,0 Z"
+          style="fill:url(#squares-top);opacity:0.15" />
+    
+    <g transform="skewY(30)">
+      <rect x="-32" y="15" width="14" height="14" fill="#000000" opacity="0.06"/>
+      <rect x="-38" y="-12" width="8" height="8" fill="#000000" opacity="0.06"/>
+    </g>
+    
+    <g transform="skewY(-30)">
+      <rect x="28" y="14" width="11" height="11" fill="#000000" opacity="0.05"/>
+      <rect x="33" y="22" width="15" height="15" fill="#000000" opacity="0.05"/>
+    </g>
+    
+    <g transform="matrix(1, 0, -0.866, 0.5, 0, 0)">
+      <rect x="-5" y="-65" width="16" height="16" fill="#000000" opacity="0.07"/>
+    </g>
   </g>
+  
+  <rect x="25" y="25" width="2" height="2" fill="#FFFFFF" opacity="0.5" transform="rotate(45 26 26)"/>
+  <rect x="175" y="35" width="1.5" height="1.5" fill="#FFFFFF" opacity="0.4" transform="rotate(45 175.75 35.75)"/>
+  <rect x="185" y="170" width="2" height="2" fill="#FFFFFF" opacity="0.6" transform="rotate(45 186 171)"/>
+  <rect x="15" y="175" width="1.5" height="1.5" fill="#FFFFFF" opacity="0.4" transform="rotate(45 15.75 175.75)"/>
 </svg>
