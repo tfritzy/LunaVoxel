@@ -4,30 +4,30 @@ using SpacetimeDB.Internal.TableHandles;
 public static partial class Module
 {
 #pragma warning disable STDB_UNSTABLE
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter USER_PROJECTS_FILTER = new Filter.Sql(
-        "SELECT * FROM user_projects WHERE user_projects.User = :sender"
-    );
+//     [SpacetimeDB.ClientVisibilityFilter]
+//     public static readonly Filter USER_PROJECTS_FILTER = new Filter.Sql(
+//         "SELECT * FROM user_projects WHERE user_projects.User = :sender"
+//     );
 
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-       "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id"
-   );
+//     [SpacetimeDB.ClientVisibilityFilter]
+//     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
+//        "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id"
+//    );
 
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter PLAYER_CURSOR_FILTER = new Filter.Sql(
-        "SELECT player_cursor.* FROM player_cursor JOIN user_projects ON user_projects.ProjectId = player_cursor.ProjectId"
-    );
+//     [SpacetimeDB.ClientVisibilityFilter]
+//     public static readonly Filter PLAYER_CURSOR_FILTER = new Filter.Sql(
+//         "SELECT player_cursor.* FROM player_cursor JOIN user_projects ON user_projects.ProjectId = player_cursor.ProjectId"
+//     );
 
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter LAYER_FILTER = new Filter.Sql(
-        "SELECT layer.* FROM layer JOIN user_projects ON user_projects.ProjectId = layer.ProjectId"
-    );
+//     [SpacetimeDB.ClientVisibilityFilter]
+//     public static readonly Filter LAYER_FILTER = new Filter.Sql(
+//         "SELECT layer.* FROM layer JOIN user_projects ON user_projects.ProjectId = layer.ProjectId"
+//     );
 
-    [SpacetimeDB.ClientVisibilityFilter]
-    public static readonly Filter BLOCK_FILTER = new Filter.Sql(
-        "SELECT project_blocks.* FROM project_blocks JOIN user_projects ON user_projects.ProjectId = project_blocks.ProjectId"
-    );
+//     [SpacetimeDB.ClientVisibilityFilter]
+//     public static readonly Filter BLOCK_FILTER = new Filter.Sql(
+//         "SELECT project_blocks.* FROM project_blocks JOIN user_projects ON user_projects.ProjectId = project_blocks.ProjectId"
+//     );
 
     [Table(Name = "projects", Public = true)]
     public partial class Project

@@ -88,6 +88,7 @@ export function ProjectHeader({
           <div>
             <div>{currentUser?.uid}</div>
             <div>{connection?.identity?.toHexString()}</div>
+            <div>anon? {currentUser?.isAnonymous ? "ya" :"no"}</div>
           </div>
         
           <div className="flex items-center space-x-4">

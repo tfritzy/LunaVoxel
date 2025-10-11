@@ -35,6 +35,7 @@ interface SyncUserResult {
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
   const [userSynced, setUserSynced] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const { currentUser } = useAuth();
 
   const syncUserWithCloudFunction = useCallback(
@@ -65,9 +66,11 @@ function AppContent() {
   const handleConnect = useCallback(
     async (connection: DbConnection, identity: Identity, token: string) => {
       setConn(connection);
-      localStorage.setItem("auth_token", token);
+
+      setIsConnecting(false);
 
       if (currentUser && !userSynced && !currentUser.isAnonymous) {
+        localStorage.setItem("auth_token", token);
         const idToken = await currentUser.getIdToken();
         await syncUserWithCloudFunction(idToken, identity, token);
       }
@@ -79,11 +82,13 @@ function AppContent() {
     console.log("Disconnected from SpacetimeDB");
     setConn(null);
     setUserSynced(false);
+    setIsConnecting(false);
   }, []);
 
   const handleConnectError = useCallback((_ctx: ErrorContext, err: Error) => {
     console.log("Error connecting to SpacetimeDB:", err);
     setConn(null);
+    setIsConnecting(false);
   }, []);
 
   useEffect(() => {
@@ -93,24 +98,24 @@ function AppContent() {
 
     const connectToSpaceTime = async () => {
       try {
-        console.log(
-          "Signing in with ",
-          currentUser.email,
-          currentUser.getIdToken()
-        );
+        setIsConnecting(true);
+        setConn(null);
+        setUserSynced(false);
+
         const idToken = await currentUser.getIdToken();
         const config = getSpacetimeConfig();
 
         DbConnection.builder()
           .withUri(config.uri)
           .withModuleName("lunavoxel-db")
-          .withToken(idToken || localStorage.getItem("auth_token") || "")
+          .withToken(idToken || "")
           .onConnect(handleConnect)
           .onDisconnect(handleDisconnect)
           .onConnectError(handleConnectError)
           .build();
       } catch (err) {
         console.error("Error initializing connection:", err);
+        setIsConnecting(false);
       }
     };
 
@@ -131,7 +136,7 @@ function AppContent() {
     );
   }
 
-  if (!conn) return null;
+  if (!conn || isConnecting) return null;
 
   return (
     <DatabaseProvider connection={conn}>

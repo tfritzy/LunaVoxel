@@ -3,65 +3,66 @@
 
 /* eslint-disable */
 /* tslint:disable */
-// @ts-nocheck
 import {
-  AlgebraicType,
-  AlgebraicValue,
-  BinaryReader,
-  BinaryWriter,
-  CallReducerFlags,
-  ConnectionId,
-  DbConnectionBuilder,
-  DbConnectionImpl,
-  DbContext,
-  ErrorContextInterface,
-  Event,
-  EventContextInterface,
-  Identity,
-  ProductType,
-  ProductTypeElement,
-  ReducerEventContextInterface,
-  SubscriptionBuilderImpl,
-  SubscriptionEventContextInterface,
-  SumType,
-  SumTypeVariant,
-  TableCache,
-  TimeDuration,
-  Timestamp,
-  deepEqual,
-} from "@clockworklabs/spacetimedb-sdk";
+  AlgebraicType as __AlgebraicTypeValue,
+  BinaryReader as __BinaryReader,
+  BinaryWriter as __BinaryWriter,
+  ClientCache as __ClientCache,
+  ConnectionId as __ConnectionId,
+  DbConnectionBuilder as __DbConnectionBuilder,
+  DbConnectionImpl as __DbConnectionImpl,
+  Identity as __Identity,
+  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
+  TableCache as __TableCache,
+  TimeDuration as __TimeDuration,
+  Timestamp as __Timestamp,
+  deepEqual as __deepEqual,
+  type AlgebraicType as __AlgebraicTypeType,
+  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
+  type CallReducerFlags as __CallReducerFlags,
+  type ErrorContextInterface as __ErrorContextInterface,
+  type Event as __Event,
+  type EventContextInterface as __EventContextInterface,
+  type ReducerEventContextInterface as __ReducerEventContextInterface,
+  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+} from "spacetimedb";
 
-import { AccessType as __AccessType } from "./access_type_type";
+import { AccessType } from "./access_type_type";
+// Mark import as potentially unused
+declare type __keep_AccessType = AccessType;
 
 export type InviteToProject = {
   projectId: string,
   email: string,
-  accessType: __AccessType,
+  accessType: AccessType,
 };
-
 /**
- * A namespace for generated helper functions.
+ * An object for generated helper functions.
  */
-export namespace InviteToProject {
+export const InviteToProject = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  export function getTypeScriptAlgebraicType(): AlgebraicType {
-    return AlgebraicType.createProductType([
-      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("email", AlgebraicType.createStringType()),
-      new ProductTypeElement("accessType", __AccessType.getTypeScriptAlgebraicType()),
-    ]);
-  }
+  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
+    return __AlgebraicTypeValue.Product({
+      elements: [
+        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
+        { name: "email", algebraicType: __AlgebraicTypeValue.String},
+        { name: "accessType", algebraicType: AccessType.getTypeScriptAlgebraicType()},
+      ]
+    });
+  },
 
-  export function serialize(writer: BinaryWriter, value: InviteToProject): void {
-    InviteToProject.getTypeScriptAlgebraicType().serialize(writer, value);
-  }
+  serialize(writer: __BinaryWriter, value: InviteToProject): void {
+    __AlgebraicTypeValue.serializeValue(writer, InviteToProject.getTypeScriptAlgebraicType(), value);
+  },
 
-  export function deserialize(reader: BinaryReader): InviteToProject {
-    return InviteToProject.getTypeScriptAlgebraicType().deserialize(reader);
-  }
+  deserialize(reader: __BinaryReader): InviteToProject {
+    return __AlgebraicTypeValue.deserializeValue(reader, InviteToProject.getTypeScriptAlgebraicType());
+  },
 
 }
+
+export default InviteToProject;
 

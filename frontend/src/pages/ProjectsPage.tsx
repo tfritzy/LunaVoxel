@@ -5,7 +5,6 @@ import { useProjects } from "@/contexts/ProjectsContext";
 export function ProjectsPage() {
   const navigate = useNavigate();
   const { userProjects } = useProjects();
-  console.log("projects page");
 
   // Navigate to most recent project if available
   useEffect(() => {

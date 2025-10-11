@@ -3,75 +3,71 @@
 
 /* eslint-disable */
 /* tslint:disable */
-// @ts-nocheck
 import {
-  AlgebraicType,
-  AlgebraicValue,
-  BinaryReader,
-  BinaryWriter,
-  CallReducerFlags,
-  ConnectionId,
-  DbConnectionBuilder,
-  DbConnectionImpl,
-  DbContext,
-  ErrorContextInterface,
-  Event,
-  EventContextInterface,
-  Identity,
-  ProductType,
-  ProductTypeElement,
-  ReducerEventContextInterface,
-  SubscriptionBuilderImpl,
-  SubscriptionEventContextInterface,
-  SumType,
-  SumTypeVariant,
-  TableCache,
-  TimeDuration,
-  Timestamp,
-  deepEqual,
-} from "@clockworklabs/spacetimedb-sdk";
-// A namespace for generated variants and helper functions.
-export namespace AccessType {
-  // These are the generated variant types for each variant of the tagged union.
-  // One type is generated per variant and will be used in the `value` field of
-  // the tagged union.
-  export type None = { tag: "None" };
-  export type Inherited = { tag: "Inherited" };
-  export type Read = { tag: "Read" };
-  export type ReadWrite = { tag: "ReadWrite" };
+  AlgebraicType as __AlgebraicTypeValue,
+  BinaryReader as __BinaryReader,
+  BinaryWriter as __BinaryWriter,
+  ClientCache as __ClientCache,
+  ConnectionId as __ConnectionId,
+  DbConnectionBuilder as __DbConnectionBuilder,
+  DbConnectionImpl as __DbConnectionImpl,
+  Identity as __Identity,
+  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
+  TableCache as __TableCache,
+  TimeDuration as __TimeDuration,
+  Timestamp as __Timestamp,
+  deepEqual as __deepEqual,
+  type AlgebraicType as __AlgebraicTypeType,
+  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
+  type CallReducerFlags as __CallReducerFlags,
+  type ErrorContextInterface as __ErrorContextInterface,
+  type Event as __Event,
+  type EventContextInterface as __EventContextInterface,
+  type ReducerEventContextInterface as __ReducerEventContextInterface,
+  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+} from "spacetimedb";
+import * as AccessTypeVariants from './access_type_variants'
 
+// The tagged union or sum type for the algebraic type `AccessType`.
+export type AccessType = AccessTypeVariants.None |
+  AccessTypeVariants.Inherited |
+  AccessTypeVariants.Read |
+  AccessTypeVariants.ReadWrite;
+
+// A value with helper functions to construct the type.
+export const AccessType = {
   // Helper functions for constructing each variant of the tagged union.
   // ```
   // const foo = Foo.A(42);
   // assert!(foo.tag === "A");
   // assert!(foo.value === 42);
   // ```
-  export const None = { tag: "None" };
-  export const Inherited = { tag: "Inherited" };
-  export const Read = { tag: "Read" };
-  export const ReadWrite = { tag: "ReadWrite" };
+  None: { tag: "None" } as const,
+  Inherited: { tag: "Inherited" } as const,
+  Read: { tag: "Read" } as const,
+  ReadWrite: { tag: "ReadWrite" } as const,
 
-  export function getTypeScriptAlgebraicType(): AlgebraicType {
-    return AlgebraicType.createSumType([
-      new SumTypeVariant("None", AlgebraicType.createProductType([])),
-      new SumTypeVariant("Inherited", AlgebraicType.createProductType([])),
-      new SumTypeVariant("Read", AlgebraicType.createProductType([])),
-      new SumTypeVariant("ReadWrite", AlgebraicType.createProductType([])),
-    ]);
-  }
+  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
+    return __AlgebraicTypeValue.Sum({
+      variants: [
+        { name: "None", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+        { name: "Inherited", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+        { name: "Read", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+        { name: "ReadWrite", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      ]
+    });
+  },
 
-  export function serialize(writer: BinaryWriter, value: AccessType): void {
-      AccessType.getTypeScriptAlgebraicType().serialize(writer, value);
-  }
+  serialize(writer: __BinaryWriter, value: AccessType): void {
+      __AlgebraicTypeValue.serializeValue(writer, AccessType.getTypeScriptAlgebraicType(), value);
+  },
 
-  export function deserialize(reader: BinaryReader): AccessType {
-      return AccessType.getTypeScriptAlgebraicType().deserialize(reader);
-  }
+  deserialize(reader: __BinaryReader): AccessType {
+      return __AlgebraicTypeValue.deserializeValue(reader, AccessType.getTypeScriptAlgebraicType());
+  },
 
 }
 
-// The tagged union or sum type for the algebraic type `AccessType`.
-export type AccessType = AccessType.None | AccessType.Inherited | AccessType.Read | AccessType.ReadWrite;
-
 export default AccessType;
+
 

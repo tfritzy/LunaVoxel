@@ -4,7 +4,6 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInAnonymously,
-  connectAuthEmulator,
 } from "firebase/auth";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { connectStorageEmulator, getStorage } from "firebase/storage";
@@ -26,11 +25,10 @@ const googleProvider = new GoogleAuthProvider();
 
 if (import.meta.env.DEV) {
   try {
-    connectAuthEmulator(auth, "http://localhost:9099");
     connectFunctionsEmulator(functions, "localhost", 5001);
     connectStorageEmulator(storage, "localhost", 9199);
   } catch {
-    console.log("Emulators already connected or not available");
+    console.log("Functions emulator already connected or not available");
   }
 }
 
