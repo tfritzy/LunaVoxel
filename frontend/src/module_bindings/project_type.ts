@@ -3,78 +3,74 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
-import { AccessType } from "./access_type_type";
-// Mark import as potentially unused
-declare type __keep_AccessType = AccessType;
-import { Vector3 } from "./vector_3_type";
-// Mark import as potentially unused
-declare type __keep_Vector3 = Vector3;
-
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
+import { AccessType as __AccessType } from "./access_type_type";
+import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type Project = {
   id: string,
   name: string,
-  dimensions: Vector3,
-  owner: __Identity,
-  updated: __Timestamp,
-  created: __Timestamp,
-  publicAccess: AccessType,
+  dimensions: __Vector3,
+  owner: Identity,
+  updated: Timestamp,
+  created: Timestamp,
+  publicAccess: __AccessType,
 };
+
 /**
- * An object for generated helper functions.
+ * A namespace for generated helper functions.
  */
-export const Project = {
+export namespace Project {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "id", algebraicType: __AlgebraicTypeValue.String},
-        { name: "name", algebraicType: __AlgebraicTypeValue.String},
-        { name: "dimensions", algebraicType: Vector3.getTypeScriptAlgebraicType()},
-        { name: "owner", algebraicType: __AlgebraicTypeValue.createIdentityType()},
-        { name: "updated", algebraicType: __AlgebraicTypeValue.createTimestampType()},
-        { name: "created", algebraicType: __AlgebraicTypeValue.createTimestampType()},
-        { name: "publicAccess", algebraicType: AccessType.getTypeScriptAlgebraicType()},
-      ]
-    });
-  },
+  export function getTypeScriptAlgebraicType(): AlgebraicType {
+    return AlgebraicType.createProductType([
+      new ProductTypeElement("id", AlgebraicType.createStringType()),
+      new ProductTypeElement("name", AlgebraicType.createStringType()),
+      new ProductTypeElement("dimensions", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
+      new ProductTypeElement("updated", AlgebraicType.createTimestampType()),
+      new ProductTypeElement("created", AlgebraicType.createTimestampType()),
+      new ProductTypeElement("publicAccess", __AccessType.getTypeScriptAlgebraicType()),
+    ]);
+  }
 
-  serialize(writer: __BinaryWriter, value: Project): void {
-    __AlgebraicTypeValue.serializeValue(writer, Project.getTypeScriptAlgebraicType(), value);
-  },
+  export function serialize(writer: BinaryWriter, value: Project): void {
+    Project.getTypeScriptAlgebraicType().serialize(writer, value);
+  }
 
-  deserialize(reader: __BinaryReader): Project {
-    return __AlgebraicTypeValue.deserializeValue(reader, Project.getTypeScriptAlgebraicType());
-  },
+  export function deserialize(reader: BinaryReader): Project {
+    return Project.getTypeScriptAlgebraicType().deserialize(reader);
+  }
 
 }
-
-export default Project;
 
 

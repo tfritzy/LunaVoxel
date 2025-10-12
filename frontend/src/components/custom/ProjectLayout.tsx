@@ -1,10 +1,11 @@
 import { ProjectHeader } from "./ProjectHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
-import { AccessType, BlockModificationMode } from "@/module_bindings";
+import { AccessType } from "@/module_bindings";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
+import { FrontendTool } from "@/lib/toolTypes";
 
 interface AtlasData {
   blockAtlasMappings: number[][];
@@ -16,8 +17,8 @@ interface ProjectLayoutProps {
   projectId: string;
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
-  currentTool: BlockModificationMode;
-  onToolChange: (tool: BlockModificationMode) => void;
+  currentTool: FrontendTool;
+  onToolChange: (tool: FrontendTool) => void;
   onExport: (format: ExportType) => void;
   onSelectLayer?: (layerIndex: number) => void;
   onUndo: () => void;

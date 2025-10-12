@@ -3,71 +3,69 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
-import { AccessType } from "./access_type_type";
-// Mark import as potentially unused
-declare type __keep_AccessType = AccessType;
-
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
+import { AccessType as __AccessType } from "./access_type_type";
 
 export type UserProject = {
   id: string,
   projectId: string,
-  accessType: AccessType,
-  user: __Identity,
+  accessType: __AccessType,
+  user: Identity,
   email: string | undefined,
 };
+
 /**
- * An object for generated helper functions.
+ * A namespace for generated helper functions.
  */
-export const UserProject = {
+export namespace UserProject {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "id", algebraicType: __AlgebraicTypeValue.String},
-        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "accessType", algebraicType: AccessType.getTypeScriptAlgebraicType()},
-        { name: "user", algebraicType: __AlgebraicTypeValue.createIdentityType()},
-        { name: "email", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String)},
-      ]
-    });
-  },
+  export function getTypeScriptAlgebraicType(): AlgebraicType {
+    return AlgebraicType.createProductType([
+      new ProductTypeElement("id", AlgebraicType.createStringType()),
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("accessType", __AccessType.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("user", AlgebraicType.createIdentityType()),
+      new ProductTypeElement("email", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+    ]);
+  }
 
-  serialize(writer: __BinaryWriter, value: UserProject): void {
-    __AlgebraicTypeValue.serializeValue(writer, UserProject.getTypeScriptAlgebraicType(), value);
-  },
+  export function serialize(writer: BinaryWriter, value: UserProject): void {
+    UserProject.getTypeScriptAlgebraicType().serialize(writer, value);
+  }
 
-  deserialize(reader: __BinaryReader): UserProject {
-    return __AlgebraicTypeValue.deserializeValue(reader, UserProject.getTypeScriptAlgebraicType());
-  },
+  export function deserialize(reader: BinaryReader): UserProject {
+    return UserProject.getTypeScriptAlgebraicType().deserialize(reader);
+  }
 
 }
-
-export default UserProject;
 
 

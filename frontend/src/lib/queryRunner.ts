@@ -1,4 +1,4 @@
-import { DbConnection, EventContext } from "@/module_bindings";
+import { EventContext } from "@/module_bindings";
 import { TableCache } from "@clockworklabs/spacetimedb-sdk";
 
 export type TableHandle<T> = {

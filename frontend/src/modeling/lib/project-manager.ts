@@ -13,6 +13,8 @@ import { ExportType, ModelExporter } from "../export/model-exporter";
 import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
+import { getBlockType } from "./voxel-data-utils";
+import { FrontendTool } from "@/lib/toolTypes";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
@@ -224,6 +226,33 @@ export class ProjectManager {
     this.updateChunkManager();
   };
 
+  public getBlockAtPosition(
+    position: THREE.Vector3,
+    layerIndex: number
+  ): number | null {
+    const layer = this.layers.find((l) => l.index === layerIndex);
+    if (!layer) return null;
+
+    const x = Math.floor(position.x);
+    const y = Math.floor(position.y);
+    const z = Math.floor(position.z);
+
+    if (
+      x < 0 ||
+      x >= layer.xDim ||
+      y < 0 ||
+      y >= layer.yDim ||
+      z < 0 ||
+      z >= layer.zDim
+    ) {
+      return null;
+    }
+
+    const index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
+    const blockValue = layer.voxels[index];
+    return getBlockType(blockValue);
+  }
+
   private updateChunkManager = () => {
     if (!this.atlasData) return;
     const start = performance.now();
@@ -239,7 +268,7 @@ export class ProjectManager {
     console.log(`ChunkManager update time: ${end - start} ms`);
   };
 
-  public setTool(tool: BlockModificationMode): void {
+  public setTool(tool: FrontendTool): void {
     this.builder.setTool(tool);
   }
 

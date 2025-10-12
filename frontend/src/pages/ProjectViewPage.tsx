@@ -2,7 +2,6 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { BlockModificationMode, DbConnection } from "@/module_bindings";
 import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
@@ -13,6 +12,7 @@ import { useAuth } from "@/firebase/AuthContext";
 import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
 import { useProjectAccess } from "@/lib/useProjectAccess";
+import { FrontendTool } from "@/lib/toolTypes";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -21,9 +21,7 @@ export const ProjectViewPage = () => {
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
-    tag: "Build",
-  });
+  const [currentTool, setCurrentTool] = useState<FrontendTool>("build");
   const project = useCurrentProject(connection, projectId);
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
@@ -167,7 +165,7 @@ export const ProjectViewPage = () => {
     }
   }, [atlasData]);
 
-  const handleToolChange = useCallback((tool: BlockModificationMode) => {
+  const handleToolChange = useCallback((tool: FrontendTool) => {
     setCurrentTool(tool);
   }, []);
 

@@ -3,36 +3,37 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
 import { PlayerCursor } from "./player_cursor_type";
-import { Vector3Float } from "./vector_3_float_type";
-// Mark import as potentially unused
-declare type __keep_Vector3Float = Vector3Float;
+import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
 
-import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
-declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
+import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
  * Table handle for the table `player_cursor`.
@@ -45,9 +46,9 @@ declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
  * like `ctx.db.playerCursor.on_insert(...)`.
  */
 export class PlayerCursorTableHandle {
-  tableCache: __TableCache<PlayerCursor>;
+  tableCache: TableCache<PlayerCursor>;
 
-  constructor(tableCache: __TableCache<PlayerCursor>) {
+  constructor(tableCache: TableCache<PlayerCursor>) {
     this.tableCache = tableCache;
   }
 
@@ -74,7 +75,7 @@ export class PlayerCursorTableHandle {
     // if such a row is present in the client cache.
     find: (col_val: string): PlayerCursor | undefined => {
       for (let row of this.tableCache.iter()) {
-        if (__deepEqual(row.id, col_val)) {
+        if (deepEqual(row.id, col_val)) {
           return row;
         }
       }

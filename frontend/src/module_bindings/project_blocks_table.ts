@@ -3,32 +3,35 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
 import { ProjectBlocks } from "./project_blocks_type";
-import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
-declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
+import { EventContext, Reducer, RemoteReducers, RemoteTables } from ".";
 
 /**
  * Table handle for the table `project_blocks`.
@@ -41,9 +44,9 @@ declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
  * like `ctx.db.projectBlocks.on_insert(...)`.
  */
 export class ProjectBlocksTableHandle {
-  tableCache: __TableCache<ProjectBlocks>;
+  tableCache: TableCache<ProjectBlocks>;
 
-  constructor(tableCache: __TableCache<ProjectBlocks>) {
+  constructor(tableCache: TableCache<ProjectBlocks>) {
     this.tableCache = tableCache;
   }
 
@@ -55,22 +58,22 @@ export class ProjectBlocksTableHandle {
     return this.tableCache.iter();
   }
   /**
-   * Access to the `projectId` unique index on the table `project_blocks`,
+   * Access to the `project_id` unique index on the table `project_blocks`,
    * which allows point queries on the field of the same name
    * via the [`ProjectBlocksProjectIdUnique.find`] method.
    *
    * Users are encouraged not to explicitly reference this type,
    * but to directly chain method calls,
-   * like `ctx.db.projectBlocks.projectId().find(...)`.
+   * like `ctx.db.projectBlocks.project_id().find(...)`.
    *
-   * Get a handle on the `projectId` unique index on the table `project_blocks`.
+   * Get a handle on the `project_id` unique index on the table `project_blocks`.
    */
-  projectId = {
-    // Find the subscribed row whose `projectId` column value is equal to `col_val`,
+  project_id = {
+    // Find the subscribed row whose `project_id` column value is equal to `col_val`,
     // if such a row is present in the client cache.
     find: (col_val: string): ProjectBlocks | undefined => {
       for (let row of this.tableCache.iter()) {
-        if (__deepEqual(row.projectId, col_val)) {
+        if (deepEqual(row.project_id, col_val)) {
           return row;
         }
       }

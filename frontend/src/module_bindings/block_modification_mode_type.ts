@@ -3,68 +3,72 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
-import * as BlockModificationModeVariants from './block_modification_mode_variants'
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
+// A namespace for generated variants and helper functions.
+export namespace BlockModificationMode {
+  // These are the generated variant types for each variant of the tagged union.
+  // One type is generated per variant and will be used in the `value` field of
+  // the tagged union.
+  export type Build = { tag: "Build" };
+  export type Erase = { tag: "Erase" };
+  export type Paint = { tag: "Paint" };
 
-// The tagged union or sum type for the algebraic type `BlockModificationMode`.
-export type BlockModificationMode = BlockModificationModeVariants.Build |
-  BlockModificationModeVariants.Erase |
-  BlockModificationModeVariants.Paint;
-
-// A value with helper functions to construct the type.
-export const BlockModificationMode = {
   // Helper functions for constructing each variant of the tagged union.
   // ```
   // const foo = Foo.A(42);
   // assert!(foo.tag === "A");
   // assert!(foo.value === 42);
   // ```
-  Build: { tag: "Build" } as const,
-  Erase: { tag: "Erase" } as const,
-  Paint: { tag: "Paint" } as const,
+  export const Build = { tag: "Build" };
+  export const Erase = { tag: "Erase" };
+  export const Paint = { tag: "Paint" };
 
-  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Sum({
-      variants: [
-        { name: "Build", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "Erase", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "Paint", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-      ]
-    });
-  },
+  export function getTypeScriptAlgebraicType(): AlgebraicType {
+    return AlgebraicType.createSumType([
+      new SumTypeVariant("Build", AlgebraicType.createProductType([])),
+      new SumTypeVariant("Erase", AlgebraicType.createProductType([])),
+      new SumTypeVariant("Paint", AlgebraicType.createProductType([])),
+    ]);
+  }
 
-  serialize(writer: __BinaryWriter, value: BlockModificationMode): void {
-      __AlgebraicTypeValue.serializeValue(writer, BlockModificationMode.getTypeScriptAlgebraicType(), value);
-  },
+  export function serialize(writer: BinaryWriter, value: BlockModificationMode): void {
+      BlockModificationMode.getTypeScriptAlgebraicType().serialize(writer, value);
+  }
 
-  deserialize(reader: __BinaryReader): BlockModificationMode {
-      return __AlgebraicTypeValue.deserializeValue(reader, BlockModificationMode.getTypeScriptAlgebraicType());
-  },
+  export function deserialize(reader: BinaryReader): BlockModificationMode {
+      return BlockModificationMode.getTypeScriptAlgebraicType().deserialize(reader);
+  }
 
 }
 
-export default BlockModificationMode;
+// The tagged union or sum type for the algebraic type `BlockModificationMode`.
+export type BlockModificationMode = BlockModificationMode.Build | BlockModificationMode.Erase | BlockModificationMode.Paint;
 
+export default BlockModificationMode;
 

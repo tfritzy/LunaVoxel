@@ -3,68 +3,67 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
 
-import { Vector3Float } from "./vector_3_float_type";
-// Mark import as potentially unused
-declare type __keep_Vector3Float = Vector3Float;
+import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
 
 export type UpdateCursorPos = {
   projectId: string,
-  identity: __Identity,
-  pos: Vector3Float | undefined,
-  normal: Vector3Float | undefined,
+  identity: Identity,
+  pos: __Vector3Float | undefined,
+  normal: __Vector3Float | undefined,
 };
+
 /**
- * An object for generated helper functions.
+ * A namespace for generated helper functions.
  */
-export const UpdateCursorPos = {
+export namespace UpdateCursorPos {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType()},
-        { name: "pos", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType())},
-        { name: "normal", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType())},
-      ]
-    });
-  },
+  export function getTypeScriptAlgebraicType(): AlgebraicType {
+    return AlgebraicType.createProductType([
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("identity", AlgebraicType.createIdentityType()),
+      new ProductTypeElement("pos", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("normal", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
+    ]);
+  }
 
-  serialize(writer: __BinaryWriter, value: UpdateCursorPos): void {
-    __AlgebraicTypeValue.serializeValue(writer, UpdateCursorPos.getTypeScriptAlgebraicType(), value);
-  },
+  export function serialize(writer: BinaryWriter, value: UpdateCursorPos): void {
+    UpdateCursorPos.getTypeScriptAlgebraicType().serialize(writer, value);
+  }
 
-  deserialize(reader: __BinaryReader): UpdateCursorPos {
-    return __AlgebraicTypeValue.deserializeValue(reader, UpdateCursorPos.getTypeScriptAlgebraicType());
-  },
+  export function deserialize(reader: BinaryReader): UpdateCursorPos {
+    return UpdateCursorPos.getTypeScriptAlgebraicType().deserialize(reader);
+  }
 
 }
-
-export default UpdateCursorPos;
 

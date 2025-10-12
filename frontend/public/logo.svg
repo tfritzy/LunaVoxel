@@ -18,13 +18,13 @@
     </linearGradient>
     
     <linearGradient id="topPurple" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8B35D1;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#7C3AED;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5B21B6;stop-opacity:1" />
     </linearGradient>
     
     <linearGradient id="rightPurple" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8B35D1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#6B21A8;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#5B21B6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4C1D95;stop-opacity:1" />
     </linearGradient>
     
     <pattern id="squares-left" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="skewY(30)">

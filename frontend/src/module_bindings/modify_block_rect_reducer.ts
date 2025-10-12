@@ -3,77 +3,74 @@
 
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 import {
-  AlgebraicType as __AlgebraicTypeValue,
-  BinaryReader as __BinaryReader,
-  BinaryWriter as __BinaryWriter,
-  ClientCache as __ClientCache,
-  ConnectionId as __ConnectionId,
-  DbConnectionBuilder as __DbConnectionBuilder,
-  DbConnectionImpl as __DbConnectionImpl,
-  Identity as __Identity,
-  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
-  TableCache as __TableCache,
-  TimeDuration as __TimeDuration,
-  Timestamp as __Timestamp,
-  deepEqual as __deepEqual,
-  type AlgebraicType as __AlgebraicTypeType,
-  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
-  type CallReducerFlags as __CallReducerFlags,
-  type ErrorContextInterface as __ErrorContextInterface,
-  type Event as __Event,
-  type EventContextInterface as __EventContextInterface,
-  type ReducerEventContextInterface as __ReducerEventContextInterface,
-  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
-} from "spacetimedb";
+  AlgebraicType,
+  AlgebraicValue,
+  BinaryReader,
+  BinaryWriter,
+  CallReducerFlags,
+  ConnectionId,
+  DbConnectionBuilder,
+  DbConnectionImpl,
+  DbContext,
+  ErrorContextInterface,
+  Event,
+  EventContextInterface,
+  Identity,
+  ProductType,
+  ProductTypeElement,
+  ReducerEventContextInterface,
+  SubscriptionBuilderImpl,
+  SubscriptionEventContextInterface,
+  SumType,
+  SumTypeVariant,
+  TableCache,
+  TimeDuration,
+  Timestamp,
+  deepEqual,
+} from "@clockworklabs/spacetimedb-sdk";
 
-import { BlockModificationMode } from "./block_modification_mode_type";
-// Mark import as potentially unused
-declare type __keep_BlockModificationMode = BlockModificationMode;
-import { Vector3 } from "./vector_3_type";
-// Mark import as potentially unused
-declare type __keep_Vector3 = Vector3;
+import { BlockModificationMode as __BlockModificationMode } from "./block_modification_mode_type";
+import { Vector3 as __Vector3 } from "./vector_3_type";
 
 export type ModifyBlockRect = {
   projectId: string,
-  mode: BlockModificationMode,
+  mode: __BlockModificationMode,
   type: number,
-  start: Vector3,
-  end: Vector3,
+  start: __Vector3,
+  end: __Vector3,
   rotation: number,
   layerIndex: number,
 };
+
 /**
- * An object for generated helper functions.
+ * A namespace for generated helper functions.
  */
-export const ModifyBlockRect = {
+export namespace ModifyBlockRect {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "mode", algebraicType: BlockModificationMode.getTypeScriptAlgebraicType()},
-        { name: "type", algebraicType: __AlgebraicTypeValue.U32},
-        { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType()},
-        { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType()},
-        { name: "rotation", algebraicType: __AlgebraicTypeValue.U32},
-        { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32},
-      ]
-    });
-  },
+  export function getTypeScriptAlgebraicType(): AlgebraicType {
+    return AlgebraicType.createProductType([
+      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
+      new ProductTypeElement("mode", __BlockModificationMode.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("type", AlgebraicType.createU32Type()),
+      new ProductTypeElement("start", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("end", __Vector3.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("rotation", AlgebraicType.createU32Type()),
+      new ProductTypeElement("layerIndex", AlgebraicType.createI32Type()),
+    ]);
+  }
 
-  serialize(writer: __BinaryWriter, value: ModifyBlockRect): void {
-    __AlgebraicTypeValue.serializeValue(writer, ModifyBlockRect.getTypeScriptAlgebraicType(), value);
-  },
+  export function serialize(writer: BinaryWriter, value: ModifyBlockRect): void {
+    ModifyBlockRect.getTypeScriptAlgebraicType().serialize(writer, value);
+  }
 
-  deserialize(reader: __BinaryReader): ModifyBlockRect {
-    return __AlgebraicTypeValue.deserializeValue(reader, ModifyBlockRect.getTypeScriptAlgebraicType());
-  },
+  export function deserialize(reader: BinaryReader): ModifyBlockRect {
+    return ModifyBlockRect.getTypeScriptAlgebraicType().deserialize(reader);
+  }
 
 }
-
-export default ModifyBlockRect;
 
