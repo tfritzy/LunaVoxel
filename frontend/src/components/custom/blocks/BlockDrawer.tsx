@@ -68,9 +68,8 @@ const HexagonGrid = memo(
                 )}
 
                 <HexagonOverlay
-                  isSelected={blockIndex === selectedBlock}
                   onClick={() => onSelectBlock(blockIndex)}
-                  stroke={false}
+                  stroke={blockIndex === selectedBlock}
                 />
               </div>
             );
@@ -88,7 +87,6 @@ const HexagonGrid = memo(
                   <Plus className="w-6 h-6 text-muted-foreground" />
                 </div>
                 <HexagonOverlay
-                  isSelected={false}
                   onClick={onAddNew}
                   stroke={false}
                 />
@@ -148,13 +146,6 @@ export const BlockDrawer = ({
     null
   );
 
-  const handleSelectBlock = useCallback(
-    (index: number) => {
-      setSelectedBlock(index);
-    },
-    [setSelectedBlock]
-  );
-
   const handleAddNew = useCallback(() => {
     setEditingBlockIndex("new");
   }, []);
@@ -180,7 +171,7 @@ export const BlockDrawer = ({
           <HexagonGrid
             blockCount={atlasData.blockAtlasMappings.length}
             selectedBlock={selectedBlock}
-            onSelectBlock={handleSelectBlock}
+            onSelectBlock={setSelectedBlock}
             onAddNew={handleAddNew}
             atlasData={atlasData}
           />

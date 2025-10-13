@@ -19,6 +19,7 @@ export const Builder = class {
   private dimensions: Vector3;
   private projectManager: ProjectManager;
   private selectedBlock: number = 1;
+  private setSelectedBlockInParent: (index: number) => void;
   private selectedLayer: number = 0;
 
   private raycaster: THREE.Raycaster;
@@ -61,6 +62,7 @@ export const Builder = class {
     this.domElement = domElement;
     this.projectManager = projectManager;
     this.selectedBlock = 1;
+    this.setSelectedBlockInParent = () => {};
 
     this.raycaster = new THREE.Raycaster();
     this.raycaster.layers.set(layers.raycast);
@@ -118,8 +120,9 @@ export const Builder = class {
     this.currentTool = tool;
   }
 
-  public setSelectedBlock(block: number): void {
+  public setSelectedBlock(block: number, setter: (index: number) => void): void {
     this.selectedBlock = block;
+    this.setSelectedBlockInParent = setter;
   }
 
   public setSelectedLayer(layer: number): void {
@@ -340,7 +343,7 @@ export const Builder = class {
         this.selectedLayer
       );
       if (blockType !== null && blockType !== 0) {
-        this.setSelectedBlock(blockType);
+        this.setSelectedBlockInParent(blockType);
       }
       return;
     }

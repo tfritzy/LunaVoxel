@@ -91,7 +91,7 @@ export const ProjectViewPage = () => {
   }, [connection, projectId]);
 
   useEffect(() => {
-    engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
+    engineRef.current?.projectManager?.builder?.setSelectedBlock(selectedBlock, setSelectedBlock);
   }, [selectedBlock]);
 
   useEffect(() => {
@@ -117,21 +117,19 @@ export const ProjectViewPage = () => {
       isInitializedRef.current = true;
 
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (!node.isConnected || engineRef.current) return;
+        if (!node.isConnected || engineRef.current) return;
 
-          const savedCameraState = CameraStatePersistence.load(projectId);
-          engineRef.current = new VoxelEngine({
-            container: node,
-            connection,
-            project,
-            initialCameraState: savedCameraState || undefined,
-          });
-
-          engineRef.current.projectManager.setSelectedBlock(selectedBlock);
-          engineRef.current.projectManager.setTool(currentTool);
-          engineRef.current.projectManager.setAtlasData(atlasData);
+        const savedCameraState = CameraStatePersistence.load(projectId);
+        engineRef.current = new VoxelEngine({
+          container: node,
+          connection,
+          project,
+          initialCameraState: savedCameraState || undefined,
         });
+
+        engineRef.current.projectManager.builder.setSelectedBlock(selectedBlock, setSelectedBlock);
+        engineRef.current.projectManager.setTool(currentTool);
+        engineRef.current.projectManager.setAtlasData(atlasData);
       });
     },
     [connection, project, projectId, atlasData, selectedBlock, currentTool]
@@ -193,7 +191,7 @@ export const ProjectViewPage = () => {
           <SignInModal
             title="Sign in"
             subheader="To continue to LunaVoxel"
-            onSignIn={() => {}}
+            onSignIn={() => { }}
           />
         ) : (
           <div className="bg-background border border-border rounded-lg p-12 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">

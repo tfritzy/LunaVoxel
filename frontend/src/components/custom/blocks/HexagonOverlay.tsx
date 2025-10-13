@@ -8,11 +8,9 @@ const points = {
 };
 export const HexagonOverlay = ({
   onClick,
-  isSelected,
   stroke,
 }: {
   onClick: () => void;
-  isSelected: boolean;
   stroke: boolean;
 }) => {
   return (
@@ -24,7 +22,7 @@ export const HexagonOverlay = ({
         }}
         onMouseDown={onClick}
       />
-      {stroke && (
+      {(stroke) && (
         <svg
           width="100%"
           height="100%"
@@ -35,7 +33,7 @@ export const HexagonOverlay = ({
             className="fill-transparent"
             points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
             stroke="white"
-            strokeWidth={stroke || isSelected ? 2 : 0}
+            strokeWidth={stroke ? 4 : 0}
           />
         </svg>
       )}

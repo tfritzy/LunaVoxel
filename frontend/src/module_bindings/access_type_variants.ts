@@ -27,39 +27,8 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
 } from "spacetimedb";
 
-export type Vector3 = {
-  x: number,
-  y: number,
-  z: number,
-};
-/**
- * An object for generated helper functions.
- */
-export const Vector3 = {
-  /**
-  * A function which returns this type represented as an AlgebraicType.
-  * This function is derived from the AlgebraicType used to generate this type.
-  */
-  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "x", algebraicType: __AlgebraicTypeValue.I32},
-        { name: "y", algebraicType: __AlgebraicTypeValue.I32},
-        { name: "z", algebraicType: __AlgebraicTypeValue.I32},
-      ]
-    });
-  },
-
-  serialize(writer: __BinaryWriter, value: Vector3): void {
-    __AlgebraicTypeValue.serializeValue(writer, Vector3.getTypeScriptAlgebraicType(), value);
-  },
-
-  deserialize(reader: __BinaryReader): Vector3 {
-    return __AlgebraicTypeValue.deserializeValue(reader, Vector3.getTypeScriptAlgebraicType());
-  },
-
-}
-
-export default Vector3;
-
+export type None = { tag: "None" };
+export type Inherited = { tag: "Inherited" };
+export type Read = { tag: "Read" };
+export type ReadWrite = { tag: "ReadWrite" };
 

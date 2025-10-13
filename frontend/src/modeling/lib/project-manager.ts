@@ -136,10 +136,6 @@ export class ProjectManager {
     };
   };
 
-  setSelectedBlock = (block: number) => {
-    this.builder.setSelectedBlock(block);
-  };
-
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {

@@ -3,73 +3,75 @@
 
 /* eslint-disable */
 /* tslint:disable */
-// @ts-nocheck
 import {
-  AlgebraicType,
-  AlgebraicValue,
-  BinaryReader,
-  BinaryWriter,
-  CallReducerFlags,
-  ConnectionId,
-  DbConnectionBuilder,
-  DbConnectionImpl,
-  DbContext,
-  ErrorContextInterface,
-  Event,
-  EventContextInterface,
-  Identity,
-  ProductType,
-  ProductTypeElement,
-  ReducerEventContextInterface,
-  SubscriptionBuilderImpl,
-  SubscriptionEventContextInterface,
-  SumType,
-  SumTypeVariant,
-  TableCache,
-  TimeDuration,
-  Timestamp,
-  deepEqual,
-} from "@clockworklabs/spacetimedb-sdk";
-import { Vector3Float as __Vector3Float } from "./vector_3_float_type";
+  AlgebraicType as __AlgebraicTypeValue,
+  BinaryReader as __BinaryReader,
+  BinaryWriter as __BinaryWriter,
+  ClientCache as __ClientCache,
+  ConnectionId as __ConnectionId,
+  DbConnectionBuilder as __DbConnectionBuilder,
+  DbConnectionImpl as __DbConnectionImpl,
+  Identity as __Identity,
+  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
+  TableCache as __TableCache,
+  TimeDuration as __TimeDuration,
+  Timestamp as __Timestamp,
+  deepEqual as __deepEqual,
+  type AlgebraicType as __AlgebraicTypeType,
+  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
+  type CallReducerFlags as __CallReducerFlags,
+  type ErrorContextInterface as __ErrorContextInterface,
+  type Event as __Event,
+  type EventContextInterface as __EventContextInterface,
+  type ReducerEventContextInterface as __ReducerEventContextInterface,
+  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+} from "spacetimedb";
+import { Vector3Float } from "./vector_3_float_type";
+// Mark import as potentially unused
+declare type __keep_Vector3Float = Vector3Float;
+
 
 export type PlayerCursor = {
   id: string,
   projectId: string,
   displayName: string,
-  player: Identity,
-  position: __Vector3Float | undefined,
-  normal: __Vector3Float | undefined,
-  lastUpdated: Timestamp,
+  player: __Identity,
+  position: Vector3Float | undefined,
+  normal: Vector3Float | undefined,
+  lastUpdated: __Timestamp,
 };
-
 /**
- * A namespace for generated helper functions.
+ * An object for generated helper functions.
  */
-export namespace PlayerCursor {
+export const PlayerCursor = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  export function getTypeScriptAlgebraicType(): AlgebraicType {
-    return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createStringType()),
-      new ProductTypeElement("projectId", AlgebraicType.createStringType()),
-      new ProductTypeElement("displayName", AlgebraicType.createStringType()),
-      new ProductTypeElement("player", AlgebraicType.createIdentityType()),
-      new ProductTypeElement("position", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
-      new ProductTypeElement("normal", AlgebraicType.createOptionType(__Vector3Float.getTypeScriptAlgebraicType())),
-      new ProductTypeElement("lastUpdated", AlgebraicType.createTimestampType()),
-    ]);
-  }
+  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
+    return __AlgebraicTypeValue.Product({
+      elements: [
+        { name: "id", algebraicType: __AlgebraicTypeValue.String},
+        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
+        { name: "displayName", algebraicType: __AlgebraicTypeValue.String},
+        { name: "player", algebraicType: __AlgebraicTypeValue.createIdentityType()},
+        { name: "position", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType())},
+        { name: "normal", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType())},
+        { name: "lastUpdated", algebraicType: __AlgebraicTypeValue.createTimestampType()},
+      ]
+    });
+  },
 
-  export function serialize(writer: BinaryWriter, value: PlayerCursor): void {
-    PlayerCursor.getTypeScriptAlgebraicType().serialize(writer, value);
-  }
+  serialize(writer: __BinaryWriter, value: PlayerCursor): void {
+    __AlgebraicTypeValue.serializeValue(writer, PlayerCursor.getTypeScriptAlgebraicType(), value);
+  },
 
-  export function deserialize(reader: BinaryReader): PlayerCursor {
-    return PlayerCursor.getTypeScriptAlgebraicType().deserialize(reader);
-  }
+  deserialize(reader: __BinaryReader): PlayerCursor {
+    return __AlgebraicTypeValue.deserializeValue(reader, PlayerCursor.getTypeScriptAlgebraicType());
+  },
 
 }
+
+export default PlayerCursor;
 
 
