@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FrontendTool } from "./toolTypes";
+import { ToolType } from "@/module_bindings";
 
 const loadSvgAsCursor = async (
   svgPath: string,
@@ -28,28 +28,28 @@ const loadSvgAsCursor = async (
 };
 
 const getCursorConfig = (
-  mode: FrontendTool
+  mode: ToolType
 ): { path: string; hotspot: [number, number]; scale: number } => {
-  switch (mode) {
-    case "erase":
+  switch (mode.tag) {
+    case "Erase":
       return {
         path: "/src/assets/drawing_eraser.svg",
         hotspot: [1, 8],
         scale: 0.7,
       };
-    case "paint":
+    case "Paint":
       return {
         path: "/src/assets/drawing_brush.svg",
         hotspot: [4, 4],
         scale: 0.7,
       };
-    case "block-picker":
+    case "BlockPicker":
       return {
         path: "/src/assets/drawing_picker.svg",
         hotspot: [4, 4],
         scale: 0.7,
       };
-    case "build":
+    case "Build":
     default:
       return {
         path: "/src/assets/cursor_none.svg",
@@ -59,7 +59,7 @@ const getCursorConfig = (
   }
 };
 
-export const useCustomCursor = (mode: FrontendTool) => {
+export const useCustomCursor = (mode: ToolType) => {
   const [cursorStyle, setCursorStyle] = useState<string>("auto");
 
   useEffect(() => {

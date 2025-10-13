@@ -27,16 +27,16 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
 } from "spacetimedb";
 
-import { BlockModificationMode } from "./block_modification_mode_type";
+import { ToolType } from "./tool_type_type";
 // Mark import as potentially unused
-declare type __keep_BlockModificationMode = BlockModificationMode;
+declare type __keep_ToolType = ToolType;
 import { Vector3 } from "./vector_3_type";
 // Mark import as potentially unused
 declare type __keep_Vector3 = Vector3;
 
 export type ModifyBlockRect = {
   projectId: string,
-  mode: BlockModificationMode,
+  mode: ToolType,
   type: number,
   start: Vector3,
   end: Vector3,
@@ -55,7 +55,7 @@ export const ModifyBlockRect = {
     return __AlgebraicTypeValue.Product({
       elements: [
         { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "mode", algebraicType: BlockModificationMode.getTypeScriptAlgebraicType()},
+        { name: "mode", algebraicType: ToolType.getTypeScriptAlgebraicType()},
         { name: "type", algebraicType: __AlgebraicTypeValue.U32},
         { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType()},
         { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType()},

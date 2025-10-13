@@ -4,12 +4,10 @@ import { useAuth } from "@/firebase/AuthContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { createProject } from "@/lib/createProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
-import { BlockModificationMode, Project } from "@/module_bindings";
+import { ToolType, Project } from "@/module_bindings";
 import { VoxelEngine } from "@/modeling/voxel-engine";
-import { Button } from "@/components/ui/button";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useAtlas } from "@/lib/useAtlas";
-import { Mail, X } from "lucide-react";
 import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import { SignInModal } from "@/components/custom/SignInModal";
 
@@ -18,7 +16,6 @@ export const SignInPage = () => {
     signInWithGoogle,
     signInWithGithub,
     signInWithMicrosoft,
-    signInWithApple,
     error,
     clearError,
   } = useAuth();
@@ -27,7 +24,7 @@ export const SignInPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<BlockModificationMode>({
+  const [currentTool, setCurrentTool] = useState<ToolType>({
     tag: "Build",
   });
   const atlasData = useAtlas();
@@ -47,9 +44,6 @@ export const SignInPage = () => {
           case "microsoft":
             user = await signInWithMicrosoft();
             break;
-          case "apple":
-            user = await signInWithApple();
-            break;
         }
 
         if (user && connection) {
@@ -63,7 +57,6 @@ export const SignInPage = () => {
       signInWithGoogle,
       signInWithGithub,
       signInWithMicrosoft,
-      signInWithApple,
       connection,
       navigate,
     ]
@@ -150,18 +143,18 @@ export const SignInPage = () => {
   }, [atlasData]);
 
   const handleExport = useCallback((type: ExportType) => {
-    // No-op for sign-in page
+
   }, []);
 
   const handleUndo = useCallback(() => {
-    // No-op for sign-in page
+
   }, []);
 
   const handleRedo = useCallback(() => {
-    // No-op for sign-in page
+
   }, []);
 
-  const handleToolChange = useCallback((tool: BlockModificationMode) => {
+  const handleToolChange = useCallback((tool: ToolType) => {
     setCurrentTool(tool);
   }, []);
 

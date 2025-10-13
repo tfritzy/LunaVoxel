@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 import {
-  BlockModificationMode,
+  ToolType,
   DbConnection,
   Vector3,
 } from "../../module_bindings";
@@ -9,7 +9,6 @@ import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
-import { FrontendTool, frontendToolToBackend } from "@/lib/toolTypes";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
@@ -28,7 +27,7 @@ export const Builder = class {
   private scene: THREE.Scene;
   private domElement: HTMLElement;
 
-  private currentTool: FrontendTool = "build";
+  private currentTool: ToolType = { tag: "Build" };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
   private lastPreviewStart: THREE.Vector3 | null = null;
@@ -104,7 +103,7 @@ export const Builder = class {
     this.previewBlocks[blockIndex] = blockValue;
   }
 
-  private cancelCurrentOperation(): void {
+  cancelCurrentOperation(): void {
     if (this.isMouseDown) {
       this.clearPreviewBlocks();
       this.projectManager.onPreviewUpdate();
@@ -115,7 +114,7 @@ export const Builder = class {
     this.lastPreviewEnd = null;
   }
 
-  public setTool(tool: FrontendTool): void {
+  public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
     this.currentTool = tool;
   }
@@ -133,9 +132,8 @@ export const Builder = class {
     this.camera = camera;
   }
 
-  public getTool(): BlockModificationMode {
-    const backendTool = frontendToolToBackend(this.currentTool);
-    return backendTool || { tag: "Build" };
+  public getTool(): ToolType {
+    return this.currentTool;
   }
 
   private addEventListeners(): void {
@@ -279,9 +277,9 @@ export const Builder = class {
       }
 
       if (
-        this.currentTool === "erase" ||
-        this.currentTool === "paint" ||
-        this.currentTool === "block-picker"
+        this.currentTool.tag === "Erase" ||
+        this.currentTool.tag === "Paint" ||
+        this.currentTool.tag === "BlockPicker"
       ) {
         const normal = intersection.face?.normal.multiplyScalar(-0.1);
         if (normal) {
@@ -311,7 +309,7 @@ export const Builder = class {
     if (
       !this.dbConn.isActive ||
       !this.accessManager.hasWriteAccess ||
-      this.currentTool === "block-picker"
+      this.currentTool.tag === "BlockPicker"
     )
       return;
 
@@ -337,7 +335,7 @@ export const Builder = class {
   }
 
   private onMouseClickHandler(position: THREE.Vector3): void {
-    if (this.currentTool === "block-picker") {
+    if (this.currentTool.tag === "BlockPicker") {
       const blockType = this.projectManager.getBlockAtPosition(
         position,
         this.selectedLayer
@@ -353,10 +351,7 @@ export const Builder = class {
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    const backendTool = frontendToolToBackend(this.currentTool);
-    if (backendTool) {
-      this.modifyBlock(backendTool, startPos, endPos);
-    }
+    this.modifyBlock(this.currentTool, startPos, endPos);
 
     this.isMouseDown = false;
     this.startPosition = null;
@@ -385,7 +380,7 @@ export const Builder = class {
   }
 
   private modifyBlock(
-    tool: BlockModificationMode,
+    tool: ToolType,
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
   ): void {

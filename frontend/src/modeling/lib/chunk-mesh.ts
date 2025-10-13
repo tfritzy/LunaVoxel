@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BlockModificationMode, Vector3 } from "@/module_bindings";
+import { ToolType, Vector3 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
@@ -103,7 +103,7 @@ export class ChunkMesh {
     }
   };
 
-  update = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
+  update = (buildMode: ToolType, atlasData: AtlasData) => {
     findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
@@ -111,7 +111,7 @@ export class ChunkMesh {
       this.chunkDimensions,
       this.meshArrays,
       this.previewMeshArrays,
-      buildMode.tag === BlockModificationMode.Erase.tag
+      buildMode.tag === ToolType.Erase.tag
     );
 
     this.updateMesh(atlasData);
@@ -177,7 +177,7 @@ export class ChunkMesh {
   };
 
   private updatePreviewMesh = (
-    buildMode: BlockModificationMode,
+    buildMode: ToolType,
     atlasData: AtlasData
   ): void => {
     if (!this.previewMesh) {
@@ -215,10 +215,10 @@ export class ChunkMesh {
     );
 
     this.previewMesh.visible =
-      buildMode.tag === BlockModificationMode.Build.tag ||
-      buildMode.tag === BlockModificationMode.Paint.tag;
+      buildMode.tag === ToolType.Build.tag ||
+      buildMode.tag === ToolType.Paint.tag;
     this.previewMesh.layers.set(
-      buildMode.tag === BlockModificationMode.Build.tag
+      buildMode.tag === ToolType.Build.tag
         ? layers.ghost
         : layers.raycast
     );

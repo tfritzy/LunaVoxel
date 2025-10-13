@@ -26,15 +26,16 @@ import {
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
 } from "spacetimedb";
-import * as BlockModificationModeVariants from './block_modification_mode_variants'
+import * as ToolTypeVariants from './tool_type_variants'
 
-// The tagged union or sum type for the algebraic type `BlockModificationMode`.
-export type BlockModificationMode = BlockModificationModeVariants.Build |
-  BlockModificationModeVariants.Erase |
-  BlockModificationModeVariants.Paint;
+// The tagged union or sum type for the algebraic type `ToolType`.
+export type ToolType = ToolTypeVariants.Build |
+  ToolTypeVariants.Erase |
+  ToolTypeVariants.Paint |
+  ToolTypeVariants.BlockPicker;
 
 // A value with helper functions to construct the type.
-export const BlockModificationMode = {
+export const ToolType = {
   // Helper functions for constructing each variant of the tagged union.
   // ```
   // const foo = Foo.A(42);
@@ -44,6 +45,7 @@ export const BlockModificationMode = {
   Build: { tag: "Build" } as const,
   Erase: { tag: "Erase" } as const,
   Paint: { tag: "Paint" } as const,
+  BlockPicker: { tag: "BlockPicker" } as const,
 
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
     return __AlgebraicTypeValue.Sum({
@@ -51,20 +53,21 @@ export const BlockModificationMode = {
         { name: "Build", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
         { name: "Erase", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
         { name: "Paint", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+        { name: "BlockPicker", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
       ]
     });
   },
 
-  serialize(writer: __BinaryWriter, value: BlockModificationMode): void {
-      __AlgebraicTypeValue.serializeValue(writer, BlockModificationMode.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: ToolType): void {
+      __AlgebraicTypeValue.serializeValue(writer, ToolType.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): BlockModificationMode {
-      return __AlgebraicTypeValue.deserializeValue(reader, BlockModificationMode.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): ToolType {
+      return __AlgebraicTypeValue.deserializeValue(reader, ToolType.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default BlockModificationMode;
+export default ToolType;
 
 

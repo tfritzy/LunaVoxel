@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import {
-  BlockModificationMode,
+  ToolType,
   DbConnection,
   EventContext,
   Layer,
@@ -14,7 +14,6 @@ import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { getBlockType } from "./voxel-data-utils";
-import { FrontendTool } from "@/lib/toolTypes";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 
@@ -144,6 +143,10 @@ export class ProjectManager {
     }
   };
 
+  setSelectedBlock = (block: number) => {
+    this.builder.setSelectedBlock(block, () => {});
+  };
+
   setupLayers = () => {
     this.refreshLayers();
     this.updateChunkManager();
@@ -200,7 +203,7 @@ export class ProjectManager {
 
   public applyOptimisticRectEdit = (
     layerIndex: number,
-    tool: BlockModificationMode,
+    tool: ToolType,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
@@ -264,7 +267,7 @@ export class ProjectManager {
     console.log(`ChunkManager update time: ${end - start} ms`);
   };
 
-  public setTool(tool: FrontendTool): void {
+  public setTool(tool: ToolType): void {
     this.builder.setTool(tool);
   }
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BlockModificationMode, Vector3 } from "@/module_bindings";
+import { ToolType, Vector3 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import { DecompressedLayer } from "./project-manager";
 import {
@@ -124,7 +124,7 @@ export class ChunkManager {
 
   setTextureAtlas = (
     atlasData: AtlasData,
-    buildMode: BlockModificationMode
+    buildMode: ToolType
   ) => {
     for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
       for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
@@ -184,11 +184,11 @@ export class ChunkManager {
   private updatePreviewState(
     previewBlocks: Uint32Array,
     blocks: Uint32Array,
-    buildMode: BlockModificationMode
+    buildMode: ToolType
   ): void {
-    const isPaintMode = buildMode.tag === BlockModificationMode.Paint.tag;
-    const isBuildMode = buildMode.tag === BlockModificationMode.Build.tag;
-    const isEraseMode = buildMode.tag === BlockModificationMode.Erase.tag;
+    const isPaintMode = buildMode.tag === ToolType.Paint.tag;
+    const isBuildMode = buildMode.tag === ToolType.Build.tag;
+    const isEraseMode = buildMode.tag === ToolType.Erase.tag;
 
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
       const previewBlockValue = previewBlocks[voxelIndex];
@@ -226,7 +226,7 @@ export class ChunkManager {
 
   public applyOptimisticRect(
     layer: DecompressedLayer,
-    tool: BlockModificationMode,
+    tool: ToolType,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
@@ -250,17 +250,17 @@ export class ChunkManager {
           const currentVersion = getVersion(currentVal);
 
           switch (tool.tag) {
-            case BlockModificationMode.Build.tag:
+            case ToolType.Build.tag:
               layer.voxels[idx] = encodeBlockData(
                 blockType,
                 rotation,
                 currentVersion + 1
               );
               break;
-            case BlockModificationMode.Erase.tag:
+            case ToolType.Erase.tag:
               layer.voxels[idx] = encodeBlockData(0, 0, currentVersion + 1);
               break;
-            case BlockModificationMode.Paint.tag:
+            case ToolType.Paint.tag:
               if (currentType !== 0) {
                 layer.voxels[idx] = encodeBlockData(
                   blockType,
@@ -280,7 +280,7 @@ export class ChunkManager {
   update = (
     layers: DecompressedLayer[],
     previewBlocks: Uint32Array,
-    buildMode: BlockModificationMode,
+    buildMode: ToolType,
     atlasData: AtlasData
   ) => {
     try {

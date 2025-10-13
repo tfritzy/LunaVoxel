@@ -12,7 +12,7 @@ public static partial class Module
     public static void ModifyBlockRect(
         ReducerContext ctx,
         string projectId,
-        BlockModificationMode mode,
+        ToolType mode,
         uint type,
         Vector3 start,
         Vector3 end,
@@ -50,11 +50,11 @@ public static partial class Module
                     var cur = BlockType.FromInt(existingData[index]);
                     uint? newValue = mode switch
                     {
-                        BlockModificationMode.Build =>
+                        ToolType.Build =>
                             VoxelDataUtils.EncodeBlockData(type, rotation, cur.Version + 1),
-                        BlockModificationMode.Erase =>
+                        ToolType.Erase =>
                             VoxelDataUtils.EncodeBlockData(0, 0, cur.Version + 1),
-                        BlockModificationMode.Paint when cur.Type != 0 =>
+                        ToolType.Paint when cur.Type != 0 =>
                             VoxelDataUtils.EncodeBlockData(type, cur.Rotation, cur.Version + 1),
                         _ => 0
                     };

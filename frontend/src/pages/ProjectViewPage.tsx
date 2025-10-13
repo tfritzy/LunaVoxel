@@ -12,7 +12,7 @@ import { useAuth } from "@/firebase/AuthContext";
 import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
 import { useProjectAccess } from "@/lib/useProjectAccess";
-import { FrontendTool } from "@/lib/toolTypes";
+import { ToolType } from "@/module_bindings";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -21,7 +21,7 @@ export const ProjectViewPage = () => {
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<FrontendTool>("build");
+  const [currentTool, setCurrentTool] = useState<ToolType>(ToolType.Build);
   const project = useCurrentProject(connection, projectId);
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
@@ -163,7 +163,7 @@ export const ProjectViewPage = () => {
     }
   }, [atlasData]);
 
-  const handleToolChange = useCallback((tool: FrontendTool) => {
+  const handleToolChange = useCallback((tool: ToolType) => {
     setCurrentTool(tool);
   }, []);
 
