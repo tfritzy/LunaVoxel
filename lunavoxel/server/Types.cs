@@ -4,30 +4,30 @@ using SpacetimeDB.Internal.TableHandles;
 public static partial class Module
 {
 #pragma warning disable STDB_UNSTABLE
-//     [SpacetimeDB.ClientVisibilityFilter]
-//     public static readonly Filter USER_PROJECTS_FILTER = new Filter.Sql(
-//         "SELECT * FROM user_projects WHERE user_projects.User = :sender"
-//     );
+    //     [SpacetimeDB.ClientVisibilityFilter]
+    //     public static readonly Filter USER_PROJECTS_FILTER = new Filter.Sql(
+    //         "SELECT * FROM user_projects WHERE user_projects.User = :sender"
+    //     );
 
-//     [SpacetimeDB.ClientVisibilityFilter]
-//     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-//        "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id"
-//    );
+    //     [SpacetimeDB.ClientVisibilityFilter]
+    //     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
+    //        "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id"
+    //    );
 
-//     [SpacetimeDB.ClientVisibilityFilter]
-//     public static readonly Filter PLAYER_CURSOR_FILTER = new Filter.Sql(
-//         "SELECT player_cursor.* FROM player_cursor JOIN user_projects ON user_projects.ProjectId = player_cursor.ProjectId"
-//     );
+    //     [SpacetimeDB.ClientVisibilityFilter]
+    //     public static readonly Filter PLAYER_CURSOR_FILTER = new Filter.Sql(
+    //         "SELECT player_cursor.* FROM player_cursor JOIN user_projects ON user_projects.ProjectId = player_cursor.ProjectId"
+    //     );
 
-//     [SpacetimeDB.ClientVisibilityFilter]
-//     public static readonly Filter LAYER_FILTER = new Filter.Sql(
-//         "SELECT layer.* FROM layer JOIN user_projects ON user_projects.ProjectId = layer.ProjectId"
-//     );
+    //     [SpacetimeDB.ClientVisibilityFilter]
+    //     public static readonly Filter LAYER_FILTER = new Filter.Sql(
+    //         "SELECT layer.* FROM layer JOIN user_projects ON user_projects.ProjectId = layer.ProjectId"
+    //     );
 
-//     [SpacetimeDB.ClientVisibilityFilter]
-//     public static readonly Filter BLOCK_FILTER = new Filter.Sql(
-//         "SELECT project_blocks.* FROM project_blocks JOIN user_projects ON user_projects.ProjectId = project_blocks.ProjectId"
-//     );
+    //     [SpacetimeDB.ClientVisibilityFilter]
+    //     public static readonly Filter BLOCK_FILTER = new Filter.Sql(
+    //         "SELECT project_blocks.* FROM project_blocks JOIN user_projects ON user_projects.ProjectId = project_blocks.ProjectId"
+    //     );
 
     [Table(Name = "projects", Public = true)]
     public partial class Project
@@ -168,6 +168,27 @@ public static partial class Module
         public string? Email;
         public string? Name;
     }
+
+
+    [Table(Name = "selections", Public = true)]
+    [SpacetimeDB.Index.BTree(Columns = new[] { nameof(Identity), nameof(ProjectId) })]
+    public partial class Selections
+    {
+        [PrimaryKey]
+        public string Id;
+
+        public Identity Identity;
+
+        public string ProjectId;
+
+        // Compressed RLE then LZ4
+        // A 1 indexed mapping of selected blocks and where they are now. The index
+        // at a given point is where the block has been moved to. Needs to be one indexed 
+        // so that we can indicate that 0 means no movement. Otherwise we'd have to use 
+        // -1 which would halve the max world size. 
+        public byte[] SelectionData;
+    }
+
 
     public class BlockType
     {
