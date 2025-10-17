@@ -1,10 +1,6 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import {
-  ToolType,
-  DbConnection,
-  Vector3,
-} from "../../module_bindings";
+import { ToolType, DbConnection, Vector3 } from "../../module_bindings";
 import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
 import { calculateRectBounds } from "@/lib/rect-utils";
@@ -119,7 +115,10 @@ export const Builder = class {
     this.currentTool = tool;
   }
 
-  public setSelectedBlock(block: number, setter: (index: number) => void): void {
+  public setSelectedBlock(
+    block: number,
+    setter: (index: number) => void
+  ): void {
     this.selectedBlock = block;
     this.setSelectedBlockInParent = setter;
   }
@@ -279,7 +278,8 @@ export const Builder = class {
       if (
         this.currentTool.tag === "Erase" ||
         this.currentTool.tag === "Paint" ||
-        this.currentTool.tag === "BlockPicker"
+        this.currentTool.tag === "BlockPicker" ||
+        this.currentTool.tag === "MagicSelect"
       ) {
         const normal = intersection.face?.normal.multiplyScalar(-0.1);
         if (normal) {
@@ -346,6 +346,17 @@ export const Builder = class {
       return;
     }
 
+    if (this.currentTool.tag === "MagicSelect") {
+      if (!this.dbConn.isActive) return;
+
+      this.dbConn.reducers.magicSelect(
+        this.projectId,
+        this.selectedLayer,
+        position
+      );
+      return;
+    }
+
     if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     const endPos = position;
@@ -358,7 +369,6 @@ export const Builder = class {
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }
-
   private clearPreviewBlocks(): void {
     this.previewBlocks.fill(0);
   }

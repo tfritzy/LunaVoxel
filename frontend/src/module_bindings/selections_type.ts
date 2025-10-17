@@ -27,26 +27,16 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
 } from "spacetimedb";
 
-import { Vector3 } from "./vector_3_type";
-// Mark import as potentially unused
-declare type __keep_Vector3 = Vector3;
-import { ToolType } from "./tool_type_type";
-// Mark import as potentially unused
-declare type __keep_ToolType = ToolType;
-
-export type ModifyBlockRect = {
+export type Selections = {
+  id: string,
+  identity: __Identity,
   projectId: string,
-  mode: ToolType,
-  type: number,
-  start: Vector3,
-  end: Vector3,
-  rotation: number,
-  layerIndex: number,
+  selectionData: Uint8Array,
 };
 /**
  * An object for generated helper functions.
  */
-export const ModifyBlockRect = {
+export const Selections = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -54,26 +44,24 @@ export const ModifyBlockRect = {
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
     return __AlgebraicTypeValue.Product({
       elements: [
+        { name: "id", algebraicType: __AlgebraicTypeValue.String},
+        { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType()},
         { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "mode", algebraicType: ToolType.getTypeScriptAlgebraicType()},
-        { name: "type", algebraicType: __AlgebraicTypeValue.U32},
-        { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType()},
-        { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType()},
-        { name: "rotation", algebraicType: __AlgebraicTypeValue.U32},
-        { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32},
+        { name: "selectionData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8)},
       ]
     });
   },
 
-  serialize(writer: __BinaryWriter, value: ModifyBlockRect): void {
-    __AlgebraicTypeValue.serializeValue(writer, ModifyBlockRect.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: Selections): void {
+    __AlgebraicTypeValue.serializeValue(writer, Selections.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): ModifyBlockRect {
-    return __AlgebraicTypeValue.deserializeValue(reader, ModifyBlockRect.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): Selections {
+    return __AlgebraicTypeValue.deserializeValue(reader, Selections.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default ModifyBlockRect;
+export default Selections;
+
 

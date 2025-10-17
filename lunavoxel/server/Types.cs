@@ -239,7 +239,8 @@ public static partial class Module
         Build,
         Erase,
         Paint,
-        BlockPicker
+        BlockPicker,
+        MagicSelect
     }
 
     [Type]

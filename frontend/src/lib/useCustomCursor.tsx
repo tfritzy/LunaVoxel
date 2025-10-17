@@ -49,6 +49,12 @@ const getCursorConfig = (
         hotspot: [4, 4],
         scale: 0.7,
       };
+    case "MagicSelect":
+      return {
+        path: "/src/assets/tool_wand.svg",
+        hotspot: [4, 2],
+        scale: 0.7,
+      };
     case "Build":
     default:
       return {

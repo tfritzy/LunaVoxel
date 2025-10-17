@@ -32,7 +32,8 @@ import * as ToolTypeVariants from './tool_type_variants'
 export type ToolType = ToolTypeVariants.Build |
   ToolTypeVariants.Erase |
   ToolTypeVariants.Paint |
-  ToolTypeVariants.BlockPicker;
+  ToolTypeVariants.BlockPicker |
+  ToolTypeVariants.MagicSelect;
 
 // A value with helper functions to construct the type.
 export const ToolType = {
@@ -46,6 +47,7 @@ export const ToolType = {
   Erase: { tag: "Erase" } as const,
   Paint: { tag: "Paint" } as const,
   BlockPicker: { tag: "BlockPicker" } as const,
+  MagicSelect: { tag: "MagicSelect" } as const,
 
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
     return __AlgebraicTypeValue.Sum({
@@ -54,6 +56,7 @@ export const ToolType = {
         { name: "Erase", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
         { name: "Paint", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
         { name: "BlockPicker", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+        { name: "MagicSelect", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
       ]
     });
   },

@@ -52,6 +52,8 @@ import { InitializeBlocks } from "./initialize_blocks_reducer.ts";
 export { InitializeBlocks };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
 export { InviteToProject };
+import { MagicSelect } from "./magic_select_reducer.ts";
+export { MagicSelect };
 import { ModifyBlock } from "./modify_block_reducer.ts";
 export { ModifyBlock };
 import { ModifyBlockAmorphous } from "./modify_block_amorphous_reducer.ts";
@@ -86,6 +88,8 @@ import { ProjectBlocksTableHandle } from "./project_blocks_table.ts";
 export { ProjectBlocksTableHandle };
 import { ProjectsTableHandle } from "./projects_table.ts";
 export { ProjectsTableHandle };
+import { SelectionsTableHandle } from "./selections_table.ts";
+export { SelectionsTableHandle };
 import { UserTableHandle } from "./user_table.ts";
 export { UserTableHandle };
 import { UserProjectsTableHandle } from "./user_projects_table.ts";
@@ -102,6 +106,8 @@ import { Project } from "./project_type.ts";
 export { Project };
 import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
+import { Selections } from "./selections_type.ts";
+export { Selections };
 import { ToolType } from "./tool_type_type.ts";
 export { ToolType };
 import { User } from "./user_type.ts";
@@ -149,6 +155,15 @@ const REMOTE_MODULE = {
       primaryKeyInfo: {
         colName: "id",
         colType: (Project.getTypeScriptAlgebraicType() as __AlgebraicTypeVariants.Product).value.elements[0].algebraicType,
+      },
+    },
+    selections: {
+      tableName: "selections",
+      rowType: Selections.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
+      primaryKeyInfo: {
+        colName: "id",
+        colType: (Selections.getTypeScriptAlgebraicType() as __AlgebraicTypeVariants.Product).value.elements[0].algebraicType,
       },
     },
     user: {
@@ -214,6 +229,10 @@ const REMOTE_MODULE = {
     InviteToProject: {
       reducerName: "InviteToProject",
       argsType: InviteToProject.getTypeScriptAlgebraicType(),
+    },
+    MagicSelect: {
+      reducerName: "MagicSelect",
+      argsType: MagicSelect.getTypeScriptAlgebraicType(),
     },
     ModifyBlock: {
       reducerName: "ModifyBlock",
@@ -304,6 +323,7 @@ export type Reducer = never
 | { name: "DeleteLayer", args: DeleteLayer }
 | { name: "InitializeBlocks", args: InitializeBlocks }
 | { name: "InviteToProject", args: InviteToProject }
+| { name: "MagicSelect", args: MagicSelect }
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
@@ -479,6 +499,22 @@ export class RemoteReducers {
 
   removeOnInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
     this.connection.offReducer("InviteToProject", callback);
+  }
+
+  magicSelect(projectId: string, layerIndex: number, position: Vector3) {
+    const __args = { projectId, layerIndex, position };
+    let __writer = new __BinaryWriter(1024);
+    MagicSelect.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("MagicSelect", __argsBuffer, this.setCallReducerFlags.magicSelectFlags);
+  }
+
+  onMagicSelect(callback: (ctx: ReducerEventContext, projectId: string, layerIndex: number, position: Vector3) => void) {
+    this.connection.onReducer("MagicSelect", callback);
+  }
+
+  removeOnMagicSelect(callback: (ctx: ReducerEventContext, projectId: string, layerIndex: number, position: Vector3) => void) {
+    this.connection.offReducer("MagicSelect", callback);
   }
 
   modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
@@ -721,6 +757,11 @@ export class SetReducerFlags {
     this.inviteToProjectFlags = flags;
   }
 
+  magicSelectFlags: __CallReducerFlags = 'FullUpdate';
+  magicSelect(flags: __CallReducerFlags) {
+    this.magicSelectFlags = flags;
+  }
+
   modifyBlockFlags: __CallReducerFlags = 'FullUpdate';
   modifyBlock(flags: __CallReducerFlags) {
     this.modifyBlockFlags = flags;
@@ -804,6 +845,11 @@ export class RemoteTables {
   get projects(): ProjectsTableHandle {
     // clientCache is a private property
     return new ProjectsTableHandle((this.connection as unknown as { clientCache: __ClientCache }).clientCache.getOrCreateTable<Project>(REMOTE_MODULE.tables.projects));
+  }
+
+  get selections(): SelectionsTableHandle {
+    // clientCache is a private property
+    return new SelectionsTableHandle((this.connection as unknown as { clientCache: __ClientCache }).clientCache.getOrCreateTable<Selections>(REMOTE_MODULE.tables.selections));
   }
 
   get user(): UserTableHandle {

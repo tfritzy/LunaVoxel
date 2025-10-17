@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Eraser, Paintbrush, PlusSquare, Pipette } from "lucide-react";
+import { Eraser, Paintbrush, PlusSquare, Pipette, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToolType } from "@/module_bindings";
 
@@ -33,6 +33,9 @@ export const FloatingToolbar = ({
         case "c":
           onToolChange({ tag: "BlockPicker" });
           break;
+        case "s":
+          onToolChange({ tag: "MagicSelect" });
+          break;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -49,7 +52,7 @@ export const FloatingToolbar = ({
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Attach Tool (1)"
+          title="Attach Tool (A)"
         >
           <PlusSquare className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">A</div>
@@ -61,7 +64,7 @@ export const FloatingToolbar = ({
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Erase Tool (2)"
+          title="Erase Tool (E)"
         >
           <Eraser className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">E</div>
@@ -73,7 +76,7 @@ export const FloatingToolbar = ({
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Paint Tool (3)"
+          title="Paint Tool (T)"
         >
           <Paintbrush className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
@@ -85,12 +88,24 @@ export const FloatingToolbar = ({
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Block Picker (4)"
+          title="Block Picker (C)"
         >
           <Pipette className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">C</div>
         </Button>
-        {Array.from({ length: 4 }, (_, i) => (
+        <Button
+          onClick={() => onToolChange({ tag: "MagicSelect" })}
+          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
+            currentTool.tag === "MagicSelect"
+              ? "border-accent text-accent"
+              : "border-secondary text-secondary"
+          }`}
+          title="Magic Select (S)"
+        >
+          <Wand2 className="min-w-8 min-h-8" />
+          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">S</div>
+        </Button>
+        {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
             className="w-16 h-16 border-2 border-secondary bg-background"
