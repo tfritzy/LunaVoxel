@@ -1,10 +1,12 @@
 import LZ4 from "lz4js";
 
 export const PREVIEW_BIT_MASK = 0x08;
+export const SELECTED_BIT_MASK = 0x10;
 export const BLOCK_TYPE_SHIFT = 6;
 export const BLOCK_TYPE_MASK = 0x3ff;
 export const ROTATION_MASK = 0x07;
 export const CLEAR_PREVIEW_BIT_MASK = 0xfffffff7;
+export const CLEAR_SELECTED_BIT_MASK = 0xffffffef;
 
 export const VERSION_SHIFT = 16;
 export const VERSION_MASK = 0xff;
@@ -36,6 +38,18 @@ export const setPreviewBit = (blockValue: number): number => {
 
 export const clearPreviewBit = (blockValue: number): number => {
   return blockValue & CLEAR_PREVIEW_BIT_MASK;
+};
+
+export const isSelected = (blockValue: number): boolean => {
+  return (blockValue & SELECTED_BIT_MASK) !== 0;
+};
+
+export const setSelectedBit = (blockValue: number): number => {
+  return blockValue | SELECTED_BIT_MASK;
+};
+
+export const clearSelectedBit = (blockValue: number): number => {
+  return blockValue & CLEAR_SELECTED_BIT_MASK;
 };
 
 export const encodeBlockData = (
@@ -200,44 +214,4 @@ export const getVoxelAt = (
   }
 
   return decompressedData[voxelIndex];
-};
-
-/**
- * Decompresses selection data using the NormalCompression format:
- * 1. LZ4 decompression
- * 2. Run-length decoding (count: 2 bytes + value: 4 bytes per run)
- */
-export const decompressSelectionData = (
-  compressedData: Uint8Array | number[]
-): Uint32Array => {
-  const data =
-    compressedData instanceof Uint8Array
-      ? compressedData
-      : new Uint8Array(compressedData);
-
-  // First decompress LZ4
-  const rleData = LZ4.decompress(data);
-  const rleBytes = new Uint8Array(rleData);
-
-  // Then decompress RLE (NormalCompression format)
-  const decoded: number[] = [];
-
-  for (let i = 0; i < rleBytes.length; i += 6) {
-    // Read count (2 bytes, little-endian)
-    const count = rleBytes[i] | (rleBytes[i + 1] << 8);
-
-    // Read value (4 bytes, little-endian)
-    const value =
-      rleBytes[i + 2] |
-      (rleBytes[i + 3] << 8) |
-      (rleBytes[i + 4] << 16) |
-      (rleBytes[i + 5] << 24);
-
-    // Add the value 'count' times
-    for (let j = 0; j < count; j++) {
-      decoded.push(value >>> 0); // Ensure unsigned 32-bit
-    }
-  }
-
-  return new Uint32Array(decoded);
 };

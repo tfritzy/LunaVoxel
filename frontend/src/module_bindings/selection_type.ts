@@ -31,6 +31,7 @@ export type Selection = {
   id: string,
   identity: __Identity,
   projectId: string,
+  layer: number,
   selectionData: Uint8Array,
 };
 /**
@@ -47,6 +48,7 @@ export const Selection = {
         { name: "id", algebraicType: __AlgebraicTypeValue.String},
         { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType()},
         { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
+        { name: "layer", algebraicType: __AlgebraicTypeValue.I32},
         { name: "selectionData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8)},
       ]
     });

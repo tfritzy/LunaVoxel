@@ -11,10 +11,7 @@ import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
-import {
-  decompressVoxelData,
-  decompressSelectionData,
-} from "./voxel-data-utils";
+import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { getBlockType } from "./voxel-data-utils";
@@ -137,7 +134,7 @@ export class ProjectManager {
   ): DecompressedSelection => {
     return {
       ...selection,
-      selectionData: decompressSelectionData(selection.selectionData),
+      selectionData: decompressVoxelData(selection.selectionData),
     };
   };
 
@@ -190,6 +187,7 @@ export class ProjectManager {
 
     const decompressedSelection = this.decompressSelection(newSelection);
     this.selections = [...this.selections, decompressedSelection];
+    this.updateChunkManager();
   };
 
   private onSelectionUpdate = (
@@ -203,6 +201,7 @@ export class ProjectManager {
     this.selections = this.selections.map((s) =>
       s.id === newSelection.id ? decompressedSelection : s
     );
+    this.updateChunkManager();
   };
 
   private onSelectionDelete = (
@@ -213,6 +212,7 @@ export class ProjectManager {
     this.selections = this.selections.filter(
       (s) => s.id !== deletedSelection.id
     );
+    this.updateChunkManager();
   };
 
   private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
@@ -309,6 +309,7 @@ export class ProjectManager {
     this.chunkManager.update(
       this.layers,
       this.builder.previewBlocks,
+      this.selections,
       this.builder.getTool(),
       this.atlasData
     );

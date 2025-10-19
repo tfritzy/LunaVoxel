@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { ToolType, Vector3 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
-import { DecompressedLayer } from "./project-manager";
+import { DecompressedLayer, DecompressedSelection } from "./project-manager";
 import {
   setPreviewBit,
   clearPreviewBit,
@@ -10,6 +10,7 @@ import {
   isPreview,
   isBlockPresent,
   getVersion,
+  setSelectedBit,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { calculateRectBounds } from "@/lib/rect-utils";
@@ -122,10 +123,7 @@ export class ChunkManager {
     }
   }
 
-  setTextureAtlas = (
-    atlasData: AtlasData,
-    buildMode: ToolType
-  ) => {
+  setTextureAtlas = (atlasData: AtlasData, buildMode: ToolType) => {
     for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
       for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
         for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
@@ -224,6 +222,23 @@ export class ChunkManager {
     }
   }
 
+  private updateSelectionState(
+    selections: DecompressedSelection[],
+    blocks: Uint32Array
+  ): void {
+    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+      for (let i = 0; i < selections.length; i++) {
+        if (selections[i].selectionData[voxelIndex] != 0) {
+          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1; // -1 bc 1 indexed
+          blocks[newVoxelPos] = setSelectedBit(blocks[voxelIndex]);
+          if (newVoxelPos != voxelIndex) {
+            blocks[voxelIndex] = 0;
+          }
+        }
+      }
+    }
+  }
+
   public applyOptimisticRect(
     layer: DecompressedLayer,
     tool: ToolType,
@@ -280,6 +295,7 @@ export class ChunkManager {
   update = (
     layers: DecompressedLayer[],
     previewBlocks: Uint32Array,
+    selections: DecompressedSelection[],
     buildMode: ToolType,
     atlasData: AtlasData
   ) => {
@@ -287,6 +303,10 @@ export class ChunkManager {
       const visibleLayers = layers
         .filter((layer) => layer.visible)
         .sort((l1, l2) => l2.index - l1.index);
+
+      const visibleSelections = selections.filter(
+        (s) => layers[s.layer]?.visible
+      );
 
       if (visibleLayers.length === 0) {
         this.clearBlocks(this.blocksToRender);
@@ -300,9 +320,9 @@ export class ChunkManager {
       }
 
       this.updatePreviewState(previewBlocks, this.blocksToRender, buildMode);
+      this.updateSelectionState(visibleSelections, this.blocksToRender);
 
       const chunksToUpdate = new Set<string>();
-
       for (let i = 0; i < this.blocksToRender.length; i++) {
         if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
           const z = i % this.dimensions.z;

@@ -126,7 +126,7 @@ public static partial class Module
                 continue;
             }
 
-            selectionData[currentIndex] = 1;
+            selectionData[currentIndex] = (uint)currentIndex + 1;
             selectedCount++;
 
             for (int i = 0; i < 6; i++)

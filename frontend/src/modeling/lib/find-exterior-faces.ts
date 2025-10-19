@@ -6,7 +6,12 @@ import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
-import { getBlockType, isBlockPresent, isPreview } from "./voxel-data-utils";
+import {
+  getBlockType,
+  isBlockPresent,
+  isPreview,
+  isSelected,
+} from "./voxel-data-utils";
 
 export const DISABLE_GREEDY_MESHING = false;
 
@@ -17,15 +22,18 @@ export const findExteriorFaces = (
   chunkDimensions: Vector3,
   meshArrays: MeshArrays,
   previewMeshArrays: MeshArrays,
+  selectionMeshArrays: MeshArrays,
   previewHidden: boolean
 ): void => {
   meshArrays.reset();
   previewMeshArrays.reset();
+  selectionMeshArrays.reset();
 
   const maskSize =
     Math.max(chunkDimensions.x, chunkDimensions.y, chunkDimensions.z) ** 2;
   const realMask = new Int16Array(maskSize);
   const previewMask = new Int16Array(maskSize);
+  const selectionMask = new Int16Array(maskSize);
   const processed = new Uint8Array(maskSize);
   const aoMask = new Uint8Array(maskSize);
 
@@ -52,20 +60,20 @@ export const findExteriorFaces = (
       axis === 0
         ? chunkDimensions.x
         : axis === 1
-        ? chunkDimensions.y
-        : chunkDimensions.z;
+          ? chunkDimensions.y
+          : chunkDimensions.z;
     const uSize =
       u === 0
         ? chunkDimensions.x
         : u === 1
-        ? chunkDimensions.y
-        : chunkDimensions.z;
+          ? chunkDimensions.y
+          : chunkDimensions.z;
     const vSize =
       v === 0
         ? chunkDimensions.x
         : v === 1
-        ? chunkDimensions.y
-        : chunkDimensions.z;
+          ? chunkDimensions.y
+          : chunkDimensions.z;
 
     for (let dir = -1; dir <= 1; dir += 2) {
       const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
@@ -73,6 +81,7 @@ export const findExteriorFaces = (
       for (let d = 0; d < axisSize; d++) {
         realMask.fill(-1, 0, uSize * vSize);
         previewMask.fill(-1, 0, uSize * vSize);
+        selectionMask.fill(-1, 0, uSize * vSize);
         aoMask.fill(0, 0, uSize * vSize);
 
         for (let iu = 0; iu < uSize; iu++) {
@@ -86,6 +95,7 @@ export const findExteriorFaces = (
             const blockValue = chunkData[x][y][z];
             const blockPresent = isBlockPresent(blockValue);
             const blockIsPreview = isPreview(blockValue);
+            const blockIsSelected = isSelected(blockValue);
             const blockType = Math.max(getBlockType(blockValue), 1);
 
             const nx = x + (axis === 0 ? dir : 0);
@@ -122,6 +132,17 @@ export const findExteriorFaces = (
                   realMask[maskIndex] = textureIndex;
                 }
               }
+
+              if (blockIsSelected) {
+                const neighborIsSelected = isSelected(neighborValue);
+                const shouldRenderSelectionFace = !neighborIsSelected;
+
+                if (shouldRenderSelectionFace) {
+                  const textureIndex =
+                    blockAtlasMappings[blockType - 1][faceDir];
+                  selectionMask[maskIndex] = textureIndex;
+                }
+              }
             }
           }
         }
@@ -155,6 +176,21 @@ export const findExteriorFaces = (
           faceDir,
           textureWidth,
           previewMeshArrays
+        );
+        generateGreedyMesh(
+          selectionMask,
+          aoMask,
+          processed,
+          uSize,
+          vSize,
+          d,
+          axis,
+          u,
+          v,
+          dir,
+          faceDir,
+          textureWidth,
+          selectionMeshArrays
         );
       }
     }

@@ -346,23 +346,20 @@ export const Builder = class {
       return;
     }
 
-    if (this.currentTool.tag === "MagicSelect") {
-      if (!this.dbConn.isActive) return;
-
-      this.dbConn.reducers.magicSelect(
-        this.projectId,
-        this.selectedLayer,
-        position
-      );
-      return;
-    }
-
     if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    this.modifyBlock(this.currentTool, startPos, endPos);
+    if (this.currentTool.tag === "MagicSelect") {
+      this.dbConn.reducers.magicSelect(
+        this.projectId,
+        this.selectedLayer,
+        position
+      );
+    } else {
+      this.modifyBlock(this.currentTool, startPos, endPos);
+    }
 
     this.isMouseDown = false;
     this.startPosition = null;

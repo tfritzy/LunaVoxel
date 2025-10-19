@@ -14,9 +14,11 @@ export class ChunkMesh {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private previewMesh: THREE.Mesh | null = null;
+  private selectionMesh: THREE.Mesh | null = null;
 
   private meshArrays: MeshArrays;
   private previewMeshArrays: MeshArrays;
+  private selectionMeshArrays: MeshArrays;
   private chunkX: number;
   private chunkY: number;
   private chunkZ: number;
@@ -46,6 +48,7 @@ export class ChunkMesh {
 
     this.meshArrays = new MeshArrays(maxVertices, maxIndices);
     this.previewMeshArrays = new MeshArrays(maxVertices, maxIndices);
+    this.selectionMeshArrays = new MeshArrays(maxVertices, maxIndices);
 
     this.voxelData = [];
     for (let x = 0; x < chunkDimensions.x; x++) {
@@ -101,6 +104,11 @@ export class ChunkMesh {
         atlasData.texture;
       (this.previewMesh.material as THREE.ShaderMaterial).needsUpdate = true;
     }
+    if (this.selectionMesh?.material) {
+      (this.selectionMesh.material as THREE.ShaderMaterial).uniforms.map.value =
+        atlasData.texture;
+      (this.selectionMesh.material as THREE.ShaderMaterial).needsUpdate = true;
+    }
   };
 
   update = (buildMode: ToolType, atlasData: AtlasData) => {
@@ -111,11 +119,13 @@ export class ChunkMesh {
       this.chunkDimensions,
       this.meshArrays,
       this.previewMeshArrays,
+      this.selectionMeshArrays,
       buildMode.tag === ToolType.Erase.tag
     );
 
     this.updateMesh(atlasData);
     this.updatePreviewMesh(buildMode, atlasData);
+    this.updateSelectionMesh(atlasData);
   };
 
   private updateMesh = (atlasData: AtlasData): void => {
@@ -218,9 +228,7 @@ export class ChunkMesh {
       buildMode.tag === ToolType.Build.tag ||
       buildMode.tag === ToolType.Paint.tag;
     this.previewMesh.layers.set(
-      buildMode.tag === ToolType.Build.tag
-        ? layers.ghost
-        : layers.raycast
+      buildMode.tag === ToolType.Build.tag ? layers.ghost : layers.raycast
     );
 
     this.previewMesh.geometry.attributes.position.needsUpdate = true;
@@ -244,6 +252,68 @@ export class ChunkMesh {
     this.previewMesh.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
 
+  private updateSelectionMesh = (atlasData: AtlasData): void => {
+    if (!this.selectionMesh) {
+      const geometry = new THREE.BufferGeometry();
+      const material = createVoxelMaterial(atlasData.texture, 0.5);
+      this.selectionMesh = new THREE.Mesh(geometry, material);
+
+      this.selectionMesh.position.set(
+        this.chunkX * CHUNK_SIZE,
+        this.chunkY * CHUNK_SIZE,
+        this.chunkZ * CHUNK_SIZE
+      );
+
+      this.scene.add(this.selectionMesh);
+    }
+
+    this.selectionMesh.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(this.selectionMeshArrays.getVertices(), 3)
+    );
+    this.selectionMesh.geometry.setAttribute(
+      "normal",
+      new THREE.BufferAttribute(this.selectionMeshArrays.getNormals(), 3)
+    );
+    this.selectionMesh.geometry.setAttribute(
+      "uv",
+      new THREE.BufferAttribute(this.selectionMeshArrays.getUVs(), 2)
+    );
+    this.selectionMesh.geometry.setAttribute(
+      "aochannel",
+      new THREE.BufferAttribute(this.selectionMeshArrays.getAO(), 1)
+    );
+    this.selectionMesh.geometry.setIndex(
+      new THREE.BufferAttribute(this.selectionMeshArrays.getIndices(), 1)
+    );
+
+    this.selectionMesh.visible = this.selectionMeshArrays.vertexCount > 0;
+    console.log(this.selectionMesh.visible, "visible?");
+
+    this.selectionMesh.geometry.attributes.position.needsUpdate = true;
+    this.selectionMesh.geometry.attributes.normal.needsUpdate = true;
+    this.selectionMesh.geometry.attributes.uv.needsUpdate = true;
+    this.selectionMesh.geometry.attributes.aochannel.needsUpdate = true;
+    if (this.selectionMesh.geometry.index) {
+      this.selectionMesh.geometry.index.needsUpdate = true;
+    }
+
+    const center = new THREE.Vector3(
+      this.chunkDimensions.x / 2,
+      this.chunkDimensions.y / 2,
+      this.chunkDimensions.z / 2
+    );
+    const radius = Math.sqrt(
+      (this.chunkDimensions.x / 2) ** 2 +
+        (this.chunkDimensions.y / 2) ** 2 +
+        (this.chunkDimensions.z / 2) ** 2
+    );
+    this.selectionMesh.geometry.boundingSphere = new THREE.Sphere(
+      center,
+      radius
+    );
+  };
+
   dispose = () => {
     if (this.mesh) {
       this.scene.remove(this.mesh);
@@ -263,6 +333,13 @@ export class ChunkMesh {
       this.previewMesh.geometry.dispose();
       (this.previewMesh.material as THREE.Material).dispose();
       this.previewMesh = null;
+    }
+
+    if (this.selectionMesh) {
+      this.scene.remove(this.selectionMesh);
+      this.selectionMesh.geometry.dispose();
+      (this.selectionMesh.material as THREE.Material).dispose();
+      this.selectionMesh = null;
     }
   };
 }

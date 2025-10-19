@@ -130,7 +130,7 @@ public static partial class Module
         // Byte 1: [NA_15][NA_14][NA_13][NA_12][NA_11][NA_10][NA_9][NA_8]
         // Byte 2: [VERSION_7][VERSION_6][VERSION_5][VERSION_4][VERSION_3][VERSION_2][VERSION_1][VERSION_0]
         // Byte 3: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
-        // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][UNUSED][UNUSED][ROT_2][ROT_1][ROT_0]
+        // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][IS_SELECTED][UNUSED][ROT_2][ROT_1][ROT_0]
         // note: Is preview is only used client side
         public byte[] Voxels = [];
         public bool Visible;
@@ -180,6 +180,8 @@ public static partial class Module
         public Identity Identity;
 
         public string ProjectId;
+
+        public int Layer;
 
         // Compressed RLE then LZ4
         // A 1 indexed mapping of selected blocks and where they are now. The index
