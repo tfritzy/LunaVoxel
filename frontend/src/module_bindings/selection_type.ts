@@ -27,7 +27,7 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
 } from "spacetimedb";
 
-export type Selections = {
+export type Selection = {
   id: string,
   identity: __Identity,
   projectId: string,
@@ -36,7 +36,7 @@ export type Selections = {
 /**
  * An object for generated helper functions.
  */
-export const Selections = {
+export const Selection = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -52,16 +52,16 @@ export const Selections = {
     });
   },
 
-  serialize(writer: __BinaryWriter, value: Selections): void {
-    __AlgebraicTypeValue.serializeValue(writer, Selections.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: Selection): void {
+    __AlgebraicTypeValue.serializeValue(writer, Selection.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): Selections {
-    return __AlgebraicTypeValue.deserializeValue(reader, Selections.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): Selection {
+    return __AlgebraicTypeValue.deserializeValue(reader, Selection.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default Selections;
+export default Selection;
 
 

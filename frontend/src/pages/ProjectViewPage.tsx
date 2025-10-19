@@ -82,6 +82,7 @@ export const ProjectViewPage = () => {
         `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
         `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
         `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
+        `SELECT * FROM selections WHERE ProjectId='${projectId}'`,
         `SELECT * FROM user_projects`,
       ]);
 
@@ -91,7 +92,10 @@ export const ProjectViewPage = () => {
   }, [connection, projectId]);
 
   useEffect(() => {
-    engineRef.current?.projectManager?.builder?.setSelectedBlock(selectedBlock, setSelectedBlock);
+    engineRef.current?.projectManager?.builder?.setSelectedBlock(
+      selectedBlock,
+      setSelectedBlock
+    );
   }, [selectedBlock]);
 
   useEffect(() => {
@@ -127,7 +131,10 @@ export const ProjectViewPage = () => {
           initialCameraState: savedCameraState || undefined,
         });
 
-        engineRef.current.projectManager.builder.setSelectedBlock(selectedBlock, setSelectedBlock);
+        engineRef.current.projectManager.builder.setSelectedBlock(
+          selectedBlock,
+          setSelectedBlock
+        );
         engineRef.current.projectManager.setTool(currentTool);
         engineRef.current.projectManager.setAtlasData(atlasData);
       });
@@ -191,7 +198,7 @@ export const ProjectViewPage = () => {
           <SignInModal
             title="Sign in"
             subheader="To continue to LunaVoxel"
-            onSignIn={() => { }}
+            onSignIn={() => {}}
           />
         ) : (
           <div className="bg-background border border-border rounded-lg p-12 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">

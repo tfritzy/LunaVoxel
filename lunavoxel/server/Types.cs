@@ -172,7 +172,7 @@ public static partial class Module
 
     [Table(Name = "selections", Public = true)]
     [SpacetimeDB.Index.BTree(Columns = new[] { nameof(Identity), nameof(ProjectId) })]
-    public partial class Selections
+    public partial class Selection
     {
         [PrimaryKey]
         public string Id;

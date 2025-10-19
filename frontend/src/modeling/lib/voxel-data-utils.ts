@@ -1,4 +1,4 @@
-import LZ4 from 'lz4js';
+import LZ4 from "lz4js";
 
 export const PREVIEW_BIT_MASK = 0x08;
 export const BLOCK_TYPE_SHIFT = 6;
@@ -96,7 +96,7 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
   }
 
   const runCount = countRuns(data);
-  const totalSize = 4 + (runCount * 6);
+  const totalSize = 4 + runCount * 6;
   const compressed = new Uint8Array(totalSize);
 
   const originalLength = data.length;
@@ -136,10 +136,7 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
 
 const rleDecompress = (rleData: Uint8Array): Uint32Array => {
   const originalLength =
-    rleData[0] |
-    (rleData[1] << 8) |
-    (rleData[2] << 16) |
-    (rleData[3] << 24);
+    rleData[0] | (rleData[1] << 8) | (rleData[2] << 16) | (rleData[3] << 24);
 
   const dataStartIndex = 4;
 
@@ -178,9 +175,10 @@ export const compressVoxelData = (
 export const decompressVoxelData = (
   compressedData: Uint8Array | number[]
 ): Uint32Array => {
-  const data = compressedData instanceof Uint8Array
-    ? compressedData
-    : new Uint8Array(compressedData);
+  const data =
+    compressedData instanceof Uint8Array
+      ? compressedData
+      : new Uint8Array(compressedData);
 
   const rleData = LZ4.decompress(data);
 
@@ -202,4 +200,44 @@ export const getVoxelAt = (
   }
 
   return decompressedData[voxelIndex];
+};
+
+/**
+ * Decompresses selection data using the NormalCompression format:
+ * 1. LZ4 decompression
+ * 2. Run-length decoding (count: 2 bytes + value: 4 bytes per run)
+ */
+export const decompressSelectionData = (
+  compressedData: Uint8Array | number[]
+): Uint32Array => {
+  const data =
+    compressedData instanceof Uint8Array
+      ? compressedData
+      : new Uint8Array(compressedData);
+
+  // First decompress LZ4
+  const rleData = LZ4.decompress(data);
+  const rleBytes = new Uint8Array(rleData);
+
+  // Then decompress RLE (NormalCompression format)
+  const decoded: number[] = [];
+
+  for (let i = 0; i < rleBytes.length; i += 6) {
+    // Read count (2 bytes, little-endian)
+    const count = rleBytes[i] | (rleBytes[i + 1] << 8);
+
+    // Read value (4 bytes, little-endian)
+    const value =
+      rleBytes[i + 2] |
+      (rleBytes[i + 3] << 8) |
+      (rleBytes[i + 4] << 16) |
+      (rleBytes[i + 5] << 24);
+
+    // Add the value 'count' times
+    for (let j = 0; j < count; j++) {
+      decoded.push(value >>> 0); // Ensure unsigned 32-bit
+    }
+  }
+
+  return new Uint32Array(decoded);
 };

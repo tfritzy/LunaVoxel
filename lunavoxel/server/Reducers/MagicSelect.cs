@@ -75,7 +75,7 @@ public static partial class Module
         }
         else
         {
-            var newSelection = new Selections
+            var newSelection = new Selection
             {
                 Id = IdGenerator.Generate("sel"),
                 Identity = ctx.Sender,

@@ -5,17 +5,24 @@ import {
   EventContext,
   Layer,
   Project,
+  Selection,
 } from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
-import { decompressVoxelData } from "./voxel-data-utils";
+import {
+  decompressVoxelData,
+  decompressSelectionData,
+} from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { getBlockType } from "./voxel-data-utils";
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
+export type DecompressedSelection = Omit<Selection, "selectionData"> & {
+  selectionData: Uint32Array;
+};
 
 export class ProjectManager {
   public builder;
@@ -24,6 +31,7 @@ export class ProjectManager {
   private dbConn: DbConnection;
   private project: Project;
   private layers: DecompressedLayer[] = [];
+  private selections: DecompressedSelection[] = [];
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
@@ -52,10 +60,15 @@ export class ProjectManager {
       this
     );
 
+    this.dbConn.db.selections.onInsert(this.onSelectionInsert);
+    this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
+    this.dbConn.db.selections.onDelete(this.onSelectionDelete);
+
     this.dbConn.db.layer.onInsert(this.onLayerInsert);
     this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.onDelete(this.onLayerDelete);
     this.setupLayers();
+    this.setupSelections();
   }
 
   public onLocalCursorUpdate = (
@@ -113,25 +126,18 @@ export class ProjectManager {
   };
 
   private decompressLayer = (layer: Layer): DecompressedLayer => {
-    let voxels: Uint32Array;
-
-    if (layer.voxels instanceof Uint32Array) {
-      voxels = layer.voxels;
-    } else if (layer.voxels instanceof Uint8Array) {
-      voxels = decompressVoxelData(layer.voxels);
-    } else if (Array.isArray(layer.voxels)) {
-      voxels = decompressVoxelData(layer.voxels);
-    } else {
-      const totalSize =
-        this.project.dimensions.x *
-        this.project.dimensions.y *
-        this.project.dimensions.z;
-      voxels = new Uint32Array(totalSize);
-    }
-
     return {
       ...layer,
-      voxels,
+      voxels: decompressVoxelData(layer.voxels),
+    };
+  };
+
+  private decompressSelection = (
+    selection: Selection
+  ): DecompressedSelection => {
+    return {
+      ...selection,
+      selectionData: decompressSelectionData(selection.selectionData),
     };
   };
 
@@ -163,6 +169,50 @@ export class ProjectManager {
       .sort((a, b) => a.index - b.index);
 
     this.layers = rawLayers.map(this.decompressLayer);
+  };
+
+  setupSelections = () => {
+    this.refreshSelections();
+    this.updateChunkManager();
+  };
+
+  private refreshSelections = () => {
+    const rawSelections = (
+      this.dbConn.db.selections.tableCache.iter() as Selection[]
+    ).filter((s) => s.projectId === this.project.id);
+
+    this.selections = rawSelections.map(this.decompressSelection);
+  };
+
+  private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
+    if (newSelection.projectId !== this.project.id) return;
+    if (this.selections.some((s) => s.id === newSelection.id)) return;
+
+    const decompressedSelection = this.decompressSelection(newSelection);
+    this.selections = [...this.selections, decompressedSelection];
+  };
+
+  private onSelectionUpdate = (
+    ctx: EventContext,
+    oldSelection: Selection,
+    newSelection: Selection
+  ) => {
+    if (newSelection.projectId !== this.project.id) return;
+
+    const decompressedSelection = this.decompressSelection(newSelection);
+    this.selections = this.selections.map((s) =>
+      s.id === newSelection.id ? decompressedSelection : s
+    );
+  };
+
+  private onSelectionDelete = (
+    ctx: EventContext,
+    deletedSelection: Selection
+  ) => {
+    if (deletedSelection.projectId !== this.project.id) return;
+    this.selections = this.selections.filter(
+      (s) => s.id !== deletedSelection.id
+    );
   };
 
   private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
@@ -275,6 +325,9 @@ export class ProjectManager {
     this.builder.dispose();
     this.chunkManager.dispose();
     this.cursorManager.dispose();
+    this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
+    this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
+    this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
     this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);

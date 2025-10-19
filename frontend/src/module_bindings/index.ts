@@ -106,8 +106,8 @@ import { Project } from "./project_type.ts";
 export { Project };
 import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
-import { Selections } from "./selections_type.ts";
-export { Selections };
+import { Selection } from "./selection_type.ts";
+export { Selection };
 import { ToolType } from "./tool_type_type.ts";
 export { ToolType };
 import { User } from "./user_type.ts";
@@ -159,11 +159,11 @@ const REMOTE_MODULE = {
     },
     selections: {
       tableName: "selections",
-      rowType: Selections.getTypeScriptAlgebraicType(),
+      rowType: Selection.getTypeScriptAlgebraicType(),
       primaryKey: "id",
       primaryKeyInfo: {
         colName: "id",
-        colType: (Selections.getTypeScriptAlgebraicType() as __AlgebraicTypeVariants.Product).value.elements[0].algebraicType,
+        colType: (Selection.getTypeScriptAlgebraicType() as __AlgebraicTypeVariants.Product).value.elements[0].algebraicType,
       },
     },
     user: {
@@ -849,7 +849,7 @@ export class RemoteTables {
 
   get selections(): SelectionsTableHandle {
     // clientCache is a private property
-    return new SelectionsTableHandle((this.connection as unknown as { clientCache: __ClientCache }).clientCache.getOrCreateTable<Selections>(REMOTE_MODULE.tables.selections));
+    return new SelectionsTableHandle((this.connection as unknown as { clientCache: __ClientCache }).clientCache.getOrCreateTable<Selection>(REMOTE_MODULE.tables.selections));
   }
 
   get user(): UserTableHandle {
