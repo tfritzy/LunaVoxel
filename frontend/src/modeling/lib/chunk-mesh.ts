@@ -255,7 +255,7 @@ export class ChunkMesh {
   private updateSelectionMesh = (atlasData: AtlasData): void => {
     if (!this.selectionMesh) {
       const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(atlasData.texture, 0.5);
+      const material = createVoxelMaterial(atlasData.texture, 1, true);
       this.selectionMesh = new THREE.Mesh(geometry, material);
 
       this.selectionMesh.position.set(

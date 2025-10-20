@@ -5,11 +5,13 @@ attribute float aochannel;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying float vAO;
+varying vec3 vWorldPosition;
 
 void main() {
   vUv = uv;
   vNormal = normalize(mat3(modelMatrix) * normal);
   vAO = aochannel;
+  vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
  
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
@@ -18,9 +20,11 @@ void main() {
 const fragmentShader = `
 uniform sampler2D map;
 uniform float opacity;
+uniform bool showGrid;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying float vAO;
+varying vec3 vWorldPosition;
 
 void main() {
   vec4 textureColor = texture2D(map, vUv);
@@ -40,6 +44,31 @@ void main() {
   }
  
   vec3 finalColor = textureColor.rgb * darknessFactor * vAO;
+  
+  if (showGrid) {
+    float lineWidth = 0.025;
+    vec3 gridPos = fract(vWorldPosition);
+    
+    float gridLine = 0.0;
+    
+    if (gridPos.x > 0.0 && gridPos.x < 1.0) {
+      if (gridPos.x < lineWidth || gridPos.x > 1.0 - lineWidth) {
+        gridLine = 1.0;
+      }
+    }
+    if (gridPos.y > 0.0 && gridPos.y < 1.0){
+      if (gridPos.y < lineWidth || gridPos.y > 1.0 - lineWidth) {
+        gridLine = 1.0;
+      }
+    }
+    if (gridPos.z > 0.0 && gridPos.z < 1.0){
+      if (gridPos.z < lineWidth || gridPos.z > 1.0 - lineWidth) {
+        gridLine = 1.0;
+      }
+    }
+    
+    finalColor = mix(finalColor, vec3(1.0), gridLine * 0.5);
+  }
  
   gl_FragColor = vec4(finalColor, textureColor.a * opacity);
 }
@@ -47,12 +76,14 @@ void main() {
 
 export const createVoxelMaterial = (
   textureAtlas: THREE.Texture | null,
-  opacity: number = 1
+  opacity: number = 1,
+  showGrid: boolean = false
 ) => {
   return new THREE.ShaderMaterial({
     uniforms: {
       map: { value: textureAtlas },
       opacity: { value: opacity },
+      showGrid: { value: showGrid },
     },
     vertexShader,
     fragmentShader,
