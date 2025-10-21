@@ -109,7 +109,7 @@ export class VoxelEngine {
       this.project.dimensions.z
     );
 
-    const fov = 75;
+    const fov = 50;
     const fovRadians = (fov * Math.PI) / 180;
     const horizontalDistance =
       maxHorizontalDimension / 2 / Math.tan(fovRadians / 2);

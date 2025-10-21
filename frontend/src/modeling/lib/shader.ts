@@ -34,7 +34,7 @@ void main() {
   float darknessFactor = 1.0;
  
   if (abs(normal.y - 1.0) < 0.1) {
-    darknessFactor = 1.0;
+    darknessFactor = .95;
   } else if (abs(normal.y + 1.0) < 0.1) {
     darknessFactor = 0.6;
   } else if (abs(normal.x) > 0.9) {
