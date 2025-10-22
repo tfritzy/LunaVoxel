@@ -3,7 +3,7 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Reducer]
-    public static void ModifyBlock(ReducerContext ctx, string projectId, uint[] diffData, int layerIndex)
+    public static void ModifyBlock(ReducerContext ctx, string projectId, Vector3 startPos, uint[] diffData, int layerIndex)
     {
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 

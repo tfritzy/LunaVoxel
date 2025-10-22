@@ -7,6 +7,7 @@ public static partial class Module
     public static void ModifyBlockAmorphous(
         ReducerContext ctx,
         string projectId,
+        Vector3 diffStartPos,
         byte[] compressedDiffData,
         int layerIndex)
     {

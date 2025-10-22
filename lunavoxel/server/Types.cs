@@ -1,33 +1,10 @@
+using System.Numerics;
 using SpacetimeDB;
 using SpacetimeDB.Internal.TableHandles;
 
 public static partial class Module
 {
-#pragma warning disable STDB_UNSTABLE
-    //     [SpacetimeDB.ClientVisibilityFilter]
-    //     public static readonly Filter USER_PROJECTS_FILTER = new Filter.Sql(
-    //         "SELECT * FROM user_projects WHERE user_projects.User = :sender"
-    //     );
-
-    //     [SpacetimeDB.ClientVisibilityFilter]
-    //     public static readonly Filter PROJECT_FILTER = new Filter.Sql(
-    //        "SELECT projects.* FROM projects JOIN user_projects ON user_projects.ProjectId = projects.Id"
-    //    );
-
-    //     [SpacetimeDB.ClientVisibilityFilter]
-    //     public static readonly Filter PLAYER_CURSOR_FILTER = new Filter.Sql(
-    //         "SELECT player_cursor.* FROM player_cursor JOIN user_projects ON user_projects.ProjectId = player_cursor.ProjectId"
-    //     );
-
-    //     [SpacetimeDB.ClientVisibilityFilter]
-    //     public static readonly Filter LAYER_FILTER = new Filter.Sql(
-    //         "SELECT layer.* FROM layer JOIN user_projects ON user_projects.ProjectId = layer.ProjectId"
-    //     );
-
-    //     [SpacetimeDB.ClientVisibilityFilter]
-    //     public static readonly Filter BLOCK_FILTER = new Filter.Sql(
-    //         "SELECT project_blocks.* FROM project_blocks JOIN user_projects ON user_projects.ProjectId = project_blocks.ProjectId"
-    //     );
+    public const int CHUNK_SIZE = 16;
 
     [Table(Name = "projects", Public = true)]
     public partial class Project
@@ -120,6 +97,42 @@ public static partial class Module
         public int yDim;
         public int zDim;
         public int Index;
+        public bool Visible;
+        public bool Locked;
+        public string Name;
+
+        public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
+        {
+            return new Layer
+            {
+                Id = IdGenerator.Generate("lyr"),
+                ProjectId = projectId,
+                xDim = xDim,
+                yDim = yDim,
+                zDim = zDim,
+                Index = index,
+                Visible = true,
+                Locked = false,
+                Name = $"Layer {index}"
+            };
+        }
+    }
+
+    [Table(Name = "chunk", Public = true)]
+    [SpacetimeDB.Index.BTree(Columns = new[] { nameof(ProjectId), nameof(LayerId) })]
+    public partial class Chunk
+    {
+        [PrimaryKey]
+        public string Id;
+
+        public string ProjectId;
+
+        public string LayerId;
+
+        // Start pos of the chunk on the xz plane. Chunk goes all the way up in height.
+        public int StartX;
+        public int startZ;
+
         // Compressed format: byte array with 6-byte groups [vL0, vL1, vH0, vH1, rL0, rL1]
         // Where each voxel is a 32-bit int split into bytes:
         // vL0, vL1: lower 16 bits of voxel data (little-endian)
@@ -133,28 +146,21 @@ public static partial class Module
         // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][IS_SELECTED][UNUSED][ROT_2][ROT_1][ROT_0]
         // note: Is preview is only used client side
         public byte[] Voxels = [];
-        public bool Visible;
-        public bool Locked;
-        public string Name;
 
-        public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
+        public static Chunk Build(string projectId, string layerId, int startX, int startZ, int height)
         {
             uint empty = VoxelDataUtils.EncodeBlockData(0, 0, 1);
-            var voxels = new uint[xDim * yDim * zDim];
+            var voxels = new uint[CHUNK_SIZE * CHUNK_SIZE * height];
             Array.Fill(voxels, empty);
 
-            return new Layer
+            return new Chunk
             {
-                Id = IdGenerator.Generate("lyr"),
+                Id = IdGenerator.Generate("chnk"),
                 ProjectId = projectId,
-                xDim = xDim,
-                yDim = yDim,
-                zDim = zDim,
-                Index = index,
                 Voxels = VoxelCompression.Compress(voxels),
-                Visible = true,
-                Locked = false,
-                Name = $"Layer {index}"
+                LayerId = layerId,
+                StartX = startX,
+                startZ = startZ
             };
         }
     }

@@ -1,4 +1,5 @@
 using SpacetimeDB;
+using System;
 using System.Linq;
 
 public static partial class Module
@@ -8,7 +9,6 @@ public static partial class Module
         ReducerContext ctx,
         string projectId)
     {
-        Log.Info("Add layer called for " + projectId);
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
         var project = ctx.Db.projects.Id.Find(projectId) ?? throw new ArgumentException("Project not found");
@@ -20,14 +20,38 @@ public static partial class Module
             throw new ArgumentException("Max of 10 layers reached");
         }
 
+        AddLayerAndChunks(ctx, project, nextIndex);
+    }
+
+    public static void AddLayerAndChunks(ReducerContext ctx, Project project, int index)
+    {
         var newLayer = Layer.Build(
-            projectId,
+            project.Id,
             project.Dimensions.X,
             project.Dimensions.Y,
             project.Dimensions.Z,
-            nextIndex
+            index
         );
         ctx.Db.layer.Insert(newLayer);
-        Log.Info("Added layer called for " + projectId);
+
+        int chunksX = (int)Math.Ceiling((double)project.Dimensions.X / CHUNK_SIZE);
+        int chunksZ = (int)Math.Ceiling((double)project.Dimensions.Z / CHUNK_SIZE);
+        for (int x = 0; x < chunksX; x++)
+        {
+            for (int z = 0; z < chunksZ; z++)
+            {
+                int startX = x * CHUNK_SIZE;
+                int startZ = z * CHUNK_SIZE;
+
+                var chunk = Chunk.Build(
+                    project.Id,
+                    newLayer.Id,
+                    startX,
+                    startZ,
+                    project.Dimensions.Y
+                );
+                ctx.Db.chunk.Insert(chunk);
+            }
+        }
     }
 }
