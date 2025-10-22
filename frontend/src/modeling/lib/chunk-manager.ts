@@ -9,7 +9,6 @@ import {
   getBlockType,
   isPreview,
   isBlockPresent,
-  getVersion,
   setSelectedBit,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
@@ -262,26 +261,17 @@ export class ChunkManager {
           const idx = base + z;
           const currentVal = layer.voxels[idx];
           const currentType = getBlockType(currentVal);
-          const currentVersion = getVersion(currentVal);
 
           switch (tool.tag) {
             case ToolType.Build.tag:
-              layer.voxels[idx] = encodeBlockData(
-                blockType,
-                rotation,
-                currentVersion + 1
-              );
+              layer.voxels[idx] = encodeBlockData(blockType, rotation);
               break;
             case ToolType.Erase.tag:
-              layer.voxels[idx] = encodeBlockData(0, 0, currentVersion + 1);
+              layer.voxels[idx] = encodeBlockData(0, 0);
               break;
             case ToolType.Paint.tag:
               if (currentType !== 0) {
-                layer.voxels[idx] = encodeBlockData(
-                  blockType,
-                  0,
-                  currentVersion + 1
-                );
+                layer.voxels[idx] = encodeBlockData(blockType, 0);
               }
               break;
             default:

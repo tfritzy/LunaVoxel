@@ -8,10 +8,6 @@ export const ROTATION_MASK = 0x07;
 export const CLEAR_PREVIEW_BIT_MASK = 0xfffffff7;
 export const CLEAR_SELECTED_BIT_MASK = 0xffffffef;
 
-export const VERSION_SHIFT = 16;
-export const VERSION_MASK = 0xff;
-export const CLEAR_VERSION_MASK = 0xff00ffff;
-
 export const getBlockType = (blockValue: number): number => {
   return (blockValue >> BLOCK_TYPE_SHIFT) & BLOCK_TYPE_MASK;
 };
@@ -54,33 +50,15 @@ export const clearSelectedBit = (blockValue: number): number => {
 
 export const encodeBlockData = (
   blockType: number,
-  rotation: number,
-  version?: number
+  rotation: number
 ): number => {
   const wrappedBlockType = blockType & BLOCK_TYPE_MASK;
   const wrappedRotation = rotation & ROTATION_MASK;
-  let wrappedVersion = (version ?? 1) & VERSION_MASK;
-  if (wrappedVersion === 0) wrappedVersion = 1;
-  return (
-    (wrappedBlockType << BLOCK_TYPE_SHIFT) |
-    wrappedRotation |
-    (wrappedVersion << VERSION_SHIFT)
-  );
+  return (wrappedBlockType << BLOCK_TYPE_SHIFT) | wrappedRotation;
 };
 
 export const getRotation = (blockValue: number): number => {
   return blockValue & ROTATION_MASK;
-};
-
-export const getVersion = (blockValue: number): number => {
-  return (blockValue >>> VERSION_SHIFT) & VERSION_MASK;
-};
-
-export const setVersion = (blockValue: number, version: number): number => {
-  return (
-    (blockValue & CLEAR_VERSION_MASK) |
-    ((version & VERSION_MASK) << VERSION_SHIFT)
-  );
 };
 
 const countRuns = (data: number[]): number => {

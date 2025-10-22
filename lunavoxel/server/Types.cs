@@ -120,6 +120,7 @@ public static partial class Module
 
     [Table(Name = "chunk", Public = true)]
     [SpacetimeDB.Index.BTree(Columns = new[] { nameof(ProjectId), nameof(LayerId) })]
+    [SpacetimeDB.Index.BTree(Name = "chunk_location", Columns = new[] { nameof(ProjectId), nameof(LayerId), nameof(StartX), nameof(startZ) })]
     public partial class Chunk
     {
         [PrimaryKey]
@@ -141,15 +142,15 @@ public static partial class Module
         //
         // Voxel format (32-bit int when decompressed):
         // Byte 1: [NA_15][NA_14][NA_13][NA_12][NA_11][NA_10][NA_9][NA_8]
-        // Byte 2: [VERSION_7][VERSION_6][VERSION_5][VERSION_4][VERSION_3][VERSION_2][VERSION_1][VERSION_0]
+        // Byte 2: [NA_7][NA_6][NA_5][NA_4][NA_3][NA_2][NA_1][NA_0]
         // Byte 3: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
-        // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][IS_SELECTED][UNUSED][ROT_2][ROT_1][ROT_0]
-        // note: Is preview is only used client side
+        // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][IS_SELECTED][UNUSED][UNUSED][UNUSED][UNUSED]
+        // note: is_preview and is_selected are only used client side, and will never be stored set.
         public byte[] Voxels = [];
 
         public static Chunk Build(string projectId, string layerId, int startX, int startZ, int height)
         {
-            uint empty = VoxelDataUtils.EncodeBlockData(0, 0, 1);
+            uint empty = VoxelDataUtils.EncodeBlockData(0, 0);
             var voxels = new uint[CHUNK_SIZE * CHUNK_SIZE * height];
             Array.Fill(voxels, empty);
 
@@ -202,26 +203,23 @@ public static partial class Module
     {
         public uint Type;
         public uint Rotation;
-        public uint Version;
 
-        public BlockType(uint type, uint version, uint rotation)
+        public BlockType(uint type, uint rotation)
         {
             Type = type;
-            Version = version;
             Rotation = rotation;
         }
 
         public static BlockType FromInt(uint data)
         {
             uint type = VoxelDataUtils.GetBlockType(data);
-            uint version = VoxelDataUtils.GetVersion(data);
             uint rotation = VoxelDataUtils.GetRotation(data);
-            return new BlockType(type, version, rotation);
+            return new BlockType(type, rotation);
         }
 
         public uint ToInt()
         {
-            return VoxelDataUtils.EncodeBlockData(Type, Version, Rotation);
+            return VoxelDataUtils.EncodeBlockData(Type, Rotation);
         }
     }
 

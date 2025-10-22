@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using SpacetimeDB;
 
 public static partial class Module
@@ -48,33 +50,36 @@ public static partial class Module
         {
             if (layer.Locked) continue;
 
-            uint[] voxels = VoxelCompression.Decompress(layer.Voxels);
-            bool layerModified = false;
+            var chunks = ctx.Db.chunk.ProjectId_LayerId.Filter((projectId, layer.Id)).ToList();
 
-            for (int i = 0; i < voxels.Length; i++)
+            foreach (var chunk in chunks)
             {
-                var blockType = VoxelDataUtils.GetBlockType(voxels[i]);
+                uint[] voxels = VoxelCompression.Decompress(chunk.Voxels);
+                bool chunkModified = false;
 
-                if (blockType == blockIndex)
+                for (int i = 0; i < voxels.Length; i++)
                 {
-                    var rotation = VoxelDataUtils.GetRotation(voxels[i]);
-                    var version = VoxelDataUtils.GetVersion(voxels[i]);
-                    voxels[i] = VoxelDataUtils.EncodeBlockData(replacementBlockType, rotation, version);
-                    layerModified = true;
-                }
-                else if (blockType > blockIndex)
-                {
-                    var rotation = VoxelDataUtils.GetRotation(voxels[i]);
-                    var version = VoxelDataUtils.GetVersion(voxels[i]);
-                    voxels[i] = VoxelDataUtils.EncodeBlockData(blockType - 1, rotation, version);
-                    layerModified = true;
-                }
-            }
+                    var blockType = VoxelDataUtils.GetBlockType(voxels[i]);
 
-            if (layerModified)
-            {
-                layer.Voxels = VoxelCompression.Compress(voxels);
-                ctx.Db.layer.Id.Update(layer);
+                    if (blockType == blockIndex)
+                    {
+                        var rotation = VoxelDataUtils.GetRotation(voxels[i]);
+                        voxels[i] = VoxelDataUtils.EncodeBlockData(replacementBlockType, rotation);
+                        chunkModified = true;
+                    }
+                    else if (blockType > blockIndex)
+                    {
+                        var rotation = VoxelDataUtils.GetRotation(voxels[i]);
+                        voxels[i] = VoxelDataUtils.EncodeBlockData(blockType - 1, rotation);
+                        chunkModified = true;
+                    }
+                }
+
+                if (chunkModified)
+                {
+                    chunk.Voxels = VoxelCompression.Compress(voxels);
+                    ctx.Db.chunk.Id.Update(chunk);
+                }
             }
         }
     }
