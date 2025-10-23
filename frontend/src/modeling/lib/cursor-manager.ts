@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Vector3, DbConnection, PlayerCursor } from "../../module_bindings";
 import { layers } from "./layers";
-import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
+import { Timestamp } from "spacetimedb";
 import { QueryRunner } from "@/lib/queryRunner";
 
 export const CURSOR_COLORS = [

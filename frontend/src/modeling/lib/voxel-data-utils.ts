@@ -1,3 +1,4 @@
+import { Vector3 } from "@/module_bindings";
 import LZ4 from "lz4js";
 
 export const PREVIEW_BIT_MASK = 0x08;
@@ -165,18 +166,30 @@ export const compressVoxelData = (
 };
 
 export const decompressVoxelData = (
-  compressedData: Uint8Array | number[]
-): Uint32Array => {
+  compressedData: Uint8Array | number[],
+  dimensions: Vector3,
+  outputBuffer: Uint32Array[][],
+  rleBuffer: Uint8Array,
+  flatBuffer: Uint32Array
+): void => {
   const data =
     compressedData instanceof Uint8Array
       ? compressedData
       : new Uint8Array(compressedData);
-
-  const rleData = LZ4.decompress(data);
-
-  return rleDecompress(new Uint8Array(rleData));
+  
+  LZ4.decompress(data, rleBuffer);
+  rleDecompress(rleBuffer, flatBuffer);
+  
+  for (let x = 0; x < dimensions.x; x++) {
+    for (let y = 0; y < dimensions.y; y++) {
+      const slice = outputBuffer[x][y];
+      for (let z = 0; z < dimensions.z; z++) {
+        const index = x * dimensions.y * dimensions.z + y * dimensions.z + z;
+        slice[z] = flatBuffer[index];
+      }
+    }
+  }
 };
-
 export const getVoxelAt = (
   compressedData: Uint8Array | number[],
   voxelIndex: number

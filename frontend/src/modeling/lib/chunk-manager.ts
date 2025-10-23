@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { ToolType, Vector3 } from "@/module_bindings";
+import {  Layer, Vector3 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
-import { DecompressedLayer, DecompressedSelection } from "./project-manager";
+import { DecompressedSelection } from "./project-manager";
 import {
   setPreviewBit,
   clearPreviewBit,
@@ -161,7 +161,7 @@ export class ChunkManager {
   }
 
   private addLayerToBlocks(
-    layer: DecompressedLayer,
+    layer: Layer,
     blocks: Uint32Array
   ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;

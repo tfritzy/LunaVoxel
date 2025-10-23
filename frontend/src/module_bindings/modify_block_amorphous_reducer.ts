@@ -27,8 +27,14 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
 } from "spacetimedb";
 
+import { Vector3 } from "./vector_3_type";
+// Mark import as potentially unused
+declare type __keep_Vector3 = Vector3;
+
 export type ModifyBlockAmorphous = {
   projectId: string,
+  diffMin: Vector3,
+  diffMax: Vector3,
   compressedDiffData: Uint8Array,
   layerIndex: number,
 };
@@ -44,6 +50,8 @@ export const ModifyBlockAmorphous = {
     return __AlgebraicTypeValue.Product({
       elements: [
         { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
+        { name: "diffMin", algebraicType: Vector3.getTypeScriptAlgebraicType()},
+        { name: "diffMax", algebraicType: Vector3.getTypeScriptAlgebraicType()},
         { name: "compressedDiffData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8)},
         { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32},
       ]

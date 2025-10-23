@@ -33,13 +33,13 @@ public static partial class Module
             
             for (int y = 0; y < layer.yDim; y++)
             {
-                for (int z = 0; z < CHUNK_SIZE && chunk.startZ + z < layer.zDim; z++)
+                for (int z = 0; z < CHUNK_SIZE && chunk.StartZ + z < layer.zDim; z++)
                 {
                     for (int x = 0; x < CHUNK_SIZE && chunk.StartX + x < layer.xDim; x++)
                     {
                         int chunkIndex = y * CHUNK_SIZE * CHUNK_SIZE + z * CHUNK_SIZE + x;
                         int worldX = chunk.StartX + x;
-                        int worldZ = chunk.startZ + z;
+                        int worldZ = chunk.StartZ + z;
                         int voxelIndex = worldX * layer.yDim * layer.zDim + y * layer.zDim + worldZ;
                         
                         layerVoxels[voxelIndex] = chunkVoxels[chunkIndex];

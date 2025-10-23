@@ -1,45 +1,36 @@
 import * as THREE from "three";
-import { ToolType, Vector3 } from "@/module_bindings";
+import {  Vector3 } from "@/module_bindings";
 import { findExteriorFaces } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
 import { AtlasData } from "@/lib/useAtlas";
+import { ModificationMode, ToolType } from "./tools";
 
 export const CHUNK_SIZE = 16;
 
 export class ChunkMesh {
+  public voxelData: Uint32Array[];
   private scene: THREE.Scene;
   private mesh: THREE.Mesh | null = null;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private previewMesh: THREE.Mesh | null = null;
   private selectionMesh: THREE.Mesh | null = null;
-
   private meshArrays: MeshArrays;
   private previewMeshArrays: MeshArrays;
   private selectionMeshArrays: MeshArrays;
-  private chunkX: number;
-  private chunkY: number;
-  private chunkZ: number;
+  private chunkLocation: Vector3;
   private chunkDimensions: Vector3;
-  private worldDimensions: Vector3;
-  private voxelData: Uint32Array[][];
-
+  
   constructor(
     scene: THREE.Scene,
-    chunkX: number,
-    chunkY: number,
-    chunkZ: number,
-    chunkDimensions: Vector3,
-    worldDimensions: Vector3
+    chunkLocation: Vector3,
+    chunkDimensions: Vector3
   ) {
     this.scene = scene;
-    this.chunkX = chunkX;
-    this.chunkY = chunkY;
-    this.chunkZ = chunkZ;
+    this.chunkLocation = chunkLocation;
     this.chunkDimensions = chunkDimensions;
-    this.worldDimensions = worldDimensions;
 
     const maxFaces =
       chunkDimensions.x * chunkDimensions.y * chunkDimensions.z * 6;
@@ -111,7 +102,7 @@ export class ChunkMesh {
     }
   };
 
-  update = (buildMode: ToolType, atlasData: AtlasData) => {
+  update = (modificationMode: ModificationMode, atlasData: AtlasData) => {
     findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
@@ -120,11 +111,11 @@ export class ChunkMesh {
       this.meshArrays,
       this.previewMeshArrays,
       this.selectionMeshArrays,
-      buildMode.tag === ToolType.Erase.tag
+      modificationMode === 'Erase'
     );
 
     this.updateMesh(atlasData);
-    this.updatePreviewMesh(buildMode, atlasData);
+    this.updatePreviewMesh(modificationMode, atlasData);
     this.updateSelectionMesh(atlasData);
   };
 
@@ -137,9 +128,9 @@ export class ChunkMesh {
       this.mesh.receiveShadow = true;
 
       this.mesh.position.set(
-        this.chunkX * CHUNK_SIZE,
-        this.chunkY * CHUNK_SIZE,
-        this.chunkZ * CHUNK_SIZE
+        this.chunkLocation.x * CHUNK_SIZE,
+        this.chunkLocation.y * CHUNK_SIZE,
+        this.chunkLocation.z * CHUNK_SIZE
       );
 
       this.scene.add(this.mesh);
@@ -187,7 +178,7 @@ export class ChunkMesh {
   };
 
   private updatePreviewMesh = (
-    buildMode: ToolType,
+    modificationMode: ModificationMode,
     atlasData: AtlasData
   ): void => {
     if (!this.previewMesh) {
@@ -196,9 +187,9 @@ export class ChunkMesh {
       this.previewMesh = new THREE.Mesh(geometry, material);
 
       this.previewMesh.position.set(
-        this.chunkX * CHUNK_SIZE,
-        this.chunkY * CHUNK_SIZE,
-        this.chunkZ * CHUNK_SIZE
+        this.chunkLocation.x * CHUNK_SIZE,
+        this.chunkLocation.y * CHUNK_SIZE,
+        this.chunkLocation.z * CHUNK_SIZE
       );
 
       this.scene.add(this.previewMesh);
@@ -225,10 +216,10 @@ export class ChunkMesh {
     );
 
     this.previewMesh.visible =
-      buildMode.tag === ToolType.Build.tag ||
-      buildMode.tag === ToolType.Paint.tag;
+      modificationMode === 'Add' ||
+      modificationMode === 'Paint';
     this.previewMesh.layers.set(
-      buildMode.tag === ToolType.Build.tag ? layers.ghost : layers.raycast
+      modificationMode === 'Add' ? layers.ghost : layers.raycast
     );
 
     this.previewMesh.geometry.attributes.position.needsUpdate = true;
@@ -259,9 +250,9 @@ export class ChunkMesh {
       this.selectionMesh = new THREE.Mesh(geometry, material);
 
       this.selectionMesh.position.set(
-        this.chunkX * CHUNK_SIZE,
-        this.chunkY * CHUNK_SIZE,
-        this.chunkZ * CHUNK_SIZE
+        this.chunkLocation.x * CHUNK_SIZE,
+        this.chunkLocation.y * CHUNK_SIZE,
+        this.chunkLocation.z * CHUNK_SIZE
       );
 
       this.scene.add(this.selectionMesh);

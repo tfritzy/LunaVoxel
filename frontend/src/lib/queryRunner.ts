@@ -1,7 +1,7 @@
 import { EventContext } from "@/module_bindings";
-import { TableCache } from "@clockworklabs/spacetimedb-sdk";
+import { TableCache } from "spacetimedb";
 
-export type TableHandle<T> = {
+export type TableHandle<T extends Record<string, any>> = {
   tableCache: TableCache<T>;
   count: () => number;
   iter: () => Iterable<T>;
@@ -15,7 +15,7 @@ export type TableHandle<T> = {
   ) => void;
 };
 
-export class QueryRunner<T> {
+export class QueryRunner<T extends Record<string, any>> {
   private data: T[];
   private onDataUpdate: (data: T[]) => void;
   private subscription?: { unsubscribe: () => void };

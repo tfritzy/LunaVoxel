@@ -120,7 +120,7 @@ public static partial class Module
 
     [Table(Name = "chunk", Public = true)]
     [SpacetimeDB.Index.BTree(Columns = new[] { nameof(ProjectId), nameof(LayerId) })]
-    [SpacetimeDB.Index.BTree(Name = "chunk_location", Columns = new[] { nameof(ProjectId), nameof(LayerId), nameof(StartX), nameof(startZ) })]
+    [SpacetimeDB.Index.BTree(Name = "chunk_location", Columns = new[] { nameof(ProjectId), nameof(LayerId), nameof(StartX), nameof(StartZ) })]
     public partial class Chunk
     {
         [PrimaryKey]
@@ -132,7 +132,9 @@ public static partial class Module
 
         // Start pos of the chunk on the xz plane. Chunk goes all the way up in height.
         public int StartX;
-        public int startZ;
+        public int StartZ;
+
+        public Vector3 Dimensions;
 
         // Compressed format: byte array with 6-byte groups [vL0, vL1, vH0, vH1, rL0, rL1]
         // Where each voxel is a 32-bit int split into bytes:
@@ -161,7 +163,8 @@ public static partial class Module
                 Voxels = VoxelCompression.Compress(voxels),
                 LayerId = layerId,
                 StartX = startX,
-                startZ = startZ
+                StartZ = startZ,
+                Dimensions = new Vector3(CHUNK_SIZE, height, CHUNK_SIZE)
             };
         }
     }
@@ -237,16 +240,6 @@ public static partial class Module
         public float X = x;
         public float Y = y;
         public float Z = z;
-    }
-
-    [Type]
-    public enum ToolType
-    {
-        Build,
-        Erase,
-        Paint,
-        BlockPicker,
-        MagicSelect
     }
 
     [Type]

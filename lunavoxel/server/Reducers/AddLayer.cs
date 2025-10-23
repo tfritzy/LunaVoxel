@@ -20,10 +20,10 @@ public static partial class Module
             throw new ArgumentException("Max of 10 layers reached");
         }
 
-        AddLayerAndChunks(ctx, project, nextIndex);
+        AddLayer(ctx, project, nextIndex);
     }
 
-    public static void AddLayerAndChunks(ReducerContext ctx, Project project, int index)
+    public static void AddLayer(ReducerContext ctx, Project project, int index)
     {
         var newLayer = Layer.Build(
             project.Id,
@@ -33,25 +33,5 @@ public static partial class Module
             index
         );
         ctx.Db.layer.Insert(newLayer);
-
-        int chunksX = (int)Math.Ceiling((double)project.Dimensions.X / CHUNK_SIZE);
-        int chunksZ = (int)Math.Ceiling((double)project.Dimensions.Z / CHUNK_SIZE);
-        for (int x = 0; x < chunksX; x++)
-        {
-            for (int z = 0; z < chunksZ; z++)
-            {
-                int startX = x * CHUNK_SIZE;
-                int startZ = z * CHUNK_SIZE;
-
-                var chunk = Chunk.Build(
-                    project.Id,
-                    newLayer.Id,
-                    startX,
-                    startZ,
-                    project.Dimensions.Y
-                );
-                ctx.Db.chunk.Insert(chunk);
-            }
-        }
     }
 }

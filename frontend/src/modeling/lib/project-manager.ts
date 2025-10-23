@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import {
-  ToolType,
   DbConnection,
   EventContext,
   Layer,
@@ -15,8 +14,8 @@ import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { getBlockType } from "./voxel-data-utils";
+import { ToolType } from "./tools";
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 export type DecompressedSelection = Omit<Selection, "selectionData"> & {
   selectionData: Uint32Array;
 };
@@ -27,8 +26,7 @@ export class ProjectManager {
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
-  private layers: DecompressedLayer[] = [];
-  private selections: DecompressedSelection[] = [];
+  private layers: Layer[] = [];
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
@@ -122,13 +120,6 @@ export class ProjectManager {
     );
   };
 
-  private decompressLayer = (layer: Layer): DecompressedLayer => {
-    return {
-      ...layer,
-      voxels: decompressVoxelData(layer.voxels),
-    };
-  };
-
   private decompressSelection = (
     selection: Selection
   ): DecompressedSelection => {
@@ -156,71 +147,23 @@ export class ProjectManager {
   };
 
   updateLayers = async (layers: Layer[]) => {
-    this.layers = layers.map(this.decompressLayer);
+    this.layers = layers;
     this.updateChunkManager();
   };
 
   private refreshLayers = () => {
-    const rawLayers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
+    const layers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
       .filter((l) => l.projectId === this.project.id)
       .sort((a, b) => a.index - b.index);
 
-    this.layers = rawLayers.map(this.decompressLayer);
-  };
-
-  setupSelections = () => {
-    this.refreshSelections();
-    this.updateChunkManager();
-  };
-
-  private refreshSelections = () => {
-    const rawSelections = (
-      this.dbConn.db.selections.tableCache.iter() as Selection[]
-    ).filter((s) => s.projectId === this.project.id);
-
-    this.selections = rawSelections.map(this.decompressSelection);
-  };
-
-  private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
-    if (newSelection.projectId !== this.project.id) return;
-    if (this.selections.some((s) => s.id === newSelection.id)) return;
-
-    const decompressedSelection = this.decompressSelection(newSelection);
-    this.selections = [...this.selections, decompressedSelection];
-    this.updateChunkManager();
-  };
-
-  private onSelectionUpdate = (
-    ctx: EventContext,
-    oldSelection: Selection,
-    newSelection: Selection
-  ) => {
-    if (newSelection.projectId !== this.project.id) return;
-
-    const decompressedSelection = this.decompressSelection(newSelection);
-    this.selections = this.selections.map((s) =>
-      s.id === newSelection.id ? decompressedSelection : s
-    );
-    this.updateChunkManager();
-  };
-
-  private onSelectionDelete = (
-    ctx: EventContext,
-    deletedSelection: Selection
-  ) => {
-    if (deletedSelection.projectId !== this.project.id) return;
-    this.selections = this.selections.filter(
-      (s) => s.id !== deletedSelection.id
-    );
-    this.updateChunkManager();
+    this.layers = layers;
   };
 
   private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
     if (newLayer.projectId !== this.project.id) return;
     if (this.layers.some((l) => l.id === newLayer.id)) return;
 
-    const decompressedLayer = this.decompressLayer(newLayer);
-    this.layers = [...this.layers, decompressedLayer].sort(
+    this.layers = [...this.layers, newLayer].sort(
       (a, b) => a.index - b.index
     );
     this.updateChunkManager();
@@ -233,9 +176,8 @@ export class ProjectManager {
   ) => {
     if (newLayer.projectId !== this.project.id) return;
 
-    const decompressedLayer = this.decompressLayer(newLayer);
     this.layers = this.layers
-      .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
+      .map((l) => (l.id === newLayer.id ? newLayer : l))
       .sort((a, b) => a.index - b.index);
     this.updateChunkManager();
   };

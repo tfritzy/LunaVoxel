@@ -54,12 +54,8 @@ import { InviteToProject } from "./invite_to_project_reducer.ts";
 export { InviteToProject };
 import { MagicSelect } from "./magic_select_reducer.ts";
 export { MagicSelect };
-import { ModifyBlock } from "./modify_block_reducer.ts";
-export { ModifyBlock };
 import { ModifyBlockAmorphous } from "./modify_block_amorphous_reducer.ts";
 export { ModifyBlockAmorphous };
-import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
-export { ModifyBlockRect };
 import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
@@ -80,6 +76,8 @@ import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
 // Import and reexport all table handle types
+import { ChunkTableHandle } from "./chunk_table.ts";
+export { ChunkTableHandle };
 import { LayerTableHandle } from "./layer_table.ts";
 export { LayerTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
@@ -98,6 +96,8 @@ export { UserProjectsTableHandle };
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
 export { AccessType };
+import { Chunk } from "./chunk_type.ts";
+export { Chunk };
 import { Layer } from "./layer_type.ts";
 export { Layer };
 import { PlayerCursor } from "./player_cursor_type.ts";
@@ -108,8 +108,6 @@ import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
 import { Selection } from "./selection_type.ts";
 export { Selection };
-import { ToolType } from "./tool_type_type.ts";
-export { ToolType };
 import { User } from "./user_type.ts";
 export { User };
 import { UserProject } from "./user_project_type.ts";
@@ -121,6 +119,15 @@ export { Vector3Float };
 
 const REMOTE_MODULE = {
   tables: {
+    chunk: {
+      tableName: "chunk",
+      rowType: Chunk.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
+      primaryKeyInfo: {
+        colName: "id",
+        colType: (Chunk.getTypeScriptAlgebraicType() as __AlgebraicTypeVariants.Product).value.elements[0].algebraicType,
+      },
+    },
     layer: {
       tableName: "layer",
       rowType: Layer.getTypeScriptAlgebraicType(),
@@ -234,17 +241,9 @@ const REMOTE_MODULE = {
       reducerName: "MagicSelect",
       argsType: MagicSelect.getTypeScriptAlgebraicType(),
     },
-    ModifyBlock: {
-      reducerName: "ModifyBlock",
-      argsType: ModifyBlock.getTypeScriptAlgebraicType(),
-    },
     ModifyBlockAmorphous: {
       reducerName: "ModifyBlockAmorphous",
       argsType: ModifyBlockAmorphous.getTypeScriptAlgebraicType(),
-    },
-    ModifyBlockRect: {
-      reducerName: "ModifyBlockRect",
-      argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
     },
     PokeProject: {
       reducerName: "PokeProject",
@@ -324,9 +323,7 @@ export type Reducer = never
 | { name: "InitializeBlocks", args: InitializeBlocks }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "MagicSelect", args: MagicSelect }
-| { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
-| { name: "ModifyBlockRect", args: ModifyBlockRect }
 | { name: "PokeProject", args: PokeProject }
 | { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
@@ -517,52 +514,20 @@ export class RemoteReducers {
     this.connection.offReducer("MagicSelect", callback);
   }
 
-  modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
-    const __args = { projectId, diffData, layerIndex };
-    let __writer = new __BinaryWriter(1024);
-    ModifyBlock.serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
-  }
-
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
-    this.connection.onReducer("ModifyBlock", callback);
-  }
-
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
-    this.connection.offReducer("ModifyBlock", callback);
-  }
-
-  modifyBlockAmorphous(projectId: string, compressedDiffData: Uint8Array, layerIndex: number) {
-    const __args = { projectId, compressedDiffData, layerIndex };
+  modifyBlockAmorphous(projectId: string, diffMin: Vector3, diffMax: Vector3, compressedDiffData: Uint8Array, layerIndex: number) {
+    const __args = { projectId, diffMin, diffMax, compressedDiffData, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlockAmorphous.serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockAmorphous", __argsBuffer, this.setCallReducerFlags.modifyBlockAmorphousFlags);
   }
 
-  onModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: Uint8Array, layerIndex: number) => void) {
+  onModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, diffMin: Vector3, diffMax: Vector3, compressedDiffData: Uint8Array, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockAmorphous", callback);
   }
 
-  removeOnModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: Uint8Array, layerIndex: number) => void) {
+  removeOnModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, diffMin: Vector3, diffMax: Vector3, compressedDiffData: Uint8Array, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockAmorphous", callback);
-  }
-
-  modifyBlockRect(projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, type, start, end, rotation, layerIndex };
-    let __writer = new __BinaryWriter(1024);
-    ModifyBlockRect.serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
-  }
-
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
-    this.connection.onReducer("ModifyBlockRect", callback);
-  }
-
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
-    this.connection.offReducer("ModifyBlockRect", callback);
   }
 
   pokeProject(projectId: string) {
@@ -762,19 +727,9 @@ export class SetReducerFlags {
     this.magicSelectFlags = flags;
   }
 
-  modifyBlockFlags: __CallReducerFlags = 'FullUpdate';
-  modifyBlock(flags: __CallReducerFlags) {
-    this.modifyBlockFlags = flags;
-  }
-
   modifyBlockAmorphousFlags: __CallReducerFlags = 'FullUpdate';
   modifyBlockAmorphous(flags: __CallReducerFlags) {
     this.modifyBlockAmorphousFlags = flags;
-  }
-
-  modifyBlockRectFlags: __CallReducerFlags = 'FullUpdate';
-  modifyBlockRect(flags: __CallReducerFlags) {
-    this.modifyBlockRectFlags = flags;
   }
 
   pokeProjectFlags: __CallReducerFlags = 'FullUpdate';
@@ -826,6 +781,11 @@ export class SetReducerFlags {
 
 export class RemoteTables {
   constructor(private connection: __DbConnectionImpl) {}
+
+  get chunk(): ChunkTableHandle {
+    // clientCache is a private property
+    return new ChunkTableHandle((this.connection as unknown as { clientCache: __ClientCache }).clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.chunk));
+  }
 
   get layer(): LayerTableHandle {
     // clientCache is a private property

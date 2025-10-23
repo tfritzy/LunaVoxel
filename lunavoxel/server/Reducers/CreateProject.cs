@@ -10,7 +10,7 @@ public static partial class Module
 
         ctx.Db.projects.Insert(project);
         ctx.Db.user_projects.Insert(UserProject.Build(ctx.Sender, project.Id, AccessType.ReadWrite, user.Email));
-        AddLayerAndChunks(ctx, project, 0);
+        AddLayer(ctx, project, 0);
         InitializeBlocks(ctx, project.Id);
     }
 }
