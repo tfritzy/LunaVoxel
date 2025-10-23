@@ -16,3 +16,6 @@ spacetime call lunavoxel-db CreateWorld "Cool world 1" 16, 16, 16
 Invoke-RestMethod -Uri "http://localhost:3000/v1/identity" -Method Post -ContentType "application/json"  | ConvertTo-Json -Depth 100
 
 spacetime logs lunavoxel-db -f
+
+// Build rust wasm module
+wasm-pack build --target web --out-dir ../frontend/src/wasm

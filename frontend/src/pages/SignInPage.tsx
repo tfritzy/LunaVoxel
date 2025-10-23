@@ -8,8 +8,8 @@ import { ToolType, Project } from "@/module_bindings";
 import { VoxelEngine } from "@/modeling/voxel-engine";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useAtlas } from "@/lib/useAtlas";
-import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import { SignInModal } from "@/components/custom/SignInModal";
+import { Timestamp } from "spacetimedb";
 
 export const SignInPage = () => {
   const {

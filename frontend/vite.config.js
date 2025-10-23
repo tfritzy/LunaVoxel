@@ -46,4 +46,5 @@ export default defineConfig({
   server: {
     open: "/",
   },
+  assetsInclude: ["**/*.wasm"],
 });

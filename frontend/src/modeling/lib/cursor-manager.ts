@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { Vector3, DbConnection, PlayerCursor } from "../../module_bindings";
 import { layers } from "./layers";
-import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import { QueryRunner } from "@/lib/queryRunner";
+import { Timestamp } from "spacetimedb";
 
 export const CURSOR_COLORS = [
   new THREE.Color("#EE5A32"), // Vivid Orange
