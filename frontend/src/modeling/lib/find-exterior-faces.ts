@@ -16,10 +16,10 @@ import {
 export const DISABLE_GREEDY_MESHING = false;
 
 export const findExteriorFaces = (
-  chunkData: Uint32Array[][],
+  voxelData: Uint32Array[][],
   textureWidth: number,
   blockAtlasMappings: number[][],
-  chunkDimensions: Vector3,
+  dimensions: Vector3,
   meshArrays: MeshArrays,
   previewMeshArrays: MeshArrays,
   selectionMeshArrays: MeshArrays,
@@ -29,8 +29,7 @@ export const findExteriorFaces = (
   previewMeshArrays.reset();
   selectionMeshArrays.reset();
 
-  const maskSize =
-    Math.max(chunkDimensions.x, chunkDimensions.y, chunkDimensions.z) ** 2;
+  const maskSize = Math.max(dimensions.x, dimensions.y, dimensions.z) ** 2;
   const realMask = new Int16Array(maskSize);
   const previewMask = new Int16Array(maskSize);
   const selectionMask = new Int16Array(maskSize);
@@ -40,13 +39,13 @@ export const findExteriorFaces = (
   const getNeighborBlock = (x: number, y: number, z: number): number => {
     if (
       x >= 0 &&
-      x < chunkDimensions.x &&
+      x < dimensions.x &&
       y >= 0 &&
-      y < chunkDimensions.y &&
+      y < dimensions.y &&
       z >= 0 &&
-      z < chunkDimensions.z
+      z < dimensions.z
     ) {
-      return chunkData[x][y][z];
+      return voxelData[x][y][z];
     }
 
     return 0;
@@ -57,23 +56,11 @@ export const findExteriorFaces = (
     const v = (axis + 2) % 3;
 
     const axisSize =
-      axis === 0
-        ? chunkDimensions.x
-        : axis === 1
-          ? chunkDimensions.y
-          : chunkDimensions.z;
+      axis === 0 ? dimensions.x : axis === 1 ? dimensions.y : dimensions.z;
     const uSize =
-      u === 0
-        ? chunkDimensions.x
-        : u === 1
-          ? chunkDimensions.y
-          : chunkDimensions.z;
+      u === 0 ? dimensions.x : u === 1 ? dimensions.y : dimensions.z;
     const vSize =
-      v === 0
-        ? chunkDimensions.x
-        : v === 1
-          ? chunkDimensions.y
-          : chunkDimensions.z;
+      v === 0 ? dimensions.x : v === 1 ? dimensions.y : dimensions.z;
 
     for (let dir = -1; dir <= 1; dir += 2) {
       const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
@@ -92,7 +79,7 @@ export const findExteriorFaces = (
             const y = axis === 1 ? d : u === 1 ? iu : iv;
             const z = axis === 2 ? d : u === 2 ? iu : iv;
 
-            const blockValue = chunkData[x][y][z];
+            const blockValue = voxelData[x][y][z];
             const blockPresent = isBlockPresent(blockValue);
             const blockIsPreview = isPreview(blockValue);
             const blockIsSelected = isSelected(blockValue);
