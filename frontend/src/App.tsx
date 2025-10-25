@@ -45,14 +45,14 @@ function AppContent() {
   const [isConnecting, setIsConnecting] = useState(false);
   const { currentUser } = useAuth();
 
-useEffect(() => {
-  const loadTranslations = async () => {
-    const translated = await translateVector3ArrayUp(positions, 5.0); 
-    console.log("translated", translated);
-  };
-  
-  loadTranslations();
-}, []);
+  useEffect(() => {
+    const loadTranslations = async () => {
+      const translated = await translateVector3ArrayUp(positions, 5.0);
+      console.log("translated", translated);
+    };
+
+    loadTranslations();
+  }, []);
 
   const syncUserWithCloudFunction = useCallback(
     async (idToken: string, identity: Identity, spacetimeToken: string) => {
