@@ -1,25 +1,12 @@
 import * as THREE from "three";
-import {
-  ToolType,
-  DbConnection,
-  EventContext,
-  Layer,
-  Project,
-  Selection,
-} from "../../module_bindings";
+import { ToolType, DbConnection, Project } from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
-import { ChunkManager } from "./chunk-manager";
+import { Chunk } from "./chunk";
 import { ExportType, ModelExporter } from "../export/model-exporter";
-import { decompressVoxelData } from "./voxel-data-utils";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { getBlockType } from "./voxel-data-utils";
-
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
-export type DecompressedSelection = Omit<Selection, "selectionData"> & {
-  selectionData: Uint32Array;
-};
 
 export class ProjectManager {
   public builder;
@@ -27,8 +14,6 @@ export class ProjectManager {
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
-  private layers: DecompressedLayer[] = [];
-  private selections: DecompressedSelection[] = [];
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
@@ -42,7 +27,12 @@ export class ProjectManager {
   ) {
     this.dbConn = dbConn;
     this.project = project;
-    this.chunkManager = new ChunkManager(scene, project.dimensions);
+    this.chunkManager = new Chunk(
+      scene,
+      project.dimensions,
+      dbConn,
+      project.id
+    );
     this.cursorManager = new CursorManager(scene, project.id, dbConn);
     this.editHistory = new EditHistory(dbConn, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
@@ -56,16 +46,6 @@ export class ProjectManager {
       container,
       this
     );
-
-    this.dbConn.db.selections.onInsert(this.onSelectionInsert);
-    this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
-    this.dbConn.db.selections.onDelete(this.onSelectionDelete);
-
-    this.dbConn.db.layer.onInsert(this.onLayerInsert);
-    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
-    this.dbConn.db.layer.onDelete(this.onLayerDelete);
-    this.setupLayers();
-    this.setupSelections();
   }
 
   public onLocalCursorUpdate = (
@@ -122,22 +102,6 @@ export class ProjectManager {
     );
   };
 
-  private decompressLayer = (layer: Layer): DecompressedLayer => {
-    return {
-      ...layer,
-      voxels: decompressVoxelData(layer.voxels),
-    };
-  };
-
-  private decompressSelection = (
-    selection: Selection
-  ): DecompressedSelection => {
-    return {
-      ...selection,
-      selectionData: decompressVoxelData(selection.selectionData),
-    };
-  };
-
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
@@ -148,103 +112,6 @@ export class ProjectManager {
 
   setSelectedBlock = (block: number) => {
     this.builder.setSelectedBlock(block, () => {});
-  };
-
-  setupLayers = () => {
-    this.refreshLayers();
-    this.updateChunkManager();
-  };
-
-  updateLayers = async (layers: Layer[]) => {
-    this.layers = layers.map(this.decompressLayer);
-    this.updateChunkManager();
-  };
-
-  private refreshLayers = () => {
-    const rawLayers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
-      .filter((l) => l.projectId === this.project.id)
-      .sort((a, b) => a.index - b.index);
-
-    this.layers = rawLayers.map(this.decompressLayer);
-  };
-
-  setupSelections = () => {
-    this.refreshSelections();
-    this.updateChunkManager();
-  };
-
-  private refreshSelections = () => {
-    const rawSelections = (
-      this.dbConn.db.selections.tableCache.iter() as Selection[]
-    ).filter((s) => s.projectId === this.project.id);
-
-    this.selections = rawSelections.map(this.decompressSelection);
-  };
-
-  private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
-    if (newSelection.projectId !== this.project.id) return;
-    if (this.selections.some((s) => s.id === newSelection.id)) return;
-
-    const decompressedSelection = this.decompressSelection(newSelection);
-    this.selections = [...this.selections, decompressedSelection];
-    this.updateChunkManager();
-  };
-
-  private onSelectionUpdate = (
-    ctx: EventContext,
-    oldSelection: Selection,
-    newSelection: Selection
-  ) => {
-    if (newSelection.projectId !== this.project.id) return;
-
-    const decompressedSelection = this.decompressSelection(newSelection);
-    this.selections = this.selections.map((s) =>
-      s.id === newSelection.id ? decompressedSelection : s
-    );
-    this.updateChunkManager();
-  };
-
-  private onSelectionDelete = (
-    ctx: EventContext,
-    deletedSelection: Selection
-  ) => {
-    if (deletedSelection.projectId !== this.project.id) return;
-    this.selections = this.selections.filter(
-      (s) => s.id !== deletedSelection.id
-    );
-    this.updateChunkManager();
-  };
-
-  private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
-    if (newLayer.projectId !== this.project.id) return;
-    if (this.layers.some((l) => l.id === newLayer.id)) return;
-
-    const decompressedLayer = this.decompressLayer(newLayer);
-    this.layers = [...this.layers, decompressedLayer].sort(
-      (a, b) => a.index - b.index
-    );
-    this.updateChunkManager();
-  };
-
-  private onLayerUpdate = (
-    ctx: EventContext,
-    oldLayer: Layer,
-    newLayer: Layer
-  ) => {
-    if (newLayer.projectId !== this.project.id) return;
-
-    const decompressedLayer = this.decompressLayer(newLayer);
-    this.layers = this.layers
-      .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
-      .sort((a, b) => a.index - b.index);
-    this.updateChunkManager();
-  };
-
-  private onLayerDelete = (ctx: EventContext, deletedLayer: Layer) => {
-    if (deletedLayer.projectId !== this.project.id) return;
-    const before = this.layers.length;
-    this.layers = this.layers.filter((l) => l.id !== deletedLayer.id);
-    if (this.layers.length !== before) this.updateChunkManager();
   };
 
   onPreviewUpdate = () => {
@@ -259,7 +126,7 @@ export class ProjectManager {
     blockType: number,
     rotation: number
   ) => {
-    const layer = this.layers.find((l) => l.index === layerIndex);
+    const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
     const previousVoxels = new Uint32Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
@@ -279,7 +146,7 @@ export class ProjectManager {
     position: THREE.Vector3,
     layerIndex: number
   ): number | null {
-    const layer = this.layers.find((l) => l.index === layerIndex);
+    const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return null;
 
     const x = Math.floor(position.x);
@@ -307,9 +174,7 @@ export class ProjectManager {
     const start = performance.now();
 
     this.chunkManager.update(
-      this.layers,
       this.builder.previewBlocks,
-      this.selections,
       this.builder.getTool(),
       this.atlasData
     );
@@ -326,12 +191,6 @@ export class ProjectManager {
     this.builder.dispose();
     this.chunkManager.dispose();
     this.cursorManager.dispose();
-    this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
-    this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
-    this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
-    this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
-    this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
-    this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
     window.removeEventListener("keydown", this.keydownHandler);
   }
 }

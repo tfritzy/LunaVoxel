@@ -1,7 +1,13 @@
 import * as THREE from "three";
-import { ToolType, Vector3 } from "@/module_bindings";
+import {
+  ToolType,
+  Vector3,
+  DbConnection,
+  EventContext,
+  Layer,
+  Selection,
+} from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
-import { DecompressedLayer, DecompressedSelection } from "./project-manager";
 import {
   setPreviewBit,
   clearPreviewBit,
@@ -11,23 +17,40 @@ import {
   isBlockPresent,
   getVersion,
   setSelectedBit,
+  decompressVoxelData,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { calculateRectBounds } from "@/lib/rect-utils";
 
 export const CHUNK_SIZE = 16;
 
-export class ChunkManager {
+export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
+export type DecompressedSelection = Omit<Selection, "selectionData"> & {
+  selectionData: Uint32Array;
+};
+
+export class Chunk {
   private scene: THREE.Scene;
   private chunkMesh: ChunkMesh;
   private dimensions: Vector3;
   private renderedBlocks: Uint32Array;
   private blocksToRender: Uint32Array;
   private currentUpdateId: number = 0;
+  private dbConn: DbConnection;
+  private projectId: string;
+  private layers: DecompressedLayer[] = [];
+  private selections: DecompressedSelection[] = [];
 
-  constructor(scene: THREE.Scene, dimensions: Vector3) {
+  constructor(
+    scene: THREE.Scene,
+    dimensions: Vector3,
+    dbConn: DbConnection,
+    projectId: string
+  ) {
     this.scene = scene;
     this.dimensions = dimensions;
+    this.dbConn = dbConn;
+    this.projectId = projectId;
 
     this.renderedBlocks = new Uint32Array(
       dimensions.x * dimensions.y * dimensions.z
@@ -37,6 +60,19 @@ export class ChunkManager {
     );
 
     this.chunkMesh = new ChunkMesh(this.scene, 0, 0, 0, dimensions, dimensions);
+
+    // Subscribe to database events
+    this.dbConn.db.selections.onInsert(this.onSelectionInsert);
+    this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
+    this.dbConn.db.selections.onDelete(this.onSelectionDelete);
+
+    this.dbConn.db.layer.onInsert(this.onLayerInsert);
+    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
+    this.dbConn.db.layer.onDelete(this.onLayerDelete);
+
+    // Initialize layers and selections
+    this.refreshLayers();
+    this.refreshSelections();
   }
 
   public getBlockAt(worldX: number, worldY: number, worldZ: number): number {
@@ -224,20 +260,113 @@ export class ChunkManager {
     }
   }
 
+  private decompressLayer = (layer: Layer): DecompressedLayer => {
+    return {
+      ...layer,
+      voxels: decompressVoxelData(layer.voxels),
+    };
+  };
+
+  private decompressSelection = (
+    selection: Selection
+  ): DecompressedSelection => {
+    return {
+      ...selection,
+      selectionData: decompressVoxelData(selection.selectionData),
+    };
+  };
+
+  private refreshLayers = () => {
+    const rawLayers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
+      .filter((l) => l.projectId === this.projectId)
+      .sort((a, b) => a.index - b.index);
+
+    this.layers = rawLayers.map(this.decompressLayer);
+  };
+
+  private refreshSelections = () => {
+    const rawSelections = (
+      this.dbConn.db.selections.tableCache.iter() as Selection[]
+    ).filter((s) => s.projectId === this.projectId);
+
+    this.selections = rawSelections.map(this.decompressSelection);
+  };
+
+  private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
+    if (newSelection.projectId !== this.projectId) return;
+    if (this.selections.some((s) => s.id === newSelection.id)) return;
+
+    const decompressedSelection = this.decompressSelection(newSelection);
+    this.selections = [...this.selections, decompressedSelection];
+  };
+
+  private onSelectionUpdate = (
+    ctx: EventContext,
+    oldSelection: Selection,
+    newSelection: Selection
+  ) => {
+    if (newSelection.projectId !== this.projectId) return;
+
+    const decompressedSelection = this.decompressSelection(newSelection);
+    this.selections = this.selections.map((s) =>
+      s.id === newSelection.id ? decompressedSelection : s
+    );
+  };
+
+  private onSelectionDelete = (
+    ctx: EventContext,
+    deletedSelection: Selection
+  ) => {
+    if (deletedSelection.projectId !== this.projectId) return;
+    this.selections = this.selections.filter(
+      (s) => s.id !== deletedSelection.id
+    );
+  };
+
+  private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
+    if (newLayer.projectId !== this.projectId) return;
+    if (this.layers.some((l) => l.id === newLayer.id)) return;
+
+    const decompressedLayer = this.decompressLayer(newLayer);
+    this.layers = [...this.layers, decompressedLayer].sort(
+      (a, b) => a.index - b.index
+    );
+  };
+
+  private onLayerUpdate = (
+    ctx: EventContext,
+    oldLayer: Layer,
+    newLayer: Layer
+  ) => {
+    if (newLayer.projectId !== this.projectId) return;
+
+    const decompressedLayer = this.decompressLayer(newLayer);
+    this.layers = this.layers
+      .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
+      .sort((a, b) => a.index - b.index);
+  };
+
+  private onLayerDelete = (ctx: EventContext, deletedLayer: Layer) => {
+    if (deletedLayer.projectId !== this.projectId) return;
+    this.layers = this.layers.filter((l) => l.id !== deletedLayer.id);
+  };
+
+  public getLayer(layerIndex: number): DecompressedLayer | undefined {
+    return this.layers.find((l) => l.index === layerIndex);
+  }
+
   update = (
-    layers: DecompressedLayer[],
     previewBlocks: Uint32Array,
-    selections: DecompressedSelection[],
     buildMode: ToolType,
     atlasData: AtlasData
   ) => {
     try {
-      const visibleLayers = layers
+      const visibleLayers = this.layers
         .filter((layer) => layer.visible)
         .sort((l1, l2) => l2.index - l1.index);
 
-      const visibleSelections = selections.filter(
-        (s) => layers[s.layer]?.visible
+      const visibleSelections = this.selections.filter(
+        (s) => this.layers[s.layer]?.visible
       );
 
       if (visibleLayers.length === 0) {
@@ -278,6 +407,15 @@ export class ChunkManager {
 
   dispose = () => {
     this.currentUpdateId++;
+
+    // Unsubscribe from database events
+    this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
+    this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
+    this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
+    this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
+    this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
+    this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
+
     this.chunkMesh.dispose();
   };
 }
