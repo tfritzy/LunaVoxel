@@ -19,13 +19,11 @@ export const CHUNK_SIZE = 16;
 
 export class ChunkManager {
   private scene: THREE.Scene;
-  private chunks: ChunkMesh[][][];
+  private chunkMesh: ChunkMesh;
   private dimensions: Vector3;
   private renderedBlocks: Uint32Array;
   private blocksToRender: Uint32Array;
   private currentUpdateId: number = 0;
-  private chunkDimensions: Vector3;
-  private editBuffer: Uint32Array | null = null;
 
   constructor(scene: THREE.Scene, dimensions: Vector3) {
     this.scene = scene;
@@ -38,35 +36,7 @@ export class ChunkManager {
       dimensions.x * dimensions.y * dimensions.z
     );
 
-    this.chunkDimensions = {
-      x: Math.ceil(dimensions.x / CHUNK_SIZE),
-      y: Math.ceil(dimensions.y / CHUNK_SIZE),
-      z: Math.ceil(dimensions.z / CHUNK_SIZE),
-    };
-
-    this.chunks = [];
-    for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
-      this.chunks[chunkX] = [];
-      for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
-        this.chunks[chunkX][chunkY] = [];
-        for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
-          const chunkDims: Vector3 = {
-            x: Math.min(CHUNK_SIZE, dimensions.x - chunkX * CHUNK_SIZE),
-            y: Math.min(CHUNK_SIZE, dimensions.y - chunkY * CHUNK_SIZE),
-            z: Math.min(CHUNK_SIZE, dimensions.z - chunkZ * CHUNK_SIZE),
-          };
-
-          this.chunks[chunkX][chunkY][chunkZ] = new ChunkMesh(
-            this.scene,
-            chunkX,
-            chunkY,
-            chunkZ,
-            chunkDims,
-            dimensions
-          );
-        }
-      }
-    }
+    this.chunkMesh = new ChunkMesh(this.scene, 0, 0, 0, dimensions, dimensions);
   }
 
   public getBlockAt(worldX: number, worldY: number, worldZ: number): number {
@@ -81,62 +51,31 @@ export class ChunkManager {
       return 0;
     }
 
-    const chunkX = Math.floor(worldX / CHUNK_SIZE);
-    const chunkY = Math.floor(worldY / CHUNK_SIZE);
-    const chunkZ = Math.floor(worldZ / CHUNK_SIZE);
-
-    const localX = worldX % CHUNK_SIZE;
-    const localY = worldY % CHUNK_SIZE;
-    const localZ = worldZ % CHUNK_SIZE;
-
-    const chunk = this.chunks[chunkX]?.[chunkY]?.[chunkZ];
-    if (!chunk) {
-      return 0;
-    }
-
-    return chunk.getVoxel(localX, localY, localZ);
+    return this.chunkMesh.getVoxel(worldX, worldY, worldZ);
   }
 
-  private copyChunkData(
-    chunkX: number,
-    chunkY: number,
-    chunkZ: number,
-    blocks: Uint32Array
-  ): void {
-    const chunk = this.chunks[chunkX][chunkY][chunkZ];
-    const chunkDims = chunk.getChunkDimensions();
-
-    for (let x = 0; x < chunkDims.x; x++) {
-      for (let y = 0; y < chunkDims.y; y++) {
-        for (let z = 0; z < chunkDims.z; z++) {
-          const worldX = chunkX * CHUNK_SIZE + x;
-          const worldY = chunkY * CHUNK_SIZE + y;
-          const worldZ = chunkZ * CHUNK_SIZE + z;
-
+  private copyChunkData(blocks: Uint32Array): void {
+    for (let x = 0; x < this.dimensions.x; x++) {
+      for (let y = 0; y < this.dimensions.y; y++) {
+        for (let z = 0; z < this.dimensions.z; z++) {
           const blockIndex =
-            worldX * this.dimensions.y * this.dimensions.z +
-            worldY * this.dimensions.z +
-            worldZ;
-          chunk.setVoxel(x, y, z, blocks[blockIndex]);
+            x * this.dimensions.y * this.dimensions.z +
+            y * this.dimensions.z +
+            z;
+          this.chunkMesh.setVoxel(x, y, z, blocks[blockIndex]);
         }
       }
     }
   }
 
   setTextureAtlas = (atlasData: AtlasData, buildMode: ToolType) => {
-    for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
-      for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
-        for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
-          this.chunks[chunkX][chunkY][chunkZ].setTextureAtlas(atlasData);
-          this.copyChunkData(chunkX, chunkY, chunkZ, this.renderedBlocks);
-          this.chunks[chunkX][chunkY][chunkZ].update(buildMode, atlasData);
-        }
-      }
-    }
+    this.chunkMesh.setTextureAtlas(atlasData);
+    this.copyChunkData(this.renderedBlocks);
+    this.chunkMesh.update(buildMode, atlasData);
   };
 
   public getChunkDimensions(): Vector3 {
-    return this.chunkDimensions;
+    return { x: 1, y: 1, z: 1 };
   }
 
   public getChunk(
@@ -144,15 +83,8 @@ export class ChunkManager {
     chunkY: number,
     chunkZ: number
   ): ChunkMesh | null {
-    if (
-      chunkX >= 0 &&
-      chunkX < this.chunkDimensions.x &&
-      chunkY >= 0 &&
-      chunkY < this.chunkDimensions.y &&
-      chunkZ >= 0 &&
-      chunkZ < this.chunkDimensions.z
-    ) {
-      return this.chunks[chunkX][chunkY][chunkZ];
+    if (chunkX === 0 && chunkY === 0 && chunkZ === 0) {
+      return this.chunkMesh;
     }
     return null;
   }
@@ -322,26 +254,19 @@ export class ChunkManager {
       this.updatePreviewState(previewBlocks, this.blocksToRender, buildMode);
       this.updateSelectionState(visibleSelections, this.blocksToRender);
 
-      const chunksToUpdate = new Set<string>();
+      // Check if any blocks changed
+      let hasChanges = false;
       for (let i = 0; i < this.blocksToRender.length; i++) {
         if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
-          const z = i % this.dimensions.z;
-          const y = Math.floor(i / this.dimensions.z) % this.dimensions.y;
-          const x = Math.floor(i / (this.dimensions.y * this.dimensions.z));
-
-          const chunkX = Math.floor(x / CHUNK_SIZE);
-          const chunkY = Math.floor(y / CHUNK_SIZE);
-          const chunkZ = Math.floor(z / CHUNK_SIZE);
-
-          const chunkKey = `${chunkX},${chunkY},${chunkZ}`;
-          chunksToUpdate.add(chunkKey);
+          hasChanges = true;
+          break;
         }
       }
 
-      for (const chunkKey of chunksToUpdate) {
-        const [chunkX, chunkY, chunkZ] = chunkKey.split(",").map(Number);
-        this.copyChunkData(chunkX, chunkY, chunkZ, this.blocksToRender);
-        this.chunks[chunkX][chunkY][chunkZ].update(buildMode, atlasData);
+      // Update the single chunk mesh if there are changes
+      if (hasChanges) {
+        this.copyChunkData(this.blocksToRender);
+        this.chunkMesh.update(buildMode, atlasData);
       }
 
       this.renderedBlocks.set(this.blocksToRender);
@@ -353,13 +278,6 @@ export class ChunkManager {
 
   dispose = () => {
     this.currentUpdateId++;
-
-    for (let chunkX = 0; chunkX < this.chunkDimensions.x; chunkX++) {
-      for (let chunkY = 0; chunkY < this.chunkDimensions.y; chunkY++) {
-        for (let chunkZ = 0; chunkZ < this.chunkDimensions.z; chunkZ++) {
-          this.chunks[chunkX][chunkY][chunkZ].dispose();
-        }
-      }
-    }
+    this.chunkMesh.dispose();
   };
 }
