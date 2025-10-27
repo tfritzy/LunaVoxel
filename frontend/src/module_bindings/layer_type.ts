@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 
 export type Layer = {
@@ -39,6 +40,8 @@ export type Layer = {
   locked: boolean,
   name: string,
 };
+let _cached_Layer_type_value: __AlgebraicTypeType | null = null;
+
 /**
  * An object for generated helper functions.
  */
@@ -48,20 +51,21 @@ export const Layer = {
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "id", algebraicType: __AlgebraicTypeValue.String},
-        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "xDim", algebraicType: __AlgebraicTypeValue.I32},
-        { name: "yDim", algebraicType: __AlgebraicTypeValue.I32},
-        { name: "zDim", algebraicType: __AlgebraicTypeValue.I32},
-        { name: "index", algebraicType: __AlgebraicTypeValue.I32},
-        { name: "voxels", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8)},
-        { name: "visible", algebraicType: __AlgebraicTypeValue.Bool},
-        { name: "locked", algebraicType: __AlgebraicTypeValue.Bool},
-        { name: "name", algebraicType: __AlgebraicTypeValue.String},
-      ]
-    });
+    if (_cached_Layer_type_value) return _cached_Layer_type_value;
+    _cached_Layer_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_Layer_type_value.value.elements.push(
+      { name: "id", algebraicType: __AlgebraicTypeValue.String },
+      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "xDim", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "yDim", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "zDim", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "index", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "voxels", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
+      { name: "visible", algebraicType: __AlgebraicTypeValue.Bool },
+      { name: "locked", algebraicType: __AlgebraicTypeValue.Bool },
+      { name: "name", algebraicType: __AlgebraicTypeValue.String },
+    );
+    return _cached_Layer_type_value;
   },
 
   serialize(writer: __BinaryWriter, value: Layer): void {

@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 
 export type User = {
@@ -32,6 +33,8 @@ export type User = {
   email: string | undefined,
   name: string | undefined,
 };
+let _cached_User_type_value: __AlgebraicTypeType | null = null;
+
 /**
  * An object for generated helper functions.
  */
@@ -41,13 +44,14 @@ export const User = {
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType()},
-        { name: "email", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String)},
-        { name: "name", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String)},
-      ]
-    });
+    if (_cached_User_type_value) return _cached_User_type_value;
+    _cached_User_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_User_type_value.value.elements.push(
+      { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType() },
+      { name: "email", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String) },
+      { name: "name", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String) },
+    );
+    return _cached_User_type_value;
   },
 
   serialize(writer: __BinaryWriter, value: User): void {

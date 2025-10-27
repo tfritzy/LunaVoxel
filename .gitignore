@@ -70,3 +70,4 @@ node_modules/
 
 wasm/target/
 frontend/src/wasm
+backend/target

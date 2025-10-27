@@ -25,14 +25,15 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 import { Project } from "./project_type";
-import { AccessType } from "./access_type_type";
-// Mark import as potentially unused
-declare type __keep_AccessType = AccessType;
 import { Vector3 } from "./vector_3_type";
 // Mark import as potentially unused
 declare type __keep_Vector3 = Vector3;
+import { AccessType } from "./access_type_type";
+// Mark import as potentially unused
+declare type __keep_AccessType = AccessType;
 
 import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
 declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
@@ -47,7 +48,9 @@ declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
  * but to directly chain method calls,
  * like `ctx.db.projects.on_insert(...)`.
  */
-export class ProjectsTableHandle {
+export class ProjectsTableHandle<TableName extends string> implements __TableHandle<TableName> {
+  // phantom type to track the table name
+  readonly tableName!: TableName;
   tableCache: __TableCache<Project>;
 
   constructor(tableCache: __TableCache<Project>) {

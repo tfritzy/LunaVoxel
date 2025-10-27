@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 import * as AccessTypeVariants from './access_type_variants'
 
@@ -33,6 +34,8 @@ export type AccessType = AccessTypeVariants.None |
   AccessTypeVariants.Inherited |
   AccessTypeVariants.Read |
   AccessTypeVariants.ReadWrite;
+
+let _cached_AccessType_type_value: __AlgebraicTypeType | null = null;
 
 // A value with helper functions to construct the type.
 export const AccessType = {
@@ -48,14 +51,15 @@ export const AccessType = {
   ReadWrite: { tag: "ReadWrite" } as const,
 
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Sum({
-      variants: [
-        { name: "None", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "Inherited", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "Read", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "ReadWrite", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-      ]
-    });
+    if (_cached_AccessType_type_value) return _cached_AccessType_type_value;
+    _cached_AccessType_type_value = __AlgebraicTypeValue.Sum({ variants: [] });
+    _cached_AccessType_type_value.value.variants.push(
+      { name: "None", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "Inherited", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "Read", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "ReadWrite", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+    );
+    return _cached_AccessType_type_value;
   },
 
   serialize(writer: __BinaryWriter, value: AccessType): void {

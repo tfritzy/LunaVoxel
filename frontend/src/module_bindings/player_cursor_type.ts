@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 import { Vector3Float } from "./vector_3_float_type";
 // Mark import as potentially unused
@@ -40,6 +41,8 @@ export type PlayerCursor = {
   normal: Vector3Float | undefined,
   lastUpdated: __Timestamp,
 };
+let _cached_PlayerCursor_type_value: __AlgebraicTypeType | null = null;
+
 /**
  * An object for generated helper functions.
  */
@@ -49,17 +52,18 @@ export const PlayerCursor = {
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "id", algebraicType: __AlgebraicTypeValue.String},
-        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "displayName", algebraicType: __AlgebraicTypeValue.String},
-        { name: "player", algebraicType: __AlgebraicTypeValue.createIdentityType()},
-        { name: "position", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType())},
-        { name: "normal", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType())},
-        { name: "lastUpdated", algebraicType: __AlgebraicTypeValue.createTimestampType()},
-      ]
-    });
+    if (_cached_PlayerCursor_type_value) return _cached_PlayerCursor_type_value;
+    _cached_PlayerCursor_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_PlayerCursor_type_value.value.elements.push(
+      { name: "id", algebraicType: __AlgebraicTypeValue.String },
+      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "displayName", algebraicType: __AlgebraicTypeValue.String },
+      { name: "player", algebraicType: __AlgebraicTypeValue.createIdentityType() },
+      { name: "position", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType()) },
+      { name: "normal", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType()) },
+      { name: "lastUpdated", algebraicType: __AlgebraicTypeValue.createTimestampType() },
+    );
+    return _cached_PlayerCursor_type_value;
   },
 
   serialize(writer: __BinaryWriter, value: PlayerCursor): void {
