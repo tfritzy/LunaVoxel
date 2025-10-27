@@ -1,6 +1,7 @@
-use spacetimedb::{reducer, ReducerContext, Identity};
+use spacetimedb::{reducer, ReducerContext, Identity, Table};
 use crate::{PlayerCursor, Vector3Float};
 use crate::helpers::{IdGenerator, RandomNameGenerator};
+use crate::types::{player_cursor, user};
 
 pub fn update_cursor_pos(
     ctx: &ReducerContext,
@@ -15,7 +16,7 @@ pub fn update_cursor_pos(
     
     let existing_cursor = ctx.db.player_cursor()
         .player_cursor_project_player()
-        .filter(&(project_id.clone(), identity))
+        .filter((&project_id, &identity))
         .next();
     
     if let Some(mut cursor) = existing_cursor {
@@ -26,9 +27,9 @@ pub fn update_cursor_pos(
         if cursor.display_name.is_empty() {
             let player = ctx.db.user().identity().find(&identity);
             cursor.display_name = if let Some(user) = player {
-                user.email.unwrap_or_else(|| RandomNameGenerator::generate_name())
+                user.email.unwrap_or_else(|| RandomNameGenerator::generate(ctx.timestamp.to_micros_since_unix_epoch() as u64))
             } else {
-                RandomNameGenerator::generate_name()
+                RandomNameGenerator::generate(ctx.timestamp.to_micros_since_unix_epoch() as u64)
             };
         }
         
@@ -36,19 +37,20 @@ pub fn update_cursor_pos(
     } else {
         let player = ctx.db.user().identity().find(&identity);
         let display_name = if let Some(user) = player {
-            user.email.unwrap_or_else(|| RandomNameGenerator::generate_name())
+            user.email.unwrap_or_else(|| RandomNameGenerator::generate(ctx.timestamp.to_micros_since_unix_epoch() as u64))
         } else {
-            RandomNameGenerator::generate_name()
+            RandomNameGenerator::generate(ctx.timestamp.to_micros_since_unix_epoch() as u64)
         };
         
         let cursor = PlayerCursor {
-            id: IdGenerator::generate("csr"),
+            id: IdGenerator::generate("csr", ctx.timestamp),
             project_id,
             display_name,
             player: identity,
             position: pos,
             normal,
             last_updated: ctx.timestamp,
+            tool_type: None,
         };
         
         ctx.db.player_cursor().insert(cursor);

@@ -1,7 +1,7 @@
-use spacetimedb::{reducer, ReducerContext};
+use spacetimedb::{ReducerContext, Table};
 use crate::Layer;
 use super::helpers::ensure_access_to_project;
-
+use crate::types::{projects, layer};
 
 pub fn add_layer(ctx: &ReducerContext, project_id: String) {
     spacetimedb::log::info!("Add layer called for {}", project_id);
@@ -31,6 +31,7 @@ pub fn add_layer(ctx: &ReducerContext, project_id: String) {
         project.dimensions.y,
         project.dimensions.z,
         next_index,
+        ctx.timestamp,
     );
     
     ctx.db.layer().insert(new_layer);

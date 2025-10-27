@@ -1,14 +1,10 @@
+use spacetimedb::Timestamp;
+
 pub struct IdGenerator;
 
 impl IdGenerator {
-    pub fn generate(prefix: &str) -> String {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        
-        format!("{}_{:x}", prefix, timestamp)
+    pub fn generate(prefix: &str, timestamp: Timestamp) -> String {
+        let nanos = timestamp.to_micros_since_unix_epoch() as u128 * 1000;
+        format!("{}_{:x}", prefix, nanos)
     }
 }

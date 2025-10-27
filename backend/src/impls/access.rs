@@ -1,7 +1,7 @@
-use spacetimedb::{reducer, ReducerContext};
+use spacetimedb::{reducer, ReducerContext, Table};
 use crate::{UserProject, AccessType};
 use super::helpers::{ensure_write_access, is_valid_email};
-
+use crate::types::{projects, user_projects, user};
 
 pub fn invite_to_project(
     ctx: &ReducerContext,
@@ -23,7 +23,7 @@ pub fn invite_to_project(
     
     let user_access = ctx.db.user_projects()
         .idx_user_project()
-        .filter(&(project_id.clone(), ctx.sender))
+        .filter((&project_id, &ctx.sender))
         .next();
     
     if user_access.is_none() || !matches!(user_access.as_ref().unwrap().access_type, AccessType::ReadWrite) {
@@ -31,9 +31,9 @@ pub fn invite_to_project(
     }
     
     let existing_user_project = ctx.db.user_projects()
-        .idx_project_id_email()
-        .filter(&(project_id.clone(), Some(email.clone())))
-        .next();
+        .idx_project_id_only()
+        .filter(&project_id)
+        .find(|up| up.email.as_ref().map(|e| e == &email).unwrap_or(false));
     
     if let Some(mut user_project) = existing_user_project {
         user_project.access_type = access_type;
@@ -41,7 +41,9 @@ pub fn invite_to_project(
         return;
     }
     
-    let user = ctx.db.user().email().filter(&Some(email.clone())).next();
+    let user = ctx.db.user()
+        .iter()
+        .find(|u| u.email.as_ref().map(|e| e == &email).unwrap_or(false));
     let user_identity = user.map(|u| u.identity).unwrap_or_else(|| spacetimedb::Identity::__dummy());
     
     let user_project = UserProject::build(
@@ -50,6 +52,7 @@ pub fn invite_to_project(
         access_type,
         Some(email),
         None,
+        ctx.timestamp,
     );
     
     ctx.db.user_projects().insert(user_project);
@@ -72,7 +75,7 @@ pub fn change_user_access_to_project(
     
     let user_access = ctx.db.user_projects()
         .idx_user_project()
-        .filter(&(project_id.clone(), ctx.sender))
+        .filter((&project_id, &ctx.sender))
         .next();
     
     spacetimedb::log::info!("user access: {:?}", user_access);
@@ -85,9 +88,9 @@ pub fn change_user_access_to_project(
         .expect("Project not found");
     
     let user_project = ctx.db.user_projects()
-        .idx_project_id_email()
-        .filter(&(project_id.clone(), Some(email.clone())))
-        .next()
+        .idx_project_id_only()
+        .filter(&project_id)
+        .find(|up| up.email.as_ref().map(|e| e == &email).unwrap_or(false))
         .expect("User not found in this project.");
     
     if project.owner == user_project.user {
@@ -115,7 +118,7 @@ pub fn change_public_access_to_project(
     
     let user_access = ctx.db.user_projects()
         .idx_user_project()
-        .filter(&(project_id.clone(), ctx.sender))
+        .filter((&project_id, &ctx.sender))
         .next();
     
     if user_access.is_none() || !matches!(user_access.as_ref().unwrap().access_type, AccessType::ReadWrite) {

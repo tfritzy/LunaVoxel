@@ -31,6 +31,44 @@ import {
 } from "spacetimedb";
 
 // Import and reexport all reducer arg types
+import { AddLayer } from "./add_layer_reducer.ts";
+export { AddLayer };
+import { ChangePublicAccessToProject } from "./change_public_access_to_project_reducer.ts";
+export { ChangePublicAccessToProject };
+import { ChangeUserAccessToProject } from "./change_user_access_to_project_reducer.ts";
+export { ChangeUserAccessToProject };
+import { ClientConnected } from "./client_connected_reducer.ts";
+export { ClientConnected };
+import { ClientDisconnected } from "./client_disconnected_reducer.ts";
+export { ClientDisconnected };
+import { CreateProject } from "./create_project_reducer.ts";
+export { CreateProject };
+import { DeleteLayer } from "./delete_layer_reducer.ts";
+export { DeleteLayer };
+import { InitializeBlocks } from "./initialize_blocks_reducer.ts";
+export { InitializeBlocks };
+import { InviteToProject } from "./invite_to_project_reducer.ts";
+export { InviteToProject };
+import { ModifyBlock } from "./modify_block_reducer.ts";
+export { ModifyBlock };
+import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
+export { ModifyBlockRect };
+import { PokeProject } from "./poke_project_reducer.ts";
+export { PokeProject };
+import { ReorderLayers } from "./reorder_layers_reducer.ts";
+export { ReorderLayers };
+import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
+export { ToggleLayerLock };
+import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
+export { ToggleLayerVisibility };
+import { UndoEdit } from "./undo_edit_reducer.ts";
+export { UndoEdit };
+import { UpdateBlock } from "./update_block_reducer.ts";
+export { UpdateBlock };
+import { UpdateCursorPos } from "./update_cursor_pos_reducer.ts";
+export { UpdateCursorPos };
+import { UpdateProjectName } from "./update_project_name_reducer.ts";
+export { UpdateProjectName };
 
 // Import and reexport all table handle types
 import { LayerTableHandle } from "./layer_table.ts";
@@ -139,6 +177,82 @@ const REMOTE_MODULE = {
     },
   },
   reducers: {
+    add_layer: {
+      reducerName: "add_layer",
+      argsType: AddLayer.getTypeScriptAlgebraicType(),
+    },
+    change_public_access_to_project: {
+      reducerName: "change_public_access_to_project",
+      argsType: ChangePublicAccessToProject.getTypeScriptAlgebraicType(),
+    },
+    change_user_access_to_project: {
+      reducerName: "change_user_access_to_project",
+      argsType: ChangeUserAccessToProject.getTypeScriptAlgebraicType(),
+    },
+    client_connected: {
+      reducerName: "client_connected",
+      argsType: ClientConnected.getTypeScriptAlgebraicType(),
+    },
+    client_disconnected: {
+      reducerName: "client_disconnected",
+      argsType: ClientDisconnected.getTypeScriptAlgebraicType(),
+    },
+    create_project: {
+      reducerName: "create_project",
+      argsType: CreateProject.getTypeScriptAlgebraicType(),
+    },
+    delete_layer: {
+      reducerName: "delete_layer",
+      argsType: DeleteLayer.getTypeScriptAlgebraicType(),
+    },
+    initialize_blocks: {
+      reducerName: "initialize_blocks",
+      argsType: InitializeBlocks.getTypeScriptAlgebraicType(),
+    },
+    invite_to_project: {
+      reducerName: "invite_to_project",
+      argsType: InviteToProject.getTypeScriptAlgebraicType(),
+    },
+    modify_block: {
+      reducerName: "modify_block",
+      argsType: ModifyBlock.getTypeScriptAlgebraicType(),
+    },
+    modify_block_rect: {
+      reducerName: "modify_block_rect",
+      argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
+    },
+    poke_project: {
+      reducerName: "poke_project",
+      argsType: PokeProject.getTypeScriptAlgebraicType(),
+    },
+    reorder_layers: {
+      reducerName: "reorder_layers",
+      argsType: ReorderLayers.getTypeScriptAlgebraicType(),
+    },
+    toggle_layer_lock: {
+      reducerName: "toggle_layer_lock",
+      argsType: ToggleLayerLock.getTypeScriptAlgebraicType(),
+    },
+    toggle_layer_visibility: {
+      reducerName: "toggle_layer_visibility",
+      argsType: ToggleLayerVisibility.getTypeScriptAlgebraicType(),
+    },
+    undo_edit: {
+      reducerName: "undo_edit",
+      argsType: UndoEdit.getTypeScriptAlgebraicType(),
+    },
+    update_block: {
+      reducerName: "update_block",
+      argsType: UpdateBlock.getTypeScriptAlgebraicType(),
+    },
+    update_cursor_pos: {
+      reducerName: "update_cursor_pos",
+      argsType: UpdateCursorPos.getTypeScriptAlgebraicType(),
+    },
+    update_project_name: {
+      reducerName: "update_project_name",
+      argsType: UpdateProjectName.getTypeScriptAlgebraicType(),
+    },
   },
   versionInfo: {
     cliVersion: "1.6.0",
@@ -169,14 +283,406 @@ const REMOTE_MODULE = {
 
 // A type representing all the possible variants of a reducer.
 export type Reducer = never
+| { name: "AddLayer", args: AddLayer }
+| { name: "ChangePublicAccessToProject", args: ChangePublicAccessToProject }
+| { name: "ChangeUserAccessToProject", args: ChangeUserAccessToProject }
+| { name: "ClientConnected", args: ClientConnected }
+| { name: "ClientDisconnected", args: ClientDisconnected }
+| { name: "CreateProject", args: CreateProject }
+| { name: "DeleteLayer", args: DeleteLayer }
+| { name: "InitializeBlocks", args: InitializeBlocks }
+| { name: "InviteToProject", args: InviteToProject }
+| { name: "ModifyBlock", args: ModifyBlock }
+| { name: "ModifyBlockRect", args: ModifyBlockRect }
+| { name: "PokeProject", args: PokeProject }
+| { name: "ReorderLayers", args: ReorderLayers }
+| { name: "ToggleLayerLock", args: ToggleLayerLock }
+| { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
+| { name: "UndoEdit", args: UndoEdit }
+| { name: "UpdateBlock", args: UpdateBlock }
+| { name: "UpdateCursorPos", args: UpdateCursorPos }
+| { name: "UpdateProjectName", args: UpdateProjectName }
 ;
 
 export class RemoteReducers {
   constructor(private connection: __DbConnectionImpl, private setCallReducerFlags: SetReducerFlags) {}
 
+  addLayer(projectId: string) {
+    const __args = { projectId };
+    let __writer = new __BinaryWriter(1024);
+    AddLayer.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("add_layer", __argsBuffer, this.setCallReducerFlags.addLayerFlags);
+  }
+
+  onAddLayer(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("add_layer", callback);
+  }
+
+  removeOnAddLayer(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("add_layer", callback);
+  }
+
+  changePublicAccessToProject(projectId: string, accessType: AccessType) {
+    const __args = { projectId, accessType };
+    let __writer = new __BinaryWriter(1024);
+    ChangePublicAccessToProject.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("change_public_access_to_project", __argsBuffer, this.setCallReducerFlags.changePublicAccessToProjectFlags);
+  }
+
+  onChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: AccessType) => void) {
+    this.connection.onReducer("change_public_access_to_project", callback);
+  }
+
+  removeOnChangePublicAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, accessType: AccessType) => void) {
+    this.connection.offReducer("change_public_access_to_project", callback);
+  }
+
+  changeUserAccessToProject(projectId: string, email: string, accessType: AccessType) {
+    const __args = { projectId, email, accessType };
+    let __writer = new __BinaryWriter(1024);
+    ChangeUserAccessToProject.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("change_user_access_to_project", __argsBuffer, this.setCallReducerFlags.changeUserAccessToProjectFlags);
+  }
+
+  onChangeUserAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.onReducer("change_user_access_to_project", callback);
+  }
+
+  removeOnChangeUserAccessToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.offReducer("change_user_access_to_project", callback);
+  }
+
+  onClientConnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.onReducer("client_connected", callback);
+  }
+
+  removeOnClientConnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.offReducer("client_connected", callback);
+  }
+
+  onClientDisconnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.onReducer("client_disconnected", callback);
+  }
+
+  removeOnClientDisconnected(callback: (ctx: ReducerEventContext) => void) {
+    this.connection.offReducer("client_disconnected", callback);
+  }
+
+  createProject(id: string, name: string, xDim: number, yDim: number, zDim: number) {
+    const __args = { id, name, xDim, yDim, zDim };
+    let __writer = new __BinaryWriter(1024);
+    CreateProject.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("create_project", __argsBuffer, this.setCallReducerFlags.createProjectFlags);
+  }
+
+  onCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
+    this.connection.onReducer("create_project", callback);
+  }
+
+  removeOnCreateProject(callback: (ctx: ReducerEventContext, id: string, name: string, xDim: number, yDim: number, zDim: number) => void) {
+    this.connection.offReducer("create_project", callback);
+  }
+
+  deleteLayer(id: string) {
+    const __args = { id };
+    let __writer = new __BinaryWriter(1024);
+    DeleteLayer.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("delete_layer", __argsBuffer, this.setCallReducerFlags.deleteLayerFlags);
+  }
+
+  onDeleteLayer(callback: (ctx: ReducerEventContext, id: string) => void) {
+    this.connection.onReducer("delete_layer", callback);
+  }
+
+  removeOnDeleteLayer(callback: (ctx: ReducerEventContext, id: string) => void) {
+    this.connection.offReducer("delete_layer", callback);
+  }
+
+  initializeBlocks(projectId: string) {
+    const __args = { projectId };
+    let __writer = new __BinaryWriter(1024);
+    InitializeBlocks.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("initialize_blocks", __argsBuffer, this.setCallReducerFlags.initializeBlocksFlags);
+  }
+
+  onInitializeBlocks(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("initialize_blocks", callback);
+  }
+
+  removeOnInitializeBlocks(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("initialize_blocks", callback);
+  }
+
+  inviteToProject(projectId: string, email: string, accessType: AccessType) {
+    const __args = { projectId, email, accessType };
+    let __writer = new __BinaryWriter(1024);
+    InviteToProject.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("invite_to_project", __argsBuffer, this.setCallReducerFlags.inviteToProjectFlags);
+  }
+
+  onInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.onReducer("invite_to_project", callback);
+  }
+
+  removeOnInviteToProject(callback: (ctx: ReducerEventContext, projectId: string, email: string, accessType: AccessType) => void) {
+    this.connection.offReducer("invite_to_project", callback);
+  }
+
+  modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
+    const __args = { projectId, diffData, layerIndex };
+    let __writer = new __BinaryWriter(1024);
+    ModifyBlock.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("modify_block", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
+  }
+
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
+    this.connection.onReducer("modify_block", callback);
+  }
+
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
+    this.connection.offReducer("modify_block", callback);
+  }
+
+  modifyBlockRect(projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
+    const __args = { projectId, mode, blockType, start, end, rotation, layerIndex };
+    let __writer = new __BinaryWriter(1024);
+    ModifyBlockRect.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("modify_block_rect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
+  }
+
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+    this.connection.onReducer("modify_block_rect", callback);
+  }
+
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+    this.connection.offReducer("modify_block_rect", callback);
+  }
+
+  pokeProject(projectId: string) {
+    const __args = { projectId };
+    let __writer = new __BinaryWriter(1024);
+    PokeProject.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("poke_project", __argsBuffer, this.setCallReducerFlags.pokeProjectFlags);
+  }
+
+  onPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("poke_project", callback);
+  }
+
+  removeOnPokeProject(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("poke_project", callback);
+  }
+
+  reorderLayers(projectId: string, newOrder: string[]) {
+    const __args = { projectId, newOrder };
+    let __writer = new __BinaryWriter(1024);
+    ReorderLayers.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("reorder_layers", __argsBuffer, this.setCallReducerFlags.reorderLayersFlags);
+  }
+
+  onReorderLayers(callback: (ctx: ReducerEventContext, projectId: string, newOrder: string[]) => void) {
+    this.connection.onReducer("reorder_layers", callback);
+  }
+
+  removeOnReorderLayers(callback: (ctx: ReducerEventContext, projectId: string, newOrder: string[]) => void) {
+    this.connection.offReducer("reorder_layers", callback);
+  }
+
+  toggleLayerLock(layerId: string) {
+    const __args = { layerId };
+    let __writer = new __BinaryWriter(1024);
+    ToggleLayerLock.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("toggle_layer_lock", __argsBuffer, this.setCallReducerFlags.toggleLayerLockFlags);
+  }
+
+  onToggleLayerLock(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.onReducer("toggle_layer_lock", callback);
+  }
+
+  removeOnToggleLayerLock(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.offReducer("toggle_layer_lock", callback);
+  }
+
+  toggleLayerVisibility(layerId: string) {
+    const __args = { layerId };
+    let __writer = new __BinaryWriter(1024);
+    ToggleLayerVisibility.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("toggle_layer_visibility", __argsBuffer, this.setCallReducerFlags.toggleLayerVisibilityFlags);
+  }
+
+  onToggleLayerVisibility(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.onReducer("toggle_layer_visibility", callback);
+  }
+
+  removeOnToggleLayerVisibility(callback: (ctx: ReducerEventContext, layerId: string) => void) {
+    this.connection.offReducer("toggle_layer_visibility", callback);
+  }
+
+  undoEdit(projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) {
+    const __args = { projectId, beforeDiff, afterDiff, layerIndex };
+    let __writer = new __BinaryWriter(1024);
+    UndoEdit.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("undo_edit", __argsBuffer, this.setCallReducerFlags.undoEditFlags);
+  }
+
+  onUndoEdit(callback: (ctx: ReducerEventContext, projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) => void) {
+    this.connection.onReducer("undo_edit", callback);
+  }
+
+  removeOnUndoEdit(callback: (ctx: ReducerEventContext, projectId: string, beforeDiff: Uint8Array, afterDiff: Uint8Array, layerIndex: number) => void) {
+    this.connection.offReducer("undo_edit", callback);
+  }
+
+  updateBlock(projectId: string, index: number, faceColors: number[]) {
+    const __args = { projectId, index, faceColors };
+    let __writer = new __BinaryWriter(1024);
+    UpdateBlock.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("update_block", __argsBuffer, this.setCallReducerFlags.updateBlockFlags);
+  }
+
+  onUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, faceColors: number[]) => void) {
+    this.connection.onReducer("update_block", callback);
+  }
+
+  removeOnUpdateBlock(callback: (ctx: ReducerEventContext, projectId: string, index: number, faceColors: number[]) => void) {
+    this.connection.offReducer("update_block", callback);
+  }
+
+  updateCursorPos(projectId: string, identity: __Identity, pos: Vector3Float | undefined, normal: Vector3Float | undefined) {
+    const __args = { projectId, identity, pos, normal };
+    let __writer = new __BinaryWriter(1024);
+    UpdateCursorPos.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("update_cursor_pos", __argsBuffer, this.setCallReducerFlags.updateCursorPosFlags);
+  }
+
+  onUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: __Identity, pos: Vector3Float | undefined, normal: Vector3Float | undefined) => void) {
+    this.connection.onReducer("update_cursor_pos", callback);
+  }
+
+  removeOnUpdateCursorPos(callback: (ctx: ReducerEventContext, projectId: string, identity: __Identity, pos: Vector3Float | undefined, normal: Vector3Float | undefined) => void) {
+    this.connection.offReducer("update_cursor_pos", callback);
+  }
+
+  updateProjectName(projectId: string, name: string) {
+    const __args = { projectId, name };
+    let __writer = new __BinaryWriter(1024);
+    UpdateProjectName.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("update_project_name", __argsBuffer, this.setCallReducerFlags.updateProjectNameFlags);
+  }
+
+  onUpdateProjectName(callback: (ctx: ReducerEventContext, projectId: string, name: string) => void) {
+    this.connection.onReducer("update_project_name", callback);
+  }
+
+  removeOnUpdateProjectName(callback: (ctx: ReducerEventContext, projectId: string, name: string) => void) {
+    this.connection.offReducer("update_project_name", callback);
+  }
+
 }
 
 export class SetReducerFlags {
+  addLayerFlags: __CallReducerFlags = 'FullUpdate';
+  addLayer(flags: __CallReducerFlags) {
+    this.addLayerFlags = flags;
+  }
+
+  changePublicAccessToProjectFlags: __CallReducerFlags = 'FullUpdate';
+  changePublicAccessToProject(flags: __CallReducerFlags) {
+    this.changePublicAccessToProjectFlags = flags;
+  }
+
+  changeUserAccessToProjectFlags: __CallReducerFlags = 'FullUpdate';
+  changeUserAccessToProject(flags: __CallReducerFlags) {
+    this.changeUserAccessToProjectFlags = flags;
+  }
+
+  createProjectFlags: __CallReducerFlags = 'FullUpdate';
+  createProject(flags: __CallReducerFlags) {
+    this.createProjectFlags = flags;
+  }
+
+  deleteLayerFlags: __CallReducerFlags = 'FullUpdate';
+  deleteLayer(flags: __CallReducerFlags) {
+    this.deleteLayerFlags = flags;
+  }
+
+  initializeBlocksFlags: __CallReducerFlags = 'FullUpdate';
+  initializeBlocks(flags: __CallReducerFlags) {
+    this.initializeBlocksFlags = flags;
+  }
+
+  inviteToProjectFlags: __CallReducerFlags = 'FullUpdate';
+  inviteToProject(flags: __CallReducerFlags) {
+    this.inviteToProjectFlags = flags;
+  }
+
+  modifyBlockFlags: __CallReducerFlags = 'FullUpdate';
+  modifyBlock(flags: __CallReducerFlags) {
+    this.modifyBlockFlags = flags;
+  }
+
+  modifyBlockRectFlags: __CallReducerFlags = 'FullUpdate';
+  modifyBlockRect(flags: __CallReducerFlags) {
+    this.modifyBlockRectFlags = flags;
+  }
+
+  pokeProjectFlags: __CallReducerFlags = 'FullUpdate';
+  pokeProject(flags: __CallReducerFlags) {
+    this.pokeProjectFlags = flags;
+  }
+
+  reorderLayersFlags: __CallReducerFlags = 'FullUpdate';
+  reorderLayers(flags: __CallReducerFlags) {
+    this.reorderLayersFlags = flags;
+  }
+
+  toggleLayerLockFlags: __CallReducerFlags = 'FullUpdate';
+  toggleLayerLock(flags: __CallReducerFlags) {
+    this.toggleLayerLockFlags = flags;
+  }
+
+  toggleLayerVisibilityFlags: __CallReducerFlags = 'FullUpdate';
+  toggleLayerVisibility(flags: __CallReducerFlags) {
+    this.toggleLayerVisibilityFlags = flags;
+  }
+
+  undoEditFlags: __CallReducerFlags = 'FullUpdate';
+  undoEdit(flags: __CallReducerFlags) {
+    this.undoEditFlags = flags;
+  }
+
+  updateBlockFlags: __CallReducerFlags = 'FullUpdate';
+  updateBlock(flags: __CallReducerFlags) {
+    this.updateBlockFlags = flags;
+  }
+
+  updateCursorPosFlags: __CallReducerFlags = 'FullUpdate';
+  updateCursorPos(flags: __CallReducerFlags) {
+    this.updateCursorPosFlags = flags;
+  }
+
+  updateProjectNameFlags: __CallReducerFlags = 'FullUpdate';
+  updateProjectName(flags: __CallReducerFlags) {
+    this.updateProjectNameFlags = flags;
+  }
+
 }
 
 export class RemoteTables {

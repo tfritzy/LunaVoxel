@@ -1,8 +1,8 @@
-use spacetimedb::{reducer, ReducerContext};
+use spacetimedb::{reducer, ReducerContext, Table};
 use crate::User;
+use crate::types::{user, player_cursor};
 
-#[reducer(client_connected)]
-pub fn client_connected(ctx: &ReducerContext) {
+pub fn handle_client_connected(ctx: &ReducerContext) {
     let existing_user = ctx.db.user().identity().find(&ctx.sender);
     
     if existing_user.is_none() {
@@ -14,8 +14,7 @@ pub fn client_connected(ctx: &ReducerContext) {
     }
 }
 
-#[reducer(client_disconnected)]
-pub fn client_disconnected(ctx: &ReducerContext) {
+pub fn handle_client_disconnected(ctx: &ReducerContext) {
     let cursors_to_delete: Vec<_> = ctx.db.player_cursor()
         .player_cursor_player()
         .filter(&ctx.sender)

@@ -27,58 +27,57 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
   type TableHandle as __TableHandle,
 } from "spacetimedb";
-import { AccessType } from "./access_type_type";
+
+import { ToolType } from "./tool_type_type";
 // Mark import as potentially unused
-declare type __keep_AccessType = AccessType;
+declare type __keep_ToolType = ToolType;
 import { Vector3 } from "./vector_3_type";
 // Mark import as potentially unused
 declare type __keep_Vector3 = Vector3;
 
-
-export type Project = {
-  id: string,
-  name: string,
-  dimensions: Vector3,
-  owner: __Identity,
-  updated: __Timestamp,
-  created: __Timestamp,
-  publicAccess: AccessType,
+export type ModifyBlockRect = {
+  projectId: string,
+  mode: ToolType,
+  blockType: number,
+  start: Vector3,
+  end: Vector3,
+  rotation: number,
+  layerIndex: number,
 };
-let _cached_Project_type_value: __AlgebraicTypeType | null = null;
+let _cached_ModifyBlockRect_type_value: __AlgebraicTypeType | null = null;
 
 /**
  * An object for generated helper functions.
  */
-export const Project = {
+export const ModifyBlockRect = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    if (_cached_Project_type_value) return _cached_Project_type_value;
-    _cached_Project_type_value = __AlgebraicTypeValue.Product({ elements: [] });
-    _cached_Project_type_value.value.elements.push(
-      { name: "id", algebraicType: __AlgebraicTypeValue.String },
-      { name: "name", algebraicType: __AlgebraicTypeValue.String },
-      { name: "dimensions", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "owner", algebraicType: __AlgebraicTypeValue.createIdentityType() },
-      { name: "updated", algebraicType: __AlgebraicTypeValue.createTimestampType() },
-      { name: "created", algebraicType: __AlgebraicTypeValue.createTimestampType() },
-      { name: "publicAccess", algebraicType: AccessType.getTypeScriptAlgebraicType() },
+    if (_cached_ModifyBlockRect_type_value) return _cached_ModifyBlockRect_type_value;
+    _cached_ModifyBlockRect_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_ModifyBlockRect_type_value.value.elements.push(
+      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "mode", algebraicType: ToolType.getTypeScriptAlgebraicType() },
+      { name: "blockType", algebraicType: __AlgebraicTypeValue.U32 },
+      { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType() },
+      { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType() },
+      { name: "rotation", algebraicType: __AlgebraicTypeValue.U32 },
+      { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32 },
     );
-    return _cached_Project_type_value;
+    return _cached_ModifyBlockRect_type_value;
   },
 
-  serialize(writer: __BinaryWriter, value: Project): void {
-    __AlgebraicTypeValue.serializeValue(writer, Project.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: ModifyBlockRect): void {
+    __AlgebraicTypeValue.serializeValue(writer, ModifyBlockRect.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): Project {
-    return __AlgebraicTypeValue.deserializeValue(reader, Project.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): ModifyBlockRect {
+    return __AlgebraicTypeValue.deserializeValue(reader, ModifyBlockRect.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default Project;
-
+export default ModifyBlockRect;
 

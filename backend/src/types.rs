@@ -78,6 +78,7 @@ impl Project {
 }
 
 #[table(name = user_projects, public, index(name = idx_user_project, btree(columns = [project_id, user])), index(name = idx_project_id_email, btree(columns = [project_id, email])), index(name = idx_project_id_only, btree(columns = [project_id])), index(name = idx_user_email, btree(columns = [user, email])), index(name = idx_user_only, btree(columns = [user])))]
+#[derive(Debug)]
 pub struct UserProject {
     #[primary_key]
     pub id: String,
@@ -95,10 +96,11 @@ impl UserProject {
         access_type: AccessType,
         email: Option<String>,
         id: Option<String>,
+        timestamp: Timestamp,
     ) -> Self {
         use crate::helpers::IdGenerator;
         Self {
-            id: id.unwrap_or_else(|| IdGenerator::generate("up")),
+            id: id.unwrap_or_else(|| IdGenerator::generate("up", timestamp)),
             user,
             project_id,
             access_type,
@@ -129,6 +131,7 @@ pub struct PlayerCursor {
 }
 
 #[table(name = layer, public, index(name = layer_project, btree(columns = [project_id])), index(name = project_index, btree(columns = [project_id, index])))]
+#[derive(Clone)]
 pub struct Layer {
     #[primary_key]
     pub id: String,
@@ -144,7 +147,7 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub fn build(project_id: String, x_dim: i32, y_dim: i32, z_dim: i32, index: i32) -> Self {
+    pub fn build(project_id: String, x_dim: i32, y_dim: i32, z_dim: i32, index: i32, timestamp: Timestamp) -> Self {
         use crate::compression::VoxelCompression;
         use crate::compression::VoxelDataUtils;
         use crate::helpers::IdGenerator;
@@ -155,7 +158,7 @@ impl Layer {
         let compressed = VoxelCompression::compress(&voxels);
 
         Self {
-            id: IdGenerator::generate("lyr"),
+            id: IdGenerator::generate("lyr", timestamp),
             project_id,
             x_dim,
             y_dim,

@@ -1,7 +1,8 @@
-use spacetimedb::{reducer, ReducerContext};
+use spacetimedb::{reducer, ReducerContext, Table};
 use crate::{Project, UserProject, AccessType, Layer};
 use super::helpers::{ensure_access_to_project, ensure_write_access};
-use super::block_reducers::initialize_blocks;
+use super::block::initialize_blocks;
+use crate::types::{user, projects, user_projects, layer};
 
 pub fn create_project(ctx: &ReducerContext, id: String, name: String, x_dim: i32, y_dim: i32, z_dim: i32) {
     let user = ctx.db.user().identity().find(&ctx.sender)
@@ -16,10 +17,11 @@ pub fn create_project(ctx: &ReducerContext, id: String, name: String, x_dim: i32
         AccessType::ReadWrite,
         user.email.clone(),
         None,
+        ctx.timestamp,
     );
     ctx.db.user_projects().insert(user_project);
     
-    let layer = Layer::build(id.clone(), x_dim, y_dim, z_dim, 0);
+    let layer = Layer::build(id.clone(), x_dim, y_dim, z_dim, 0, ctx.timestamp);
     ctx.db.layer().insert(layer);
     
     initialize_blocks(ctx, &id);
@@ -70,11 +72,11 @@ pub fn poke_project(ctx: &ReducerContext, project_id: String) {
         return;
     }
     
-    super::cursor_reducers::update_cursor_pos(ctx, project_id.clone(), ctx.sender, None, None);
+    super::cursor::update_cursor_pos(ctx, project_id.clone(), ctx.sender, None, None);
     
     let existing_user_project = ctx.db.user_projects()
         .idx_user_project()
-        .filter(&(project_id.clone(), ctx.sender))
+        .filter((&project_id, &ctx.sender))
         .next();
     
     if existing_user_project.is_some() {
@@ -95,6 +97,7 @@ pub fn poke_project(ctx: &ReducerContext, project_id: String) {
         AccessType::Inherited,
         user.email.clone(),
         None,
+        ctx.timestamp,
     );
     ctx.db.user_projects().insert(user_project);
 }

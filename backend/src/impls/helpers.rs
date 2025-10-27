@@ -1,5 +1,6 @@
 use spacetimedb::{ReducerContext, Identity};
-use crate::{UserProject, AccessType};
+use crate::AccessType;
+use crate::types::user_projects;
 
 pub fn ensure_access_to_project(ctx: &ReducerContext, project_id: &str, identity: &Identity) -> Result<(), String> {
     if project_id.is_empty() {
@@ -8,7 +9,7 @@ pub fn ensure_access_to_project(ctx: &ReducerContext, project_id: &str, identity
 
     let user_project = ctx.db.user_projects()
         .idx_user_project()
-        .filter(&(project_id.to_string(), *identity))
+        .filter((project_id, identity))
         .next();
 
     if user_project.is_none() {
@@ -25,7 +26,7 @@ pub fn ensure_write_access(ctx: &ReducerContext, project_id: &str, identity: &Id
 
     let user_project = ctx.db.user_projects()
         .idx_user_project()
-        .filter(&(project_id.to_string(), *identity))
+        .filter((project_id, identity))
         .next();
 
     match user_project {
@@ -36,6 +37,6 @@ pub fn ensure_write_access(ctx: &ReducerContext, project_id: &str, identity: &Id
 }
 
 pub fn is_valid_email(email: &str) -> bool {
-    let email_regex = regex::Regex::new(r"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$").unwrap();
-    email_regex.is_match(email)
+    // Simple email validation without regex dependency
+    email.contains('@') && email.contains('.') && email.len() > 3
 }

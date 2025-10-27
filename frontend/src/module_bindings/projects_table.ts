@@ -28,12 +28,12 @@ import {
   type TableHandle as __TableHandle,
 } from "spacetimedb";
 import { Project } from "./project_type";
-import { Vector3 } from "./vector_3_type";
-// Mark import as potentially unused
-declare type __keep_Vector3 = Vector3;
 import { AccessType } from "./access_type_type";
 // Mark import as potentially unused
 declare type __keep_AccessType = AccessType;
+import { Vector3 } from "./vector_3_type";
+// Mark import as potentially unused
+declare type __keep_Vector3 = Vector3;
 
 import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
 declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];

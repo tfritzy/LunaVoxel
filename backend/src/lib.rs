@@ -96,7 +96,7 @@ pub fn initialize_blocks(ctx: &ReducerContext, project_id: String) {
 pub fn update_block(
     ctx: &ReducerContext,
     project_id: String,
-    index: usize,
+    index: i32,
     face_colors: Vec<i32>,
 ) {
     impls::block::update_block(ctx, project_id, index, face_colors);

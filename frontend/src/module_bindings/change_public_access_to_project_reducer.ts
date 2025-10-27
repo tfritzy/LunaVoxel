@@ -27,58 +27,44 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
   type TableHandle as __TableHandle,
 } from "spacetimedb";
+
 import { AccessType } from "./access_type_type";
 // Mark import as potentially unused
 declare type __keep_AccessType = AccessType;
-import { Vector3 } from "./vector_3_type";
-// Mark import as potentially unused
-declare type __keep_Vector3 = Vector3;
 
-
-export type Project = {
-  id: string,
-  name: string,
-  dimensions: Vector3,
-  owner: __Identity,
-  updated: __Timestamp,
-  created: __Timestamp,
-  publicAccess: AccessType,
+export type ChangePublicAccessToProject = {
+  projectId: string,
+  accessType: AccessType,
 };
-let _cached_Project_type_value: __AlgebraicTypeType | null = null;
+let _cached_ChangePublicAccessToProject_type_value: __AlgebraicTypeType | null = null;
 
 /**
  * An object for generated helper functions.
  */
-export const Project = {
+export const ChangePublicAccessToProject = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    if (_cached_Project_type_value) return _cached_Project_type_value;
-    _cached_Project_type_value = __AlgebraicTypeValue.Product({ elements: [] });
-    _cached_Project_type_value.value.elements.push(
-      { name: "id", algebraicType: __AlgebraicTypeValue.String },
-      { name: "name", algebraicType: __AlgebraicTypeValue.String },
-      { name: "dimensions", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "owner", algebraicType: __AlgebraicTypeValue.createIdentityType() },
-      { name: "updated", algebraicType: __AlgebraicTypeValue.createTimestampType() },
-      { name: "created", algebraicType: __AlgebraicTypeValue.createTimestampType() },
-      { name: "publicAccess", algebraicType: AccessType.getTypeScriptAlgebraicType() },
+    if (_cached_ChangePublicAccessToProject_type_value) return _cached_ChangePublicAccessToProject_type_value;
+    _cached_ChangePublicAccessToProject_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_ChangePublicAccessToProject_type_value.value.elements.push(
+      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "accessType", algebraicType: AccessType.getTypeScriptAlgebraicType() },
     );
-    return _cached_Project_type_value;
+    return _cached_ChangePublicAccessToProject_type_value;
   },
 
-  serialize(writer: __BinaryWriter, value: Project): void {
-    __AlgebraicTypeValue.serializeValue(writer, Project.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: ChangePublicAccessToProject): void {
+    __AlgebraicTypeValue.serializeValue(writer, ChangePublicAccessToProject.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): Project {
-    return __AlgebraicTypeValue.deserializeValue(reader, Project.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): ChangePublicAccessToProject {
+    return __AlgebraicTypeValue.deserializeValue(reader, ChangePublicAccessToProject.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default Project;
-
+export default ChangePublicAccessToProject;
 

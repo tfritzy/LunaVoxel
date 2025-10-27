@@ -79,10 +79,10 @@ export const ProjectViewPage = () => {
       })
       .subscribe([
         `SELECT * FROM projects`,
-        `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM selections WHERE ProjectId='${projectId}'`,
+        `SELECT * FROM project_blocks WHERE project_id='${projectId}'`,
+        `SELECT * FROM layer WHERE project_id='${projectId}'`,
+        `SELECT * FROM player_cursor WHERE project_id='${projectId}'`,
+        `SELECT * FROM selections WHERE project_id='${projectId}'`,
         `SELECT * FROM user_projects`,
       ]);
 

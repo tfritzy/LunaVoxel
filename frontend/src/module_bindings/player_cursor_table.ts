@@ -28,12 +28,12 @@ import {
   type TableHandle as __TableHandle,
 } from "spacetimedb";
 import { PlayerCursor } from "./player_cursor_type";
-import { Vector3Float } from "./vector_3_float_type";
-// Mark import as potentially unused
-declare type __keep_Vector3Float = Vector3Float;
 import { ToolType } from "./tool_type_type";
 // Mark import as potentially unused
 declare type __keep_ToolType = ToolType;
+import { Vector3Float } from "./vector_3_float_type";
+// Mark import as potentially unused
+declare type __keep_Vector3Float = Vector3Float;
 
 import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
 declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];

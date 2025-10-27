@@ -1,7 +1,8 @@
-use spacetimedb::{reducer, ReducerContext};
+use spacetimedb::{reducer, ReducerContext, Table};
 use crate::{ProjectBlocks, Vector3, ToolType, BlockType};
 use crate::compression::{VoxelCompression, VoxelDataUtils};
 use super::helpers::ensure_access_to_project;
+use crate::types::{projects, project_blocks, layer};
 
 const DEFAULT_COLOR_PALETTE: [i32; 64] = [
     0xfdcbb0, 0xfca790, 0xf68181, 0xf04f78, 0xc32454, 0x831c5d, 0xed8099, 0xcf657f,
@@ -36,7 +37,7 @@ pub fn modify_block(ctx: &ReducerContext, project_id: String, diff_data: Vec<u32
     
     let mut layer = ctx.db.layer()
         .project_index()
-        .filter(&(project_id.clone(), layer_index))
+        .filter((&project_id, &layer_index))
         .next()
         .expect("No layer for this project");
     
@@ -81,7 +82,7 @@ pub fn modify_block_rect(
 ) {
     let layer = ctx.db.layer()
         .project_index()
-        .filter(&(project_id.clone(), layer_index))
+        .filter((&project_id, &layer_index))
         .next()
         .expect("No layer for this project");
     
@@ -142,7 +143,7 @@ pub fn undo_edit(
 ) {
     let layer = ctx.db.layer()
         .project_index()
-        .filter(&(project_id.clone(), layer_index))
+        .filter((&project_id, &layer_index))
         .next()
         .expect("No layer for this project");
     
@@ -163,7 +164,7 @@ pub fn undo_edit(
 pub fn update_block(
     ctx: &ReducerContext,
     project_id: String,
-    index: usize,
+    index: i32,
     face_colors: Vec<i32>,
 ) {
     if project_id.is_empty() {
@@ -175,7 +176,7 @@ pub fn update_block(
     
     ensure_access_to_project(ctx, &project_id, &ctx.sender).expect("Access denied");
     
-    if index >= project_blocks.face_colors.len() {
+    if index < 0 || index as usize >= project_blocks.face_colors.len() {
         panic!("Block index is out of range.");
     }
     
@@ -183,6 +184,6 @@ pub fn update_block(
         panic!("Atlas face indexes must be an array of length 6.");
     }
     
-    project_blocks.face_colors[index] = face_colors;
+    project_blocks.face_colors[index as usize] = face_colors;
     ctx.db.project_blocks().project_id().update(project_blocks);
 }
