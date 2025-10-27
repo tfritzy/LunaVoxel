@@ -61,6 +61,8 @@ import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
 import { Selection } from "./selection_type.ts";
 export { Selection };
+import { ToolType } from "./tool_type_type.ts";
+export { ToolType };
 import { User } from "./user_type.ts";
 export { User };
 import { UserProject } from "./user_project_type.ts";

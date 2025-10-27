@@ -125,6 +125,7 @@ pub struct PlayerCursor {
     pub position: Option<Vector3Float>,
     pub normal: Option<Vector3Float>,
     pub last_updated: Timestamp,
+    pub tool_type: Option<ToolType>,
 }
 
 #[table(name = layer, public, index(name = layer_project, btree(columns = [project_id])), index(name = project_index, btree(columns = [project_id, index])))]

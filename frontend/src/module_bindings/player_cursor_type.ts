@@ -30,6 +30,9 @@ import {
 import { Vector3Float } from "./vector_3_float_type";
 // Mark import as potentially unused
 declare type __keep_Vector3Float = Vector3Float;
+import { ToolType } from "./tool_type_type";
+// Mark import as potentially unused
+declare type __keep_ToolType = ToolType;
 
 
 export type PlayerCursor = {
@@ -40,6 +43,7 @@ export type PlayerCursor = {
   position: Vector3Float | undefined,
   normal: Vector3Float | undefined,
   lastUpdated: __Timestamp,
+  toolType: ToolType | undefined,
 };
 let _cached_PlayerCursor_type_value: __AlgebraicTypeType | null = null;
 
@@ -62,6 +66,7 @@ export const PlayerCursor = {
       { name: "position", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType()) },
       { name: "normal", algebraicType: __AlgebraicTypeValue.createOptionType(Vector3Float.getTypeScriptAlgebraicType()) },
       { name: "lastUpdated", algebraicType: __AlgebraicTypeValue.createTimestampType() },
+      { name: "toolType", algebraicType: __AlgebraicTypeValue.createOptionType(ToolType.getTypeScriptAlgebraicType()) },
     );
     return _cached_PlayerCursor_type_value;
   },
