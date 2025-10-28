@@ -19,6 +19,54 @@ pub fn translate_positions_up(positions: &[f32], amount: f32) -> Vec<f32> {
     result
 }
 
+/// A simple stateful counter for demonstration
+#[wasm_bindgen]
+pub struct Counter {
+    value: i32,
+    step_size: i32,
+}
+
+#[wasm_bindgen]
+impl Counter {
+    #[wasm_bindgen(constructor)]
+    pub fn new(initial_value: i32) -> Counter {
+        Counter {
+            value: initial_value,
+            step_size: 1,
+        }
+    }
+
+    pub fn increment(&mut self) {
+        self.value += self.step_size;
+    }
+
+    pub fn decrement(&mut self) {
+        self.value -= self.step_size;
+    }
+
+    pub fn reset(&mut self) {
+        self.value = 0;
+    }
+
+    #[wasm_bindgen(js_name = setStepSize)]
+    pub fn set_step_size(&mut self, step: i32) {
+        self.step_size = step;
+    }
+
+    #[wasm_bindgen(js_name = getValue)]
+    pub fn get_value(&self) -> i32 {
+        self.value
+    }
+
+    pub fn add(&mut self, amount: i32) {
+        self.value += amount;
+    }
+
+    pub fn multiply(&mut self, factor: i32) {
+        self.value *= factor;
+    }
+}
+
 // Constants for voxel data manipulation
 const PREVIEW_BIT_MASK: u32 = 0x08;
 const SELECTED_BIT_MASK: u32 = 0x10;

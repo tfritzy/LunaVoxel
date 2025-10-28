@@ -218,3 +218,46 @@ impl BlockType {
         VoxelDataUtils::encode_block_data(self.block_type, self.rotation, self.version)
     }
 }
+
+/// A simple dummy stateful counter that can be incremented, decremented, and reset
+pub struct Counter {
+    value: i32,
+    step_size: i32,
+}
+
+impl Counter {
+    pub fn new(initial_value: i32) -> Self {
+        Self {
+            value: initial_value,
+            step_size: 1,
+        }
+    }
+
+    pub fn increment(&mut self) {
+        self.value += self.step_size;
+    }
+
+    pub fn decrement(&mut self) {
+        self.value -= self.step_size;
+    }
+
+    pub fn reset(&mut self) {
+        self.value = 0;
+    }
+
+    pub fn set_step_size(&mut self, step: i32) {
+        self.step_size = step;
+    }
+
+    pub fn get_value(&self) -> i32 {
+        self.value
+    }
+
+    pub fn add(&mut self, amount: i32) {
+        self.value += amount;
+    }
+
+    pub fn multiply(&mut self, factor: i32) {
+        self.value *= factor;
+    }
+}

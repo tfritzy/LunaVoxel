@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Chunk } from "../lib/chunk";
+import { LegacyChunk } from "../lib/legacy-chunk";
 import { CHUNK_SIZE } from "../lib/chunk-mesh";
 
 export interface ConsolidatedMesh {
@@ -10,11 +10,11 @@ export interface ConsolidatedMesh {
 }
 
 export class MeshConsolidator {
-  private chunkManager: Chunk;
+  private chunkManager: LegacyChunk;
   private worldDimensions: { x: number; y: number; z: number };
 
   constructor(
-    chunkManager: Chunk,
+    chunkManager: LegacyChunk,
     worldDimensions: { x: number; y: number; z: number }
   ) {
     this.chunkManager = chunkManager;

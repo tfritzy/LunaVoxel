@@ -2,11 +2,12 @@ import * as THREE from "three";
 import { ToolType, DbConnection, Project } from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
-import { Chunk } from "./chunk";
+import { LegacyChunk } from "./legacy-chunk";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { getBlockType } from "./voxel-data-utils";
+import { Chunk } from "./chunk";
 
 export class ProjectManager {
   public builder;
@@ -25,9 +26,10 @@ export class ProjectManager {
     camera: THREE.Camera,
     container: HTMLElement
   ) {
+    const chunk = new Chunk();
     this.dbConn = dbConn;
     this.project = project;
-    this.chunkManager = new Chunk(
+    this.chunkManager = new LegacyChunk(
       scene,
       project.dimensions,
       dbConn,
