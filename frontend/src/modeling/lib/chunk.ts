@@ -1,39 +1,31 @@
-import { Counter } from "@/wasm/vector3_wasm";
+import { DbConnection, EventContext, Layer } from "@/module_bindings";
+import { RenderPipeline } from "@/wasm/vector3_wasm";
+import { isWasmInitialized } from "@/lib/wasmInit";
 
 export class Chunk {
-  private counter: Counter;
+  private renderPipeline: RenderPipeline;
+  private dbConn: DbConnection;
 
-  public constructor() {
-    // Initialize counter with value 10
-    this.counter = new Counter(10);
-    console.log(
-      "Chunk initialized with counter value:",
-      this.counter.getValue()
-    );
+  public constructor(dbConn: DbConnection) {
+    if (!isWasmInitialized()) {
+      throw new Error(
+        "WASM module not initialized. Please ensure initWasm() is called before creating a Chunk."
+      );
+    }
 
-    // Test increment
-    this.counter.increment();
-    console.log("After increment:", this.counter.getValue());
+    this.dbConn = dbConn;
+    this.renderPipeline = new RenderPipeline();
 
-    // Test custom step size
-    this.counter.setStepSize(5);
-    this.counter.increment();
-    console.log("After increment with step size 5:", this.counter.getValue());
-
-    // Test add
-    this.counter.add(3);
-    console.log("After adding 3:", this.counter.getValue());
-
-    // Test multiply
-    this.counter.multiply(2);
-    console.log("After multiplying by 2:", this.counter.getValue());
-
-    // Test decrement
-    this.counter.decrement();
-    console.log("After decrement:", this.counter.getValue());
-
-    // Test reset
-    this.counter.reset();
-    console.log("After reset:", this.counter.getValue());
+    dbConn.db.layer.onInsert(this.onLayerInsert);
+    dbConn.db.layer.onUpdate(this.onLayerInsert);
   }
+
+  private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
+    console.log("compressed chunk data", newLayer.voxels);
+    this.renderPipeline.addLayer(newLayer.voxels);
+    console.log(
+      "Decompressed chunk data",
+      this.renderPipeline.getLayerVoxels(0)
+    );
+  };
 }

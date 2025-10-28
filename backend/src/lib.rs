@@ -1,9 +1,8 @@
-use spacetimedb::{reducer, ReducerContext, Identity};
+use spacetimedb::{reducer, Identity, ReducerContext};
 
-mod types;
 mod helpers;
-mod compression;
 mod impls;
+mod types;
 
 pub use types::*;
 
@@ -18,7 +17,14 @@ pub fn client_disconnected(ctx: &ReducerContext) {
 }
 
 #[reducer]
-pub fn create_project(ctx: &ReducerContext, id: String, name: String, x_dim: i32, y_dim: i32, z_dim: i32) {
+pub fn create_project(
+    ctx: &ReducerContext,
+    id: String,
+    name: String,
+    x_dim: i32,
+    y_dim: i32,
+    z_dim: i32,
+) {
     impls::project::create_project(ctx, id, name, x_dim, y_dim, z_dim);
 }
 
@@ -58,7 +64,12 @@ pub fn reorder_layers(ctx: &ReducerContext, project_id: String, new_order: Vec<S
 }
 
 #[reducer]
-pub fn modify_block(ctx: &ReducerContext, project_id: String, diff_data: Vec<u32>, layer_index: i32) {
+pub fn modify_block(
+    ctx: &ReducerContext,
+    project_id: String,
+    diff_data: Vec<u32>,
+    layer_index: i32,
+) {
     impls::block::modify_block(ctx, project_id, diff_data, layer_index);
 }
 
@@ -73,7 +84,16 @@ pub fn modify_block_rect(
     rotation: u32,
     layer_index: i32,
 ) {
-    impls::block::modify_block_rect(ctx, project_id, mode, block_type, start, end, rotation, layer_index);
+    impls::block::modify_block_rect(
+        ctx,
+        project_id,
+        mode,
+        block_type,
+        start,
+        end,
+        rotation,
+        layer_index,
+    );
 }
 
 #[reducer]
@@ -93,12 +113,7 @@ pub fn initialize_blocks(ctx: &ReducerContext, project_id: String) {
 }
 
 #[reducer]
-pub fn update_block(
-    ctx: &ReducerContext,
-    project_id: String,
-    index: i32,
-    face_colors: Vec<i32>,
-) {
+pub fn update_block(ctx: &ReducerContext, project_id: String, index: i32, face_colors: Vec<i32>) {
     impls::block::update_block(ctx, project_id, index, face_colors);
 }
 

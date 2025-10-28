@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity, Timestamp, SpacetimeType};
+use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, SpacetimeType)]
 pub struct Vector3 {
@@ -147,10 +147,16 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub fn build(project_id: String, x_dim: i32, y_dim: i32, z_dim: i32, index: i32, timestamp: Timestamp) -> Self {
-        use crate::compression::VoxelCompression;
-        use crate::compression::VoxelDataUtils;
+    pub fn build(
+        project_id: String,
+        x_dim: i32,
+        y_dim: i32,
+        z_dim: i32,
+        index: i32,
+        timestamp: Timestamp,
+    ) -> Self {
         use crate::helpers::IdGenerator;
+        use voxel_compression::{VoxelCompression, VoxelDataUtils};
 
         let empty = VoxelDataUtils::encode_block_data(0, 1, 0);
         let size = (x_dim * y_dim * z_dim) as usize;
@@ -206,7 +212,7 @@ impl BlockType {
     }
 
     pub fn from_int(data: u32) -> Self {
-        use crate::compression::VoxelDataUtils;
+        use voxel_compression::VoxelDataUtils;
         let block_type = VoxelDataUtils::get_block_type(data);
         let version = VoxelDataUtils::get_version(data);
         let rotation = VoxelDataUtils::get_rotation(data);
@@ -214,50 +220,7 @@ impl BlockType {
     }
 
     pub fn to_int(&self) -> u32 {
-        use crate::compression::VoxelDataUtils;
+        use voxel_compression::VoxelDataUtils;
         VoxelDataUtils::encode_block_data(self.block_type, self.rotation, self.version)
-    }
-}
-
-/// A simple dummy stateful counter that can be incremented, decremented, and reset
-pub struct Counter {
-    value: i32,
-    step_size: i32,
-}
-
-impl Counter {
-    pub fn new(initial_value: i32) -> Self {
-        Self {
-            value: initial_value,
-            step_size: 1,
-        }
-    }
-
-    pub fn increment(&mut self) {
-        self.value += self.step_size;
-    }
-
-    pub fn decrement(&mut self) {
-        self.value -= self.step_size;
-    }
-
-    pub fn reset(&mut self) {
-        self.value = 0;
-    }
-
-    pub fn set_step_size(&mut self, step: i32) {
-        self.step_size = step;
-    }
-
-    pub fn get_value(&self) -> i32 {
-        self.value
-    }
-
-    pub fn add(&mut self, amount: i32) {
-        self.value += amount;
-    }
-
-    pub fn multiply(&mut self, factor: i32) {
-        self.value *= factor;
     }
 }

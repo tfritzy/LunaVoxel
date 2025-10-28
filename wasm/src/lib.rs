@@ -1,99 +1,85 @@
+use voxel_compression::VoxelCompression;
+use voxel_compression::VoxelDataUtils;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-pub fn translate_positions_up(positions: &[f32], amount: f32) -> Vec<f32> {
-    let mut result = Vec::with_capacity(positions.len());
-    
-    let mut i = 0;
-    while i < positions.len() {
-        if i + 2 < positions.len() {
-            result.push(positions[i]);
-            result.push(positions[i + 1] + amount);
-            result.push(positions[i + 2]);
-            i += 3;
-        } else {
-            break;
-        }
-    }
-    
-    result
+struct Layer {
+    voxels: Vec<u32>,
+    visible: bool,
 }
 
-/// A simple stateful counter for demonstration
-#[wasm_bindgen]
-pub struct Counter {
-    value: i32,
-    step_size: i32,
+#[wasm_bindgen(js_name = decompressVoxelData)]
+pub fn decompress_voxel_data(compressed_data: &[u8]) -> Vec<u32> {
+    VoxelCompression::decompress(compressed_data)
 }
 
 #[wasm_bindgen]
-impl Counter {
+pub struct RenderPipeline {
+    layers: Vec<Layer>,
+}
+
+#[wasm_bindgen]
+impl RenderPipeline {
     #[wasm_bindgen(constructor)]
-    pub fn new(initial_value: i32) -> Counter {
-        Counter {
-            value: initial_value,
-            step_size: 1,
+    pub fn new() -> RenderPipeline {
+        RenderPipeline { layers: Vec::new() }
+    }
+
+    #[wasm_bindgen(js_name = addLayer)]
+    pub fn add_layer(&mut self, compressed_voxels: &[u8]) {
+        self.layers.push(Layer {
+            voxels: VoxelCompression::decompress(compressed_voxels),
+            visible: true,
+        });
+    }
+
+    #[wasm_bindgen(js_name = getLayerCount)]
+    pub fn get_layer_count(&self) -> usize {
+        self.layers.len()
+    }
+
+    #[wasm_bindgen(js_name = getLayerVoxels)]
+    pub fn get_layer_voxels(&self, index: usize) -> Vec<u32> {
+        if index < self.layers.len() {
+            self.layers[index].voxels.clone()
+        } else {
+            Vec::new()
         }
     }
 
-    pub fn increment(&mut self) {
-        self.value += self.step_size;
-    }
-
-    pub fn decrement(&mut self) {
-        self.value -= self.step_size;
-    }
-
-    pub fn reset(&mut self) {
-        self.value = 0;
-    }
-
-    #[wasm_bindgen(js_name = setStepSize)]
-    pub fn set_step_size(&mut self, step: i32) {
-        self.step_size = step;
-    }
-
-    #[wasm_bindgen(js_name = getValue)]
-    pub fn get_value(&self) -> i32 {
-        self.value
-    }
-
-    pub fn add(&mut self, amount: i32) {
-        self.value += amount;
-    }
-
-    pub fn multiply(&mut self, factor: i32) {
-        self.value *= factor;
+    #[wasm_bindgen(js_name = isLayerVisible)]
+    pub fn is_layer_visible(&self, index: usize) -> bool {
+        if index < self.layers.len() {
+            self.layers[index].visible
+        } else {
+            false
+        }
     }
 }
 
 // Constants for voxel data manipulation
-const PREVIEW_BIT_MASK: u32 = 0x08;
 const SELECTED_BIT_MASK: u32 = 0x10;
-const BLOCK_TYPE_SHIFT: u32 = 6;
-const BLOCK_TYPE_MASK: u32 = 0x3ff;
 
 // Occlusion levels
 const OCCLUSION_LEVELS: [f32; 4] = [1.0, 0.9, 0.85, 0.75];
 
 // Face normals [x, y, z]
 const FACE_NORMALS: [[f32; 3]; 6] = [
-    [1.0, 0.0, 0.0],   // +X (face 0)
-    [-1.0, 0.0, 0.0],  // -X (face 1)
-    [0.0, 1.0, 0.0],   // +Y (face 2)
-    [0.0, -1.0, 0.0],  // -Y (face 3)
-    [0.0, 0.0, 1.0],   // +Z (face 4)
-    [0.0, 0.0, -1.0],  // -Z (face 5)
+    [1.0, 0.0, 0.0],  // +X (face 0)
+    [-1.0, 0.0, 0.0], // -X (face 1)
+    [0.0, 1.0, 0.0],  // +Y (face 2)
+    [0.0, -1.0, 0.0], // -Y (face 3)
+    [0.0, 0.0, 1.0],  // +Z (face 4)
+    [0.0, 0.0, -1.0], // -Z (face 5)
 ];
 
 // Face tangent directions [u_dir, v_dir]
 const FACE_TANGENTS: [[[i32; 3]; 2]; 6] = [
-    [[0, 1, 0], [0, 0, 1]],  // Face 0: +X
-    [[0, 1, 0], [0, 0, 1]],  // Face 1: -X
-    [[1, 0, 0], [0, 0, 1]],  // Face 2: +Y
-    [[1, 0, 0], [0, 0, 1]],  // Face 3: -Y
-    [[1, 0, 0], [0, 1, 0]],  // Face 4: +Z
-    [[1, 0, 0], [0, 1, 0]],  // Face 5: -Z
+    [[0, 1, 0], [0, 0, 1]], // Face 0: +X
+    [[0, 1, 0], [0, 0, 1]], // Face 1: -X
+    [[1, 0, 0], [0, 0, 1]], // Face 2: +Y
+    [[1, 0, 0], [0, 0, 1]], // Face 3: -Y
+    [[1, 0, 0], [0, 1, 0]], // Face 4: +Z
+    [[1, 0, 0], [0, 1, 0]], // Face 5: -Z
 ];
 
 #[wasm_bindgen]
@@ -208,19 +194,6 @@ impl MeshArrays {
     }
 }
 
-// Voxel data utility functions
-fn get_block_type(block_value: u32) -> u32 {
-    (block_value >> BLOCK_TYPE_SHIFT) & BLOCK_TYPE_MASK
-}
-
-fn is_block_present(block_value: u32) -> bool {
-    get_block_type(block_value) != 0
-}
-
-fn is_preview(block_value: u32) -> bool {
-    (block_value & PREVIEW_BIT_MASK) != 0
-}
-
 fn is_selected(block_value: u32) -> bool {
     (block_value & SELECTED_BIT_MASK) != 0
 }
@@ -253,7 +226,8 @@ where
 
     let is_occluder = |ox: i32, oy: i32, oz: i32| -> bool {
         let val = get_neighbor_block(nx + ox, ny + oy, nz + oz);
-        is_block_present(val) && (!preview_hidden || !is_preview(val))
+        VoxelDataUtils::is_block_present(val)
+            && (!preview_hidden || !VoxelDataUtils::is_preview(val))
     };
 
     let side1_neg = is_occluder(-u_dir[0], -u_dir[1], -u_dir[2]);
@@ -703,10 +677,10 @@ pub fn find_exterior_faces(
                         };
 
                         let block_value = get_voxel(x, y, z);
-                        let block_present = is_block_present(block_value);
-                        let block_is_preview = is_preview(block_value);
+                        let block_present = VoxelDataUtils::is_block_present(block_value);
+                        let block_is_preview = VoxelDataUtils::is_preview(block_value);
                         let block_is_selected = is_selected(block_value);
-                        let block_type = get_block_type(block_value).max(1);
+                        let block_type = VoxelDataUtils::get_block_type(block_value).max(1);
 
                         let nx = (x as i32) + if axis == 0 { *dir } else { 0 };
                         let ny = (y as i32) + if axis == 1 { *dir } else { 0 };
@@ -715,13 +689,16 @@ pub fn find_exterior_faces(
 
                         if block_present {
                             let should_render_face = if block_is_preview {
-                                !is_block_present(neighbor_value) || !is_preview(neighbor_value)
+                                !VoxelDataUtils::is_block_present(neighbor_value)
+                                    || !VoxelDataUtils::is_preview(neighbor_value)
                             } else {
-                                !is_block_present(neighbor_value) || is_preview(neighbor_value)
+                                !VoxelDataUtils::is_block_present(neighbor_value)
+                                    || VoxelDataUtils::is_preview(neighbor_value)
                             };
 
                             if should_render_face {
-                                let texture_index = get_texture_index((block_type - 1) as usize, face_dir);
+                                let texture_index =
+                                    get_texture_index((block_type - 1) as usize, face_dir);
 
                                 ao_mask[mask_index] = calculate_ambient_occlusion(
                                     nx,
@@ -742,7 +719,8 @@ pub fn find_exterior_faces(
                             if block_is_selected {
                                 let neighbor_is_selected = is_selected(neighbor_value);
                                 if !neighbor_is_selected {
-                                    let texture_index = get_texture_index((block_type - 1) as usize, face_dir);
+                                    let texture_index =
+                                        get_texture_index((block_type - 1) as usize, face_dir);
                                     selection_mask[mask_index] = texture_index as i16;
                                 }
                             }

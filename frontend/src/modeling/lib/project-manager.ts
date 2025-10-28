@@ -26,7 +26,7 @@ export class ProjectManager {
     camera: THREE.Camera,
     container: HTMLElement
   ) {
-    const chunk = new Chunk();
+    const chunk = new Chunk(dbConn);
     this.dbConn = dbConn;
     this.project = project;
     this.chunkManager = new LegacyChunk(

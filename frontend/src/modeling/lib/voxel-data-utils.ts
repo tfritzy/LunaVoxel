@@ -1,4 +1,5 @@
 import LZ4 from "lz4js";
+import { decompressVoxelData as wasmDecompressVoxelData } from "@/wasm/vector3_wasm";
 
 export const PREVIEW_BIT_MASK = 0x08;
 export const SELECTED_BIT_MASK = 0x10;
@@ -148,34 +149,6 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
   return compressed;
 };
 
-const rleDecompress = (rleData: Uint8Array): Uint32Array => {
-  const originalLength =
-    rleData[0] | (rleData[1] << 8) | (rleData[2] << 16) | (rleData[3] << 24);
-
-  const dataStartIndex = 4;
-
-  if ((rleData.length - dataStartIndex) % 6 !== 0) {
-    throw new Error("RLE data must be in 6-byte groups");
-  }
-
-  const decompressed = new Uint32Array(originalLength);
-  let writeIndex = 0;
-
-  for (let i = dataStartIndex; i < rleData.length; i += 6) {
-    const valueLow = rleData[i] | (rleData[i + 1] << 8);
-    const valueHigh = rleData[i + 2] | (rleData[i + 3] << 8);
-    const runLength = rleData[i + 4] | (rleData[i + 5] << 8);
-
-    const value = (valueLow & 0xffff) | ((valueHigh & 0xffff) << 16);
-
-    for (let j = 0; j < runLength; j++) {
-      decompressed[writeIndex++] = value;
-    }
-  }
-
-  return decompressed;
-};
-
 export const compressVoxelData = (
   voxelData: Uint32Array | number[]
 ): Uint8Array => {
@@ -194,9 +167,8 @@ export const decompressVoxelData = (
       ? compressedData
       : new Uint8Array(compressedData);
 
-  const rleData = LZ4.decompress(data);
-
-  return rleDecompress(new Uint8Array(rleData));
+  // Use WASM decompression which handles lz4_flex format correctly
+  return wasmDecompressVoxelData(data);
 };
 
 export const getVoxelAt = (
