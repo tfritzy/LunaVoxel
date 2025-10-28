@@ -11,6 +11,7 @@ import { Chunk } from "./chunk";
 
 export class ProjectManager {
   public builder;
+  private chunk: Chunk;
   private chunkManager;
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
@@ -26,7 +27,7 @@ export class ProjectManager {
     camera: THREE.Camera,
     container: HTMLElement
   ) {
-    const chunk = new Chunk(dbConn);
+    this.chunk = new Chunk(dbConn, project.dimensions);
     this.dbConn = dbConn;
     this.project = project;
     this.chunkManager = new LegacyChunk(
@@ -107,6 +108,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
+      this.chunk.setTextureAtlas(atlasData);
       this.chunkManager.setTextureAtlas(atlasData, this.builder.getTool());
       this.updateChunkManager();
     }

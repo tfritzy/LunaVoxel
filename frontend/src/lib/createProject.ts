@@ -14,7 +14,7 @@ export const createProject = async (
     return null;
   }
 
-  connection.reducers.createProject(id, name, 32, 32, 32);
+  connection.reducers.createProject(id, name, 64, 64, 64);
 
   navigate(`/project/${id}`);
   return id;

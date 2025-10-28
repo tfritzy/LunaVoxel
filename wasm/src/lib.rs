@@ -2,9 +2,20 @@ use voxel_compression::VoxelCompression;
 use voxel_compression::VoxelDataUtils;
 use wasm_bindgen::prelude::*;
 
+const MAX_LAYERS: usize = 10;
+
 struct Layer {
     voxels: Vec<u32>,
     visible: bool,
+}
+
+// Helper function to apply a layer on top of existing voxels
+fn add_layer_to_voxels(layer: &Layer, voxels: &mut Vec<u32>) {
+    for i in 0..voxels.len() {
+        if i < layer.voxels.len() && VoxelDataUtils::is_block_present(layer.voxels[i]) {
+            voxels[i] = layer.voxels[i];
+        }
+    }
 }
 
 #[wasm_bindgen(js_name = decompressVoxelData)]
@@ -14,45 +25,134 @@ pub fn decompress_voxel_data(compressed_data: &[u8]) -> Vec<u32> {
 
 #[wasm_bindgen]
 pub struct RenderPipeline {
-    layers: Vec<Layer>,
+    layers: [Option<Layer>; MAX_LAYERS],
+    voxels_to_render: Vec<u32>,
+    rendered_voxels: Vec<u32>,
+    dim_x: usize,
+    dim_y: usize,
+    dim_z: usize,
+    texture_width: usize,
+    block_atlas_mappings: Vec<u32>,
+    num_block_types: usize,
 }
 
 #[wasm_bindgen]
 impl RenderPipeline {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> RenderPipeline {
-        RenderPipeline { layers: Vec::new() }
+    pub fn new(dim_x: usize, dim_y: usize, dim_z: usize) -> RenderPipeline {
+        let voxel_count = dim_x * dim_y * dim_z;
+        RenderPipeline { 
+            layers: [
+                None, None, None, None, None,
+                None, None, None, None, None,
+            ],
+            voxels_to_render: vec![0; voxel_count],
+            rendered_voxels: vec![0; voxel_count],
+            dim_x,
+            dim_y,
+            dim_z,
+            texture_width: 1,
+            block_atlas_mappings: Vec::new(),
+            num_block_types: 0,
+        }
+    }
+    
+    #[wasm_bindgen(js_name = updateDimensions)]
+    pub fn update_dimensions(&mut self, dim_x: usize, dim_y: usize, dim_z: usize) {
+        if self.dim_x != dim_x || self.dim_y != dim_y || self.dim_z != dim_z {
+            self.dim_x = dim_x;
+            self.dim_y = dim_y;
+            self.dim_z = dim_z;
+            let voxel_count = dim_x * dim_y * dim_z;
+            self.voxels_to_render.resize(voxel_count, 0);
+            self.rendered_voxels.resize(voxel_count, 0);
+        }
+    }
+    
+    #[wasm_bindgen(js_name = updateAtlasData)]
+    pub fn update_atlas_data(&mut self, block_atlas_mappings: Vec<u32>, texture_width: usize) {
+        self.num_block_types = if block_atlas_mappings.is_empty() {
+            0
+        } else {
+            block_atlas_mappings.len() / 6
+        };
+        self.block_atlas_mappings = block_atlas_mappings;
+        self.texture_width = texture_width;
     }
 
     #[wasm_bindgen(js_name = addLayer)]
-    pub fn add_layer(&mut self, compressed_voxels: &[u8]) {
-        self.layers.push(Layer {
-            voxels: VoxelCompression::decompress(compressed_voxels),
-            visible: true,
-        });
-    }
-
-    #[wasm_bindgen(js_name = getLayerCount)]
-    pub fn get_layer_count(&self) -> usize {
-        self.layers.len()
-    }
-
-    #[wasm_bindgen(js_name = getLayerVoxels)]
-    pub fn get_layer_voxels(&self, index: usize) -> Vec<u32> {
-        if index < self.layers.len() {
-            self.layers[index].voxels.clone()
-        } else {
-            Vec::new()
+    pub fn add_layer(&mut self, index: usize, compressed_voxels: &[u8], visible: bool) {
+        if index < MAX_LAYERS {
+            self.layers[index] = Some(Layer {
+                voxels: VoxelCompression::decompress(compressed_voxels),
+                visible: visible,
+            });
         }
     }
 
-    #[wasm_bindgen(js_name = isLayerVisible)]
-    pub fn is_layer_visible(&self, index: usize) -> bool {
-        if index < self.layers.len() {
-            self.layers[index].visible
-        } else {
-            false
+    #[wasm_bindgen(js_name = updateLayer)]
+    pub fn update_layer(&mut self, index: usize, compressed_voxels: &[u8], visible: bool) {
+        if index < MAX_LAYERS {
+            self.layers[index] = Some(Layer {
+                voxels: VoxelCompression::decompress(compressed_voxels),
+                visible: visible,
+            });
         }
+    }
+
+    #[wasm_bindgen(js_name = render)]
+    pub fn render(
+        &mut self,
+        preview_hidden: bool,
+        disable_greedy_meshing: bool,
+    ) -> Option<MeshResult> {
+        let mut first_layer = true;
+        for layer_opt in &self.layers {
+            if let Some(layer) = layer_opt {
+                if layer.visible {
+                    if first_layer {
+                        if self.voxels_to_render.len() != layer.voxels.len() {
+                            self.voxels_to_render.resize(layer.voxels.len(), 0);
+                        }
+                        self.voxels_to_render.copy_from_slice(&layer.voxels);
+                        first_layer = false;
+                    } else {
+                        add_layer_to_voxels(layer, &mut self.voxels_to_render);
+                    }
+                }
+            }
+        }
+        
+        if !first_layer {
+            let has_changes = if self.rendered_voxels.len() != self.voxels_to_render.len() {
+                true
+            } else {
+                self.rendered_voxels.iter()
+                    .zip(self.voxels_to_render.iter())
+                    .any(|(a, b)| a != b)
+            };
+            
+            if has_changes {
+                if self.rendered_voxels.len() != self.voxels_to_render.len() {
+                    self.rendered_voxels.resize(self.voxels_to_render.len(), 0);
+                }
+                self.rendered_voxels.copy_from_slice(&self.voxels_to_render);
+                
+                return Some(find_exterior_faces(
+                    &self.voxels_to_render,
+                    self.dim_x,
+                    self.dim_y,
+                    self.dim_z,
+                    self.texture_width,
+                    &self.block_atlas_mappings,
+                    self.num_block_types,
+                    preview_hidden,
+                    disable_greedy_meshing,
+                ));
+            }
+        }
+        
+        None
     }
 }
 

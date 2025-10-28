@@ -105,7 +105,13 @@ npm run build
 cd ..
 write_success "Functions built successfully"
 
-write_step "Step 5: Starting Firebase emulators"
+write_step "Step 5: Building WASM module"
+cd wasm
+wasm-pack build --target web --release
+cd ..
+write_success "WASM module built successfully"
+
+write_step "Step 6: Starting Firebase emulators"
 if open_in_new_terminal "Firebase Emulators" "firebase emulators:start" "$PWD"; then
     write_success "Firebase emulators started in new terminal"
 else
@@ -113,7 +119,7 @@ else
 fi
 sleep 3
 
-write_step "Step 6: Starting frontend development server"
+write_step "Step 7: Starting frontend development server"
 if open_in_new_terminal "Frontend Dev Server" "npm run dev" "$PWD/frontend"; then
     write_success "Frontend development server started in new terminal"
 else
