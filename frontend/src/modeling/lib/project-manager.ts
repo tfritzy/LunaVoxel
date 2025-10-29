@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ToolType, DbConnection, Project } from "../../module_bindings";
+import { ToolType, DbConnection, Project, Vector3 } from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { LegacyChunk } from "./legacy-chunk";
@@ -27,7 +27,7 @@ export class ProjectManager {
     camera: THREE.Camera,
     container: HTMLElement
   ) {
-    this.chunk = new Chunk(dbConn, project.dimensions);
+    this.chunk = new Chunk(dbConn, scene, project.dimensions, {x: 0, y: 0, z: 0});
     this.dbConn = dbConn;
     this.project = project;
     this.chunkManager = new LegacyChunk(
