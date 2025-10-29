@@ -128,6 +128,51 @@ export class ChunkMesh {
     this.updateSelectionMesh(atlasData);
   };
 
+  private updateMeshGeometry = (
+    mesh: THREE.Mesh,
+    meshArrays: MeshArrays
+  ): void => {
+    mesh.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(meshArrays.getVertices(), 3)
+    );
+    mesh.geometry.setAttribute(
+      "normal",
+      new THREE.BufferAttribute(meshArrays.getNormals(), 3)
+    );
+    mesh.geometry.setAttribute(
+      "uv",
+      new THREE.BufferAttribute(meshArrays.getUVs(), 2)
+    );
+    mesh.geometry.setAttribute(
+      "aochannel",
+      new THREE.BufferAttribute(meshArrays.getAO(), 1)
+    );
+    mesh.geometry.setIndex(
+      new THREE.BufferAttribute(meshArrays.getIndices(), 1)
+    );
+
+    mesh.geometry.attributes.position.needsUpdate = true;
+    mesh.geometry.attributes.normal.needsUpdate = true;
+    mesh.geometry.attributes.uv.needsUpdate = true;
+    mesh.geometry.attributes.aochannel.needsUpdate = true;
+    if (mesh.geometry.index) {
+      mesh.geometry.index.needsUpdate = true;
+    }
+
+    const center = new THREE.Vector3(
+      this.chunkDimensions.x / 2,
+      this.chunkDimensions.y / 2,
+      this.chunkDimensions.z / 2
+    );
+    const radius = Math.sqrt(
+      (this.chunkDimensions.x / 2) ** 2 +
+        (this.chunkDimensions.y / 2) ** 2 +
+        (this.chunkDimensions.z / 2) ** 2
+    );
+    mesh.geometry.boundingSphere = new THREE.Sphere(center, radius);
+  };
+
   private updateMesh = (atlasData: AtlasData): void => {
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
@@ -145,45 +190,7 @@ export class ChunkMesh {
       this.scene.add(this.mesh);
     }
 
-    this.geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(this.meshArrays.getVertices(), 3)
-    );
-    this.geometry.setAttribute(
-      "normal",
-      new THREE.BufferAttribute(this.meshArrays.getNormals(), 3)
-    );
-    this.geometry.setAttribute(
-      "uv",
-      new THREE.BufferAttribute(this.meshArrays.getUVs(), 2)
-    );
-    this.geometry.setAttribute(
-      "aochannel",
-      new THREE.BufferAttribute(this.meshArrays.getAO(), 1)
-    );
-    this.geometry.setIndex(
-      new THREE.BufferAttribute(this.meshArrays.getIndices(), 1)
-    );
-
-    this.geometry.attributes.position.needsUpdate = true;
-    this.geometry.attributes.normal.needsUpdate = true;
-    this.geometry.attributes.uv.needsUpdate = true;
-    this.geometry.attributes.aochannel.needsUpdate = true;
-    if (this.geometry.index) {
-      this.geometry.index.needsUpdate = true;
-    }
-
-    const center = new THREE.Vector3(
-      this.chunkDimensions.x / 2,
-      this.chunkDimensions.y / 2,
-      this.chunkDimensions.z / 2
-    );
-    const radius = Math.sqrt(
-      (this.chunkDimensions.x / 2) ** 2 +
-        (this.chunkDimensions.y / 2) ** 2 +
-        (this.chunkDimensions.z / 2) ** 2
-    );
-    this.geometry.boundingSphere = new THREE.Sphere(center, radius);
+    this.updateMeshGeometry(this.mesh!, this.meshArrays);
   };
 
   private updatePreviewMesh = (
@@ -204,25 +211,7 @@ export class ChunkMesh {
       this.scene.add(this.previewMesh);
     }
 
-    this.previewMesh.geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(this.previewMeshArrays.getVertices(), 3)
-    );
-    this.previewMesh.geometry.setAttribute(
-      "normal",
-      new THREE.BufferAttribute(this.previewMeshArrays.getNormals(), 3)
-    );
-    this.previewMesh.geometry.setAttribute(
-      "uv",
-      new THREE.BufferAttribute(this.previewMeshArrays.getUVs(), 2)
-    );
-    this.previewMesh.geometry.setAttribute(
-      "aochannel",
-      new THREE.BufferAttribute(this.previewMeshArrays.getAO(), 1)
-    );
-    this.previewMesh.geometry.setIndex(
-      new THREE.BufferAttribute(this.previewMeshArrays.getIndices(), 1)
-    );
+    this.updateMeshGeometry(this.previewMesh, this.previewMeshArrays);
 
     this.previewMesh.visible =
       buildMode.tag === ToolType.Build.tag ||
@@ -230,26 +219,6 @@ export class ChunkMesh {
     this.previewMesh.layers.set(
       buildMode.tag === ToolType.Build.tag ? layers.ghost : layers.raycast
     );
-
-    this.previewMesh.geometry.attributes.position.needsUpdate = true;
-    this.previewMesh.geometry.attributes.normal.needsUpdate = true;
-    this.previewMesh.geometry.attributes.uv.needsUpdate = true;
-    this.previewMesh.geometry.attributes.aochannel.needsUpdate = true;
-    if (this.previewMesh.geometry.index) {
-      this.previewMesh.geometry.index.needsUpdate = true;
-    }
-
-    const center = new THREE.Vector3(
-      this.chunkDimensions.x / 2,
-      this.chunkDimensions.y / 2,
-      this.chunkDimensions.z / 2
-    );
-    const radius = Math.sqrt(
-      (this.chunkDimensions.x / 2) ** 2 +
-        (this.chunkDimensions.y / 2) ** 2 +
-        (this.chunkDimensions.z / 2) ** 2
-    );
-    this.previewMesh.geometry.boundingSphere = new THREE.Sphere(center, radius);
   };
 
   private updateSelectionMesh = (atlasData: AtlasData): void => {
@@ -267,51 +236,10 @@ export class ChunkMesh {
       this.scene.add(this.selectionMesh);
     }
 
-    this.selectionMesh.geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(this.selectionMeshArrays.getVertices(), 3)
-    );
-    this.selectionMesh.geometry.setAttribute(
-      "normal",
-      new THREE.BufferAttribute(this.selectionMeshArrays.getNormals(), 3)
-    );
-    this.selectionMesh.geometry.setAttribute(
-      "uv",
-      new THREE.BufferAttribute(this.selectionMeshArrays.getUVs(), 2)
-    );
-    this.selectionMesh.geometry.setAttribute(
-      "aochannel",
-      new THREE.BufferAttribute(this.selectionMeshArrays.getAO(), 1)
-    );
-    this.selectionMesh.geometry.setIndex(
-      new THREE.BufferAttribute(this.selectionMeshArrays.getIndices(), 1)
-    );
+    this.updateMeshGeometry(this.selectionMesh, this.selectionMeshArrays);
 
     this.selectionMesh.visible = this.selectionMeshArrays.vertexCount > 0;
     console.log(this.selectionMesh.visible, "visible?");
-
-    this.selectionMesh.geometry.attributes.position.needsUpdate = true;
-    this.selectionMesh.geometry.attributes.normal.needsUpdate = true;
-    this.selectionMesh.geometry.attributes.uv.needsUpdate = true;
-    this.selectionMesh.geometry.attributes.aochannel.needsUpdate = true;
-    if (this.selectionMesh.geometry.index) {
-      this.selectionMesh.geometry.index.needsUpdate = true;
-    }
-
-    const center = new THREE.Vector3(
-      this.chunkDimensions.x / 2,
-      this.chunkDimensions.y / 2,
-      this.chunkDimensions.z / 2
-    );
-    const radius = Math.sqrt(
-      (this.chunkDimensions.x / 2) ** 2 +
-        (this.chunkDimensions.y / 2) ** 2 +
-        (this.chunkDimensions.z / 2) ** 2
-    );
-    this.selectionMesh.geometry.boundingSphere = new THREE.Sphere(
-      center,
-      radius
-    );
   };
 
   dispose = () => {

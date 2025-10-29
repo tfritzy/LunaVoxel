@@ -34,6 +34,9 @@ pub struct RenderPipeline {
     texture_width: usize,
     block_atlas_mappings: Vec<u32>,
     num_block_types: usize,
+    real_mesh_arrays: MeshArrays,
+    preview_mesh_arrays: MeshArrays,
+    selection_mesh_arrays: MeshArrays,
 }
 
 #[wasm_bindgen]
@@ -41,6 +44,9 @@ impl RenderPipeline {
     #[wasm_bindgen(constructor)]
     pub fn new(dim_x: usize, dim_y: usize, dim_z: usize) -> RenderPipeline {
         let voxel_count = dim_x * dim_y * dim_z;
+        let max_vertices = voxel_count * 24; // Estimate
+        let max_indices = max_vertices * 2;
+        
         RenderPipeline { 
             layers: [
                 None, None, None, None, None,
@@ -54,6 +60,9 @@ impl RenderPipeline {
             texture_width: 1,
             block_atlas_mappings: Vec::new(),
             num_block_types: 0,
+            real_mesh_arrays: MeshArrays::new(max_vertices, max_indices),
+            preview_mesh_arrays: MeshArrays::new(max_vertices, max_indices),
+            selection_mesh_arrays: MeshArrays::new(max_vertices, max_indices),
         }
     }
     
@@ -69,7 +78,7 @@ impl RenderPipeline {
         }
     }
     
-    #[wasm_bindgen(js_name = updateAtlasData)]
+        #[wasm_bindgen(js_name = updateAtlasData)]
     pub fn update_atlas_data(&mut self, block_atlas_mappings: Vec<u32>, texture_width: usize) {
         self.num_block_types = if block_atlas_mappings.is_empty() {
             0
@@ -138,7 +147,7 @@ impl RenderPipeline {
                 }
                 self.rendered_voxels.copy_from_slice(&self.voxels_to_render);
                 
-                return Some(find_exterior_faces(
+                find_exterior_faces(
                     &self.voxels_to_render,
                     self.dim_x,
                     self.dim_y,
@@ -148,7 +157,34 @@ impl RenderPipeline {
                     self.num_block_types,
                     preview_hidden,
                     disable_greedy_meshing,
-                ));
+                    &mut self.real_mesh_arrays,
+                    &mut self.preview_mesh_arrays,
+                    &mut self.selection_mesh_arrays,
+                );
+                
+                return Some(MeshResult {
+                    real_mesh: MeshData {
+                        vertices: std::mem::take(&mut self.real_mesh_arrays.vertices),
+                        normals: std::mem::take(&mut self.real_mesh_arrays.normals),
+                        uvs: std::mem::take(&mut self.real_mesh_arrays.uvs),
+                        ao: std::mem::take(&mut self.real_mesh_arrays.ao),
+                        indices: std::mem::take(&mut self.real_mesh_arrays.indices),
+                    },
+                    preview_mesh: MeshData {
+                        vertices: std::mem::take(&mut self.preview_mesh_arrays.vertices),
+                        normals: std::mem::take(&mut self.preview_mesh_arrays.normals),
+                        uvs: std::mem::take(&mut self.preview_mesh_arrays.uvs),
+                        ao: std::mem::take(&mut self.preview_mesh_arrays.ao),
+                        indices: std::mem::take(&mut self.preview_mesh_arrays.indices),
+                    },
+                    selection_mesh: MeshData {
+                        vertices: std::mem::take(&mut self.selection_mesh_arrays.vertices),
+                        normals: std::mem::take(&mut self.selection_mesh_arrays.normals),
+                        uvs: std::mem::take(&mut self.selection_mesh_arrays.uvs),
+                        ao: std::mem::take(&mut self.selection_mesh_arrays.ao),
+                        indices: std::mem::take(&mut self.selection_mesh_arrays.indices),
+                    },
+                });
             }
         }
         
@@ -231,6 +267,31 @@ impl MeshData {
     #[wasm_bindgen(getter)]
     pub fn indices(&self) -> Vec<u32> {
         self.indices.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub struct MeshResult {
+    real_mesh: MeshData,
+    preview_mesh: MeshData,
+    selection_mesh: MeshData,
+}
+
+#[wasm_bindgen]
+impl MeshResult {
+    #[wasm_bindgen(js_name = realMesh)]
+    pub fn real_mesh(self) -> MeshData {
+        self.real_mesh
+    }
+
+    #[wasm_bindgen(js_name = previewMesh)]
+    pub fn preview_mesh(self) -> MeshData {
+        self.preview_mesh
+    }
+
+    #[wasm_bindgen(js_name = selectionMesh)]
+    pub fn selection_mesh(self) -> MeshData {
+        self.selection_mesh
     }
 }
 
@@ -620,51 +681,7 @@ fn generate_greedy_mesh(
     }
 }
 
-#[wasm_bindgen]
-pub struct MeshResult {
-    real_mesh: MeshData,
-    preview_mesh: MeshData,
-    selection_mesh: MeshData,
-}
-
-#[wasm_bindgen]
-impl MeshResult {
-    #[wasm_bindgen(getter, js_name = realMesh)]
-    pub fn real_mesh(&self) -> MeshData {
-        MeshData {
-            vertices: self.real_mesh.vertices.clone(),
-            normals: self.real_mesh.normals.clone(),
-            uvs: self.real_mesh.uvs.clone(),
-            ao: self.real_mesh.ao.clone(),
-            indices: self.real_mesh.indices.clone(),
-        }
-    }
-
-    #[wasm_bindgen(getter, js_name = previewMesh)]
-    pub fn preview_mesh(&self) -> MeshData {
-        MeshData {
-            vertices: self.preview_mesh.vertices.clone(),
-            normals: self.preview_mesh.normals.clone(),
-            uvs: self.preview_mesh.uvs.clone(),
-            ao: self.preview_mesh.ao.clone(),
-            indices: self.preview_mesh.indices.clone(),
-        }
-    }
-
-    #[wasm_bindgen(getter, js_name = selectionMesh)]
-    pub fn selection_mesh(&self) -> MeshData {
-        MeshData {
-            vertices: self.selection_mesh.vertices.clone(),
-            normals: self.selection_mesh.normals.clone(),
-            uvs: self.selection_mesh.uvs.clone(),
-            ao: self.selection_mesh.ao.clone(),
-            indices: self.selection_mesh.indices.clone(),
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub fn find_exterior_faces(
+fn find_exterior_faces(
     voxel_data_flat: &[u32],
     dim_x: usize,
     dim_y: usize,
@@ -674,7 +691,15 @@ pub fn find_exterior_faces(
     num_block_types: usize,
     preview_hidden: bool,
     disable_greedy_meshing: bool,
-) -> MeshResult {
+    real_mesh: &mut MeshArrays,
+    preview_mesh: &mut MeshArrays,
+    selection_mesh: &mut MeshArrays,
+) {
+    // Reset the mesh arrays
+    real_mesh.reset();
+    preview_mesh.reset();
+    selection_mesh.reset();
+    
     // Reconstruct voxel data as 3D array
     let get_voxel = |x: usize, y: usize, z: usize| -> u32 {
         if x < dim_x && y < dim_y && z < dim_z {
@@ -694,12 +719,6 @@ pub fn find_exterior_faces(
     };
 
     let mask_size = dim_x.max(dim_y).max(dim_z).pow(2);
-    let max_vertices = dim_x * dim_y * dim_z * 24; // Estimate
-    let max_indices = max_vertices * 2;
-
-    let mut real_mesh = MeshArrays::new(max_vertices, max_indices);
-    let mut preview_mesh = MeshArrays::new(max_vertices, max_indices);
-    let mut selection_mesh = MeshArrays::new(max_vertices, max_indices);
 
     let mut real_mask = vec![-1i16; mask_size];
     let mut preview_mask = vec![-1i16; mask_size];
@@ -842,7 +861,7 @@ pub fn find_exterior_faces(
                     *dir,
                     face_dir,
                     texture_width,
-                    &mut real_mesh,
+                    real_mesh,
                     disable_greedy_meshing,
                 );
 
@@ -859,7 +878,7 @@ pub fn find_exterior_faces(
                     *dir,
                     face_dir,
                     texture_width,
-                    &mut preview_mesh,
+                    preview_mesh,
                     disable_greedy_meshing,
                 );
 
@@ -876,34 +895,10 @@ pub fn find_exterior_faces(
                     *dir,
                     face_dir,
                     texture_width,
-                    &mut selection_mesh,
+                    selection_mesh,
                     disable_greedy_meshing,
                 );
             }
         }
-    }
-
-    MeshResult {
-        real_mesh: MeshData {
-            vertices: real_mesh.vertices,
-            normals: real_mesh.normals,
-            uvs: real_mesh.uvs,
-            ao: real_mesh.ao,
-            indices: real_mesh.indices,
-        },
-        preview_mesh: MeshData {
-            vertices: preview_mesh.vertices,
-            normals: preview_mesh.normals,
-            uvs: preview_mesh.uvs,
-            ao: preview_mesh.ao,
-            indices: preview_mesh.indices,
-        },
-        selection_mesh: MeshData {
-            vertices: selection_mesh.vertices,
-            normals: selection_mesh.normals,
-            uvs: selection_mesh.uvs,
-            ao: selection_mesh.ao,
-            indices: selection_mesh.indices,
-        },
     }
 }

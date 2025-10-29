@@ -2,6 +2,7 @@ import { DbConnection, EventContext, Layer, Vector3 } from "@/module_bindings";
 import { RenderPipeline } from "@/wasm/vector3_wasm";
 import { isWasmInitialized } from "@/lib/wasmInit";
 import { AtlasData } from "@/lib/useAtlas";
+import { getWasmMemory } from "@/lib/wasmInit";
 
 export class Chunk {
   private renderPipeline: RenderPipeline;
@@ -26,9 +27,9 @@ export class Chunk {
   };
 
   private onLayerUpdate = (ctx: EventContext, oldLayer: Layer, newLayer: Layer) => {
-    this.renderPipeline.updateLayer(newLayer.index, newLayer.voxels, newLayer.visible);
     const startTime = performance.now();
-    this.renderPipeline.render(false, false);
+    this.renderPipeline.updateLayer(newLayer.index, newLayer.voxels, newLayer.visible);
+    const meshData = this.renderPipeline.render(false, false);
     const endTime = performance.now();
     console.log(`Render took ${(endTime - startTime).toFixed(2)}ms`);
   };
