@@ -41,7 +41,6 @@ export type ModifyBlockRect = {
   blockType: number,
   start: Vector3,
   end: Vector3,
-  rotation: number,
   layerIndex: number,
 };
 let _cached_ModifyBlockRect_type_value: __AlgebraicTypeType | null = null;
@@ -60,10 +59,9 @@ export const ModifyBlockRect = {
     _cached_ModifyBlockRect_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
       { name: "mode", algebraicType: ToolType.getTypeScriptAlgebraicType() },
-      { name: "blockType", algebraicType: __AlgebraicTypeValue.U32 },
+      { name: "blockType", algebraicType: __AlgebraicTypeValue.U8 },
       { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType() },
       { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "rotation", algebraicType: __AlgebraicTypeValue.U32 },
       { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32 },
     );
     return _cached_ModifyBlockRect_type_value;

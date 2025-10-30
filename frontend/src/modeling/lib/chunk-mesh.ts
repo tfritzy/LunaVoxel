@@ -24,7 +24,9 @@ export class ChunkMesh {
   private chunkZ: number;
   private chunkDimensions: Vector3;
   private worldDimensions: Vector3;
-  private voxelData: Uint32Array[][];
+  private voxelData: Uint8Array[][];
+  private previewFrame: Uint8Array;
+  private selectionFrame: Uint8Array;
 
   constructor(
     scene: THREE.Scene,
@@ -54,9 +56,13 @@ export class ChunkMesh {
     for (let x = 0; x < chunkDimensions.x; x++) {
       this.voxelData[x] = [];
       for (let y = 0; y < chunkDimensions.y; y++) {
-        this.voxelData[x][y] = new Uint32Array(chunkDimensions.z);
+        this.voxelData[x][y] = new Uint8Array(chunkDimensions.z);
       }
     }
+
+    const totalVoxels = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
+    this.previewFrame = new Uint8Array(totalVoxels);
+    this.selectionFrame = new Uint8Array(totalVoxels);
   }
 
   public getMesh(): THREE.Mesh | null {
@@ -76,8 +82,16 @@ export class ChunkMesh {
       z >= 0 &&
       z < this.chunkDimensions.z
     ) {
-      this.voxelData[x][y][z] = value;
+      this.voxelData[x][y][z] = value & 0xFF; // Clamp to u8
     }
+  }
+
+  setPreviewFrame(previewFrame: Uint8Array): void {
+    this.previewFrame = previewFrame;
+  }
+
+  setSelectionFrame(selectionFrame: Uint8Array): void {
+    this.selectionFrame = selectionFrame;
   }
 
   getVoxel(x: number, y: number, z: number): number {
@@ -120,6 +134,8 @@ export class ChunkMesh {
       this.meshArrays,
       this.previewMeshArrays,
       this.selectionMeshArrays,
+      this.previewFrame.some(v => v > 0) ? this.previewFrame : null,
+      this.selectionFrame.some(v => v > 0) ? this.selectionFrame : null,
       buildMode.tag === ToolType.Erase.tag
     );
 

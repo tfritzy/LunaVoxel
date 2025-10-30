@@ -6,7 +6,6 @@ import { LegacyChunk } from "./legacy-chunk";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
-import { getBlockType } from "./voxel-data-utils";
 import { Chunk } from "./chunk";
 
 export class ProjectManager {
@@ -127,21 +126,19 @@ export class ProjectManager {
     tool: ToolType,
     start: THREE.Vector3,
     end: THREE.Vector3,
-    blockType: number,
-    rotation: number
+    blockType: number
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
-    const previousVoxels = new Uint32Array(layer.voxels);
+    const previousVoxels = new Uint8Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
       layer,
       tool,
       start,
       end,
-      blockType,
-      rotation
+      blockType
     );
-    const updated = new Uint32Array(layer.voxels);
+    const updated = new Uint8Array(layer.voxels);
     this.editHistory.addEntry(previousVoxels, updated, layer.index);
     this.updateChunkManager();
   };
@@ -170,7 +167,7 @@ export class ProjectManager {
 
     const index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
     const blockValue = layer.voxels[index];
-    return getBlockType(blockValue);
+    return blockValue; // Block value is already the block type (u8)
   }
 
   private updateChunkManager = () => {
@@ -178,7 +175,9 @@ export class ProjectManager {
     const start = performance.now();
 
     this.chunkManager.update(
-      this.builder.previewBlocks,
+      this.builder.previewFrame,
+      this.builder.previewFrameStart,
+      this.builder.previewFrameDim,
       this.builder.getTool(),
       this.atlasData
     );

@@ -9,14 +9,7 @@ import {
 } from "@/module_bindings";
 import { ChunkMesh } from "./chunk-mesh";
 import {
-  setPreviewBit,
-  clearPreviewBit,
-  encodeBlockData,
-  getBlockType,
-  isPreview,
   isBlockPresent,
-  getVersion,
-  setSelectedBit,
   decompressVoxelData,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
@@ -24,17 +17,19 @@ import { calculateRectBounds } from "@/lib/rect-utils";
 
 export const CHUNK_SIZE = 16;
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
+export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint8Array };
 export type DecompressedSelection = Omit<Selection, "selectionData"> & {
-  selectionData: Uint32Array;
+  selectionData: Uint8Array;
 };
 
 export class LegacyChunk {
   private scene: THREE.Scene;
   private chunkMesh: ChunkMesh;
   private dimensions: Vector3;
-  private renderedBlocks: Uint32Array;
-  private blocksToRender: Uint32Array;
+  private renderedBlocks: Uint8Array;
+  private blocksToRender: Uint8Array;
+  private previewFrame: Uint8Array;
+  private selectionFrame: Uint8Array;
   private currentUpdateId: number = 0;
   private dbConn: DbConnection;
   private projectId: string;
@@ -52,12 +47,11 @@ export class LegacyChunk {
     this.dbConn = dbConn;
     this.projectId = projectId;
 
-    this.renderedBlocks = new Uint32Array(
-      dimensions.x * dimensions.y * dimensions.z
-    );
-    this.blocksToRender = new Uint32Array(
-      dimensions.x * dimensions.y * dimensions.z
-    );
+    const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
+    this.renderedBlocks = new Uint8Array(totalVoxels);
+    this.blocksToRender = new Uint8Array(totalVoxels);
+    this.previewFrame = new Uint8Array(totalVoxels);
+    this.selectionFrame = new Uint8Array(totalVoxels);
 
     this.chunkMesh = new ChunkMesh(this.scene, 0, 0, 0, dimensions, dimensions);
 
@@ -90,7 +84,7 @@ export class LegacyChunk {
     return this.chunkMesh.getVoxel(worldX, worldY, worldZ);
   }
 
-  private copyChunkData(blocks: Uint32Array): void {
+  private copyChunkData(blocks: Uint8Array): void {
     for (let x = 0; x < this.dimensions.x; x++) {
       for (let y = 0; y < this.dimensions.y; y++) {
         for (let z = 0; z < this.dimensions.z; z++) {
@@ -125,13 +119,13 @@ export class LegacyChunk {
     return null;
   }
 
-  private clearBlocks(blocks: Uint32Array) {
+  private clearBlocks(blocks: Uint8Array) {
     blocks.fill(0);
   }
 
   private addLayerToBlocks(
     layer: DecompressedLayer,
-    blocks: Uint32Array
+    blocks: Uint8Array
   ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
@@ -147,61 +141,52 @@ export class LegacyChunk {
     }
   }
 
-  private updatePreviewState(
-    previewBlocks: Uint32Array,
-    blocks: Uint32Array,
+  private updatePreviewFrame(
+    previewFrame: Uint8Array,
+    previewStart: Vector3 | null,
+    previewDim: Vector3 | null,
     buildMode: ToolType
   ): void {
+    this.previewFrame.fill(0);
+
+    if (!previewStart || !previewDim || previewFrame.length === 0) return;
+
     const isPaintMode = buildMode.tag === ToolType.Paint.tag;
     const isBuildMode = buildMode.tag === ToolType.Build.tag;
-    const isEraseMode = buildMode.tag === ToolType.Erase.tag;
 
-    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      const previewBlockValue = previewBlocks[voxelIndex];
-      const hasPreview = isPreview(previewBlockValue);
-      const realBlockValue = blocks[voxelIndex];
-      const hasRealBlock = isBlockPresent(realBlockValue);
+    if (!isBuildMode && !isPaintMode) return;
 
-      if (isBuildMode) {
-        if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(previewBlockValue);
-        } else if (hasPreview && !hasRealBlock) {
-          blocks[voxelIndex] = setPreviewBit(previewBlockValue);
-        } else if (!hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
-        }
-      } else if (isEraseMode) {
-        if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = setPreviewBit(realBlockValue);
-        } else if (hasPreview && !hasRealBlock) {
-          // leave it alone
-        } else if (!hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
-        }
-      } else if (isPaintMode) {
-        if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(previewBlockValue);
-        } else if (hasPreview && !hasRealBlock) {
-          blocks[voxelIndex] = 0;
-        } else if (!hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
+    const yDim = this.dimensions.y;
+    const zDim = this.dimensions.z;
+
+    for (let x = 0; x < previewDim.x; x++) {
+      for (let y = 0; y < previewDim.y; y++) {
+        for (let z = 0; z < previewDim.z; z++) {
+          const frameIndex = x * previewDim.y * previewDim.z + y * previewDim.z + z;
+          const blockValue = previewFrame[frameIndex];
+          
+          if (blockValue > 0) {
+            const worldX = previewStart.x + x;
+            const worldY = previewStart.y + y;
+            const worldZ = previewStart.z + z;
+            const worldIndex = worldX * yDim * zDim + worldY * zDim + worldZ;
+            
+            this.previewFrame[worldIndex] = blockValue;
+          }
         }
       }
     }
   }
 
-  private updateSelectionState(
-    selections: DecompressedSelection[],
-    blocks: Uint32Array
+  private updateSelectionFrame(
+    selections: DecompressedSelection[]
   ): void {
-    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      for (let i = 0; i < selections.length; i++) {
-        if (selections[i].selectionData[voxelIndex] != 0) {
-          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1; // -1 bc 1 indexed
-          blocks[newVoxelPos] = setSelectedBit(blocks[voxelIndex]);
-          if (newVoxelPos != voxelIndex) {
-            blocks[voxelIndex] = 0;
-          }
+    this.selectionFrame.fill(0);
+
+    for (const selection of selections) {
+      for (let i = 0; i < selection.selectionData.length; i++) {
+        if (selection.selectionData[i] > 0) {
+          this.selectionFrame[i] = 1;
         }
       }
     }
@@ -212,8 +197,7 @@ export class LegacyChunk {
     tool: ToolType,
     start: THREE.Vector3,
     end: THREE.Vector3,
-    blockType: number,
-    rotation: number
+    blockType: number
   ) {
     if (layer.locked) return;
 
@@ -228,28 +212,17 @@ export class LegacyChunk {
         const base = x * yDim * zDim + y * zDim;
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
           const idx = base + z;
-          const currentVal = layer.voxels[idx];
-          const currentType = getBlockType(currentVal);
-          const currentVersion = getVersion(currentVal);
 
           switch (tool.tag) {
             case ToolType.Build.tag:
-              layer.voxels[idx] = encodeBlockData(
-                blockType,
-                rotation,
-                currentVersion + 1
-              );
+              layer.voxels[idx] = blockType & 0xFF;
               break;
             case ToolType.Erase.tag:
-              layer.voxels[idx] = encodeBlockData(0, 0, currentVersion + 1);
+              layer.voxels[idx] = 0;
               break;
             case ToolType.Paint.tag:
-              if (currentType !== 0) {
-                layer.voxels[idx] = encodeBlockData(
-                  blockType,
-                  0,
-                  currentVersion + 1
-                );
+              if (layer.voxels[idx] > 0) {
+                layer.voxels[idx] = blockType & 0xFF;
               }
               break;
             default:
@@ -356,7 +329,9 @@ export class LegacyChunk {
   }
 
   update = (
-    previewBlocks: Uint32Array,
+    previewFrame: Uint8Array,
+    previewStart: Vector3 | null,
+    previewDim: Vector3 | null,
     buildMode: ToolType,
     atlasData: AtlasData
   ) => {
@@ -380,8 +355,8 @@ export class LegacyChunk {
         }
       }
 
-      this.updatePreviewState(previewBlocks, this.blocksToRender, buildMode);
-      this.updateSelectionState(visibleSelections, this.blocksToRender);
+      this.updatePreviewFrame(previewFrame, previewStart, previewDim, buildMode);
+      this.updateSelectionFrame(visibleSelections);
 
       // Check if any blocks changed
       let hasChanges = false;
@@ -392,9 +367,19 @@ export class LegacyChunk {
         }
       }
 
+      // Check if preview or selection frames changed
+      const previewChanged = this.previewFrame.some((v, i) => 
+        v !== (this.chunkMesh as any).previewFrame?.[i]
+      );
+      const selectionChanged = this.selectionFrame.some((v, i) => 
+        v !== (this.chunkMesh as any).selectionFrame?.[i]
+      );
+
       // Update the single chunk mesh if there are changes
-      if (hasChanges) {
+      if (hasChanges || previewChanged || selectionChanged) {
         this.copyChunkData(this.blocksToRender);
+        this.chunkMesh.setPreviewFrame(this.previewFrame);
+        this.chunkMesh.setSelectionFrame(this.selectionFrame);
         this.chunkMesh.update(buildMode, atlasData);
       }
 

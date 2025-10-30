@@ -1,8 +1,8 @@
 use super::helpers::ensure_access_to_project;
 use crate::types::{layer, project_blocks, projects};
-use crate::{BlockType, ProjectBlocks, ToolType, Vector3};
+use crate::{ProjectBlocks, ToolType, Vector3};
 use spacetimedb::{reducer, ReducerContext, Table};
-use voxel_compression::{VoxelCompression, VoxelDataUtils};
+use voxel_compression::VoxelCompression;
 
 const DEFAULT_COLOR_PALETTE: [i32; 64] = [
     0xfdcbb0, 0xfca790, 0xf68181, 0xf04f78, 0xc32454, 0x831c5d, 0xed8099, 0xcf657f, 0xa24b6f,
@@ -34,7 +34,7 @@ pub fn initialize_blocks(ctx: &ReducerContext, project_id: &str) {
 pub fn modify_block(
     ctx: &ReducerContext,
     project_id: String,
-    diff_data: Vec<u32>,
+    diff_data: Vec<u8>,
     layer_index: i32,
 ) {
     ensure_access_to_project(ctx, &project_id, &ctx.sender).expect("Access denied");
@@ -83,10 +83,9 @@ pub fn modify_block_rect(
     ctx: &ReducerContext,
     project_id: String,
     mode: ToolType,
-    block_type: u32,
+    block_type: u8,
     start: Vector3,
     end: Vector3,
-    rotation: u32,
     layer_index: i32,
 ) {
     let layer = ctx
@@ -97,7 +96,7 @@ pub fn modify_block_rect(
         .next()
         .expect("No layer for this project");
 
-    let mut diff_data = vec![0u32; (layer.x_dim * layer.y_dim * layer.z_dim) as usize];
+    let mut diff_data = vec![0u8; (layer.x_dim * layer.y_dim * layer.z_dim) as usize];
     let existing_data = VoxelCompression::decompress(&layer.voxels);
 
     let sx = clamp(start.x, layer.x_dim);
@@ -119,24 +118,11 @@ pub fn modify_block_rect(
         for y in min_y..=max_y {
             for z in min_z..=max_z {
                 let index = (x * layer.y_dim * layer.z_dim + y * layer.z_dim + z) as usize;
-                let cur = BlockType::from_int(existing_data[index]);
 
                 let new_value = match mode {
-                    ToolType::Build => Some(VoxelDataUtils::encode_block_data(
-                        block_type,
-                        rotation,
-                        cur.version + 1,
-                    )),
-                    ToolType::Erase => {
-                        Some(VoxelDataUtils::encode_block_data(0, 0, cur.version + 1))
-                    }
-                    ToolType::Paint if cur.block_type != 0 => {
-                        Some(VoxelDataUtils::encode_block_data(
-                            block_type,
-                            cur.rotation,
-                            cur.version + 1,
-                        ))
-                    }
+                    ToolType::Build => Some(block_type),
+                    ToolType::Erase => Some(0u8),
+                    ToolType::Paint if existing_data[index] > 0 => Some(block_type),
                     _ => None,
                 };
 

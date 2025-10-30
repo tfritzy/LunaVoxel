@@ -435,7 +435,7 @@ export class RemoteReducers {
     this.connection.offReducer("invite_to_project", callback);
   }
 
-  modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
+  modifyBlock(projectId: string, diffData: Uint8Array, layerIndex: number) {
     const __args = { projectId, diffData, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlock.serialize(__writer, __args);
@@ -443,27 +443,27 @@ export class RemoteReducers {
     this.connection.callReducer("modify_block", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: Uint8Array, layerIndex: number) => void) {
     this.connection.onReducer("modify_block", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: Uint8Array, layerIndex: number) => void) {
     this.connection.offReducer("modify_block", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
-    const __args = { projectId, mode, blockType, start, end, rotation, layerIndex };
+  modifyBlockRect(projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, layerIndex: number) {
+    const __args = { projectId, mode, blockType, start, end, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlockRect.serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("modify_block_rect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, layerIndex: number) => void) {
     this.connection.onReducer("modify_block_rect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, blockType: number, start: Vector3, end: Vector3, layerIndex: number) => void) {
     this.connection.offReducer("modify_block_rect", callback);
   }
 

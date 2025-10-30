@@ -156,10 +156,10 @@ impl Layer {
         timestamp: Timestamp,
     ) -> Self {
         use crate::helpers::IdGenerator;
-        use voxel_compression::{VoxelCompression, VoxelDataUtils};
+        use voxel_compression::VoxelCompression;
 
-        let empty = VoxelDataUtils::encode_block_data(0, 1, 0);
-        let size = (x_dim * y_dim * z_dim) as usize;
+        let empty: u8 = 0;
+        let size: usize = (x_dim * y_dim * z_dim) as usize;
         let voxels = vec![empty; size];
         let compressed = VoxelCompression::compress(&voxels);
 
@@ -197,30 +197,19 @@ pub struct Selection {
 }
 
 pub struct BlockType {
-    pub block_type: u32,
-    pub rotation: u32,
-    pub version: u32,
+    pub block_type: u8,
 }
 
 impl BlockType {
-    pub fn new(block_type: u32, version: u32, rotation: u32) -> Self {
-        Self {
-            block_type,
-            version,
-            rotation,
-        }
+    pub fn new(block_type: u8) -> Self {
+        Self { block_type }
     }
 
-    pub fn from_int(data: u32) -> Self {
-        use voxel_compression::VoxelDataUtils;
-        let block_type = VoxelDataUtils::get_block_type(data);
-        let version = VoxelDataUtils::get_version(data);
-        let rotation = VoxelDataUtils::get_rotation(data);
-        Self::new(block_type, version, rotation)
+    pub fn from_int(data: u8) -> Self {
+        Self::new(data)
     }
 
-    pub fn to_int(&self) -> u32 {
-        use voxel_compression::VoxelDataUtils;
-        VoxelDataUtils::encode_block_data(self.block_type, self.rotation, self.version)
+    pub fn to_int(&self) -> u8 {
+        self.block_type
     }
 }

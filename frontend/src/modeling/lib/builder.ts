@@ -1,14 +1,15 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 import { ToolType, DbConnection, Vector3 } from "../../module_bindings";
-import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
-  public previewBlocks: Uint32Array;
+  public previewFrame: Uint8Array;
+  public previewFrameStart: Vector3 | null = null;
+  public previewFrameDim: Vector3 | null = null;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
@@ -63,9 +64,7 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewBlocks = new Uint32Array(
-      dimensions.x * dimensions.y * dimensions.z
-    );
+    this.previewFrame = new Uint8Array(0);
 
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
@@ -81,22 +80,32 @@ export const Builder = class {
     );
   }
 
-  private getBlockIndex(x: number, y: number, z: number): number {
-    return (
-      x * this.dimensions.y * this.dimensions.z + y * this.dimensions.z + z
-    );
-  }
-
   private setPreviewBlock(
     x: number,
     y: number,
     z: number,
-    blockType: number,
-    rotation: number = 0
+    blockType: number
   ): void {
-    const blockIndex = this.getBlockIndex(x, y, z);
-    const blockValue = setPreviewBit(encodeBlockData(blockType, rotation));
-    this.previewBlocks[blockIndex] = blockValue;
+    if (!this.previewFrameStart || !this.previewFrameDim) return;
+    
+    const localX = x - this.previewFrameStart.x;
+    const localY = y - this.previewFrameStart.y;
+    const localZ = z - this.previewFrameStart.z;
+    
+    if (
+      localX < 0 || localX >= this.previewFrameDim.x ||
+      localY < 0 || localY >= this.previewFrameDim.y ||
+      localZ < 0 || localZ >= this.previewFrameDim.z
+    ) {
+      return;
+    }
+    
+    const blockIndex = 
+      localX * this.previewFrameDim.y * this.previewFrameDim.z +
+      localY * this.previewFrameDim.z +
+      localZ;
+    
+    this.previewFrame[blockIndex] = blockType;
   }
 
   cancelCurrentOperation(): void {
@@ -352,11 +361,13 @@ export const Builder = class {
     const startPos = this.startPosition || position;
 
     if (this.currentTool.tag === "MagicSelect") {
-      this.dbConn.reducers.magicSelect(
-        this.projectId,
-        this.selectedLayer,
-        position
-      );
+      // TODO: Re-enable when magicSelect reducer is available in bindings
+      // this.dbConn.reducers.magicSelect(
+      //   this.projectId,
+      //   this.selectedLayer,
+      //   position
+      // );
+      console.warn("MagicSelect tool is not yet implemented");
     } else {
       this.modifyBlock(this.currentTool, startPos, endPos);
     }
@@ -367,13 +378,28 @@ export const Builder = class {
     this.lastPreviewEnd = null;
   }
   private clearPreviewBlocks(): void {
-    this.previewBlocks.fill(0);
+    this.previewFrame = new Uint8Array(0);
+    this.previewFrameStart = null;
+    this.previewFrameDim = null;
   }
 
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
-    this.clearPreviewBlocks();
-
     const bounds = calculateRectBounds(startPos, endPos, this.dimensions);
+
+    this.previewFrameStart = {
+      x: bounds.minX,
+      y: bounds.minY,
+      z: bounds.minZ,
+    };
+    
+    this.previewFrameDim = {
+      x: bounds.maxX - bounds.minX + 1,
+      y: bounds.maxY - bounds.minY + 1,
+      z: bounds.maxZ - bounds.minZ + 1,
+    };
+
+    const frameSize = this.previewFrameDim.x * this.previewFrameDim.y * this.previewFrameDim.z;
+    this.previewFrame = new Uint8Array(frameSize);
 
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
@@ -399,8 +425,7 @@ export const Builder = class {
       tool,
       startPos.clone(),
       endPos.clone(),
-      this.selectedBlock,
-      0
+      this.selectedBlock
     );
 
     this.dbConn.reducers.modifyBlockRect(
@@ -409,7 +434,6 @@ export const Builder = class {
       this.selectedBlock,
       startPos,
       endPos,
-      0,
       this.selectedLayer
     );
   }

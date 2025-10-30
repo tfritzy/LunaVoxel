@@ -70,7 +70,7 @@ export class Chunk {
     
     const meshResult = this.renderPipeline.render(
       this.currentBuildMode.tag === ToolType.Erase.tag,
-      false
+      true
     );
     
     if (meshResult) {
@@ -103,7 +103,10 @@ export class Chunk {
     }
 
     const endTime = performance.now();
-    console.log(`Render took ${(endTime - startTime).toFixed(2)}ms`);
+    const renderTime = endTime - startTime;
+    const totalVoxels = this.dimensions.x * this.dimensions.y * this.dimensions.z;
+    const voxelsPerMs = totalVoxels / renderTime;
+    console.log(`Render took ${renderTime.toFixed(2)}ms (${voxelsPerMs.toFixed(0)} voxels/ms, ${totalVoxels} total voxels)`);
   };
 
   private updateMeshGeometry = (

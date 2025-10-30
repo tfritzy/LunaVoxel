@@ -5,10 +5,7 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { AtlasData } from "@/lib/useAtlas";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { X, ChevronDown } from "lucide-react";
-import {
-  decompressVoxelData,
-  getBlockType,
-} from "@/modeling/lib/voxel-data-utils";
+import { decompressVoxelData } from "@/modeling/lib/voxel-data-utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,7 +66,7 @@ export const DeleteBlockModal = ({
     for (const layer of layers) {
       const voxels = decompressVoxelData(layer.voxels);
       for (let i = 0; i < voxels.length; i++) {
-        if (getBlockType(voxels[i]) === targetBlockType) {
+        if (voxels[i] === targetBlockType) {
           count++;
         }
       }
@@ -80,11 +77,13 @@ export const DeleteBlockModal = ({
 
   const handleDelete = () => {
     setSubmitPending(true);
-    connection?.reducers.deleteBlock(
-      projectId,
-      blockIndex,
-      replacementBlockType
-    );
+    // TODO: Re-enable when deleteBlock reducer is available in bindings
+    // connection?.reducers.deleteBlock(
+    //   projectId,
+    //   blockIndex,
+    //   replacementBlockType
+    // );
+    console.warn("Delete block functionality not yet available");
     setSubmitPending(false);
     onClose();
   };
@@ -144,7 +143,7 @@ export const DeleteBlockModal = ({
                         <>
                           <div className="w-12 h-12 flex items-center justify-center rounded overflow-hidden">
                             <img
-                              src={getBlockTexture(replacementBlockType - 1)}
+                              src={getBlockTexture(replacementBlockType - 1) || ""}
                               alt=""
                               className="w-full h-full object-contain"
                             />
@@ -188,7 +187,7 @@ export const DeleteBlockModal = ({
                           <div className="w-10 h-10 flex items-center justify-center rounded overflow-hidden">
                             {isReady && (
                               <img
-                                src={getBlockTexture(index)}
+                                src={getBlockTexture(index) || ""}
                                 alt=""
                                 className="w-full h-full object-contain"
                               />

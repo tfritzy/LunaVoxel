@@ -6,24 +6,21 @@ import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
-import {
-  getBlockType,
-  isBlockPresent,
-  isPreview,
-  isSelected,
-} from "./voxel-data-utils";
+import { isBlockPresent } from "./voxel-data-utils";
 
 export const DISABLE_GREEDY_MESHING = false;
 
 export const findExteriorFaces = (
-  voxelData: Uint32Array[][],
+  voxelData: Uint8Array[][],
   textureWidth: number,
   blockAtlasMappings: number[][],
   dimensions: Vector3,
   meshArrays: MeshArrays,
   previewMeshArrays: MeshArrays,
   selectionMeshArrays: MeshArrays,
-  previewHidden: boolean
+  previewFrame: Uint8Array | null,
+  selectionFrame: Uint8Array | null,
+  previewOccludes: boolean
 ): void => {
   meshArrays.reset();
   previewMeshArrays.reset();
@@ -49,6 +46,18 @@ export const findExteriorFaces = (
     }
 
     return 0;
+  };
+
+  const isPreview = (x: number, y: number, z: number): boolean => {
+    if (!previewFrame) return false;
+    const index = x * dimensions.y * dimensions.z + y * dimensions.z + z;
+    return index < previewFrame.length && previewFrame[index] > 0;
+  };
+
+  const isSelected = (x: number, y: number, z: number): boolean => {
+    if (!selectionFrame) return false;
+    const index = x * dimensions.y * dimensions.z + y * dimensions.z + z;
+    return index < selectionFrame.length && selectionFrame[index] > 0;
   };
 
   for (let axis = 0; axis < 3; axis++) {
@@ -81,24 +90,25 @@ export const findExteriorFaces = (
 
             const blockValue = voxelData[x][y][z];
             const blockPresent = isBlockPresent(blockValue);
-            const blockIsPreview = isPreview(blockValue);
-            const blockIsSelected = isSelected(blockValue);
-            const blockType = Math.max(getBlockType(blockValue), 1);
+            const blockIsPreview = isPreview(x, y, z);
+            const blockIsSelected = isSelected(x, y, z);
+            const blockType = Math.max(blockValue, 1);
 
             const nx = x + (axis === 0 ? dir : 0);
             const ny = y + (axis === 1 ? dir : 0);
             const nz = z + (axis === 2 ? dir : 0);
             const neighborValue = getNeighborBlock(nx, ny, nz);
+            const neighborIsPreview = isPreview(nx, ny, nz);
 
             if (blockPresent) {
               let shouldRenderFace = false;
 
               if (blockIsPreview) {
                 shouldRenderFace =
-                  !isBlockPresent(neighborValue) || !isPreview(neighborValue);
+                  neighborValue === 0 || !neighborIsPreview;
               } else {
                 shouldRenderFace =
-                  !isBlockPresent(neighborValue) || isPreview(neighborValue);
+                  neighborValue === 0 || neighborIsPreview;
               }
 
               if (shouldRenderFace) {
@@ -110,7 +120,8 @@ export const findExteriorFaces = (
                   nz,
                   faceDir,
                   getNeighborBlock,
-                  previewHidden
+                  isPreview,
+                  previewOccludes
                 );
 
                 if (blockIsPreview) {
@@ -121,7 +132,7 @@ export const findExteriorFaces = (
               }
 
               if (blockIsSelected) {
-                const neighborIsSelected = isSelected(neighborValue);
+                const neighborIsSelected = isSelected(nx, ny, nz);
                 const shouldRenderSelectionFace = !neighborIsSelected;
 
                 if (shouldRenderSelectionFace) {

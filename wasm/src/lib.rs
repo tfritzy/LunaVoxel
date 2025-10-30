@@ -1,33 +1,93 @@
 use voxel_compression::VoxelCompression;
-use voxel_compression::VoxelDataUtils;
 use wasm_bindgen::prelude::*;
 
 const MAX_LAYERS: usize = 10;
 
 struct Layer {
-    voxels: Vec<u32>,
+    voxels: Vec<u8>,
     visible: bool,
 }
 
-// Helper function to apply a layer on top of existing voxels
-fn add_layer_to_voxels(layer: &Layer, voxels: &mut Vec<u32>) {
+fn add_layer_to_voxels(layer: &Layer, voxels: &mut Vec<u8>) {
     for i in 0..voxels.len() {
-        if i < layer.voxels.len() && VoxelDataUtils::is_block_present(layer.voxels[i]) {
+        if i < layer.voxels.len() && layer.voxels[i] > 0 {
             voxels[i] = layer.voxels[i];
         }
     }
 }
 
+struct VoxelFrame {
+    data: Vec<u8>,
+    start_x: usize,
+    start_y: usize,
+    start_z: usize,
+    dim_x: usize,
+    dim_y: usize,
+    dim_z: usize,
+}
+
+impl VoxelFrame {
+    fn new() -> Self {
+        VoxelFrame {
+            data: Vec::new(),
+            start_x: 0,
+            start_y: 0,
+            start_z: 0,
+            dim_x: 0,
+            dim_y: 0,
+            dim_z: 0,
+        }
+    }
+
+    fn update(&mut self, data: Vec<u8>, start_x: i32, start_y: i32, start_z: i32, dim_x: usize, dim_y: usize, dim_z: usize) {
+        self.data = data;
+        self.start_x = start_x.max(0) as usize;
+        self.start_y = start_y.max(0) as usize;
+        self.start_z = start_z.max(0) as usize;
+        self.dim_x = dim_x;
+        self.dim_y = dim_y;
+        self.dim_z = dim_z;
+    }
+
+    fn clear(&mut self) {
+        self.data.clear();
+        self.dim_x = 0;
+        self.dim_y = 0;
+        self.dim_z = 0;
+    }
+
+    fn has_voxel_at(&self, world_x: usize, world_y: usize, world_z: usize) -> bool {
+        if self.data.is_empty() {
+            return false;
+        }
+
+        if world_x < self.start_x || world_y < self.start_y || world_z < self.start_z {
+            return false;
+        }
+
+        let local_x = world_x - self.start_x;
+        let local_y = world_y - self.start_y;
+        let local_z = world_z - self.start_z;
+
+        if local_x >= self.dim_x || local_y >= self.dim_y || local_z >= self.dim_z {
+            return false;
+        }
+
+        let index = local_x * self.dim_y * self.dim_z + local_y * self.dim_z + local_z;
+        index < self.data.len() && self.data[index] > 0
+    }
+}
+
 #[wasm_bindgen(js_name = decompressVoxelData)]
-pub fn decompress_voxel_data(compressed_data: &[u8]) -> Vec<u32> {
+pub fn decompress_voxel_data(compressed_data: &[u8]) -> Vec<u8> {
     VoxelCompression::decompress(compressed_data)
 }
 
 #[wasm_bindgen]
 pub struct RenderPipeline {
     layers: [Option<Layer>; MAX_LAYERS],
-    voxels_to_render: Vec<u32>,
-    rendered_voxels: Vec<u32>,
+    voxels_to_render: Vec<u8>,
+    rendered_voxels: Vec<u8>,
     dim_x: usize,
     dim_y: usize,
     dim_z: usize,
@@ -37,6 +97,8 @@ pub struct RenderPipeline {
     real_mesh_arrays: MeshArrays,
     preview_mesh_arrays: MeshArrays,
     selection_mesh_arrays: MeshArrays,
+    preview_frame: VoxelFrame,
+    selection_frame: VoxelFrame,
 }
 
 #[wasm_bindgen]
@@ -63,6 +125,8 @@ impl RenderPipeline {
             real_mesh_arrays: MeshArrays::new(max_vertices, max_indices),
             preview_mesh_arrays: MeshArrays::new(max_vertices, max_indices),
             selection_mesh_arrays: MeshArrays::new(max_vertices, max_indices),
+            preview_frame: VoxelFrame::new(),
+            selection_frame: VoxelFrame::new(),
         }
     }
     
@@ -89,12 +153,32 @@ impl RenderPipeline {
         self.texture_width = texture_width;
     }
 
+    #[wasm_bindgen(js_name = updatePreviewFrame)]
+    pub fn update_preview_frame(&mut self, data: Vec<u8>, start_x: i32, start_y: i32, start_z: i32, dim_x: usize, dim_y: usize, dim_z: usize) {
+        self.preview_frame.update(data, start_x, start_y, start_z, dim_x, dim_y, dim_z);
+    }
+
+    #[wasm_bindgen(js_name = clearPreviewFrame)]
+    pub fn clear_preview_frame(&mut self) {
+        self.preview_frame.clear();
+    }
+
+    #[wasm_bindgen(js_name = updateSelectionFrame)]
+    pub fn update_selection_frame(&mut self, data: Vec<u8>, start_x: i32, start_y: i32, start_z: i32, dim_x: usize, dim_y: usize, dim_z: usize) {
+        self.selection_frame.update(data, start_x, start_y, start_z, dim_x, dim_y, dim_z);
+    }
+
+    #[wasm_bindgen(js_name = clearSelectionFrame)]
+    pub fn clear_selection_frame(&mut self) {
+        self.selection_frame.clear();
+    }
+
     #[wasm_bindgen(js_name = addLayer)]
     pub fn add_layer(&mut self, index: usize, compressed_voxels: &[u8], visible: bool) {
         if index < MAX_LAYERS {
             self.layers[index] = Some(Layer {
                 voxels: VoxelCompression::decompress(compressed_voxels),
-                visible: visible,
+                visible,
             });
         }
     }
@@ -104,7 +188,7 @@ impl RenderPipeline {
         if index < MAX_LAYERS {
             self.layers[index] = Some(Layer {
                 voxels: VoxelCompression::decompress(compressed_voxels),
-                visible: visible,
+                visible,
             });
         }
     }
@@ -112,7 +196,7 @@ impl RenderPipeline {
     #[wasm_bindgen(js_name = render)]
     pub fn render(
         &mut self,
-        preview_hidden: bool,
+        preview_occludes: bool,
         disable_greedy_meshing: bool,
     ) -> Option<MeshResult> {
         let mut first_layer = true;
@@ -155,11 +239,13 @@ impl RenderPipeline {
                     self.texture_width,
                     &self.block_atlas_mappings,
                     self.num_block_types,
-                    preview_hidden,
+                    preview_occludes,
                     disable_greedy_meshing,
                     &mut self.real_mesh_arrays,
                     &mut self.preview_mesh_arrays,
                     &mut self.selection_mesh_arrays,
+                    &self.preview_frame,
+                    &self.selection_frame,
                 );
                 
                 return Some(MeshResult {
@@ -187,9 +273,6 @@ impl RenderPipeline {
         None
     }
 }
-
-// Constants for voxel data manipulation
-const SELECTED_BIT_MASK: u32 = 0x10;
 
 // Occlusion levels
 const OCCLUSION_LEVELS: [f32; 4] = [1.0, 0.9, 0.85, 0.75];
@@ -383,10 +466,6 @@ impl MeshArrays {
     }
 }
 
-fn is_selected(block_value: u32) -> bool {
-    (block_value & SELECTED_BIT_MASK) != 0
-}
-
 // Texture coordinate calculation
 fn get_texture_coordinates(texture_index: i16, texture_width: usize) -> [f32; 8] {
     let texture_size = 1.0 / texture_width as f32;
@@ -399,24 +478,37 @@ fn get_texture_coordinates(texture_index: i16, texture_width: usize) -> [f32; 8]
 
 // Ambient occlusion calculation
 fn calculate_ambient_occlusion<F>(
-    nx: i32,
-    ny: i32,
-    nz: i32,
+    nx: usize,
+    ny: usize,
+    nz: usize,
     face_dir: usize,
     get_neighbor_block: &F,
-    preview_hidden: bool,
+    preview_occludes: bool,
+    preview_frame: &VoxelFrame,
 ) -> u8
 where
-    F: Fn(i32, i32, i32) -> u32,
+    F: Fn(usize, usize, usize) -> u8,
 {
     let tangent = &FACE_TANGENTS[face_dir];
     let u_dir = &tangent[0];
     let v_dir = &tangent[1];
 
     let is_occluder = |ox: i32, oy: i32, oz: i32| -> bool {
-        let val = get_neighbor_block(nx + ox, ny + oy, nz + oz);
-        VoxelDataUtils::is_block_present(val)
-            && (!preview_hidden || !VoxelDataUtils::is_preview(val))
+        let wx = nx as i32 + ox;
+        let wy = ny as i32 + oy;
+        let wz = nz as i32 + oz;
+        
+        if wx < 0 || wy < 0 || wz < 0 {
+            return false;
+        }
+        
+        let uwx = wx as usize;
+        let uwy = wy as usize;
+        let uwz = wz as usize;
+        
+        let val = get_neighbor_block(uwx, uwy, uwz);
+        let is_preview = preview_frame.has_voxel_at(uwx, uwy, uwz);
+        val > 0 && (!preview_occludes || !is_preview)
     };
 
     let side1_neg = is_occluder(-u_dir[0], -u_dir[1], -u_dir[2]);
@@ -710,25 +802,27 @@ fn generate_greedy_mesh(
 }
 
 fn find_exterior_faces(
-    voxel_data_flat: &[u32],
+    voxel_data_flat: &[u8],
     dim_x: usize,
     dim_y: usize,
     dim_z: usize,
     texture_width: usize,
     block_atlas_mappings_flat: &[u32],
     num_block_types: usize,
-    preview_hidden: bool,
+    preview_occludes: bool,
     disable_greedy_meshing: bool,
     real_mesh: &mut MeshArrays,
     preview_mesh: &mut MeshArrays,
     selection_mesh: &mut MeshArrays,
+    preview_frame: &VoxelFrame,
+    selection_frame: &VoxelFrame,
 ) {
     // Reset the mesh arrays
     real_mesh.reset();
     preview_mesh.reset();
     selection_mesh.reset();
     
-    let get_voxel = |x: usize, y: usize, z: usize| -> u32 {
+    let get_voxel = |x: usize, y: usize, z: usize| -> u8 {
         if x < dim_x && y < dim_y && z < dim_z {
             voxel_data_flat[x * dim_y * dim_z + y * dim_z + z]
         } else {
@@ -752,9 +846,9 @@ fn find_exterior_faces(
     let mut processed = vec![0u8; mask_size];
     let mut ao_mask = vec![0u8; mask_size];
 
-    let get_neighbor_block = |x: i32, y: i32, z: i32| -> u32 {
-        if x >= 0 && x < dim_x as i32 && y >= 0 && y < dim_y as i32 && z >= 0 && z < dim_z as i32 {
-            get_voxel(x as usize, y as usize, z as usize)
+    let get_neighbor_block = |x: usize, y: usize, z: usize| -> u8 {
+        if x < dim_x && y < dim_y && z < dim_z {
+            get_voxel(x, y, z)
         } else {
             0
         }
@@ -822,23 +916,34 @@ fn find_exterior_faces(
                         };
 
                         let block_value = get_voxel(x, y, z);
-                        let block_present = VoxelDataUtils::is_block_present(block_value);
-                        let block_is_preview = VoxelDataUtils::is_preview(block_value);
-                        let block_is_selected = is_selected(block_value);
-                        let block_type = VoxelDataUtils::get_block_type(block_value).max(1);
+                        let block_present = block_value > 0;
+                        let block_is_preview = preview_frame.has_voxel_at(x, y, z);
+                        let block_is_selected = selection_frame.has_voxel_at(x, y, z);
+                        let block_type = block_value.max(1);
 
-                        let nx = (x as i32) + if axis == 0 { *dir } else { 0 };
-                        let ny = (y as i32) + if axis == 1 { *dir } else { 0 };
-                        let nz = (z as i32) + if axis == 2 { *dir } else { 0 };
+                        let nx = if axis == 0 {
+                            if *dir > 0 { x + 1 } else { x.saturating_sub(1) }
+                        } else {
+                            x
+                        };
+                        let ny = if axis == 1 {
+                            if *dir > 0 { y + 1 } else { y.saturating_sub(1) }
+                        } else {
+                            y
+                        };
+                        let nz = if axis == 2 {
+                            if *dir > 0 { z + 1 } else { z.saturating_sub(1) }
+                        } else {
+                            z
+                        };
                         let neighbor_value = get_neighbor_block(nx, ny, nz);
+                        let neighbor_is_preview = preview_frame.has_voxel_at(nx, ny, nz);
 
                         if block_present {
                             let should_render_face = if block_is_preview {
-                                !VoxelDataUtils::is_block_present(neighbor_value)
-                                    || !VoxelDataUtils::is_preview(neighbor_value)
+                                neighbor_value == 0 || !neighbor_is_preview
                             } else {
-                                !VoxelDataUtils::is_block_present(neighbor_value)
-                                    || VoxelDataUtils::is_preview(neighbor_value)
+                                neighbor_value == 0 || neighbor_is_preview
                             };
 
                             if should_render_face {
@@ -851,7 +956,8 @@ fn find_exterior_faces(
                                     nz,
                                     face_dir,
                                     &get_neighbor_block,
-                                    preview_hidden,
+                                    preview_occludes,
+                                    preview_frame,
                                 );
 
                                 if block_is_preview {
@@ -862,7 +968,7 @@ fn find_exterior_faces(
                             }
 
                             if block_is_selected {
-                                let neighbor_is_selected = is_selected(neighbor_value);
+                                let neighbor_is_selected = selection_frame.has_voxel_at(nx, ny, nz);
                                 if !neighbor_is_selected {
                                     let texture_index =
                                         get_texture_index((block_type - 1) as usize, face_dir);

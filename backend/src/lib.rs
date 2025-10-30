@@ -67,7 +67,7 @@ pub fn reorder_layers(ctx: &ReducerContext, project_id: String, new_order: Vec<S
 pub fn modify_block(
     ctx: &ReducerContext,
     project_id: String,
-    diff_data: Vec<u32>,
+    diff_data: Vec<u8>,
     layer_index: i32,
 ) {
     impls::block::modify_block(ctx, project_id, diff_data, layer_index);
@@ -78,10 +78,9 @@ pub fn modify_block_rect(
     ctx: &ReducerContext,
     project_id: String,
     mode: ToolType,
-    block_type: u32,
+    block_type: u8,
     start: Vector3,
     end: Vector3,
-    rotation: u32,
     layer_index: i32,
 ) {
     impls::block::modify_block_rect(
@@ -91,7 +90,6 @@ pub fn modify_block_rect(
         block_type,
         start,
         end,
-        rotation,
         layer_index,
     );
 }
