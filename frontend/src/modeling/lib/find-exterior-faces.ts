@@ -15,63 +15,88 @@ import {
 
 export const DISABLE_GREEDY_MESHING = false;
 
-export const findExteriorFaces = (
-  voxelData: Uint32Array[][],
-  textureWidth: number,
-  blockAtlasMappings: number[][],
-  dimensions: Vector3,
-  meshArrays: MeshArrays,
-  previewMeshArrays: MeshArrays,
-  selectionMeshArrays: MeshArrays,
-  previewHidden: boolean
-): void => {
-  meshArrays.reset();
-  previewMeshArrays.reset();
-  selectionMeshArrays.reset();
+export class ExteriorFacesFinder {
+  private realMask: Int16Array;
+  private previewMask: Int16Array;
+  private selectionMask: Int16Array;
+  private processed: Uint8Array;
+  private aoMask: Uint8Array;
+  private maskSize: number;
 
-  const maskSize = Math.max(dimensions.x, dimensions.y, dimensions.z) ** 2;
-  const realMask = new Int16Array(maskSize);
-  const previewMask = new Int16Array(maskSize);
-  const selectionMask = new Int16Array(maskSize);
-  const processed = new Uint8Array(maskSize);
-  const aoMask = new Uint8Array(maskSize);
+  constructor(maxDimension: number) {
+    this.maskSize = maxDimension ** 2;
+    this.realMask = new Int16Array(this.maskSize);
+    this.previewMask = new Int16Array(this.maskSize);
+    this.selectionMask = new Int16Array(this.maskSize);
+    this.processed = new Uint8Array(this.maskSize);
+    this.aoMask = new Uint8Array(this.maskSize);
+  }
 
-  const getNeighborBlock = (x: number, y: number, z: number): number => {
-    if (
-      x >= 0 &&
-      x < dimensions.x &&
-      y >= 0 &&
-      y < dimensions.y &&
-      z >= 0 &&
-      z < dimensions.z
-    ) {
-      return voxelData[x][y][z];
+  public findExteriorFaces(
+    voxelData: Uint32Array[][],
+    textureWidth: number,
+    blockAtlasMappings: number[][],
+    dimensions: Vector3,
+    meshArrays: MeshArrays,
+    previewMeshArrays: MeshArrays,
+    selectionMeshArrays: MeshArrays,
+    previewHidden: boolean
+  ): void {
+    meshArrays.reset();
+    previewMeshArrays.reset();
+    selectionMeshArrays.reset();
+
+    const currentMaskSize = Math.max(dimensions.x, dimensions.y, dimensions.z) ** 2;
+    
+    if (currentMaskSize > this.maskSize) {
+      this.maskSize = currentMaskSize;
+      this.realMask = new Int16Array(this.maskSize);
+      this.previewMask = new Int16Array(this.maskSize);
+      this.selectionMask = new Int16Array(this.maskSize);
+      this.processed = new Uint8Array(this.maskSize);
+      this.aoMask = new Uint8Array(this.maskSize);
     }
 
-    return 0;
-  };
+    const getNeighborBlock = (x: number, y: number, z: number): number => {
+      if (
+        x >= 0 &&
+        x < dimensions.x &&
+        y >= 0 &&
+        y < dimensions.y &&
+        z >= 0 &&
+        z < dimensions.z
+      ) {
+        return voxelData[x][y][z];
+      }
 
-  for (let axis = 0; axis < 3; axis++) {
-    const u = (axis + 1) % 3;
-    const v = (axis + 2) % 3;
+      return 0;
+    };
 
-    const axisSize =
-      axis === 0 ? dimensions.x : axis === 1 ? dimensions.y : dimensions.z;
-    const uSize =
-      u === 0 ? dimensions.x : u === 1 ? dimensions.y : dimensions.z;
-    const vSize =
-      v === 0 ? dimensions.x : v === 1 ? dimensions.y : dimensions.z;
+    for (let axis = 0; axis < 3; axis++) {
+      const u = (axis + 1) % 3;
+      const v = (axis + 2) % 3;
 
-    for (let dir = -1; dir <= 1; dir += 2) {
-      const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
+      const axisSize =
+        axis === 0 ? dimensions.x : axis === 1 ? dimensions.y : dimensions.z;
+      const uSize =
+        u === 0 ? dimensions.x : u === 1 ? dimensions.y : dimensions.z;
+      const vSize =
+        v === 0 ? dimensions.x : v === 1 ? dimensions.y : dimensions.z;
 
-      for (let d = 0; d < axisSize; d++) {
-        realMask.fill(-1, 0, uSize * vSize);
-        previewMask.fill(-1, 0, uSize * vSize);
-        selectionMask.fill(-1, 0, uSize * vSize);
-        aoMask.fill(0, 0, uSize * vSize);
+      for (let dir = -1; dir <= 1; dir += 2) {
+        const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
 
-        for (let iu = 0; iu < uSize; iu++) {
+        for (let d = 0; d < axisSize; d++) {
+          this.realMask.fill(-1, 0, uSize * vSize);
+          this.previewMask.fill(-1, 0, uSize * vSize);
+          this.selectionMask.fill(-1, 0, uSize * vSize);
+          this.aoMask.fill(0, 0, uSize * vSize);
+
+          let hasRealFaces = false;
+          let hasPreviewFaces = false;
+          let hasSelectionFaces = false;
+
+          for (let iu = 0; iu < uSize; iu++) {
           for (let iv = 0; iv < vSize; iv++) {
             const maskIndex = iu + iv * uSize;
 
@@ -104,7 +129,7 @@ export const findExteriorFaces = (
               if (shouldRenderFace) {
                 const textureIndex = blockAtlasMappings[blockType - 1][faceDir];
 
-                aoMask[maskIndex] = calculateAmbientOcclusion(
+                this.aoMask[maskIndex] = calculateAmbientOcclusion(
                   nx,
                   ny,
                   nz,
@@ -114,9 +139,11 @@ export const findExteriorFaces = (
                 );
 
                 if (blockIsPreview) {
-                  previewMask[maskIndex] = textureIndex;
+                  this.previewMask[maskIndex] = textureIndex;
+                  hasPreviewFaces = true;
                 } else {
-                  realMask[maskIndex] = textureIndex;
+                  this.realMask[maskIndex] = textureIndex;
+                  hasRealFaces = true;
                 }
               }
 
@@ -127,64 +154,71 @@ export const findExteriorFaces = (
                 if (shouldRenderSelectionFace) {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
-                  selectionMask[maskIndex] = textureIndex;
+                  this.selectionMask[maskIndex] = textureIndex;
+                  hasSelectionFaces = true;
                 }
               }
             }
           }
         }
 
-        generateGreedyMesh(
-          realMask,
-          aoMask,
-          processed,
-          uSize,
-          vSize,
-          d,
-          axis,
-          u,
-          v,
-          dir,
-          faceDir,
-          textureWidth,
-          meshArrays
-        );
-        generateGreedyMesh(
-          previewMask,
-          aoMask,
-          processed,
-          uSize,
-          vSize,
-          d,
-          axis,
-          u,
-          v,
-          dir,
-          faceDir,
-          textureWidth,
-          previewMeshArrays
-        );
-        generateGreedyMesh(
-          selectionMask,
-          aoMask,
-          processed,
-          uSize,
-          vSize,
-          d,
-          axis,
-          u,
-          v,
-          dir,
-          faceDir,
-          textureWidth,
-          selectionMeshArrays
-        );
+        if (hasRealFaces) {
+          this.generateGreedyMesh(
+            this.realMask,
+            this.aoMask,
+            this.processed,
+            uSize,
+            vSize,
+            d,
+            axis,
+            u,
+            v,
+            dir,
+            faceDir,
+            textureWidth,
+            meshArrays
+          );
+        }
+        if (hasPreviewFaces) {
+          this.generateGreedyMesh(
+            this.previewMask,
+            this.aoMask,
+            this.processed,
+            uSize,
+            vSize,
+            d,
+            axis,
+            u,
+            v,
+            dir,
+            faceDir,
+            textureWidth,
+            previewMeshArrays
+          );
+        }
+        if (hasSelectionFaces) {
+          this.generateGreedyMesh(
+            this.selectionMask,
+            this.aoMask,
+            this.processed,
+            uSize,
+            vSize,
+            d,
+            axis,
+            u,
+            v,
+            dir,
+            faceDir,
+            textureWidth,
+            selectionMeshArrays
+          );
+        }
       }
     }
   }
-};
+}
 
-const generateGreedyMesh = (
+private generateGreedyMesh(
   mask: Int16Array,
   aoMask: Uint8Array,
   processed: Uint8Array,
@@ -198,7 +232,7 @@ const generateGreedyMesh = (
   faceDir: number,
   textureWidth: number,
   meshArrays: MeshArrays
-): void => {
+): void {
   processed.fill(0, 0, width * height);
 
   for (let j = 0; j < height; j++) {
@@ -352,4 +386,5 @@ const generateGreedyMesh = (
       i += quadWidth;
     }
   }
-};
+}
+}

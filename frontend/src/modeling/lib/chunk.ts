@@ -20,7 +20,7 @@ import {
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { calculateRectBounds } from "@/lib/rect-utils";
-import { findExteriorFaces } from "./find-exterior-faces";
+import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
@@ -55,6 +55,7 @@ export class Chunk {
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
   private voxelData: Uint32Array[][];
+  private facesFinder: ExteriorFacesFinder;
 
   constructor(
     scene: THREE.Scene,
@@ -101,7 +102,9 @@ export class Chunk {
       }
     }
 
-    // Subscribe to database events
+    const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
+    this.facesFinder = new ExteriorFacesFinder(maxDimension);
+
     this.dbConn.db.selections.onInsert(this.onSelectionInsert);
     this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.onDelete(this.onSelectionDelete);
@@ -110,7 +113,6 @@ export class Chunk {
     this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.onDelete(this.onLayerDelete);
 
-    // Initialize layers and selections
     this.refreshLayers();
     this.refreshSelections();
   }
@@ -493,7 +495,7 @@ export class Chunk {
   };
 
   private updateMeshes = (buildMode: ToolType, atlasData: AtlasData) => {
-    findExteriorFaces(
+    this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,

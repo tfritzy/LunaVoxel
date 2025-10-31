@@ -120,18 +120,7 @@ public static partial class Module
         public int yDim;
         public int zDim;
         public int Index;
-        // Compressed format: byte array with 6-byte groups [vL0, vL1, vH0, vH1, rL0, rL1]
-        // Where each voxel is a 32-bit int split into bytes:
-        // vL0, vL1: lower 16 bits of voxel data (little-endian)
-        // vH0, vH1: upper 16 bits of voxel data (little-endian)
-        // rL0, rL1: 16-bit run length for RLE compression (little-endian)
-        //
-        // Voxel format (32-bit int when decompressed):
-        // Byte 1: [NA_15][NA_14][NA_13][NA_12][NA_11][NA_10][NA_9][NA_8]
-        // Byte 2: [VERSION_7][VERSION_6][VERSION_5][VERSION_4][VERSION_3][VERSION_2][VERSION_1][VERSION_0]
-        // Byte 3: [TYPE_9][TYPE_8][TYPE_7][TYPE_6][TYPE_5][TYPE_4][TYPE_3][TYPE_2] 
-        // Byte 4: [TYPE_1][TYPE_0][IS_PREVIEW][IS_SELECTED][UNUSED][ROT_2][ROT_1][ROT_0]
-        // note: Is preview is only used client side
+        // RLE then LZ4 compressed voxel data. When decompressed, each voxel is a block index.
         public byte[] Voxels = [];
         public bool Visible;
         public bool Locked;
