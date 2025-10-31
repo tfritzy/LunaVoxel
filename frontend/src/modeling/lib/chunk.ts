@@ -7,7 +7,6 @@ import {
   Layer,
   Selection,
 } from "@/module_bindings";
-import { ChunkMesh } from "./chunk-mesh";
 import {
   setPreviewBit,
   clearPreviewBit,
@@ -21,8 +20,19 @@ import {
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { calculateRectBounds } from "@/lib/rect-utils";
+import { findExteriorFaces } from "./find-exterior-faces";
+import { createVoxelMaterial } from "./shader";
+import { MeshArrays } from "./mesh-arrays";
+import { layers } from "./layers";
 
 export const CHUNK_SIZE = 16;
+
+type MeshType = "main" | "preview" | "selection";
+
+interface MeshData {
+  mesh: THREE.Mesh | null;
+  meshArrays: MeshArrays;
+}
 
 export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
 export type DecompressedSelection = Omit<Selection, "selectionData"> & {
@@ -31,7 +41,6 @@ export type DecompressedSelection = Omit<Selection, "selectionData"> & {
 
 export class Chunk {
   private scene: THREE.Scene;
-  private chunkMesh: ChunkMesh;
   private dimensions: Vector3;
   private renderedBlocks: Uint32Array;
   private blocksToRender: Uint32Array;
@@ -40,6 +49,12 @@ export class Chunk {
   private projectId: string;
   private layers: DecompressedLayer[] = [];
   private selections: DecompressedSelection[] = [];
+
+  // Mesh-related properties
+  private geometry: THREE.BufferGeometry | null = null;
+  private material: THREE.ShaderMaterial | null = null;
+  private meshes: Record<MeshType, MeshData>;
+  private voxelData: Uint32Array[][];
 
   constructor(
     scene: THREE.Scene,
@@ -59,7 +74,32 @@ export class Chunk {
       dimensions.x * dimensions.y * dimensions.z
     );
 
-    this.chunkMesh = new ChunkMesh(this.scene, 0, 0, 0, dimensions, dimensions);
+    const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+    const maxVertices = maxFaces * 4;
+    const maxIndices = maxFaces * 6;
+
+    this.meshes = {
+      main: {
+        mesh: null,
+        meshArrays: new MeshArrays(maxVertices, maxIndices),
+      },
+      preview: {
+        mesh: null,
+        meshArrays: new MeshArrays(maxVertices, maxIndices),
+      },
+      selection: {
+        mesh: null,
+        meshArrays: new MeshArrays(maxVertices, maxIndices),
+      },
+    };
+
+    this.voxelData = [];
+    for (let x = 0; x < dimensions.x; x++) {
+      this.voxelData[x] = [];
+      for (let y = 0; y < dimensions.y; y++) {
+        this.voxelData[x][y] = new Uint32Array(dimensions.z);
+      }
+    }
 
     // Subscribe to database events
     this.dbConn.db.selections.onInsert(this.onSelectionInsert);
@@ -75,21 +115,6 @@ export class Chunk {
     this.refreshSelections();
   }
 
-  public getBlockAt(worldX: number, worldY: number, worldZ: number): number {
-    if (
-      worldX < 0 ||
-      worldX >= this.dimensions.x ||
-      worldY < 0 ||
-      worldY >= this.dimensions.y ||
-      worldZ < 0 ||
-      worldZ >= this.dimensions.z
-    ) {
-      return 0;
-    }
-
-    return this.chunkMesh.getVoxel(worldX, worldY, worldZ);
-  }
-
   private copyChunkData(blocks: Uint32Array): void {
     for (let x = 0; x < this.dimensions.x; x++) {
       for (let y = 0; y < this.dimensions.y; y++) {
@@ -98,31 +123,36 @@ export class Chunk {
             x * this.dimensions.y * this.dimensions.z +
             y * this.dimensions.z +
             z;
-          this.chunkMesh.setVoxel(x, y, z, blocks[blockIndex]);
+          this.voxelData[x][y][z] = blocks[blockIndex];
         }
       }
     }
   }
 
   setTextureAtlas = (atlasData: AtlasData, buildMode: ToolType) => {
-    this.chunkMesh.setTextureAtlas(atlasData);
+    if (this.material) {
+      this.material.uniforms.map.value = atlasData.texture;
+      this.material.needsUpdate = true;
+    }
+    
+    Object.values(this.meshes).forEach((meshData) => {
+      if (meshData.mesh?.material) {
+        (meshData.mesh.material as THREE.ShaderMaterial).uniforms.map.value =
+          atlasData.texture;
+        (meshData.mesh.material as THREE.ShaderMaterial).needsUpdate = true;
+      }
+    });
+
     this.copyChunkData(this.renderedBlocks);
-    this.chunkMesh.update(buildMode, atlasData);
+    this.updateMeshes(buildMode, atlasData);
   };
 
   public getChunkDimensions(): Vector3 {
     return { x: 1, y: 1, z: 1 };
   }
 
-  public getChunk(
-    chunkX: number,
-    chunkY: number,
-    chunkZ: number
-  ): ChunkMesh | null {
-    if (chunkX === 0 && chunkY === 0 && chunkZ === 0) {
-      return this.chunkMesh;
-    }
-    return null;
+  public getMesh(): THREE.Mesh | null {
+    return this.meshes.main.mesh;
   }
 
   private clearBlocks(blocks: Uint32Array) {
@@ -355,6 +385,130 @@ export class Chunk {
     return this.layers.find((l) => l.index === layerIndex);
   }
 
+  private updateMeshGeometry(
+    meshType: MeshType,
+    meshArrays: MeshArrays
+  ): void {
+    const meshData = this.meshes[meshType];
+    if (!meshData.mesh) return;
+
+    const geometry = meshData.mesh.geometry;
+    
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(meshArrays.getVertices(), 3)
+    );
+    geometry.setAttribute(
+      "normal",
+      new THREE.BufferAttribute(meshArrays.getNormals(), 3)
+    );
+    geometry.setAttribute(
+      "uv",
+      new THREE.BufferAttribute(meshArrays.getUVs(), 2)
+    );
+    geometry.setAttribute(
+      "aochannel",
+      new THREE.BufferAttribute(meshArrays.getAO(), 1)
+    );
+    geometry.setIndex(
+      new THREE.BufferAttribute(meshArrays.getIndices(), 1)
+    );
+
+    geometry.attributes.position.needsUpdate = true;
+    geometry.attributes.normal.needsUpdate = true;
+    geometry.attributes.uv.needsUpdate = true;
+    geometry.attributes.aochannel.needsUpdate = true;
+    if (geometry.index) {
+      geometry.index.needsUpdate = true;
+    }
+
+    const center = new THREE.Vector3(
+      this.dimensions.x / 2,
+      this.dimensions.y / 2,
+      this.dimensions.z / 2
+    );
+    const radius = Math.sqrt(
+      (this.dimensions.x / 2) ** 2 +
+        (this.dimensions.y / 2) ** 2 +
+        (this.dimensions.z / 2) ** 2
+    );
+    geometry.boundingSphere = new THREE.Sphere(center, radius);
+  }
+
+  private updateMainMesh = (atlasData: AtlasData): void => {
+    if (!this.geometry) {
+      this.geometry = new THREE.BufferGeometry();
+      this.material = createVoxelMaterial(atlasData.texture);
+      this.meshes.main.mesh = new THREE.Mesh(this.geometry, this.material);
+      this.meshes.main.mesh.castShadow = true;
+      this.meshes.main.mesh.receiveShadow = true;
+
+      this.meshes.main.mesh.position.set(0, 0, 0);
+
+      this.scene.add(this.meshes.main.mesh);
+    }
+
+    this.updateMeshGeometry("main", this.meshes.main.meshArrays);
+  };
+
+  private updatePreviewMesh = (
+    buildMode: ToolType,
+    atlasData: AtlasData
+  ): void => {
+    if (!this.meshes.preview.mesh) {
+      const geometry = new THREE.BufferGeometry();
+      const material = createVoxelMaterial(atlasData.texture, 1);
+      this.meshes.preview.mesh = new THREE.Mesh(geometry, material);
+
+      this.meshes.preview.mesh.position.set(0, 0, 0);
+
+      this.scene.add(this.meshes.preview.mesh);
+    }
+
+    this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
+
+    this.meshes.preview.mesh.visible =
+      buildMode.tag === ToolType.Build.tag ||
+      buildMode.tag === ToolType.Paint.tag;
+    this.meshes.preview.mesh.layers.set(
+      buildMode.tag === ToolType.Build.tag ? layers.ghost : layers.raycast
+    );
+  };
+
+  private updateSelectionMesh = (atlasData: AtlasData): void => {
+    if (!this.meshes.selection.mesh) {
+      const geometry = new THREE.BufferGeometry();
+      const material = createVoxelMaterial(atlasData.texture, 1, true);
+      this.meshes.selection.mesh = new THREE.Mesh(geometry, material);
+
+      this.meshes.selection.mesh.position.set(0, 0, 0);
+
+      this.scene.add(this.meshes.selection.mesh);
+    }
+
+    this.updateMeshGeometry("selection", this.meshes.selection.meshArrays);
+
+    this.meshes.selection.mesh.visible = this.meshes.selection.meshArrays.vertexCount > 0;
+    console.log(this.meshes.selection.mesh.visible, "visible?");
+  };
+
+  private updateMeshes = (buildMode: ToolType, atlasData: AtlasData) => {
+    findExteriorFaces(
+      this.voxelData,
+      atlasData.texture?.image.width,
+      atlasData.blockAtlasMappings,
+      this.dimensions,
+      this.meshes.main.meshArrays,
+      this.meshes.preview.meshArrays,
+      this.meshes.selection.meshArrays,
+      buildMode.tag === ToolType.Erase.tag
+    );
+
+    this.updateMainMesh(atlasData);
+    this.updatePreviewMesh(buildMode, atlasData);
+    this.updateSelectionMesh(atlasData);
+  };
+
   update = (
     previewBlocks: Uint32Array,
     buildMode: ToolType,
@@ -395,7 +549,7 @@ export class Chunk {
       // Update the single chunk mesh if there are changes
       if (hasChanges) {
         this.copyChunkData(this.blocksToRender);
-        this.chunkMesh.update(buildMode, atlasData);
+        this.updateMeshes(buildMode, atlasData);
       }
 
       this.renderedBlocks.set(this.blocksToRender);
@@ -416,6 +570,23 @@ export class Chunk {
     this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
     this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
 
-    this.chunkMesh.dispose();
+    // Dispose mesh resources
+    if (this.geometry) {
+      this.geometry.dispose();
+      this.geometry = null;
+    }
+    if (this.material) {
+      this.material.dispose();
+      this.material = null;
+    }
+
+    Object.values(this.meshes).forEach((meshData) => {
+      if (meshData.mesh) {
+        this.scene.remove(meshData.mesh);
+        meshData.mesh.geometry.dispose();
+        (meshData.mesh.material as THREE.Material).dispose();
+        meshData.mesh = null;
+      }
+    });
   };
 }

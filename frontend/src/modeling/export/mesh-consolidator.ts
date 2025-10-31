@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import { Chunk } from "../lib/chunk";
-import { CHUNK_SIZE } from "../lib/chunk-mesh";
+import { Chunk, CHUNK_SIZE } from "../lib/chunk";
 
 export interface ConsolidatedMesh {
   vertices: number[];
@@ -39,11 +38,10 @@ export class MeshConsolidator {
     for (let chunkX = 0; chunkX < chunkDimensions.x; chunkX++) {
       for (let chunkY = 0; chunkY < chunkDimensions.y; chunkY++) {
         for (let chunkZ = 0; chunkZ < chunkDimensions.z; chunkZ++) {
-          const chunk = this.chunkManager.getChunk(chunkX, chunkY, chunkZ);
+          // Since we have a single chunk, only process (0,0,0)
+          if (chunkX !== 0 || chunkY !== 0 || chunkZ !== 0) continue;
 
-          if (!chunk) continue;
-
-          const chunkMesh = chunk.getMesh();
+          const chunkMesh = this.chunkManager.getMesh();
           if (!chunkMesh || !chunkMesh.geometry) continue;
 
           const geometry = chunkMesh.geometry;
