@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 import { ProjectBlocks } from "./project_blocks_type";
 import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
@@ -40,7 +41,9 @@ declare type __keep = [EventContext, Reducer, RemoteReducers, RemoteTables];
  * but to directly chain method calls,
  * like `ctx.db.projectBlocks.on_insert(...)`.
  */
-export class ProjectBlocksTableHandle {
+export class ProjectBlocksTableHandle<TableName extends string> implements __TableHandle<TableName> {
+  // phantom type to track the table name
+  readonly tableName!: TableName;
   tableCache: __TableCache<ProjectBlocks>;
 
   constructor(tableCache: __TableCache<ProjectBlocks>) {

@@ -11,7 +11,6 @@ import { SignInPage } from "./pages/SignInPage";
 import { Toaster } from "sonner";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { Identity } from "spacetimedb";
-import { translateVector3ArrayUp } from "./lib/wasm-helpers";
 
 const getSpacetimeConfig = () => {
   const isDev = import.meta.env.DEV || window.location.hostname === "localhost";
@@ -33,26 +32,11 @@ interface SyncUserResult {
   error?: string;
 }
 
-const positions: Vector3[] = [
-  { x: 0, y: 0, z: 0 },
-  { x: 1, y: 1, z: 1 },
-  { x: 2, y: 2, z: 2 },
-];
-
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
   const [userSynced, setUserSynced] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const { currentUser } = useAuth();
-
-  useEffect(() => {
-    const loadTranslations = async () => {
-      const translated = await translateVector3ArrayUp(positions, 5.0);
-      console.log("translated", translated);
-    };
-
-    loadTranslations();
-  }, []);
 
   const syncUserWithCloudFunction = useCallback(
     async (idToken: string, identity: Identity, spacetimeToken: string) => {

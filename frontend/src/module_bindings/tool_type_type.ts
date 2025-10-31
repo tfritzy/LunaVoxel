@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 import * as ToolTypeVariants from './tool_type_variants'
 
@@ -34,6 +35,8 @@ export type ToolType = ToolTypeVariants.Build |
   ToolTypeVariants.Paint |
   ToolTypeVariants.BlockPicker |
   ToolTypeVariants.MagicSelect;
+
+let _cached_ToolType_type_value: __AlgebraicTypeType | null = null;
 
 // A value with helper functions to construct the type.
 export const ToolType = {
@@ -50,15 +53,16 @@ export const ToolType = {
   MagicSelect: { tag: "MagicSelect" } as const,
 
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Sum({
-      variants: [
-        { name: "Build", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "Erase", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "Paint", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "BlockPicker", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-        { name: "MagicSelect", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-      ]
-    });
+    if (_cached_ToolType_type_value) return _cached_ToolType_type_value;
+    _cached_ToolType_type_value = __AlgebraicTypeValue.Sum({ variants: [] });
+    _cached_ToolType_type_value.value.variants.push(
+      { name: "Build", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "Erase", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "Paint", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "BlockPicker", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+      { name: "MagicSelect", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+    );
+    return _cached_ToolType_type_value;
   },
 
   serialize(writer: __BinaryWriter, value: ToolType): void {

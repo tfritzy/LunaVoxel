@@ -5,7 +5,6 @@ import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
 import { AtlasData } from "@/lib/useAtlas";
-import { find_exterior_faces as findExteriorFacesWasm } from "@/wasm/vector3_wasm";
 
 export const CHUNK_SIZE = 16;
 
@@ -147,8 +146,6 @@ export class ChunkMesh {
   };
 
   update = (buildMode: ToolType, atlasData: AtlasData) => {
-    // Time the TypeScript implementation
-    const tsStart = performance.now();
     findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
@@ -159,40 +156,6 @@ export class ChunkMesh {
       this.selectionMeshArrays,
       buildMode.tag === ToolType.Erase.tag
     );
-    const tsEnd = performance.now();
-    const tsTime = tsEnd - tsStart;
-
-    // Time the WASM implementation (shadow mode - results not used)
-    const flatVoxelData = transformVoxelDataToFlat(
-      this.voxelData,
-      this.chunkDimensions
-    );
-    const flatBlockAtlasMappings = transformBlockAtlasMappingsToFlat(
-      atlasData.blockAtlasMappings
-    );
-    const wasmStart = performance.now();
-
-    const wasmResult = findExteriorFacesWasm(
-      flatVoxelData,
-      this.chunkDimensions.x,
-      this.chunkDimensions.y,
-      this.chunkDimensions.z,
-      atlasData.texture?.image.width || 0,
-      flatBlockAtlasMappings,
-      atlasData.blockAtlasMappings.length,
-      buildMode.tag === ToolType.Erase.tag,
-      false // disable_greedy_meshing
-    );
-    const wasmEnd = performance.now();
-    const wasmTime = wasmEnd - wasmStart;
-
-    // Log timing comparison
-    console.log(
-      `TS: ${tsTime.toFixed(3)}ms | WASM: ${wasmTime.toFixed(3)}ms | Speedup: ${(tsTime / wasmTime).toFixed(2)}x`
-    );
-
-    // Clean up WASM result
-    wasmResult.free();
 
     this.updateMesh(atlasData);
     this.updatePreviewMesh(buildMode, atlasData);

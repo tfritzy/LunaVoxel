@@ -25,6 +25,7 @@ import {
   type EventContextInterface as __EventContextInterface,
   type ReducerEventContextInterface as __ReducerEventContextInterface,
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
 } from "spacetimedb";
 import { AccessType } from "./access_type_type";
 // Mark import as potentially unused
@@ -38,6 +39,8 @@ export type UserProject = {
   user: __Identity,
   email: string | undefined,
 };
+let _cached_UserProject_type_value: __AlgebraicTypeType | null = null;
+
 /**
  * An object for generated helper functions.
  */
@@ -47,15 +50,16 @@ export const UserProject = {
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    return __AlgebraicTypeValue.Product({
-      elements: [
-        { name: "id", algebraicType: __AlgebraicTypeValue.String},
-        { name: "projectId", algebraicType: __AlgebraicTypeValue.String},
-        { name: "accessType", algebraicType: AccessType.getTypeScriptAlgebraicType()},
-        { name: "user", algebraicType: __AlgebraicTypeValue.createIdentityType()},
-        { name: "email", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String)},
-      ]
-    });
+    if (_cached_UserProject_type_value) return _cached_UserProject_type_value;
+    _cached_UserProject_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_UserProject_type_value.value.elements.push(
+      { name: "id", algebraicType: __AlgebraicTypeValue.String },
+      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "accessType", algebraicType: AccessType.getTypeScriptAlgebraicType() },
+      { name: "user", algebraicType: __AlgebraicTypeValue.createIdentityType() },
+      { name: "email", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String) },
+    );
+    return _cached_UserProject_type_value;
   },
 
   serialize(writer: __BinaryWriter, value: UserProject): void {
