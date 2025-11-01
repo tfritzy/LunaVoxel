@@ -60,10 +60,10 @@ export const ModifyBlockRect = {
     _cached_ModifyBlockRect_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
       { name: "mode", algebraicType: ToolType.getTypeScriptAlgebraicType() },
-      { name: "type", algebraicType: __AlgebraicTypeValue.U32 },
+      { name: "type", algebraicType: __AlgebraicTypeValue.U8 },
       { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType() },
       { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "rotation", algebraicType: __AlgebraicTypeValue.U32 },
+      { name: "rotation", algebraicType: __AlgebraicTypeValue.U8 },
       { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32 },
     );
     return _cached_ModifyBlockRect_type_value;

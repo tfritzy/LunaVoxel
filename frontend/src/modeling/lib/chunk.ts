@@ -8,14 +8,8 @@ import {
   Selection,
 } from "@/module_bindings";
 import {
-  setPreviewBit,
-  clearPreviewBit,
-  encodeBlockData,
   getBlockType,
-  isPreview,
   isBlockPresent,
-  getVersion,
-  setSelectedBit,
   decompressVoxelData,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
@@ -24,6 +18,7 @@ import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
+import { VoxelFrame } from "./voxel-frame";
 
 export const CHUNK_SIZE = 16;
 
@@ -34,16 +29,16 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint32Array };
+export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint8Array };
 export type DecompressedSelection = Omit<Selection, "selectionData"> & {
-  selectionData: Uint32Array;
+  selectionData: Uint8Array;
 };
 
 export class Chunk {
   private scene: THREE.Scene;
   private dimensions: Vector3;
-  private renderedBlocks: Uint32Array;
-  private blocksToRender: Uint32Array;
+  private renderedBlocks: Uint8Array;
+  private blocksToRender: Uint8Array;
   private currentUpdateId: number = 0;
   private dbConn: DbConnection;
   private projectId: string;
@@ -54,8 +49,10 @@ export class Chunk {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
-  private voxelData: Uint32Array[][];
+  private voxelData: Uint8Array[][];
   private facesFinder: ExteriorFacesFinder;
+  private selectionFrame: VoxelFrame;
+  private previewFrame: VoxelFrame;
 
   constructor(
     scene: THREE.Scene,
@@ -68,12 +65,15 @@ export class Chunk {
     this.dbConn = dbConn;
     this.projectId = projectId;
 
-    this.renderedBlocks = new Uint32Array(
+    this.renderedBlocks = new Uint8Array(
       dimensions.x * dimensions.y * dimensions.z
     );
-    this.blocksToRender = new Uint32Array(
+    this.blocksToRender = new Uint8Array(
       dimensions.x * dimensions.y * dimensions.z
     );
+
+    this.selectionFrame = new VoxelFrame(dimensions);
+    this.previewFrame = new VoxelFrame(dimensions);
 
     const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
     const maxVertices = maxFaces * 4;
@@ -98,7 +98,7 @@ export class Chunk {
     for (let x = 0; x < dimensions.x; x++) {
       this.voxelData[x] = [];
       for (let y = 0; y < dimensions.y; y++) {
-        this.voxelData[x][y] = new Uint32Array(dimensions.z);
+        this.voxelData[x][y] = new Uint8Array(dimensions.z);
       }
     }
 
@@ -117,7 +117,7 @@ export class Chunk {
     this.refreshSelections();
   }
 
-  private copyChunkData(blocks: Uint32Array): void {
+  private copyChunkData(blocks: Uint8Array): void {
     for (let x = 0; x < this.dimensions.x; x++) {
       for (let y = 0; y < this.dimensions.y; y++) {
         for (let z = 0; z < this.dimensions.z; z++) {
@@ -157,13 +157,13 @@ export class Chunk {
     return this.meshes.main.mesh;
   }
 
-  private clearBlocks(blocks: Uint32Array) {
+  private clearBlocks(blocks: Uint8Array) {
     blocks.fill(0);
   }
 
   private addLayerToBlocks(
     layer: DecompressedLayer,
-    blocks: Uint32Array
+    blocks: Uint8Array
   ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
@@ -180,43 +180,61 @@ export class Chunk {
   }
 
   private updatePreviewState(
-    previewBlocks: Uint32Array,
-    blocks: Uint32Array,
+    previewFrame: VoxelFrame,
+    blocks: Uint8Array,
     buildMode: ToolType
   ): void {
+    if (previewFrame.isEmpty()) return;
+
     const isPaintMode = buildMode.tag === ToolType.Paint.tag;
     const isBuildMode = buildMode.tag === ToolType.Build.tag;
     const isEraseMode = buildMode.tag === ToolType.Erase.tag;
 
+    // Iterate through all voxels and apply the appropriate preview logic
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      const previewBlockValue = previewBlocks[voxelIndex];
-      const hasPreview = isPreview(previewBlockValue);
+      const x = Math.floor(voxelIndex / (this.dimensions.y * this.dimensions.z));
+      const y = Math.floor((voxelIndex % (this.dimensions.y * this.dimensions.z)) / this.dimensions.z);
+      const z = voxelIndex % this.dimensions.z;
+      
+      const previewBlockValue = previewFrame.get(x, y, z);
+      const hasPreview = previewBlockValue !== 0;
       const realBlockValue = blocks[voxelIndex];
       const hasRealBlock = isBlockPresent(realBlockValue);
 
       if (isBuildMode) {
-        if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(previewBlockValue);
-        } else if (hasPreview && !hasRealBlock) {
-          blocks[voxelIndex] = setPreviewBit(previewBlockValue);
-        } else if (!hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
+        // Build mode: Show preview blocks where they'll be placed
+        // - If preview exists and there's NO real block: show the preview block
+        // - If preview exists and there IS a real block: hide preview (can't place here)
+        if (hasPreview) {
+          if (hasRealBlock) {
+            // Can't build here, clear the preview for this voxel
+            previewFrame.set(x, y, z, 0);
+          }
+          // else: keep preview as-is to show where block will be placed
         }
       } else if (isEraseMode) {
-        if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = setPreviewBit(realBlockValue);
-        } else if (hasPreview && !hasRealBlock) {
-          // leave it alone
-        } else if (!hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
+        // Erase mode: Show existing blocks as ghosted where they'll be erased
+        // - If preview is active and there's a real block: the real block gets ghosted
+        // - If preview is active but no real block: clear preview (nothing to erase)
+        if (hasPreview) {
+          if (!hasRealBlock) {
+            // Nothing to erase here
+            previewFrame.set(x, y, z, 0);
+          } else {
+            // Show the real block as ghosted - set preview to the real block value
+            previewFrame.set(x, y, z, realBlockValue);
+          }
         }
       } else if (isPaintMode) {
-        if (hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(previewBlockValue);
-        } else if (hasPreview && !hasRealBlock) {
-          blocks[voxelIndex] = 0;
-        } else if (!hasPreview && hasRealBlock) {
-          blocks[voxelIndex] = clearPreviewBit(realBlockValue);
+        // Paint mode: Show new block type where existing blocks will be repainted
+        // - If preview is active and there's a real block: show the new block as preview
+        // - If preview is active but no real block: clear preview (nothing to paint)
+        if (hasPreview) {
+          if (!hasRealBlock) {
+            // Nothing to paint here
+            previewFrame.set(x, y, z, 0);
+          }
+          // else: keep preview as-is (it contains the new block type)
         }
       }
     }
@@ -224,13 +242,23 @@ export class Chunk {
 
   private updateSelectionState(
     selections: DecompressedSelection[],
-    blocks: Uint32Array
+    blocks: Uint8Array
   ): void {
-    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      for (let i = 0; i < selections.length; i++) {
+    this.selectionFrame.clear();
+
+    for (let i = 0; i < selections.length; i++) {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
         if (selections[i].selectionData[voxelIndex] != 0) {
           const newVoxelPos = selections[i].selectionData[voxelIndex] - 1; // -1 bc 1 indexed
-          blocks[newVoxelPos] = setSelectedBit(blocks[voxelIndex]);
+          
+          const blockValue = blocks[voxelIndex];
+          
+          const x = Math.floor(newVoxelPos / (this.dimensions.y * this.dimensions.z));
+          const y = Math.floor((newVoxelPos % (this.dimensions.y * this.dimensions.z)) / this.dimensions.z);
+          const z = newVoxelPos % this.dimensions.z;
+          
+          this.selectionFrame.set(x, y, z, blockValue || 1); // Use 1 if block is 0, so selection is visible
+
           if (newVoxelPos != voxelIndex) {
             blocks[voxelIndex] = 0;
           }
@@ -260,28 +288,18 @@ export class Chunk {
         const base = x * yDim * zDim + y * zDim;
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
           const idx = base + z;
-          const currentVal = layer.voxels[idx];
-          const currentType = getBlockType(currentVal);
-          const currentVersion = getVersion(currentVal);
+          const currentType = getBlockType(layer.voxels[idx]);
 
           switch (tool.tag) {
             case ToolType.Build.tag:
-              layer.voxels[idx] = encodeBlockData(
-                blockType,
-                rotation,
-                currentVersion + 1
-              );
+              layer.voxels[idx] = blockType;
               break;
             case ToolType.Erase.tag:
-              layer.voxels[idx] = encodeBlockData(0, 0, currentVersion + 1);
+              layer.voxels[idx] = 0;
               break;
             case ToolType.Paint.tag:
               if (currentType !== 0) {
-                layer.voxels[idx] = encodeBlockData(
-                  blockType,
-                  0,
-                  currentVersion + 1
-                );
+                layer.voxels[idx] = blockType;
               }
               break;
             default:
@@ -495,6 +513,8 @@ export class Chunk {
   };
 
   private updateMeshes = (buildMode: ToolType, atlasData: AtlasData) => {
+    const previewOccludes = buildMode.tag !== ToolType.Erase.tag;
+    
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
@@ -503,7 +523,9 @@ export class Chunk {
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
       this.meshes.selection.meshArrays,
-      buildMode.tag === ToolType.Erase.tag
+      this.previewFrame,
+      this.selectionFrame,
+      previewOccludes
     );
 
     this.updateMainMesh(atlasData);
@@ -512,11 +534,13 @@ export class Chunk {
   };
 
   update = (
-    previewBlocks: Uint32Array,
+    previewFrame: VoxelFrame,
     buildMode: ToolType,
     atlasData: AtlasData
   ) => {
     try {
+      this.previewFrame = previewFrame;
+
       const visibleLayers = this.layers
         .filter((layer) => layer.visible)
         .sort((l1, l2) => l2.index - l1.index);
@@ -536,7 +560,7 @@ export class Chunk {
         }
       }
 
-      this.updatePreviewState(previewBlocks, this.blocksToRender, buildMode);
+      this.updatePreviewState(previewFrame, this.blocksToRender, buildMode);
       this.updateSelectionState(visibleSelections, this.blocksToRender);
 
       // Check if any blocks changed
@@ -546,6 +570,11 @@ export class Chunk {
           hasChanges = true;
           break;
         }
+      }
+
+      // Always update if preview or selection is active
+      if (!hasChanges && (!this.previewFrame.isEmpty() || !this.selectionFrame.isEmpty())) {
+        hasChanges = true;
       }
 
       // Update the single chunk mesh if there are changes

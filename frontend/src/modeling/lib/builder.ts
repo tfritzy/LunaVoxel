@@ -1,14 +1,14 @@
 import * as THREE from "three";
 import { layers } from "./layers";
 import { ToolType, DbConnection, Vector3 } from "../../module_bindings";
-import { encodeBlockData, setPreviewBit } from "./voxel-data-utils";
 import type { ProjectManager } from "./project-manager";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
+import { VoxelFrame } from "./voxel-frame";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
-  public previewBlocks: Uint32Array;
+  public previewFrame: VoxelFrame;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
@@ -63,9 +63,7 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewBlocks = new Uint32Array(
-      dimensions.x * dimensions.y * dimensions.z
-    );
+    this.previewFrame = new VoxelFrame(dimensions);
 
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
@@ -81,12 +79,6 @@ export const Builder = class {
     );
   }
 
-  private getBlockIndex(x: number, y: number, z: number): number {
-    return (
-      x * this.dimensions.y * this.dimensions.z + y * this.dimensions.z + z
-    );
-  }
-
   private setPreviewBlock(
     x: number,
     y: number,
@@ -94,9 +86,7 @@ export const Builder = class {
     blockType: number,
     rotation: number = 0
   ): void {
-    const blockIndex = this.getBlockIndex(x, y, z);
-    const blockValue = setPreviewBit(encodeBlockData(blockType, rotation));
-    this.previewBlocks[blockIndex] = blockValue;
+    this.previewFrame.set(x, y, z, blockType);
   }
 
   cancelCurrentOperation(): void {
@@ -367,7 +357,7 @@ export const Builder = class {
     this.lastPreviewEnd = null;
   }
   private clearPreviewBlocks(): void {
-    this.previewBlocks.fill(0);
+    this.previewFrame.clear();
   }
 
   private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {

@@ -1,86 +1,22 @@
 import LZ4 from "lz4js";
 
-export const PREVIEW_BIT_MASK = 0x08;
-export const SELECTED_BIT_MASK = 0x10;
-export const BLOCK_TYPE_SHIFT = 6;
-export const BLOCK_TYPE_MASK = 0x3ff;
-export const ROTATION_MASK = 0x07;
-export const CLEAR_PREVIEW_BIT_MASK = 0xfffffff7;
-export const CLEAR_SELECTED_BIT_MASK = 0xffffffef;
+/**
+ * In the new format, voxels are simply block indices where 0 means empty.
+ * No more bit packing for preview, selection, rotation, or version.
+ */
 
-export const VERSION_SHIFT = 16;
-export const VERSION_MASK = 0xff;
-export const CLEAR_VERSION_MASK = 0xff00ffff;
-
+/**
+ * Get the block type (which is now just the voxel value itself)
+ */
 export const getBlockType = (blockValue: number): number => {
-  return (blockValue >> BLOCK_TYPE_SHIFT) & BLOCK_TYPE_MASK;
+  return blockValue;
 };
 
-export const setBlockType = (
-  blockValue: number,
-  newBlockType: number
-): number => {
-  const clearedValue = blockValue & ~(BLOCK_TYPE_MASK << BLOCK_TYPE_SHIFT);
-  return clearedValue | ((newBlockType & BLOCK_TYPE_MASK) << BLOCK_TYPE_SHIFT);
-};
-
+/**
+ * Check if a block is present (non-zero)
+ */
 export const isBlockPresent = (blockValue: number): boolean => {
-  return getBlockType(blockValue) != 0;
-};
-
-export const isPreview = (blockValue: number): boolean => {
-  return (blockValue & PREVIEW_BIT_MASK) !== 0;
-};
-
-export const setPreviewBit = (blockValue: number): number => {
-  return blockValue | PREVIEW_BIT_MASK;
-};
-
-export const clearPreviewBit = (blockValue: number): number => {
-  return blockValue & CLEAR_PREVIEW_BIT_MASK;
-};
-
-export const isSelected = (blockValue: number): boolean => {
-  return (blockValue & SELECTED_BIT_MASK) !== 0;
-};
-
-export const setSelectedBit = (blockValue: number): number => {
-  return blockValue | SELECTED_BIT_MASK;
-};
-
-export const clearSelectedBit = (blockValue: number): number => {
-  return blockValue & CLEAR_SELECTED_BIT_MASK;
-};
-
-export const encodeBlockData = (
-  blockType: number,
-  rotation: number,
-  version?: number
-): number => {
-  const wrappedBlockType = blockType & BLOCK_TYPE_MASK;
-  const wrappedRotation = rotation & ROTATION_MASK;
-  let wrappedVersion = (version ?? 1) & VERSION_MASK;
-  if (wrappedVersion === 0) wrappedVersion = 1;
-  return (
-    (wrappedBlockType << BLOCK_TYPE_SHIFT) |
-    wrappedRotation |
-    (wrappedVersion << VERSION_SHIFT)
-  );
-};
-
-export const getRotation = (blockValue: number): number => {
-  return blockValue & ROTATION_MASK;
-};
-
-export const getVersion = (blockValue: number): number => {
-  return (blockValue >>> VERSION_SHIFT) & VERSION_MASK;
-};
-
-export const setVersion = (blockValue: number, version: number): number => {
-  return (
-    (blockValue & CLEAR_VERSION_MASK) |
-    ((version & VERSION_MASK) << VERSION_SHIFT)
-  );
+  return blockValue !== 0;
 };
 
 const countRuns = (data: number[]): number => {
@@ -102,7 +38,7 @@ const countRuns = (data: number[]): number => {
   return runCount;
 };
 
-const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
+const rleCompress = (voxelData: Uint8Array | number[]): Uint8Array => {
   const data = Array.isArray(voxelData) ? voxelData : Array.from(voxelData);
 
   if (data.length === 0) {
@@ -110,7 +46,7 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
   }
 
   const runCount = countRuns(data);
-  const totalSize = 4 + runCount * 6;
+  const totalSize = 4 + runCount * 3;
   const compressed = new Uint8Array(totalSize);
 
   const originalLength = data.length;
@@ -131,42 +67,33 @@ const rleCompress = (voxelData: Uint32Array | number[]): Uint8Array => {
       j++;
     }
 
-    const valueLow = value & 0xffff;
-    const valueHigh = (value >> 16) & 0xffff;
+    compressed[writeIndex] = value & 0xff;
+    compressed[writeIndex + 1] = runLength & 0xff;
+    compressed[writeIndex + 2] = (runLength >> 8) & 0xff;
 
-    compressed[writeIndex] = valueLow & 0xff;
-    compressed[writeIndex + 1] = (valueLow >> 8) & 0xff;
-    compressed[writeIndex + 2] = valueHigh & 0xff;
-    compressed[writeIndex + 3] = (valueHigh >> 8) & 0xff;
-    compressed[writeIndex + 4] = runLength & 0xff;
-    compressed[writeIndex + 5] = (runLength >> 8) & 0xff;
-
-    writeIndex += 6;
+    writeIndex += 3;
     i = j;
   }
 
   return compressed;
 };
 
-const rleDecompress = (rleData: Uint8Array): Uint32Array => {
+const rleDecompress = (rleData: Uint8Array): Uint8Array => {
   const originalLength =
     rleData[0] | (rleData[1] << 8) | (rleData[2] << 16) | (rleData[3] << 24);
 
   const dataStartIndex = 4;
 
-  if ((rleData.length - dataStartIndex) % 6 !== 0) {
-    throw new Error("RLE data must be in 6-byte groups");
+  if ((rleData.length - dataStartIndex) % 3 !== 0) {
+    throw new Error("RLE data must be in 3-byte groups");
   }
 
-  const decompressed = new Uint32Array(originalLength);
+  const decompressed = new Uint8Array(originalLength);
   let writeIndex = 0;
 
-  for (let i = dataStartIndex; i < rleData.length; i += 6) {
-    const valueLow = rleData[i] | (rleData[i + 1] << 8);
-    const valueHigh = rleData[i + 2] | (rleData[i + 3] << 8);
-    const runLength = rleData[i + 4] | (rleData[i + 5] << 8);
-
-    const value = (valueLow & 0xffff) | ((valueHigh & 0xffff) << 16);
+  for (let i = dataStartIndex; i < rleData.length; i += 3) {
+    const value = rleData[i];
+    const runLength = rleData[i + 1] | (rleData[i + 2] << 8);
 
     for (let j = 0; j < runLength; j++) {
       decompressed[writeIndex++] = value;
@@ -177,7 +104,7 @@ const rleDecompress = (rleData: Uint8Array): Uint32Array => {
 };
 
 export const compressVoxelData = (
-  voxelData: Uint32Array | number[]
+  voxelData: Uint8Array | number[]
 ): Uint8Array => {
   const rleCompressed = rleCompress(voxelData);
 
@@ -188,7 +115,7 @@ export const compressVoxelData = (
 
 export const decompressVoxelData = (
   compressedData: Uint8Array | number[]
-): Uint32Array => {
+): Uint8Array => {
   const data =
     compressedData instanceof Uint8Array
       ? compressedData

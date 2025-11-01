@@ -35,8 +35,8 @@ public static partial class Module
         Log.Info($"Decompressed {layerVoxels.Length} voxels from layer");
 
         int clickedIndex = position.X * layer.yDim * layer.zDim + position.Y * layer.zDim + position.Z;
-        uint clickedVoxel = layerVoxels[clickedIndex];
-        uint targetBlockType = VoxelDataUtils.GetBlockType(clickedVoxel);
+        byte clickedVoxel = layerVoxels[clickedIndex];
+        byte targetBlockType = VoxelDataUtils.GetBlockType(clickedVoxel);
 
         Log.Info($"Clicked voxel - Index: {clickedIndex}, Block type: {targetBlockType}");
 
@@ -61,11 +61,11 @@ public static partial class Module
             targetBlockType
         );
 
-        int selectedCount = selectionData.Count(v => v == 1);
+        int selectedCount = selectionData.Count(v => v != 0);
         Log.Info($"Flood fill complete - Selected {selectedCount} voxels");
 
         var compressedSelection = VoxelCompression.Compress(selectionData);
-        Log.Info($"Compressed selection - Original size: {selectionData.Length * 4} bytes, Compressed: {compressedSelection.Length} bytes");
+        Log.Info($"Compressed selection - Original size: {selectionData.Length} bytes, Compressed: {compressedSelection.Length} bytes");
 
         if (existingSelection != null)
         {
@@ -89,15 +89,15 @@ public static partial class Module
         Log.Info($"MagicSelect completed successfully - {selectedCount} voxels selected");
     }
 
-    private static uint[] FloodFillSelect(
-        uint[] voxels,
+    private static byte[] FloodFillSelect(
+        byte[] voxels,
         int xDim,
         int yDim,
         int zDim,
         Vector3 startPos,
-        uint targetBlockType)
+        byte targetBlockType)
     {
-        var selectionData = new uint[voxels.Length];
+        var selectionData = new byte[voxels.Length];
         var visited = new bool[voxels.Length];
         var queue = new Queue<(int x, int y, int z)>();
 
@@ -118,15 +118,15 @@ public static partial class Module
             int currentIndex = x * yDim * zDim + y * zDim + z;
             processedCount++;
 
-            uint currentVoxel = voxels[currentIndex];
-            uint currentBlockType = VoxelDataUtils.GetBlockType(currentVoxel);
+            byte currentVoxel = voxels[currentIndex];
+            byte currentBlockType = VoxelDataUtils.GetBlockType(currentVoxel);
 
             if (currentBlockType != targetBlockType)
             {
                 continue;
             }
 
-            selectionData[currentIndex] = (uint)currentIndex + 1;
+            selectionData[currentIndex] = (byte)(currentIndex + 1);
             selectedCount++;
 
             for (int i = 0; i < 6; i++)
@@ -144,8 +144,8 @@ public static partial class Module
                     if (!visited[neighborIndex])
                     {
                         visited[neighborIndex] = true;
-                        uint neighborVoxel = voxels[neighborIndex];
-                        uint neighborBlockType = VoxelDataUtils.GetBlockType(neighborVoxel);
+                        byte neighborVoxel = voxels[neighborIndex];
+                        byte neighborBlockType = VoxelDataUtils.GetBlockType(neighborVoxel);
 
                         if (neighborBlockType == targetBlockType)
                         {

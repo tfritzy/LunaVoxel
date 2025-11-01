@@ -7,7 +7,7 @@ public static partial class Module
         ReducerContext ctx,
         string projectId,
         int blockIndex,
-        uint replacementBlockType)
+        byte replacementBlockType)
     {
         if (string.IsNullOrEmpty(projectId))
         {
@@ -48,7 +48,7 @@ public static partial class Module
         {
             if (layer.Locked) continue;
 
-            uint[] voxels = VoxelCompression.Decompress(layer.Voxels);
+            byte[] voxels = VoxelCompression.Decompress(layer.Voxels);
             bool layerModified = false;
 
             for (int i = 0; i < voxels.Length; i++)
@@ -57,16 +57,12 @@ public static partial class Module
 
                 if (blockType == blockIndex)
                 {
-                    var rotation = VoxelDataUtils.GetRotation(voxels[i]);
-                    var version = VoxelDataUtils.GetVersion(voxels[i]);
-                    voxels[i] = VoxelDataUtils.EncodeBlockData(replacementBlockType, rotation, version);
+                    voxels[i] = replacementBlockType;
                     layerModified = true;
                 }
                 else if (blockType > blockIndex)
                 {
-                    var rotation = VoxelDataUtils.GetRotation(voxels[i]);
-                    var version = VoxelDataUtils.GetVersion(voxels[i]);
-                    voxels[i] = VoxelDataUtils.EncodeBlockData(blockType - 1, rotation, version);
+                    voxels[i] = (byte)(blockType - 1);
                     layerModified = true;
                 }
             }

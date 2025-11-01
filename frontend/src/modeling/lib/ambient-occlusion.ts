@@ -1,4 +1,6 @@
-import { isBlockPresent, isPreview } from "./voxel-data-utils";
+import { isBlockPresent } from "./voxel-data-utils";
+import { VoxelFrame } from "./voxel-frame";
+import { Vector3 } from "@/module_bindings";
 
 /**
  * Defines the final AO value based on the number of occluders.
@@ -30,16 +32,35 @@ export const calculateAmbientOcclusion = (
   ny: number,
   nz: number,
   faceDir: number,
-  getNeighborBlock: (x: number, y: number, z: number) => number,
-  previewHidden: boolean
+  voxelData: Uint8Array[][],
+  dimensions: Vector3,
+  previewFrame: VoxelFrame,
+  previewOccludes: boolean
 ): number => {
   const tangent = FACE_TANGENTS[faceDir];
   const u_dir = [tangent.u[0], tangent.u[1], tangent.u[2]];
   const v_dir = [tangent.v[0], tangent.v[1], tangent.v[2]];
 
   const isOccluder = (ox: number, oy: number, oz: number): boolean => {
-    const val = getNeighborBlock(nx + ox, ny + oy, nz + oz);
-    return isBlockPresent(val) && (!previewHidden || !isPreview(val));
+    const x = nx + ox;
+    const y = ny + oy;
+    const z = nz + oz;
+    
+    if (
+      x < 0 ||
+      x >= dimensions.x ||
+      y < 0 ||
+      y >= dimensions.y ||
+      z < 0 ||
+      z >= dimensions.z
+    ) {
+      return false;
+    }
+    
+    const val = voxelData[x][y][z];
+    if (val > 0) return true;
+
+    return previewOccludes && previewFrame.isSet(x, y, z);
   };
 
   const side1_neg = isOccluder(-u_dir[0], -u_dir[1], -u_dir[2]);

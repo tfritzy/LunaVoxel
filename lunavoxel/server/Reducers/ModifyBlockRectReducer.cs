@@ -13,16 +13,16 @@ public static partial class Module
         ReducerContext ctx,
         string projectId,
         ToolType mode,
-        uint type,
+        byte type,
         Vector3 start,
         Vector3 end,
-        uint rotation,
+        byte rotation,
         int layerIndex)
     {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
             ?? throw new ArgumentException("No layer for this project");
 
-        uint[] diffData = new uint[layer.xDim * layer.yDim * layer.zDim];
+        byte[] diffData = new byte[layer.xDim * layer.yDim * layer.zDim];
         var existingData = VoxelCompression.Decompress(layer.Voxels);
 
         int sx = Clamp(start.X, layer.xDim);
@@ -48,15 +48,12 @@ public static partial class Module
                 {
                     int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
                     var cur = BlockType.FromInt(existingData[index]);
-                    uint? newValue = mode switch
+                    byte? newValue = mode switch
                     {
-                        ToolType.Build =>
-                            VoxelDataUtils.EncodeBlockData(type, rotation, cur.Version + 1),
-                        ToolType.Erase =>
-                            VoxelDataUtils.EncodeBlockData(0, 0, cur.Version + 1),
-                        ToolType.Paint when cur.Type != 0 =>
-                            VoxelDataUtils.EncodeBlockData(type, cur.Rotation, cur.Version + 1),
-                        _ => 0
+                        ToolType.Build => type,
+                        ToolType.Erase => (byte)0,
+                        ToolType.Paint when cur.Type != 0 => type,
+                        _ => (byte)0
                     };
 
                     if (newValue.HasValue)

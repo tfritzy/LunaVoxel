@@ -518,7 +518,7 @@ export class RemoteReducers {
     this.connection.offReducer("MagicSelect", callback);
   }
 
-  modifyBlock(projectId: string, diffData: number[], layerIndex: number) {
+  modifyBlock(projectId: string, diffData: Uint8Array, layerIndex: number) {
     const __args = { projectId, diffData, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlock.serialize(__writer, __args);
@@ -526,11 +526,11 @@ export class RemoteReducers {
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: Uint8Array, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: number[], layerIndex: number) => void) {
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: Uint8Array, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlock", callback);
   }
 

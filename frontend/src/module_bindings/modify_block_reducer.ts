@@ -30,7 +30,7 @@ import {
 
 export type ModifyBlock = {
   projectId: string,
-  diffData: number[],
+  diffData: Uint8Array,
   layerIndex: number,
 };
 let _cached_ModifyBlock_type_value: __AlgebraicTypeType | null = null;
@@ -48,7 +48,7 @@ export const ModifyBlock = {
     _cached_ModifyBlock_type_value = __AlgebraicTypeValue.Product({ elements: [] });
     _cached_ModifyBlock_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
-      { name: "diffData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U32) },
+      { name: "diffData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
       { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32 },
     );
     return _cached_ModifyBlock_type_value;

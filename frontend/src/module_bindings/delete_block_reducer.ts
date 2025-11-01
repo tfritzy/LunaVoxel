@@ -49,7 +49,7 @@ export const DeleteBlock = {
     _cached_DeleteBlock_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
       { name: "blockIndex", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "replacementBlockType", algebraicType: __AlgebraicTypeValue.U32 },
+      { name: "replacementBlockType", algebraicType: __AlgebraicTypeValue.U8 },
     );
     return _cached_DeleteBlock_type_value;
   },

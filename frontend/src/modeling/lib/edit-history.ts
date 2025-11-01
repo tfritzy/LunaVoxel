@@ -2,8 +2,8 @@ import { DbConnection } from "@/module_bindings";
 import { compressVoxelData } from "./voxel-data-utils";
 
 type HistoryEntry = {
-  beforeDiff: Uint32Array;
-  afterDiff: Uint32Array;
+  beforeDiff: Uint8Array;
+  afterDiff: Uint8Array;
   layer: number;
   isUndone: boolean;
 };
@@ -19,7 +19,7 @@ export class EditHistory {
     this.db = db;
   }
 
-  addEntry(previous: Uint32Array, updated: Uint32Array, layer: number) {
+  addEntry(previous: Uint8Array, updated: Uint8Array, layer: number) {
     const headIndex = this.entries.findLastIndex((e) => !e.isUndone);
     this.entries.length = headIndex + 1;
 

@@ -128,9 +128,7 @@ public static partial class Module
 
         public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
         {
-            uint empty = VoxelDataUtils.EncodeBlockData(0, 0, 1);
-            var voxels = new uint[xDim * yDim * zDim];
-            Array.Fill(voxels, empty);
+            var voxels = new byte[xDim * yDim * zDim];
 
             return new Layer
             {
@@ -181,30 +179,28 @@ public static partial class Module
     }
 
 
+    /// <summary>
+    /// BlockType is now simply a block index (byte).
+    /// Voxel data is no longer bit-packed.
+    /// Each voxel is 8 bits, allowing up to 256 different block types.
+    /// </summary>
     public class BlockType
     {
-        public uint Type;
-        public uint Rotation;
-        public uint Version;
+        public byte Type;
 
-        public BlockType(uint type, uint version, uint rotation)
+        public BlockType(byte type)
         {
             Type = type;
-            Version = version;
-            Rotation = rotation;
         }
 
-        public static BlockType FromInt(uint data)
+        public static BlockType FromInt(byte data)
         {
-            uint type = VoxelDataUtils.GetBlockType(data);
-            uint version = VoxelDataUtils.GetVersion(data);
-            uint rotation = VoxelDataUtils.GetRotation(data);
-            return new BlockType(type, version, rotation);
+            return new BlockType(data);
         }
 
-        public uint ToInt()
+        public byte ToInt()
         {
-            return VoxelDataUtils.EncodeBlockData(Type, Version, Rotation);
+            return Type;
         }
     }
 

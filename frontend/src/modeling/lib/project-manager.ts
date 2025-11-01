@@ -128,7 +128,7 @@ export class ProjectManager {
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
-    const previousVoxels = new Uint32Array(layer.voxels);
+    const previousVoxels = new Uint8Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
       layer,
       tool,
@@ -137,7 +137,7 @@ export class ProjectManager {
       blockType,
       rotation
     );
-    const updated = new Uint32Array(layer.voxels);
+    const updated = new Uint8Array(layer.voxels);
     this.editHistory.addEntry(previousVoxels, updated, layer.index);
     this.updateChunkManager();
   };
@@ -174,7 +174,7 @@ export class ProjectManager {
     const start = performance.now();
 
     this.chunkManager.update(
-      this.builder.previewBlocks,
+      this.builder.previewFrame,
       this.builder.getTool(),
       this.atlasData
     );
