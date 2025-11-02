@@ -109,12 +109,14 @@ export class ExteriorFacesFinder {
 
               // Since we're sweeping in one direction, only check bounds for the axis dimension
               // The other dimensions are guaranteed to be in bounds by the loop constraints
-              const neighborInBounds =
-                axis === 0
-                  ? nx >= 0 && nx < dimensions.x
-                  : axis === 1
-                    ? ny >= 0 && ny < dimensions.y
-                    : nz >= 0 && nz < dimensions.z;
+              let neighborInBounds: boolean;
+              if (axis === 0) {
+                neighborInBounds = nx >= 0 && nx < dimensions.x;
+              } else if (axis === 1) {
+                neighborInBounds = ny >= 0 && ny < dimensions.y;
+              } else {
+                neighborInBounds = nz >= 0 && nz < dimensions.z;
+              }
 
               const neighborValue = neighborInBounds ? voxelData[nx][ny][nz] : 0;
               const neighborIsPreview = neighborInBounds ? previewFrame.get(nx, ny, nz) !== 0 : false;
