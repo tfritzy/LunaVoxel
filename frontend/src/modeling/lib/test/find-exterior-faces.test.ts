@@ -280,8 +280,38 @@ describe("ExteriorFacesFinder", () => {
 
       const iterations = 3;
       const durations: number[] = [];
+      const memoryAllocated: number[] = [];
+      const memoryAfterGC: number[] = [];
+      const memoryCollected: number[] = [];
+
+      // Define types for memory tracking APIs
+      interface PerformanceMemory {
+        usedJSHeapSize: number;
+      }
+      
+      interface PerformanceWithMemory extends Performance {
+        memory?: PerformanceMemory;
+      }
+
+      // Check if performance.memory (browser) or process.memoryUsage (Node) is available
+      const perfWithMemory = performance as PerformanceWithMemory;
+      const hasMemoryTracking = (typeof performance !== 'undefined' && perfWithMemory.memory !== undefined) ||
+                                (typeof process !== 'undefined' && process.memoryUsage !== undefined);
 
       for (let i = 0; i < iterations; i++) {
+        let heapBefore = 0;
+        let heapAfter = 0;
+        let heapAfterGC = 0;
+
+        // Track memory before the call if available
+        if (hasMemoryTracking) {
+          if (typeof process !== 'undefined' && process.memoryUsage) {
+            heapBefore = process.memoryUsage().heapUsed;
+          } else if (perfWithMemory.memory) {
+            heapBefore = perfWithMemory.memory.usedJSHeapSize;
+          }
+        }
+
         const startTime = performance.now();
 
         finder.findExteriorFaces(
@@ -299,6 +329,36 @@ describe("ExteriorFacesFinder", () => {
 
         const endTime = performance.now();
         durations.push(endTime - startTime);
+
+        // Track memory after the call if available
+        if (hasMemoryTracking) {
+          if (typeof process !== 'undefined' && process.memoryUsage) {
+            heapAfter = process.memoryUsage().heapUsed;
+          } else if (perfWithMemory.memory) {
+            heapAfter = perfWithMemory.memory.usedJSHeapSize;
+          }
+          
+          // Force garbage collection if available
+          const globalWithGc = global as typeof global & { gc?: () => void };
+          if (typeof globalWithGc.gc === 'function') {
+            globalWithGc.gc();
+          }
+          
+          if (typeof process !== 'undefined' && process.memoryUsage) {
+            heapAfterGC = process.memoryUsage().heapUsed;
+          } else if (perfWithMemory.memory) {
+            heapAfterGC = perfWithMemory.memory.usedJSHeapSize;
+          }
+          
+          // Calculate metrics
+          const allocated = heapAfter - heapBefore;
+          const afterGC = heapAfterGC - heapBefore;
+          const collected = heapAfter - heapAfterGC;
+          
+          memoryAllocated.push(allocated);
+          memoryAfterGC.push(afterGC);
+          memoryCollected.push(collected);
+        }
       }
 
       const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
@@ -310,6 +370,28 @@ describe("ExteriorFacesFinder", () => {
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
       console.log(`  Generated ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
+
+      // Log memory statistics if we collected them
+      if (hasMemoryTracking && memoryAllocated.length > 0) {
+        const bytesToMB = (bytes: number) => (bytes / (1024 * 1024)).toFixed(2);
+        
+        const avgAllocated = memoryAllocated.reduce((a, b) => a + b, 0) / memoryAllocated.length;
+        const minAllocated = Math.min(...memoryAllocated);
+        const maxAllocated = Math.max(...memoryAllocated);
+        
+        const avgAfterGC = memoryAfterGC.reduce((a, b) => a + b, 0) / memoryAfterGC.length;
+        
+        const avgCollected = memoryCollected.reduce((a, b) => a + b, 0) / memoryCollected.length;
+        
+        console.log(`\nMemory allocations per call:`);
+        console.log(`  Average allocated: ${bytesToMB(avgAllocated)} MB`);
+        console.log(`  Min allocated: ${bytesToMB(minAllocated)} MB`);
+        console.log(`  Max allocated: ${bytesToMB(maxAllocated)} MB`);
+        console.log(`  Average after GC: ${bytesToMB(avgAfterGC)} MB`);
+        console.log(`  Memory collected by GC: ${bytesToMB(avgCollected)} MB`);
+      }
+      
+      console.log(`\nNote: Run with --expose-gc for full memory tracking`);
 
       // This is a benchmark test - no assertions, just timing
     }, 120000); // 120 second timeout for benchmark
