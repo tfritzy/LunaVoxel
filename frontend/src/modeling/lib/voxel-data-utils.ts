@@ -82,13 +82,27 @@ const rleDecompress = (rleData: Uint8Array): Uint8Array => {
   const originalLength =
     rleData[0] | (rleData[1] << 8) | (rleData[2] << 16) | (rleData[3] << 24);
 
+  const decompressed = new Uint8Array(originalLength);
+  rleDecompressInto(rleData, decompressed);
+  return decompressed;
+};
+
+const rleDecompressInto = (rleData: Uint8Array, target: Uint8Array): void => {
+  const originalLength =
+    rleData[0] | (rleData[1] << 8) | (rleData[2] << 16) | (rleData[3] << 24);
+
   const dataStartIndex = 4;
 
   if ((rleData.length - dataStartIndex) % 3 !== 0) {
     throw new Error("RLE data must be in 3-byte groups");
   }
 
-  const decompressed = new Uint8Array(originalLength);
+  if (target.length !== originalLength) {
+    throw new Error(
+      `Target buffer length (${target.length}) does not match expected length (${originalLength})`
+    );
+  }
+
   let writeIndex = 0;
 
   for (let i = dataStartIndex; i < rleData.length; i += 3) {
@@ -96,11 +110,9 @@ const rleDecompress = (rleData: Uint8Array): Uint8Array => {
     const runLength = rleData[i + 1] | (rleData[i + 2] << 8);
 
     for (let j = 0; j < runLength; j++) {
-      decompressed[writeIndex++] = value;
+      target[writeIndex++] = value;
     }
   }
-
-  return decompressed;
 };
 
 export const compressVoxelData = (
@@ -124,6 +136,28 @@ export const decompressVoxelData = (
   const rleData = LZ4.decompress(data);
 
   return rleDecompress(new Uint8Array(rleData));
+};
+
+/**
+ * Decompresses voxel data into an existing Uint8Array buffer.
+ * This avoids allocating a new buffer when you already have one to reuse.
+ * 
+ * @param compressedData - The compressed voxel data
+ * @param target - The target buffer to decompress into (must be the correct size)
+ * @throws Error if the target buffer size doesn't match the decompressed data size
+ */
+export const decompressVoxelDataInto = (
+  compressedData: Uint8Array | number[],
+  target: Uint8Array
+): void => {
+  const data =
+    compressedData instanceof Uint8Array
+      ? compressedData
+      : new Uint8Array(compressedData);
+
+  const rleData = LZ4.decompress(data);
+
+  rleDecompressInto(new Uint8Array(rleData), target);
 };
 
 export const getVoxelAt = (

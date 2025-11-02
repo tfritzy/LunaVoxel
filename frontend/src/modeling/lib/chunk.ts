@@ -11,6 +11,7 @@ import {
   getBlockType,
   isBlockPresent,
   decompressVoxelData,
+  decompressVoxelDataInto,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { calculateRectBounds } from "@/lib/rect-utils";
@@ -310,7 +311,17 @@ export class Chunk {
     }
   }
 
-  private decompressLayer = (layer: Layer): DecompressedLayer => {
+  private decompressLayer = (
+    layer: Layer,
+    existingBuffer?: Uint8Array
+  ): DecompressedLayer => {
+    if (existingBuffer && existingBuffer.length === layer.xDim * layer.yDim * layer.zDim) {
+      decompressVoxelDataInto(layer.voxels, existingBuffer);
+      return {
+        ...layer,
+        voxels: existingBuffer,
+      };
+    }
     return {
       ...layer,
       voxels: decompressVoxelData(layer.voxels),
@@ -318,8 +329,18 @@ export class Chunk {
   };
 
   private decompressSelection = (
-    selection: Selection
+    selection: Selection,
+    existingBuffer?: Uint8Array
   ): DecompressedSelection => {
+    // Calculate expected size based on project dimensions
+    const expectedSize = this.dimensions.x * this.dimensions.y * this.dimensions.z;
+    if (existingBuffer && existingBuffer.length === expectedSize) {
+      decompressVoxelDataInto(selection.selectionData, existingBuffer);
+      return {
+        ...selection,
+        selectionData: existingBuffer,
+      };
+    }
     return {
       ...selection,
       selectionData: decompressVoxelData(selection.selectionData),
@@ -357,7 +378,12 @@ export class Chunk {
   ) => {
     if (newSelection.projectId !== this.projectId) return;
 
-    const decompressedSelection = this.decompressSelection(newSelection);
+    // Find the existing selection to reuse its buffer
+    const existingSelection = this.selections.find((s) => s.id === newSelection.id);
+    const decompressedSelection = this.decompressSelection(
+      newSelection,
+      existingSelection?.selectionData
+    );
     this.selections = this.selections.map((s) =>
       s.id === newSelection.id ? decompressedSelection : s
     );
@@ -390,7 +416,9 @@ export class Chunk {
   ) => {
     if (newLayer.projectId !== this.projectId) return;
 
-    const decompressedLayer = this.decompressLayer(newLayer);
+    // Find the existing layer to reuse its buffer
+    const existingLayer = this.layers.find((l) => l.id === newLayer.id);
+    const decompressedLayer = this.decompressLayer(newLayer, existingLayer?.voxels);
     this.layers = this.layers
       .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
       .sort((a, b) => a.index - b.index);
