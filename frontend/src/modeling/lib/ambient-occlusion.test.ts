@@ -97,8 +97,8 @@ describe("FACE_TANGENTS", () => {
     // Each tangent vector should have length 1
     for (let i = 0; i < 6; i++) {
       const { u, v } = FACE_TANGENTS[i];
-      const uLength = Math.sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
-      const vLength = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+      const uLength = Math.hypot(u[0], u[1], u[2]);
+      const vLength = Math.hypot(v[0], v[1], v[2]);
       expect(uLength).toBe(1);
       expect(vLength).toBe(1);
     }
@@ -521,16 +521,20 @@ describe("calculateAmbientOcclusion", () => {
       const voxelData = createVoxelData(dimensions);
       const previewFrame = new VoxelFrame(dimensions);
 
-      // Create symmetric pattern around center block
+      // Create symmetric pattern around center block: blocks at +Y and -Y
       setVoxel(voxelData, 2, 3, 2, 1); // +Y
       setVoxel(voxelData, 2, 1, 2, 1); // -Y
 
       const mask1 = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions, previewFrame, false);
       const corners1 = unpackOcclusionMask(mask1);
 
-      // Corners on +Y side should equal corners on -Y side
-      expect(corners1[2]).toBe(corners1[0]); // +u,+v vs -u,-v
-      expect(corners1[3]).toBe(corners1[1]); // -u,+v vs +u,-v
+      // For face 0 (+X), with symmetric blocks at ±Y:
+      // Corner 1 (+Y,-Z) and corner 2 (+Y,+Z) both have +Y neighbor
+      // Corner 0 (-Y,-Z) and corner 3 (-Y,+Z) both have -Y neighbor
+      // So corners with +Y should equal each other, and corners with -Y should equal each other
+      expect(corners1[1]).toBe(corners1[2]); // Both have +Y neighbor
+      expect(corners1[0]).toBe(corners1[3]); // Both have -Y neighbor
+      expect(corners1[0]).toBe(corners1[1]); // Both patterns are symmetric
     });
   });
 
