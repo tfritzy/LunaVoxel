@@ -3,8 +3,8 @@ import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
   FACE_TANGENTS,
-} from "./ambient-occlusion";
-import { VoxelFrame } from "./voxel-frame";
+} from "../ambient-occlusion";
+import { VoxelFrame } from "../voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/module_bindings";
 

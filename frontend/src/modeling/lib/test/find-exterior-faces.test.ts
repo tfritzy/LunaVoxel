@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { ExteriorFacesFinder } from "./find-exterior-faces";
-import { MeshArrays } from "./mesh-arrays";
-import { VoxelFrame } from "./voxel-frame";
+import { ExteriorFacesFinder } from "../find-exterior-faces";
+import { MeshArrays } from "../mesh-arrays";
+import { VoxelFrame } from "../voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/module_bindings";
 
