@@ -28,6 +28,8 @@ export function createTool(toolType: ToolType): Tool {
     case "MagicSelect":
       return new MagicSelectTool();
     default:
-      throw new Error(`Unknown tool type: ${JSON.stringify(toolType)}`);
+      throw new Error(
+        `Unknown tool type: ${JSON.stringify(toolType)}. Valid types are: Build, Erase, Paint, BlockPicker, MagicSelect`
+      );
   }
 }

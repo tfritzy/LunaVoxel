@@ -241,6 +241,8 @@ export const Builder = class {
         const worldNormal = face.normal.clone();
         worldNormal.transformDirection(intersection.object.matrixWorld);
         worldNormal.normalize();
+        
+        // Clone for cursor position update (modified for centering)
         const faceCenter = intersectionPoint.clone();
 
         if (Math.abs(worldNormal.x) < 0.1) {
@@ -257,7 +259,7 @@ export const Builder = class {
 
         this.throttledUpdateCursorPos(faceCenter, worldNormal);
 
-        // Use the tool's calculateGridPosition method
+        // Clone for tool grid position calculation (uses raw face normal)
         return this.currentToolImpl.calculateGridPosition(
           intersectionPoint.clone(),
           face.normal.clone()
