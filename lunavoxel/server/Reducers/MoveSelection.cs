@@ -32,25 +32,20 @@ public static partial class Module
         {
             if (selectionData[i] != 0)
             {
-                // Calculate the current position from the index
                 int z = i % zDim;
                 int y = (i / zDim) % yDim;
                 int x = i / (yDim * zDim);
 
-                // Apply the offset with wrapping
                 int newX = (x + offset.X) % xDim;
                 int newY = (y + offset.Y) % yDim;
                 int newZ = (z + offset.Z) % zDim;
 
-                // Handle negative wrapping
                 if (newX < 0) newX += xDim;
                 if (newY < 0) newY += yDim;
                 if (newZ < 0) newZ += zDim;
 
-                // Calculate the new index
                 int newIndex = newX * yDim * zDim + newY * zDim + newZ;
-                // Preserve the original selection value (which tracks the original position)
-                newSelectionData[newIndex] = selectionData[i];
+                newSelectionData[newIndex] = (byte)(newIndex + 1);
             }
         }
 
