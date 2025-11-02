@@ -1,35 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { ExteriorFacesFinder } from "./find-exterior-faces";
-import { MeshArrays } from "./mesh-arrays";
-import { VoxelFrame } from "./voxel-frame";
+import { ExteriorFacesFinder } from "../find-exterior-faces";
+import { MeshArrays } from "../mesh-arrays";
+import { VoxelFrame } from "../voxel-frame";
+import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/module_bindings";
-
-/**
- * Helper function to create voxel data structure
- */
-function createVoxelData(dimensions: Vector3): Uint8Array[][] {
-  const voxelData: Uint8Array[][] = [];
-  for (let x = 0; x < dimensions.x; x++) {
-    voxelData[x] = [];
-    for (let y = 0; y < dimensions.y; y++) {
-      voxelData[x][y] = new Uint8Array(dimensions.z);
-    }
-  }
-  return voxelData;
-}
-
-/**
- * Helper function to set a voxel
- */
-function setVoxel(
-  voxelData: Uint8Array[][],
-  x: number,
-  y: number,
-  z: number,
-  blockType: number
-): void {
-  voxelData[x][y][z] = blockType;
-}
 
 /**
  * Helper function to create block atlas mappings
