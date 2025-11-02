@@ -11,6 +11,15 @@ import { VoxelFrame } from "./voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
+function isNeighborInBounds(
+  axis: number,
+  dir: number,
+  neighborCoord: number,
+  maxCoord: number
+): boolean {
+  return dir > 0 ? neighborCoord < maxCoord : neighborCoord >= 0;
+}
+
 export class ExteriorFacesFinder {
   private realMask: Int16Array;
   private previewMask: Int16Array;
@@ -90,13 +99,9 @@ export class ExteriorFacesFinder {
 
               const blockValue = voxelData[x][y][z];
               const blockPresent = isBlockPresent(blockValue);
-              const previewBlockValue = previewFrame.isEmpty()
-                ? 0
-                : previewFrame.get(x, y, z);
+              const previewBlockValue = previewFrame.get(x, y, z);
               const blockIsPreview = previewBlockValue !== 0;
-              const selectionBlockValue = selectionFrame.isEmpty()
-                ? 0
-                : selectionFrame.get(x, y, z);
+              const selectionBlockValue = selectionFrame.get(x, y, z);
               const blockIsSelected = selectionBlockValue !== 0;
               const blockType = Math.max(
                 getBlockType(blockIsPreview ? previewBlockValue : blockValue),
@@ -108,15 +113,14 @@ export class ExteriorFacesFinder {
               const nz = z + (axis === 2 ? dir : 0);
 
               const neighborInBounds =
-                nx >= 0 &&
-                nx < dimensions.x &&
-                ny >= 0 &&
-                ny < dimensions.y &&
-                nz >= 0 &&
-                nz < dimensions.z;
+                axis === 0
+                  ? isNeighborInBounds(axis, dir, nx, dimensions.x)
+                  : axis === 1
+                    ? isNeighborInBounds(axis, dir, ny, dimensions.y)
+                    : isNeighborInBounds(axis, dir, nz, dimensions.z);
 
               const neighborValue = neighborInBounds ? voxelData[nx][ny][nz] : 0;
-              const neighborIsPreview = neighborInBounds ? previewFrame.get(nx, ny, nz) !== 0 : false;
+              const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
 
               if (blockPresent || blockIsPreview) {
                 let shouldRenderFace = false;
