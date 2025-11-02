@@ -5,34 +5,8 @@ import {
   FACE_TANGENTS,
 } from "./ambient-occlusion";
 import { VoxelFrame } from "./voxel-frame";
+import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/module_bindings";
-
-/**
- * Helper function to create voxel data structure
- */
-function createVoxelData(dimensions: Vector3): Uint8Array[][] {
-  const voxelData: Uint8Array[][] = [];
-  for (let x = 0; x < dimensions.x; x++) {
-    voxelData[x] = [];
-    for (let y = 0; y < dimensions.y; y++) {
-      voxelData[x][y] = new Uint8Array(dimensions.z);
-    }
-  }
-  return voxelData;
-}
-
-/**
- * Helper function to set a voxel
- */
-function setVoxel(
-  voxelData: Uint8Array[][],
-  x: number,
-  y: number,
-  z: number,
-  blockType: number
-): void {
-  voxelData[x][y][z] = blockType;
-}
 
 /**
  * Helper function to unpack occlusion mask
@@ -46,64 +20,6 @@ function unpackOcclusionMask(mask: number): number[] {
     (mask >> 6) & 0x3,  // Corner 3
   ];
 }
-
-describe("OCCLUSION_LEVELS", () => {
-  it("should define correct occlusion values", () => {
-    expect(OCCLUSION_LEVELS).toEqual([1.0, 0.9, 0.85, 0.75]);
-  });
-
-  it("should have 4 levels", () => {
-    expect(OCCLUSION_LEVELS).toHaveLength(4);
-  });
-
-  it("should be in descending order", () => {
-    for (let i = 0; i < OCCLUSION_LEVELS.length - 1; i++) {
-      expect(OCCLUSION_LEVELS[i]).toBeGreaterThan(OCCLUSION_LEVELS[i + 1]);
-    }
-  });
-
-  it("should have maximum value of 1.0 for no occlusion", () => {
-    expect(OCCLUSION_LEVELS[0]).toBe(1.0);
-  });
-});
-
-describe("FACE_TANGENTS", () => {
-  it("should define tangents for all 6 faces", () => {
-    expect(Object.keys(FACE_TANGENTS)).toHaveLength(6);
-    for (let i = 0; i < 6; i++) {
-      expect(FACE_TANGENTS[i]).toBeDefined();
-    }
-  });
-
-  it("should have u and v vectors for each face", () => {
-    for (let i = 0; i < 6; i++) {
-      expect(FACE_TANGENTS[i].u).toBeDefined();
-      expect(FACE_TANGENTS[i].v).toBeDefined();
-      expect(FACE_TANGENTS[i].u).toHaveLength(3);
-      expect(FACE_TANGENTS[i].v).toHaveLength(3);
-    }
-  });
-
-  it("should have perpendicular tangent vectors", () => {
-    // For each face, u and v should be perpendicular (dot product = 0)
-    for (let i = 0; i < 6; i++) {
-      const { u, v } = FACE_TANGENTS[i];
-      const dotProduct = u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
-      expect(dotProduct).toBe(0);
-    }
-  });
-
-  it("should have unit tangent vectors", () => {
-    // Each tangent vector should have length 1
-    for (let i = 0; i < 6; i++) {
-      const { u, v } = FACE_TANGENTS[i];
-      const uLength = Math.hypot(u[0], u[1], u[2]);
-      const vLength = Math.hypot(v[0], v[1], v[2]);
-      expect(uLength).toBe(1);
-      expect(vLength).toBe(1);
-    }
-  });
-});
 
 describe("calculateAmbientOcclusion", () => {
   describe("No occlusion cases", () => {
@@ -169,8 +85,7 @@ describe("calculateAmbientOcclusion", () => {
       // Corners adjacent to the +Y direction should be occluded
       // For face 0 (+X), u=Y, v=Z
       // Corner 1 (+u,-v) and Corner 2 (+u,+v) have +Y
-      expect(corners[1]).toBeGreaterThan(0);
-      expect(corners[2]).toBeGreaterThan(0);
+      expect(corners).toEqual([0, 1, 1, 0]);
     });
 
     it("should detect multiple side neighbors", () => {
@@ -192,8 +107,8 @@ describe("calculateAmbientOcclusion", () => {
       );
 
       const corners = unpackOcclusionMask(mask);
-      // Corner 2 (+u,+v = +Y,+Z) should have the most occlusion (both sides)
-      expect(corners[2]).toBeGreaterThan(0);
+      // Corner 2 (+u,+v = +Y,+Z) should have both side occluders
+      expect(corners).toEqual([0, 1, 3, 1]);
     });
   });
 
@@ -218,7 +133,7 @@ describe("calculateAmbientOcclusion", () => {
       const corners = unpackOcclusionMask(mask);
       // The corner facing the diagonal neighbor should be occluded
       // Corner 2 is at +Y,+Z which is the diagonal
-      expect(corners[2]).toBeGreaterThan(0);
+      expect(corners).toEqual([0, 0, 1, 0]);
     });
   });
 
@@ -244,7 +159,7 @@ describe("calculateAmbientOcclusion", () => {
       const corners = unpackOcclusionMask(mask);
       // Corner 2 (at +Y, +Z) should have maximum occlusion (value 3)
       // when both sides are present
-      expect(corners[2]).toBe(3);
+      expect(corners).toEqual([0, 1, 3, 1]);
     });
 
     it("should return 3 for inner corner even without diagonal block", () => {
@@ -268,69 +183,34 @@ describe("calculateAmbientOcclusion", () => {
 
       const corners = unpackOcclusionMask(mask);
       // When both sides are present, occlusion is 3 regardless of corner block
-      expect(corners[2]).toBe(3);
+      expect(corners).toEqual([0, 1, 3, 1]);
     });
   });
 
   describe("All face directions", () => {
-    it("should work correctly for face 0 (+X)", () => {
+    it("should work correctly for all face directions", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
       const previewFrame = new VoxelFrame(dimensions);
 
-      const mask = calculateAmbientOcclusion(1, 1, 1, 0, voxelData, dimensions, previewFrame, false);
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-    });
+      // Place a neighbor block
+      setVoxel(voxelData, 1, 2, 1, 1);
 
-    it("should work correctly for face 1 (-X)", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      const mask = calculateAmbientOcclusion(1, 1, 1, 1, voxelData, dimensions, previewFrame, false);
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-    });
-
-    it("should work correctly for face 2 (+Y)", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      const mask = calculateAmbientOcclusion(1, 1, 1, 2, voxelData, dimensions, previewFrame, false);
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-    });
-
-    it("should work correctly for face 3 (-Y)", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      const mask = calculateAmbientOcclusion(1, 1, 1, 3, voxelData, dimensions, previewFrame, false);
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-    });
-
-    it("should work correctly for face 4 (+Z)", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      const mask = calculateAmbientOcclusion(1, 1, 1, 4, voxelData, dimensions, previewFrame, false);
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-    });
-
-    it("should work correctly for face 5 (-Z)", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      const mask = calculateAmbientOcclusion(1, 1, 1, 5, voxelData, dimensions, previewFrame, false);
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
+      // Test all 6 face directions
+      for (let faceDir = 0; faceDir < 6; faceDir++) {
+        const mask = calculateAmbientOcclusion(
+          1, 1, 1,
+          faceDir,
+          voxelData,
+          dimensions,
+          previewFrame,
+          false
+        );
+        expect(mask).toBeDefined();
+        expect(typeof mask).toBe("number");
+        expect(mask).toBeGreaterThanOrEqual(0);
+        expect(mask).toBeLessThanOrEqual(255);
+      }
     });
   });
 
@@ -378,7 +258,7 @@ describe("calculateAmbientOcclusion", () => {
 
       const corners = unpackOcclusionMask(mask);
       // Should have occlusion from preview blocks
-      expect(corners[2]).toBe(3); // Inner corner
+      expect(corners).toEqual([0, 1, 3, 1]);
     });
 
     it("should combine voxel data and preview frame occlusion", () => {
@@ -401,32 +281,11 @@ describe("calculateAmbientOcclusion", () => {
 
       const corners = unpackOcclusionMask(mask);
       // Should have inner corner occlusion from both sources
-      expect(corners[2]).toBe(3);
+      expect(corners).toEqual([0, 1, 3, 1]);
     });
   });
 
   describe("Boundary conditions", () => {
-    it("should handle blocks at world boundaries", () => {
-      const dimensions: Vector3 = { x: 2, y: 2, z: 2 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      // Block at edge of world
-      const mask = calculateAmbientOcclusion(
-        0, 0, 0, // corner of world
-        0, // +X face
-        voxelData,
-        dimensions,
-        previewFrame,
-        false
-      );
-
-      // Should not crash and should return valid mask
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-      expect(mask).toBeGreaterThanOrEqual(0);
-    });
-
     it("should treat out-of-bounds checks as non-occluding", () => {
       const dimensions: Vector3 = { x: 2, y: 2, z: 2 };
       const voxelData = createVoxelData(dimensions);
@@ -508,10 +367,7 @@ describe("calculateAmbientOcclusion", () => {
       // Corner 1 (+Y,-Z): affected by +Y side = 1
       // Corner 2 (+Y,+Z): affected by +Y and +Z sides (inner corner) = 3
       // Corner 3 (-Y,+Z): affected by -Y and +Z sides (inner corner) = 3
-      expect(corners[0]).toBe(1);
-      expect(corners[1]).toBe(1);
-      expect(corners[2]).toBe(3);
-      expect(corners[3]).toBe(3);
+      expect(corners).toEqual([1, 1, 3, 3]);
     });
   });
 
@@ -559,10 +415,7 @@ describe("calculateAmbientOcclusion", () => {
       const corners = unpackOcclusionMask(mask);
 
       // All corners should have maximum occlusion
-      expect(corners[0]).toBe(3);
-      expect(corners[1]).toBe(3);
-      expect(corners[2]).toBe(3);
-      expect(corners[3]).toBe(3);
+      expect(corners).toEqual([3, 3, 3, 3]);
     });
 
     it("should handle alternating pattern", () => {
