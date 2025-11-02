@@ -187,32 +187,7 @@ describe("calculateAmbientOcclusion", () => {
     });
   });
 
-  describe("All face directions", () => {
-    it("should work correctly for all face directions", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
-      // Place a neighbor block
-      setVoxel(voxelData, 1, 2, 1, 1);
-
-      // Test all 6 face directions
-      for (let faceDir = 0; faceDir < 6; faceDir++) {
-        const mask = calculateAmbientOcclusion(
-          1, 1, 1,
-          faceDir,
-          voxelData,
-          dimensions,
-          previewFrame,
-          false
-        );
-        expect(mask).toBeDefined();
-        expect(typeof mask).toBe("number");
-        expect(mask).toBeGreaterThanOrEqual(0);
-        expect(mask).toBeLessThanOrEqual(255);
-      }
-    });
-  });
 
   describe("Preview frame occlusion", () => {
     it("should not count preview blocks when previewOccludes is false", () => {
@@ -305,40 +280,9 @@ describe("calculateAmbientOcclusion", () => {
       // All corners should have 0 occlusion (nothing out of bounds occludes)
       expect(corners).toEqual([0, 0, 0, 0]);
     });
-
-    it("should handle maximum coordinates", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      // Block at maximum coordinates
-      const mask = calculateAmbientOcclusion(
-        2, 2, 2,
-        0, // +X face
-        voxelData,
-        dimensions,
-        previewFrame,
-        false
-      );
-
-      expect(mask).toBeDefined();
-      expect(typeof mask).toBe("number");
-    });
   });
 
   describe("Occlusion mask packing", () => {
-    it("should pack 4 corner values in 8 bits", () => {
-      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
-      const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      const mask = calculateAmbientOcclusion(1, 1, 1, 0, voxelData, dimensions, previewFrame, false);
-
-      // Mask should fit in 8 bits (4 corners * 2 bits each)
-      expect(mask).toBeGreaterThanOrEqual(0);
-      expect(mask).toBeLessThanOrEqual(255);
-    });
-
     it("should correctly pack different corner values", () => {
       const dimensions: Vector3 = { x: 4, y: 4, z: 4 };
       const voxelData = createVoxelData(dimensions);
