@@ -47,15 +47,14 @@ export const calculateAmbientOcclusion = (
   previewFrame: VoxelFrame,
   previewOccludes: boolean
 ): number => {
-  const tangent = FACE_TANGENTS[faceDir];
-  
-  // Get tangent vectors directly from the tangent object
-  const u0 = tangent.u[0];
-  const u1 = tangent.u[1];
-  const u2 = tangent.u[2];
-  const v0 = tangent.v[0];
-  const v1 = tangent.v[1];
-  const v2 = tangent.v[2];
+  // Get tangent vectors directly from the flat array for better performance
+  const offset = faceDir * 6;
+  const u0 = FACE_TANGENTS_FLAT[offset];
+  const u1 = FACE_TANGENTS_FLAT[offset + 1];
+  const u2 = FACE_TANGENTS_FLAT[offset + 2];
+  const v0 = FACE_TANGENTS_FLAT[offset + 3];
+  const v1 = FACE_TANGENTS_FLAT[offset + 4];
+  const v2 = FACE_TANGENTS_FLAT[offset + 5];
 
   // Pre-calculate the 8 neighbor positions
   const side1_neg_x = nx - u0;
