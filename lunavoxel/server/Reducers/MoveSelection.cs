@@ -32,12 +32,10 @@ public static partial class Module
         {
             if (selectionData[i] != 0)
             {
-                // Calculate position from the marker index i (not from the current value)
                 int z = i % zDim;
                 int y = (i / zDim) % yDim;
                 int x = i / (yDim * zDim);
 
-                // Apply the absolute offset with wrapping
                 int newX = (x + offset.X) % xDim;
                 int newY = (y + offset.Y) % yDim;
                 int newZ = (z + offset.Z) % zDim;
@@ -46,9 +44,7 @@ public static partial class Module
                 if (newY < 0) newY += yDim;
                 if (newZ < 0) newZ += zDim;
 
-                // Calculate the new position value
                 int newPosition = newX * yDim * zDim + newY * zDim + newZ;
-                // Store the new position (1-indexed) at the same marker index
                 newSelectionData[i] = (byte)(newPosition + 1);
             }
         }
