@@ -35,8 +35,9 @@ public static partial class Module
         {
             if (selectionData[i] != 0)
             {
-                // This voxel is selected, calculate its original position
-                // The index i represents the position in the flat array
+                // This voxel is selected at position i
+                // The value stored represents the original position (1-indexed)
+                // Calculate the current position from the index
                 int z = i % layer.zDim;
                 int y = (i / layer.zDim) % layer.yDim;
                 int x = i / (layer.yDim * layer.zDim);
@@ -53,8 +54,8 @@ public static partial class Module
                 {
                     // Calculate the new index
                     int newIndex = newX * layer.yDim * layer.zDim + newY * layer.zDim + newZ;
-                    // Store the new position as 1-indexed (newIndex + 1)
-                    newSelectionData[newIndex] = (byte)(newIndex + 1);
+                    // Preserve the original selection value (which tracks the original position)
+                    newSelectionData[newIndex] = selectionData[i];
                     movedCount++;
                 }
                 else
