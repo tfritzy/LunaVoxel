@@ -341,7 +341,12 @@ describe("ExteriorFacesFinder", () => {
           // Force garbage collection if available
           const globalWithGc = global as typeof global & { gc?: () => void };
           if (typeof globalWithGc.gc === 'function') {
-            globalWithGc.gc();
+            try {
+              globalWithGc.gc();
+            } catch (error) {
+              // GC may not be available or may throw in certain environments
+              // Continue without GC
+            }
           }
           
           if (typeof process !== 'undefined' && process.memoryUsage) {
