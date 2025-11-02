@@ -11,7 +11,7 @@ on:
       - master
 
 jobs:
-  test:
+  test-frontend:
     runs-on: ubuntu-latest
     
     steps:
@@ -34,3 +34,25 @@ jobs:
         run: |
           cd frontend
           npm test -- --run
+
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+      
+      - name: Restore dependencies
+        run: |
+          cd lunavoxel/test
+          dotnet restore
+      
+      - name: Run tests
+        run: |
+          cd lunavoxel/test
+          dotnet test --no-restore --verbosity normal
