@@ -17,23 +17,27 @@ export class BlockPickerTool implements Tool {
     return floorVector3(adjustedPoint);
   }
 
-  shouldShowPreview(): boolean {
-    // Block picker doesn't show a preview
-    return false;
+  onMouseDown(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: ToolContext,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    position: THREE.Vector3
+  ): void {
+    // Block picker doesn't need to do anything on mouse down
   }
 
-  preview(
+  onDrag(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     context: ToolContext,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     startPos: THREE.Vector3,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    endPos: THREE.Vector3
+    currentPos: THREE.Vector3
   ): void {
-    // Block picker doesn't show preview
+    // Block picker doesn't show preview during drag
   }
 
-  execute(
+  onMouseUp(
     context: ToolContext,
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
