@@ -32,16 +32,12 @@ public static partial class Module
         {
             if (selectionData[i] != 0)
             {
-                // The value at index i represents the current position (1-indexed)
-                // Convert to 0-indexed position
-                int currentValue = selectionData[i] - 1;
-                
-                // Calculate current position from the value
-                int z = currentValue % zDim;
-                int y = (currentValue / zDim) % yDim;
-                int x = currentValue / (yDim * zDim);
+                // Calculate position from the marker index i (not from the current value)
+                int z = i % zDim;
+                int y = (i / zDim) % yDim;
+                int x = i / (yDim * zDim);
 
-                // Apply the offset with wrapping
+                // Apply the absolute offset with wrapping
                 int newX = (x + offset.X) % xDim;
                 int newY = (y + offset.Y) % yDim;
                 int newZ = (z + offset.Z) % zDim;
@@ -52,7 +48,7 @@ public static partial class Module
 
                 // Calculate the new position value
                 int newPosition = newX * yDim * zDim + newY * zDim + newZ;
-                // Store the new position (1-indexed) at the same index
+                // Store the new position (1-indexed) at the same marker index
                 newSelectionData[i] = (byte)(newPosition + 1);
             }
         }
