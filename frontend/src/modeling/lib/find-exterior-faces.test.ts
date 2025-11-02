@@ -123,18 +123,20 @@ describe("ExteriorFacesFinder", () => {
       expect(meshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices per face
     });
 
-    it("should find correct faces for a 3x3x3 hollow cube", () => {
+    it("should find correct faces for a 3x3x3 cube with a hole", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
 
-      // Create a hollow cube (only the outer shell)
+      // Create a cube with a hole in one side (exposing interior)
       for (let x = 0; x < 3; x++) {
         for (let y = 0; y < 3; y++) {
           for (let z = 0; z < 3; z++) {
             // Only set blocks on the surface
             const isOnSurface =
               x === 0 || x === 2 || y === 0 || y === 2 || z === 0 || z === 2;
-            if (isOnSurface) {
+            // Create a hole in the center of one face (z === 0, x === 1, y === 1)
+            const isHole = z === 0 && x === 1 && y === 1;
+            if (isOnSurface && !isHole) {
               setVoxel(voxelData, x, y, z, 1);
             }
           }
@@ -161,8 +163,8 @@ describe("ExteriorFacesFinder", () => {
         true
       );
 
-      // Hollow cube has both exterior and interior faces
-      // We should have more faces than a solid cube but less than individual blocks
+      // Cube with a hole exposes some interior faces
+      // The hole should reveal interior faces not present in a solid shell
       expect(meshArrays.indexCount).toBeGreaterThan(0);
       expect(meshArrays.vertexCount).toBeGreaterThan(0);
       
@@ -276,15 +278,18 @@ describe("ExteriorFacesFinder", () => {
   });
 
   describe("Benchmark test", () => {
-    it("should handle a large 64x64x64 chunk (benchmark only)", () => {
-      const dimensions: Vector3 = { x: 64, y: 64, z: 64 };
+    it("should handle a large 256x256x256 chunk (benchmark only)", () => {
+      const dimensions: Vector3 = { x: 256, y: 256, z: 256 };
+      const finder = new ExteriorFacesFinder(256);
       const voxelData = createVoxelData(dimensions);
 
-      // Fill the entire chunk with blocks
+      // Set every other voxel to create a more complex pattern
       for (let x = 0; x < dimensions.x; x++) {
         for (let y = 0; y < dimensions.y; y++) {
           for (let z = 0; z < dimensions.z; z++) {
-            setVoxel(voxelData, x, y, z, 1);
+            if ((x + y + z) % 2 === 0) {
+              setVoxel(voxelData, x, y, z, 1);
+            }
           }
         }
       }
@@ -296,30 +301,42 @@ describe("ExteriorFacesFinder", () => {
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
-      const startTime = performance.now();
+      const iterations = 3;
+      const durations: number[] = [];
 
-      finder.findExteriorFaces(
-        voxelData,
-        4,
-        createBlockAtlasMappings(2),
-        dimensions,
-        meshArrays,
-        previewMeshArrays,
-        selectionMeshArrays,
-        previewFrame,
-        selectionFrame,
-        true
-      );
+      for (let i = 0; i < iterations; i++) {
+        const startTime = performance.now();
 
-      const endTime = performance.now();
-      const duration = endTime - startTime;
+        finder.findExteriorFaces(
+          voxelData,
+          4,
+          createBlockAtlasMappings(2),
+          dimensions,
+          meshArrays,
+          previewMeshArrays,
+          selectionMeshArrays,
+          previewFrame,
+          selectionFrame,
+          true
+        );
 
-      console.log(`64x64x64 chunk processed in ${duration.toFixed(2)}ms`);
-      console.log(`Generated ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
+        const endTime = performance.now();
+        durations.push(endTime - startTime);
+      }
+
+      const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+      const minDuration = Math.min(...durations);
+      const maxDuration = Math.max(...durations);
+
+      console.log(`256x256x256 chunk with every other voxel set:`);
+      console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
+      console.log(`  Min: ${minDuration.toFixed(2)}ms`);
+      console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
+      console.log(`  Generated ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
 
       // This is a benchmark test - no assertions, just timing
       // But we can verify it completed without error
-      expect(duration).toBeGreaterThan(0);
-    });
+      expect(avgDuration).toBeGreaterThan(0);
+    }, 120000); // 120 second timeout for benchmark
   });
 });
