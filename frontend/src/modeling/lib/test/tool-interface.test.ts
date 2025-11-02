@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createTool } from "../tools";
 import type { Tool, ToolContext } from "../tool-interface";
-import { ToolType, type Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFrame } from "../voxel-frame";
 
@@ -11,6 +11,7 @@ describe("Tool Interface", () => {
 
   beforeEach(() => {
     mockContext = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dbConn: {} as any,
       projectId: "test-project",
       dimensions,
@@ -18,6 +19,7 @@ describe("Tool Interface", () => {
         onPreviewUpdate: () => {},
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       previewFrame: new VoxelFrame(dimensions),
       selectedBlock: 1,
@@ -187,6 +189,7 @@ describe("Tool Interface", () => {
             magicSelectCalled = true;
           },
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
       const startPos = new THREE.Vector3(1, 2, 3);
