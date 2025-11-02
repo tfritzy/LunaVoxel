@@ -1,4 +1,3 @@
-import { isBlockPresent } from "./voxel-data-utils";
 import { VoxelFrame } from "./voxel-frame";
 import { Vector3 } from "@/module_bindings";
 
@@ -12,6 +11,17 @@ import { Vector3 } from "@/module_bindings";
 export const OCCLUSION_LEVELS = [1.0, 0.9, 0.85, 0.75];
 
 // Tangent directions for each face - controls where we check for occluding blocks
+// Stored as flat Int8Array for better performance: [u0, u1, u2, v0, v1, v2] per face
+export const FACE_TANGENTS_FLAT = new Int8Array([
+  0, 1, 0, 0, 0, 1, // Face 0 (+X): u=[0,1,0], v=[0,0,1]
+  0, 1, 0, 0, 0, 1, // Face 1 (-X): u=[0,1,0], v=[0,0,1]
+  1, 0, 0, 0, 0, 1, // Face 2 (+Y): u=[1,0,0], v=[0,0,1]
+  1, 0, 0, 0, 0, 1, // Face 3 (-Y): u=[1,0,0], v=[0,0,1]
+  1, 0, 0, 0, 1, 0, // Face 4 (+Z): u=[1,0,0], v=[0,1,0]
+  1, 0, 0, 0, 1, 0, // Face 5 (-Z): u=[1,0,0], v=[0,1,0]
+]);
+
+// Legacy export for backward compatibility
 export const FACE_TANGENTS: {
   [key: number]: { u: [number, number, number]; v: [number, number, number] };
 } = {
@@ -38,23 +48,66 @@ export const calculateAmbientOcclusion = (
   previewOccludes: boolean
 ): number => {
   const tangent = FACE_TANGENTS[faceDir];
-  const u_dir = [tangent.u[0], tangent.u[1], tangent.u[2]];
-  const v_dir = [tangent.v[0], tangent.v[1], tangent.v[2]];
+  
+  // Get tangent vectors directly from the tangent object
+  const u0 = tangent.u[0];
+  const u1 = tangent.u[1];
+  const u2 = tangent.u[2];
+  const v0 = tangent.v[0];
+  const v1 = tangent.v[1];
+  const v2 = tangent.v[2];
 
-  const isOccluder = (ox: number, oy: number, oz: number): boolean => {
-    const x = nx + ox;
-    const y = ny + oy;
-    const z = nz + oz;
-    
-    if (
-      x < 0 ||
-      x >= dimensions.x ||
-      y < 0 ||
-      y >= dimensions.y ||
-      z < 0 ||
-      z >= dimensions.z
-    ) {
-      return false;
+  // Pre-calculate the 8 neighbor positions
+  const side1_neg_x = nx - u0;
+  const side1_neg_y = ny - u1;
+  const side1_neg_z = nz - u2;
+  
+  const side1_pos_x = nx + u0;
+  const side1_pos_y = ny + u1;
+  const side1_pos_z = nz + u2;
+  
+  const side2_neg_x = nx - v0;
+  const side2_neg_y = ny - v1;
+  const side2_neg_z = nz - v2;
+  
+  const side2_pos_x = nx + v0;
+  const side2_pos_y = ny + v1;
+  const side2_pos_z = nz + v2;
+  
+  const corner_nn_x = nx - u0 - v0;
+  const corner_nn_y = ny - u1 - v1;
+  const corner_nn_z = nz - u2 - v2;
+  
+  const corner_pn_x = nx + u0 - v0;
+  const corner_pn_y = ny + u1 - v1;
+  const corner_pn_z = nz + u2 - v2;
+  
+  const corner_np_x = nx - u0 + v0;
+  const corner_np_y = ny - u1 + v1;
+  const corner_np_z = nz - u2 + v2;
+  
+  const corner_pp_x = nx + u0 + v0;
+  const corner_pp_y = ny + u1 + v1;
+  const corner_pp_z = nz + u2 + v2;
+
+  // Check if the voxel is far enough from edges to skip bounds checking
+  const canSkipBoundsCheck = 
+    nx > 0 && nx < dimensions.x - 1 &&
+    ny > 0 && ny < dimensions.y - 1 &&
+    nz > 0 && nz < dimensions.z - 1;
+
+  const isOccluder = (x: number, y: number, z: number): boolean => {
+    if (!canSkipBoundsCheck) {
+      if (
+        x < 0 ||
+        x >= dimensions.x ||
+        y < 0 ||
+        y >= dimensions.y ||
+        z < 0 ||
+        z >= dimensions.z
+      ) {
+        return false;
+      }
     }
     
     const val = voxelData[x][y][z];
@@ -63,31 +116,15 @@ export const calculateAmbientOcclusion = (
     return previewOccludes && previewFrame.isSet(x, y, z);
   };
 
-  const side1_neg = isOccluder(-u_dir[0], -u_dir[1], -u_dir[2]);
-  const side1_pos = isOccluder(u_dir[0], u_dir[1], u_dir[2]);
-  const side2_neg = isOccluder(-v_dir[0], -v_dir[1], -v_dir[2]);
-  const side2_pos = isOccluder(v_dir[0], v_dir[1], v_dir[2]);
+  const side1_neg = isOccluder(side1_neg_x, side1_neg_y, side1_neg_z);
+  const side1_pos = isOccluder(side1_pos_x, side1_pos_y, side1_pos_z);
+  const side2_neg = isOccluder(side2_neg_x, side2_neg_y, side2_neg_z);
+  const side2_pos = isOccluder(side2_pos_x, side2_pos_y, side2_pos_z);
 
-  const corner_nn = isOccluder(
-    -u_dir[0] - v_dir[0],
-    -u_dir[1] - v_dir[1],
-    -u_dir[2] - v_dir[2]
-  );
-  const corner_pn = isOccluder(
-    u_dir[0] - v_dir[0],
-    u_dir[1] - v_dir[1],
-    u_dir[2] - v_dir[2]
-  );
-  const corner_np = isOccluder(
-    -u_dir[0] + v_dir[0],
-    -u_dir[1] + v_dir[1],
-    -u_dir[2] + v_dir[2]
-  );
-  const corner_pp = isOccluder(
-    u_dir[0] + v_dir[0],
-    u_dir[1] + v_dir[1],
-    u_dir[2] + v_dir[2]
-  );
+  const corner_nn = isOccluder(corner_nn_x, corner_nn_y, corner_nn_z);
+  const corner_pn = isOccluder(corner_pn_x, corner_pn_y, corner_pn_z);
+  const corner_np = isOccluder(corner_np_x, corner_np_y, corner_np_z);
+  const corner_pp = isOccluder(corner_pp_x, corner_pp_y, corner_pp_z);
 
   const calculateOcclusion = (s1: boolean, s2: boolean, c: boolean): number => {
     if (s1 && s2) {
