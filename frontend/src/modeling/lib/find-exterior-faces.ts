@@ -128,9 +128,7 @@ export class ExteriorFacesFinder {
               const neighborValue = neighborInBounds ? voxelData[nx][ny][nz] : 0;
               const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
 
-              // Mutually exclusive voxel type handling - each voxel is only one type
               if (blockIsPreview) {
-                // Priority 1: Preview voxels
                 const shouldRenderFace =
                   !isBlockPresent(neighborValue) || !neighborIsPreview;
 
@@ -153,10 +151,7 @@ export class ExteriorFacesFinder {
                   hasPreviewFaces = true;
                 }
               } else if (blockIsSelected) {
-                // Priority 2: Selected voxels
-                const neighborIsSelected = selectionFrame.isEmpty()
-                  ? false
-                  : selectionFrame.isSet(nx, ny, nz);
+                const neighborIsSelected = selectionFrame.isSet(nx, ny, nz);
                 const shouldRenderSelectionFace = !neighborIsSelected;
 
                 if (shouldRenderSelectionFace) {
@@ -166,7 +161,6 @@ export class ExteriorFacesFinder {
                   hasSelectionFaces = true;
                 }
               } else if (blockPresent) {
-                // Priority 3: Real voxels
                 const shouldRenderFace =
                   !isBlockPresent(neighborValue) || neighborIsPreview;
 
