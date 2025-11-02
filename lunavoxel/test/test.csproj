@@ -14,6 +14,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
     <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
+    <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
+    <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,7 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\server\StdbModule.csproj" />
+    <!-- Compile the source files we need for testing without the WASI runtime -->
+    <Compile Include="..\server\Reducers\MoveSelection.cs" Link="MoveSelection.cs" />
+    <Compile Include="..\server\VoxelCompression.cs" Link="VoxelCompression.cs" />
+    <Compile Include="..\server\VoxelDataUtils.cs" Link="VoxelDataUtils.cs" />
   </ItemGroup>
 
 </Project>
