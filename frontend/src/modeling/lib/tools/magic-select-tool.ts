@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { ToolType } from "../../../module_bindings";
 import type { Tool, ToolContext } from "../tool-interface";
+import { floorVector3 } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
   getType(): ToolType {
@@ -12,8 +13,8 @@ export class MagicSelectTool implements Tool {
     normal: THREE.Vector3
   ): THREE.Vector3 {
     // Magic select targets existing blocks, so we go against the normal
-    const adjustedPoint = intersectionPoint.add(normal.multiplyScalar(-0.1));
-    return this.floorVector3(adjustedPoint);
+    const adjustedPoint = intersectionPoint.clone().add(normal.clone().multiplyScalar(-0.1));
+    return floorVector3(adjustedPoint);
   }
 
   shouldShowPreview(): boolean {
@@ -42,12 +43,5 @@ export class MagicSelectTool implements Tool {
       context.selectedLayer,
       endPos
     );
-  }
-
-  private floorVector3(vector3: THREE.Vector3): THREE.Vector3 {
-    vector3.x = Math.floor(vector3.x);
-    vector3.y = Math.floor(vector3.y);
-    vector3.z = Math.floor(vector3.z);
-    return vector3;
   }
 }
