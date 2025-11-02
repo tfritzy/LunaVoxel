@@ -56,39 +56,6 @@ export const calculateAmbientOcclusion = (
   const v1 = FACE_TANGENTS_FLAT[offset + 4];
   const v2 = FACE_TANGENTS_FLAT[offset + 5];
 
-  // Pre-calculate the 8 neighbor positions
-  const side1_neg_x = nx - u0;
-  const side1_neg_y = ny - u1;
-  const side1_neg_z = nz - u2;
-  
-  const side1_pos_x = nx + u0;
-  const side1_pos_y = ny + u1;
-  const side1_pos_z = nz + u2;
-  
-  const side2_neg_x = nx - v0;
-  const side2_neg_y = ny - v1;
-  const side2_neg_z = nz - v2;
-  
-  const side2_pos_x = nx + v0;
-  const side2_pos_y = ny + v1;
-  const side2_pos_z = nz + v2;
-  
-  const corner_nn_x = nx - u0 - v0;
-  const corner_nn_y = ny - u1 - v1;
-  const corner_nn_z = nz - u2 - v2;
-  
-  const corner_pn_x = nx + u0 - v0;
-  const corner_pn_y = ny + u1 - v1;
-  const corner_pn_z = nz + u2 - v2;
-  
-  const corner_np_x = nx - u0 + v0;
-  const corner_np_y = ny - u1 + v1;
-  const corner_np_z = nz - u2 + v2;
-  
-  const corner_pp_x = nx + u0 + v0;
-  const corner_pp_y = ny + u1 + v1;
-  const corner_pp_z = nz + u2 + v2;
-
   // Check if the voxel is far enough from edges to skip bounds checking
   const canSkipBoundsCheck = 
     nx > 0 && nx < dimensions.x - 1 &&
@@ -115,15 +82,15 @@ export const calculateAmbientOcclusion = (
     return previewOccludes && previewFrame.isSet(x, y, z);
   };
 
-  const side1_neg = isOccluder(side1_neg_x, side1_neg_y, side1_neg_z);
-  const side1_pos = isOccluder(side1_pos_x, side1_pos_y, side1_pos_z);
-  const side2_neg = isOccluder(side2_neg_x, side2_neg_y, side2_neg_z);
-  const side2_pos = isOccluder(side2_pos_x, side2_pos_y, side2_pos_z);
+  const side1_neg = isOccluder(nx - u0, ny - u1, nz - u2);
+  const side1_pos = isOccluder(nx + u0, ny + u1, nz + u2);
+  const side2_neg = isOccluder(nx - v0, ny - v1, nz - v2);
+  const side2_pos = isOccluder(nx + v0, ny + v1, nz + v2);
 
-  const corner_nn = isOccluder(corner_nn_x, corner_nn_y, corner_nn_z);
-  const corner_pn = isOccluder(corner_pn_x, corner_pn_y, corner_pn_z);
-  const corner_np = isOccluder(corner_np_x, corner_np_y, corner_np_z);
-  const corner_pp = isOccluder(corner_pp_x, corner_pp_y, corner_pp_z);
+  const corner_nn = isOccluder(nx - u0 - v0, ny - u1 - v1, nz - u2 - v2);
+  const corner_pn = isOccluder(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2);
+  const corner_np = isOccluder(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2);
+  const corner_pp = isOccluder(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2);
 
   const calculateOcclusion = (s1: boolean, s2: boolean, c: boolean): number => {
     if (s1 && s2) {
