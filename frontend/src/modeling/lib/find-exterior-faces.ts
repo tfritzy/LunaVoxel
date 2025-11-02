@@ -103,6 +103,12 @@ export class ExteriorFacesFinder {
               const blockIsPreview = previewBlockValue !== 0;
               const selectionBlockValue = selectionFrame.get(x, y, z);
               const blockIsSelected = selectionBlockValue !== 0;
+
+              // Early continue for empty voxels
+              if (!blockPresent && !blockIsPreview && !blockIsSelected) {
+                continue;
+              }
+
               const blockType = Math.max(
                 getBlockType(blockIsPreview ? previewBlockValue : blockValue),
                 1
@@ -122,16 +128,11 @@ export class ExteriorFacesFinder {
               const neighborValue = neighborInBounds ? voxelData[nx][ny][nz] : 0;
               const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
 
-              if (blockPresent || blockIsPreview) {
-                let shouldRenderFace = false;
-
-                if (blockIsPreview) {
-                  shouldRenderFace =
-                    !isBlockPresent(neighborValue) || !neighborIsPreview;
-                } else {
-                  shouldRenderFace =
-                    !isBlockPresent(neighborValue) || neighborIsPreview;
-                }
+              // Mutually exclusive voxel type handling - each voxel is only one type
+              if (blockIsPreview) {
+                // Priority 1: Preview voxels
+                const shouldRenderFace =
+                  !isBlockPresent(neighborValue) || !neighborIsPreview;
 
                 if (shouldRenderFace) {
                   const textureIndex =
@@ -148,27 +149,44 @@ export class ExteriorFacesFinder {
                     previewOccludes
                   );
 
-                  if (blockIsPreview) {
-                    this.previewMask[maskIndex] = textureIndex;
-                    hasPreviewFaces = true;
-                  } else {
-                    this.realMask[maskIndex] = textureIndex;
-                    hasRealFaces = true;
-                  }
+                  this.previewMask[maskIndex] = textureIndex;
+                  hasPreviewFaces = true;
                 }
+              } else if (blockIsSelected) {
+                // Priority 2: Selected voxels
+                const neighborIsSelected = selectionFrame.isEmpty()
+                  ? false
+                  : selectionFrame.isSet(nx, ny, nz);
+                const shouldRenderSelectionFace = !neighborIsSelected;
 
-                if (blockIsSelected) {
-                  const neighborIsSelected = selectionFrame.isEmpty()
-                    ? false
-                    : selectionFrame.isSet(nx, ny, nz);
-                  const shouldRenderSelectionFace = !neighborIsSelected;
+                if (shouldRenderSelectionFace) {
+                  const textureIndex =
+                    blockAtlasMappings[blockType - 1][faceDir];
+                  this.selectionMask[maskIndex] = textureIndex;
+                  hasSelectionFaces = true;
+                }
+              } else if (blockPresent) {
+                // Priority 3: Real voxels
+                const shouldRenderFace =
+                  !isBlockPresent(neighborValue) || neighborIsPreview;
 
-                  if (shouldRenderSelectionFace) {
-                    const textureIndex =
-                      blockAtlasMappings[blockType - 1][faceDir];
-                    this.selectionMask[maskIndex] = textureIndex;
-                    hasSelectionFaces = true;
-                  }
+                if (shouldRenderFace) {
+                  const textureIndex =
+                    blockAtlasMappings[blockType - 1][faceDir];
+
+                  this.aoMask[maskIndex] = calculateAmbientOcclusion(
+                    nx,
+                    ny,
+                    nz,
+                    faceDir,
+                    voxelData,
+                    dimensions,
+                    previewFrame,
+                    previewOccludes
+                  );
+
+                  this.realMask[maskIndex] = textureIndex;
+                  hasRealFaces = true;
                 }
               }
             }
