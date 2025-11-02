@@ -62,10 +62,6 @@ describe("Tool Interface", () => {
       tool = createTool({ tag: "Build" });
     });
 
-    it("should show preview", () => {
-      expect(tool.shouldShowPreview()).toBe(true);
-    });
-
     it("should calculate grid position with positive offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0); // Up
@@ -76,6 +72,16 @@ describe("Tool Interface", () => {
       expect(gridPos.y).toBe(2); // 2.5 + 0.1 = 2.6, floor = 2
       expect(gridPos.z).toBe(3);
     });
+
+    it("should show preview on drag", () => {
+      const startPos = new THREE.Vector3(1, 2, 3);
+      const endPos = new THREE.Vector3(3, 4, 5);
+      
+      tool.onDrag(mockContext, startPos, endPos);
+      
+      // Check that preview frame was updated
+      expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
+    });
   });
 
   describe("Erase Tool", () => {
@@ -83,10 +89,6 @@ describe("Tool Interface", () => {
 
     beforeEach(() => {
       tool = createTool({ tag: "Erase" });
-    });
-
-    it("should show preview", () => {
-      expect(tool.shouldShowPreview()).toBe(true);
     });
 
     it("should calculate grid position with negative offset", () => {
@@ -108,10 +110,6 @@ describe("Tool Interface", () => {
       tool = createTool({ tag: "Paint" });
     });
 
-    it("should show preview", () => {
-      expect(tool.shouldShowPreview()).toBe(true);
-    });
-
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
@@ -130,10 +128,6 @@ describe("Tool Interface", () => {
       tool = createTool({ tag: "BlockPicker" });
     });
 
-    it("should not show preview", () => {
-      expect(tool.shouldShowPreview()).toBe(false);
-    });
-
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
@@ -144,7 +138,7 @@ describe("Tool Interface", () => {
       expect(gridPos.z).toBe(3);
     });
 
-    it("should execute block picking", () => {
+    it("should pick block on mouse up", () => {
       const startPos = new THREE.Vector3(1, 2, 3);
       const endPos = new THREE.Vector3(1, 2, 3);
       let selectedBlock = 0;
@@ -154,7 +148,7 @@ describe("Tool Interface", () => {
       };
       mockContext.projectManager.getBlockAtPosition = () => 5;
 
-      tool.execute(mockContext, startPos, endPos);
+      tool.onMouseUp(mockContext, startPos, endPos);
 
       expect(selectedBlock).toBe(5);
     });
@@ -167,10 +161,6 @@ describe("Tool Interface", () => {
       tool = createTool({ tag: "MagicSelect" });
     });
 
-    it("should show preview", () => {
-      expect(tool.shouldShowPreview()).toBe(true);
-    });
-
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
@@ -181,7 +171,7 @@ describe("Tool Interface", () => {
       expect(gridPos.z).toBe(3);
     });
 
-    it("should execute magic select", () => {
+    it("should execute magic select on mouse up", () => {
       let magicSelectCalled = false;
       mockContext.dbConn = {
         reducers: {
@@ -195,7 +185,7 @@ describe("Tool Interface", () => {
       const startPos = new THREE.Vector3(1, 2, 3);
       const endPos = new THREE.Vector3(1, 2, 3);
 
-      tool.execute(mockContext, startPos, endPos);
+      tool.onMouseUp(mockContext, startPos, endPos);
 
       expect(magicSelectCalled).toBe(true);
     });

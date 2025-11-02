@@ -171,7 +171,9 @@ export const Builder = class {
 
       const gridPos = this.checkIntersection();
       if (gridPos) {
-        this.preview(gridPos);
+        this.startPosition = gridPos.clone();
+        const context = this.createToolContext();
+        this.currentToolImpl.onMouseDown(context, gridPos);
       }
     }
   }
@@ -270,13 +272,30 @@ export const Builder = class {
     return null;
   }
 
+  private createToolContext(): {
+    dbConn: DbConnection;
+    projectId: string;
+    dimensions: Vector3;
+    projectManager: ProjectManager;
+    previewFrame: VoxelFrame;
+    selectedBlock: number;
+    selectedLayer: number;
+    setSelectedBlockInParent: (index: number) => void;
+  } {
+    return {
+      dbConn: this.dbConn,
+      projectId: this.projectId,
+      dimensions: this.dimensions,
+      projectManager: this.projectManager,
+      previewFrame: this.previewFrame,
+      selectedBlock: this.selectedBlock,
+      selectedLayer: this.selectedLayer,
+      setSelectedBlockInParent: this.setSelectedBlockInParent,
+    };
+  }
+
   private preview(gridPos: THREE.Vector3): void {
-    if (
-      !this.dbConn.isActive ||
-      !this.accessManager.hasWriteAccess ||
-      !this.currentToolImpl.shouldShowPreview()
-    )
-      return;
+    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
@@ -293,17 +312,8 @@ export const Builder = class {
     }
 
     if (this.isMouseDown && this.startPosition) {
-      const context = {
-        dbConn: this.dbConn,
-        projectId: this.projectId,
-        dimensions: this.dimensions,
-        projectManager: this.projectManager,
-        previewFrame: this.previewFrame,
-        selectedBlock: this.selectedBlock,
-        selectedLayer: this.selectedLayer,
-        setSelectedBlockInParent: this.setSelectedBlockInParent,
-      };
-      this.currentToolImpl.preview(context, this.startPosition, gridPos);
+      const context = this.createToolContext();
+      this.currentToolImpl.onDrag(context, this.startPosition, gridPos);
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
@@ -315,18 +325,8 @@ export const Builder = class {
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    const context = {
-      dbConn: this.dbConn,
-      projectId: this.projectId,
-      dimensions: this.dimensions,
-      projectManager: this.projectManager,
-      previewFrame: this.previewFrame,
-      selectedBlock: this.selectedBlock,
-      selectedLayer: this.selectedLayer,
-      setSelectedBlockInParent: this.setSelectedBlockInParent,
-    };
-
-    this.currentToolImpl.execute(context, startPos, endPos);
+    const context = this.createToolContext();
+    this.currentToolImpl.onMouseUp(context, startPos, endPos);
 
     this.isMouseDown = false;
     this.startPosition = null;

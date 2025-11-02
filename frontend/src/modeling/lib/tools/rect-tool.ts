@@ -26,17 +26,23 @@ export abstract class RectTool implements Tool {
     return floorVector3(adjustedPoint);
   }
 
-  shouldShowPreview(): boolean {
-    return true;
+  onMouseDown(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: ToolContext,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    position: THREE.Vector3
+  ): void {
+    // RectTool doesn't need to do anything on mouse down
   }
 
-  preview(
+  onDrag(
     context: ToolContext,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    currentPos: THREE.Vector3
   ): void {
+    // Show preview during drag
     context.previewFrame.clear();
-    const bounds = calculateRectBounds(startPos, endPos, context.dimensions);
+    const bounds = calculateRectBounds(startPos, currentPos, context.dimensions);
 
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
@@ -49,11 +55,12 @@ export abstract class RectTool implements Tool {
     context.projectManager.onPreviewUpdate();
   }
 
-  execute(
+  onMouseUp(
     context: ToolContext,
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
   ): void {
+    // Clear preview and apply the actual edit
     context.previewFrame.clear();
     context.projectManager.applyOptimisticRectEdit(
       context.selectedLayer,

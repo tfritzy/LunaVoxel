@@ -38,29 +38,31 @@ export interface Tool {
   ): THREE.Vector3;
 
   /**
-   * Whether this tool should show a preview
+   * Called when the mouse button is pressed down
+   * @param context Tool context
+   * @param position The grid position where mouse down occurred
    */
-  shouldShowPreview(): boolean;
+  onMouseDown(context: ToolContext, position: THREE.Vector3): void;
 
   /**
-   * Preview the tool's effect at the given position(s)
+   * Called when the mouse is dragged with button held down
    * @param context Tool context
-   * @param startPos Starting position
-   * @param endPos Ending position
+   * @param startPos The position where the drag started
+   * @param currentPos The current position during the drag
    */
-  preview(
+  onDrag(
     context: ToolContext,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    currentPos: THREE.Vector3
   ): void;
 
   /**
-   * Execute the tool's action
+   * Called when the mouse button is released
    * @param context Tool context
-   * @param startPos Starting position
-   * @param endPos Ending position
+   * @param startPos The position where the mouse was pressed down
+   * @param endPos The position where the mouse was released
    */
-  execute(
+  onMouseUp(
     context: ToolContext,
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
