@@ -30,6 +30,28 @@ varying float vAO;
 varying float vIsSelected;
 varying vec3 vWorldPosition;
 
+float calculateGridLine(vec3 gridPos, float lineWidth) {
+  float gridLine = 0.0;
+  
+  if (gridPos.x > 0.0 && gridPos.x < 1.0) {
+    if (gridPos.x < lineWidth || gridPos.x > 1.0 - lineWidth) {
+      gridLine = 1.0;
+    }
+  }
+  if (gridPos.y > 0.0 && gridPos.y < 1.0){
+    if (gridPos.y < lineWidth || gridPos.y > 1.0 - lineWidth) {
+      gridLine = 1.0;
+    }
+  }
+  if (gridPos.z > 0.0 && gridPos.z < 1.0){
+    if (gridPos.z < lineWidth || gridPos.z > 1.0 - lineWidth) {
+      gridLine = 1.0;
+    }
+  }
+  
+  return gridLine;
+}
+
 void main() {
   vec4 textureColor = texture2D(map, vUv);
  
@@ -49,52 +71,11 @@ void main() {
  
   vec3 finalColor = textureColor.rgb * darknessFactor * vAO;
   
-  // Apply selection grid effect if this face is selected
-  if (vIsSelected > 0.5) {
+  // Apply grid effect (either for selection or regular grid)
+  if (vIsSelected > 0.5 || showGrid) {
     float lineWidth = 0.025;
     vec3 gridPos = fract(vWorldPosition);
-    
-    float gridLine = 0.0;
-    
-    if (gridPos.x > 0.0 && gridPos.x < 1.0) {
-      if (gridPos.x < lineWidth || gridPos.x > 1.0 - lineWidth) {
-        gridLine = 1.0;
-      }
-    }
-    if (gridPos.y > 0.0 && gridPos.y < 1.0){
-      if (gridPos.y < lineWidth || gridPos.y > 1.0 - lineWidth) {
-        gridLine = 1.0;
-      }
-    }
-    if (gridPos.z > 0.0 && gridPos.z < 1.0){
-      if (gridPos.z < lineWidth || gridPos.z > 1.0 - lineWidth) {
-        gridLine = 1.0;
-      }
-    }
-    
-    finalColor = mix(finalColor, vec3(1.0), gridLine * 0.5);
-  } else if (showGrid) {
-    float lineWidth = 0.025;
-    vec3 gridPos = fract(vWorldPosition);
-    
-    float gridLine = 0.0;
-    
-    if (gridPos.x > 0.0 && gridPos.x < 1.0) {
-      if (gridPos.x < lineWidth || gridPos.x > 1.0 - lineWidth) {
-        gridLine = 1.0;
-      }
-    }
-    if (gridPos.y > 0.0 && gridPos.y < 1.0){
-      if (gridPos.y < lineWidth || gridPos.y > 1.0 - lineWidth) {
-        gridLine = 1.0;
-      }
-    }
-    if (gridPos.z > 0.0 && gridPos.z < 1.0){
-      if (gridPos.z < lineWidth || gridPos.z > 1.0 - lineWidth) {
-        gridLine = 1.0;
-      }
-    }
-    
+    float gridLine = calculateGridLine(gridPos, lineWidth);
     finalColor = mix(finalColor, vec3(1.0), gridLine * 0.5);
   }
  
