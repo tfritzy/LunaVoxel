@@ -13,7 +13,8 @@ export class MoveSelectionTool implements Tool {
 
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
-    normal: THREE.Vector3
+    normal: THREE.Vector3,
+    mode?: BlockModificationMode
   ): THREE.Vector3 {
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
