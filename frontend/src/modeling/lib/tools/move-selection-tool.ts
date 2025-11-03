@@ -24,15 +24,12 @@ export class MoveSelectionTool implements Tool {
   }
 
   onDrag(
-    context: ToolContext,
-    startPos: THREE.Vector3,
-    currentPos: THREE.Vector3
+    _context: ToolContext,
+    _startPos: THREE.Vector3,
+    _currentPos: THREE.Vector3
   ): void {
-    // Calculate offset but don't apply it - just for potential preview
-    this.calculateOffset(startPos, currentPos, context.camera);
-    
-    // Preview could be shown here if needed
-    // For now, we'll just wait until mouse up to apply the move
+    // Preview could be shown here if needed in the future
+    // For now, we just wait until mouse up to apply the move
   }
 
   onMouseUp(
@@ -108,6 +105,9 @@ export class MoveSelectionTool implements Tool {
     // Determine which direction in camera space the user is dragging more
     const isDraggingMoreHorizontally = Math.abs(dragInCameraRight) > Math.abs(dragInCameraUp);
     
+    // Normalize drag delta once for efficiency
+    const normalizedDragDelta = dragDelta.clone().normalize();
+    
     // For each world axis, determine how aligned it is with the drag direction
     // considering the camera's current orientation
     const axes = [
@@ -135,7 +135,7 @@ export class MoveSelectionTool implements Tool {
       }
 
       // Also consider how much the axis aligns with the actual 3D drag vector
-      const dragAlignment = Math.abs(dragDelta.clone().normalize().dot(axis));
+      const dragAlignment = Math.abs(normalizedDragDelta.dot(axis));
       score += dragAlignment * 0.5; // Weight the 3D alignment slightly less
 
       if (score > bestScore) {
