@@ -4,6 +4,7 @@ import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3 } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFrame } from "../voxel-frame";
+import { BuildMode } from "../build-mode";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
@@ -25,23 +26,19 @@ describe("Tool Interface", () => {
       selectedBlock: 1,
       selectedLayer: 0,
       setSelectedBlockInParent: () => {},
+      mode: BuildMode.Attach,
     };
   });
 
   describe("Tool Factory", () => {
-    it("should create Build tool", () => {
-      const tool = createTool({ tag: "Build" });
-      expect(tool.getType()).toEqual({ tag: "Build" });
-    });
-
-    it("should create Erase tool", () => {
-      const tool = createTool({ tag: "Erase" });
-      expect(tool.getType()).toEqual({ tag: "Erase" });
-    });
-
-    it("should create Paint tool", () => {
-      const tool = createTool({ tag: "Paint" });
-      expect(tool.getType()).toEqual({ tag: "Paint" });
+    it("should create RectSelection tool for Build/Erase/Paint", () => {
+      const buildTool = createTool({ tag: "Build" });
+      const eraseTool = createTool({ tag: "Erase" });
+      const paintTool = createTool({ tag: "Paint" });
+      
+      expect(buildTool.getType()).toEqual({ tag: "Build" });
+      expect(eraseTool.getType()).toEqual({ tag: "Build" });
+      expect(paintTool.getType()).toEqual({ tag: "Build" });
     });
 
     it("should create BlockPicker tool", () => {
@@ -55,21 +52,40 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("Build Tool", () => {
+  describe("RectSelection Tool with modes", () => {
     let tool: Tool;
 
     beforeEach(() => {
       tool = createTool({ tag: "Build" });
     });
 
-    it("should calculate grid position with positive offset", () => {
+    it("should calculate grid position with positive offset in Attach mode", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
-      const normal = new THREE.Vector3(0, 1, 0); // Up
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Attach);
       
-      // Build tool adds 0.1 in the normal direction, then floors
       expect(gridPos.x).toBe(1);
-      expect(gridPos.y).toBe(2); // 2.5 + 0.1 = 2.6, floor = 2
+      expect(gridPos.y).toBe(2);
+      expect(gridPos.z).toBe(3);
+    });
+
+    it("should calculate grid position with negative offset in Erase mode", () => {
+      const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Erase);
+      
+      expect(gridPos.x).toBe(1);
+      expect(gridPos.y).toBe(2);
+      expect(gridPos.z).toBe(3);
+    });
+
+    it("should calculate grid position with negative offset in Paint mode", () => {
+      const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Paint);
+      
+      expect(gridPos.x).toBe(1);
+      expect(gridPos.y).toBe(2);
       expect(gridPos.z).toBe(3);
     });
 
@@ -79,45 +95,7 @@ describe("Tool Interface", () => {
       
       tool.onDrag(mockContext, startPos, endPos);
       
-      // Check that preview frame was updated
       expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
-    });
-  });
-
-  describe("Erase Tool", () => {
-    let tool: Tool;
-
-    beforeEach(() => {
-      tool = createTool({ tag: "Erase" });
-    });
-
-    it("should calculate grid position with negative offset", () => {
-      const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
-      const normal = new THREE.Vector3(0, 1, 0); // Up
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal);
-      
-      // Erase tool subtracts 0.1 in the normal direction, then floors
-      expect(gridPos.x).toBe(1);
-      expect(gridPos.y).toBe(2); // 2.5 - 0.1 = 2.4, floor = 2
-      expect(gridPos.z).toBe(3);
-    });
-  });
-
-  describe("Paint Tool", () => {
-    let tool: Tool;
-
-    beforeEach(() => {
-      tool = createTool({ tag: "Paint" });
-    });
-
-    it("should calculate grid position with negative offset", () => {
-      const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
-      const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal);
-      
-      expect(gridPos.x).toBe(1);
-      expect(gridPos.y).toBe(2);
-      expect(gridPos.z).toBe(3);
     });
   });
 
@@ -131,7 +109,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Attach);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);
@@ -164,7 +142,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Attach);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);

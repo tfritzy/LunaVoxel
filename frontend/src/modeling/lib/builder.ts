@@ -6,6 +6,8 @@ import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
 import { createTool } from "./tools";
 import type { Tool } from "./tool-interface";
+import { BuildMode } from "./build-mode";
+import type { BuildMode as BuildModeType } from "./build-mode";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
@@ -26,6 +28,7 @@ export const Builder = class {
 
   private currentToolType: ToolType = { tag: "Build" };
   private currentTool: Tool;
+  private currentMode: BuildModeType = BuildMode.Attach;
   private toolContext: {
     dbConn: DbConnection;
     projectId: string;
@@ -35,6 +38,7 @@ export const Builder = class {
     selectedBlock: number;
     selectedLayer: number;
     setSelectedBlockInParent: (index: number) => void;
+    mode: BuildModeType;
   };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
@@ -87,6 +91,7 @@ export const Builder = class {
       selectedBlock: this.selectedBlock,
       selectedLayer: this.selectedLayer,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
+      mode: this.currentMode,
     };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
@@ -118,6 +123,25 @@ export const Builder = class {
     this.cancelCurrentOperation();
     this.currentToolType = tool;
     this.currentTool = createTool(tool);
+    
+    if (tool.tag === "Build") {
+      this.currentMode = BuildMode.Attach;
+    } else if (tool.tag === "Erase") {
+      this.currentMode = BuildMode.Erase;
+    } else if (tool.tag === "Paint") {
+      this.currentMode = BuildMode.Paint;
+    }
+    
+    this.toolContext.mode = this.currentMode;
+  }
+
+  public setMode(mode: BuildModeType): void {
+    this.currentMode = mode;
+    this.toolContext.mode = mode;
+  }
+
+  public getMode(): BuildModeType {
+    return this.currentMode;
   }
 
   public setSelectedBlock(
@@ -285,7 +309,8 @@ export const Builder = class {
 
         return this.currentTool.calculateGridPosition(
           intersectionPoint.clone(),
-          face.normal.clone()
+          face.normal.clone(),
+          this.currentMode
         );
       }
     }
