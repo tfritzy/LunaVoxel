@@ -28,8 +28,13 @@ import {
   type TableHandle as __TableHandle,
 } from "spacetimedb";
 
+import { BlockModificationMode } from "./block_modification_mode_type";
+// Mark import as potentially unused
+declare type __keep_BlockModificationMode = BlockModificationMode;
+
 export type ModifyBlockAmorphous = {
   projectId: string,
+  mode: BlockModificationMode,
   compressedDiffData: Uint8Array,
   layerIndex: number,
 };
@@ -48,6 +53,7 @@ export const ModifyBlockAmorphous = {
     _cached_ModifyBlockAmorphous_type_value = __AlgebraicTypeValue.Product({ elements: [] });
     _cached_ModifyBlockAmorphous_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "mode", algebraicType: BlockModificationMode.getTypeScriptAlgebraicType() },
       { name: "compressedDiffData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
       { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32 },
     );

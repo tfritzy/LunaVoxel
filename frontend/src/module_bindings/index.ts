@@ -525,35 +525,35 @@ export class RemoteReducers {
     this.connection.offReducer("MagicSelect", callback);
   }
 
-  modifyBlock(projectId: string, diffData: Uint8Array, layerIndex: number) {
-    const __args = { projectId, diffData, layerIndex };
+  modifyBlock(projectId: string, mode: BlockModificationMode, diffData: Uint8Array, layerIndex: number) {
+    const __args = { projectId, mode, diffData, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlock.serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlock", __argsBuffer, this.setCallReducerFlags.modifyBlockFlags);
   }
 
-  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: Uint8Array, layerIndex: number) => void) {
+  onModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, diffData: Uint8Array, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlock", callback);
   }
 
-  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, diffData: Uint8Array, layerIndex: number) => void) {
-    this.connection.offReducer("ModifyBlock", callback);
+  removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, diffData: Uint8Array, layerIndex: number) => void) {
+    this.connection.onReducer("ModifyBlock", callback);
   }
 
-  modifyBlockAmorphous(projectId: string, compressedDiffData: Uint8Array, layerIndex: number) {
-    const __args = { projectId, compressedDiffData, layerIndex };
+  modifyBlockAmorphous(projectId: string, mode: BlockModificationMode, compressedDiffData: Uint8Array, layerIndex: number) {
+    const __args = { projectId, mode, compressedDiffData, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlockAmorphous.serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("ModifyBlockAmorphous", __argsBuffer, this.setCallReducerFlags.modifyBlockAmorphousFlags);
   }
 
-  onModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: Uint8Array, layerIndex: number) => void) {
+  onModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, compressedDiffData: Uint8Array, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockAmorphous", callback);
   }
 
-  removeOnModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, compressedDiffData: Uint8Array, layerIndex: number) => void) {
+  removeOnModifyBlockAmorphous(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, compressedDiffData: Uint8Array, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockAmorphous", callback);
   }
 
