@@ -5,7 +5,6 @@ import type { Tool, ToolContext } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
-  private dragStartPos: THREE.Vector3 | null = null;
   private snappedAxis: THREE.Vector3 | null = null;
 
   getType(): ToolType {
@@ -20,8 +19,7 @@ export class MoveSelectionTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
-  onMouseDown(_context: ToolContext, position: THREE.Vector3): void {
-    this.dragStartPos = position.clone();
+  onMouseDown(_context: ToolContext, _position: THREE.Vector3): void {
     this.snappedAxis = null;
   }
 
@@ -53,7 +51,6 @@ export class MoveSelectionTool implements Tool {
     }
 
     // Reset state
-    this.dragStartPos = null;
     this.snappedAxis = null;
   }
 
