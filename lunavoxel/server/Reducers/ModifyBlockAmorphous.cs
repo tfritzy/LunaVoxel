@@ -7,12 +7,13 @@ public static partial class Module
     public static void ModifyBlockAmorphous(
         ReducerContext ctx,
         string projectId,
+        BlockModificationMode mode,
         byte[] compressedDiffData,
         int layerIndex)
     {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
              ?? throw new ArgumentException("No layer for this project");
         var diffData = VoxelCompression.Decompress(compressedDiffData);
-        ModifyBlock(ctx, projectId, diffData, layerIndex);
+        ModifyBlock(ctx, projectId, mode, diffData, layerIndex);
     }
 }

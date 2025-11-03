@@ -3,7 +3,7 @@ using SpacetimeDB;
 public static partial class Module
 {
     [Reducer]
-    public static void ModifyBlock(ReducerContext ctx, string projectId, byte[] diffData, int layerIndex)
+    public static void ModifyBlock(ReducerContext ctx, string projectId, BlockModificationMode mode, byte[] diffData, int layerIndex)
     {
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
@@ -13,13 +13,7 @@ public static partial class Module
         if (layer.Locked) return;
 
         byte[] voxels = VoxelCompression.Decompress(layer.Voxels);
-        for (int i = 0; i < diffData.Length; i++)
-        {
-            if (diffData[i] != 0)
-            {
-                voxels[i] = diffData[i];
-            }
-        }
+        ApplyDiffData(voxels, diffData, mode);
 
         layer.Voxels = VoxelCompression.Compress(voxels);
         ctx.Db.layer.Id.Update(layer);

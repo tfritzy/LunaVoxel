@@ -28,6 +28,6 @@ public static partial class Module
             }
         }
 
-        ModifyBlock(ctx, projectId, beforeData, layerIndex);
+        ModifyBlock(ctx, projectId, BlockModificationMode.Attach, beforeData, layerIndex);
     }
 }
