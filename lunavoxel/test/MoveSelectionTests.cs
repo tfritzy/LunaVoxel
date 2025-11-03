@@ -10,7 +10,7 @@ public class MoveSelectionTests
         var selectionData = new byte[8];
         selectionData[0] = 1; // Marker at index 0 (position 0,0,0), initially value = index + 1
 
-        var offset = new Vector3(1, 0, 0); // Move by 1 in X direction
+        var offset = new Module.Vector3(1, 0, 0); // Move by 1 in X direction
 
         var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
 
@@ -25,7 +25,7 @@ public class MoveSelectionTests
         var selectionData = new byte[8];
         selectionData[4] = 5; // Marker at index 4 (position 1,0,0)
 
-        var offset = new Vector3(1, 0, 0); // Move by 1 in X direction
+        var offset = new Module.Vector3(1, 0, 0); // Move by 1 in X direction
 
         var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
 
@@ -40,7 +40,7 @@ public class MoveSelectionTests
         var selectionData = new byte[27];
         selectionData[0] = 1; // Marker at index 0 (position 0,0,0)
 
-        var offset = new Vector3(-1, 0, 0); // Move by -1 in X direction
+        var offset = new Module.Vector3(-1, 0, 0); // Move by -1 in X direction
 
         var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
 
@@ -56,7 +56,7 @@ public class MoveSelectionTests
         selectionData[0] = 1;  // Marker at index 0 (position 0,0,0)
         selectionData[21] = 22; // Marker at index 21 (position 1,1,1)
 
-        var offset = new Vector3(1, 1, 1);
+        var offset = new Module.Vector3(1, 1, 1);
 
         var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
 
@@ -73,7 +73,7 @@ public class MoveSelectionTests
         var selectionData = new byte[8];
         selectionData[3] = 4;
 
-        var offset = new Vector3(0, 0, 0);
+        var offset = new Module.Vector3(0, 0, 0);
 
         var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
 
@@ -87,7 +87,7 @@ public class MoveSelectionTests
         var selectionData = new byte[24];
         selectionData[23] = 24; // Marker at index 23 (position 1,2,3)
 
-        var offset = new Vector3(1, 1, 1);
+        var offset = new Module.Vector3(1, 1, 1);
 
         var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
 

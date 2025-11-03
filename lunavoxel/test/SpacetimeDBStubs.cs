@@ -65,17 +65,8 @@ namespace SpacetimeDB
     }
 }
 
-// Vector3 type needed for testing
-public partial struct Vector3
+// Stub for IdGenerator
+public static class IdGenerator
 {
-    public int X;
-    public int Y;
-    public int Z;
-
-    public Vector3(int x, int y, int z)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-    }
+    public static string Generate(string prefix) => prefix + "_test";
 }

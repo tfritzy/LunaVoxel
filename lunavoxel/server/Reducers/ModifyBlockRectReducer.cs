@@ -64,6 +64,6 @@ public static partial class Module
             }
         }
 
-        ModifyBlock(ctx, projectId, diffData, layerIndex);
+        ModifyBlock(ctx, projectId, mode, diffData, layerIndex);
     }
 }
