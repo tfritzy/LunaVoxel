@@ -11,9 +11,10 @@ describe("voxel-data-utils", () => {
       const compressed = compressVoxelData(originalData);
 
       const targetBuffer = new Uint8Array(8);
-      decompressVoxelDataInto(compressed, targetBuffer);
+      const result = decompressVoxelDataInto(compressed, targetBuffer);
 
-      expect(targetBuffer).toEqual(originalData);
+      expect(result).toEqual(originalData);
+      expect(result).toBe(targetBuffer); // Should reuse the same buffer
     });
 
     it("should reuse the same buffer when called multiple times", () => {
@@ -26,23 +27,26 @@ describe("voxel-data-utils", () => {
       const buffer = new Uint8Array(8);
 
       // First decompression
-      decompressVoxelDataInto(compressed1, buffer);
-      expect(buffer).toEqual(data1);
+      const result1 = decompressVoxelDataInto(compressed1, buffer);
+      expect(result1).toEqual(data1);
+      expect(result1).toBe(buffer); // Should reuse the same buffer
 
       // Second decompression reuses the same buffer
-      decompressVoxelDataInto(compressed2, buffer);
-      expect(buffer).toEqual(data2);
+      const result2 = decompressVoxelDataInto(compressed2, buffer);
+      expect(result2).toEqual(data2);
+      expect(result2).toBe(buffer); // Should reuse the same buffer
     });
 
-    it("should throw an error if buffer size doesn't match", () => {
+    it("should resize buffer if size doesn't match", () => {
       const originalData = new Uint8Array([1, 2, 3, 4]);
       const compressed = compressVoxelData(originalData);
 
       const wrongSizeBuffer = new Uint8Array(8); // Wrong size!
 
-      expect(() => {
-        decompressVoxelDataInto(compressed, wrongSizeBuffer);
-      }).toThrow("Target buffer length");
+      const result = decompressVoxelDataInto(compressed, wrongSizeBuffer);
+      expect(result).toEqual(originalData);
+      expect(result).not.toBe(wrongSizeBuffer); // Should be a new buffer
+      expect(result.length).toBe(4); // Correct size
     });
   });
 });

@@ -315,16 +315,10 @@ export class Chunk {
     layer: Layer,
     existingBuffer?: Uint8Array
   ): DecompressedLayer => {
-    if (existingBuffer && existingBuffer.length === layer.xDim * layer.yDim * layer.zDim) {
-      decompressVoxelDataInto(layer.voxels, existingBuffer);
-      return {
-        ...layer,
-        voxels: existingBuffer,
-      };
-    }
+    const buffer = existingBuffer || new Uint8Array(0);
     return {
       ...layer,
-      voxels: decompressVoxelData(layer.voxels),
+      voxels: decompressVoxelDataInto(layer.voxels, buffer),
     };
   };
 
@@ -332,18 +326,10 @@ export class Chunk {
     selection: Selection,
     existingBuffer?: Uint8Array
   ): DecompressedSelection => {
-    // Calculate expected size based on project dimensions
-    const expectedSize = this.dimensions.x * this.dimensions.y * this.dimensions.z;
-    if (existingBuffer && existingBuffer.length === expectedSize) {
-      decompressVoxelDataInto(selection.selectionData, existingBuffer);
-      return {
-        ...selection,
-        selectionData: existingBuffer,
-      };
-    }
+    const buffer = existingBuffer || new Uint8Array(0);
     return {
       ...selection,
-      selectionData: decompressVoxelData(selection.selectionData),
+      selectionData: decompressVoxelDataInto(selection.selectionData, buffer),
     };
   };
 
