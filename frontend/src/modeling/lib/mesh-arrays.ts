@@ -3,6 +3,7 @@ export class MeshArrays {
     normals: Float32Array;
     uvs: Float32Array;
     ao: Float32Array;
+    isSelected: Float32Array;
     indices: Uint32Array;
     vertexCount: number = 0;
     indexCount: number = 0;
@@ -12,6 +13,7 @@ export class MeshArrays {
         this.normals = new Float32Array(maxVertices * 3);
         this.uvs = new Float32Array(maxVertices * 2);
         this.ao = new Float32Array(maxVertices);
+        this.isSelected = new Float32Array(maxVertices);
         this.indices = new Uint32Array(maxIndices);
     }
 
@@ -44,6 +46,10 @@ export class MeshArrays {
         this.ao[this.vertexCount] = value;
     }
 
+    pushIsSelected(value: number): void {
+        this.isSelected[this.vertexCount] = value;
+    }
+
     incrementVertex(): number {
         return this.vertexCount++;
     }
@@ -66,6 +72,10 @@ export class MeshArrays {
 
     getAO() {
         return this.ao.subarray(0, this.vertexCount);
+    }
+
+    getIsSelected() {
+        return this.isSelected.subarray(0, this.vertexCount);
     }
 
     getIndices() {

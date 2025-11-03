@@ -23,7 +23,7 @@ import { VoxelFrame } from "./voxel-frame";
 
 export const CHUNK_SIZE = 16;
 
-type MeshType = "main" | "preview" | "selection";
+type MeshType = "main" | "preview";
 
 interface MeshData {
   mesh: THREE.Mesh | null;
@@ -86,10 +86,6 @@ export class Chunk {
         meshArrays: new MeshArrays(maxVertices, maxIndices),
       },
       preview: {
-        mesh: null,
-        meshArrays: new MeshArrays(maxVertices, maxIndices),
-      },
-      selection: {
         mesh: null,
         meshArrays: new MeshArrays(maxVertices, maxIndices),
       },
@@ -444,6 +440,10 @@ export class Chunk {
       "aochannel",
       new THREE.BufferAttribute(meshArrays.getAO(), 1)
     );
+    geometry.setAttribute(
+      "isSelected",
+      new THREE.BufferAttribute(meshArrays.getIsSelected(), 1)
+    );
     geometry.setIndex(
       new THREE.BufferAttribute(meshArrays.getIndices(), 1)
     );
@@ -452,6 +452,7 @@ export class Chunk {
     geometry.attributes.normal.needsUpdate = true;
     geometry.attributes.uv.needsUpdate = true;
     geometry.attributes.aochannel.needsUpdate = true;
+    geometry.attributes.isSelected.needsUpdate = true;
     if (geometry.index) {
       geometry.index.needsUpdate = true;
     }
@@ -509,23 +510,6 @@ export class Chunk {
     );
   };
 
-  private updateSelectionMesh = (atlasData: AtlasData): void => {
-    if (!this.meshes.selection.mesh) {
-      const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(atlasData.texture, 1, true);
-      this.meshes.selection.mesh = new THREE.Mesh(geometry, material);
-
-      this.meshes.selection.mesh.position.set(0, 0, 0);
-
-      this.scene.add(this.meshes.selection.mesh);
-    }
-
-    this.updateMeshGeometry("selection", this.meshes.selection.meshArrays);
-
-    this.meshes.selection.mesh.visible = this.meshes.selection.meshArrays.vertexCount > 0;
-    console.log(this.meshes.selection.mesh.visible, "visible?");
-  };
-
   private updateMeshes = (buildMode: ToolType, atlasData: AtlasData) => {
     const previewOccludes = buildMode.tag !== ToolType.Erase.tag;
     
@@ -536,7 +520,6 @@ export class Chunk {
       this.dimensions,
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
-      this.meshes.selection.meshArrays,
       this.previewFrame,
       this.selectionFrame,
       previewOccludes
@@ -544,7 +527,6 @@ export class Chunk {
 
     this.updateMainMesh(atlasData);
     this.updatePreviewMesh(buildMode, atlasData);
-    this.updateSelectionMesh(atlasData);
   };
 
   update = (

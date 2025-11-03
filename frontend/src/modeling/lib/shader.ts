@@ -2,15 +2,18 @@ import * as THREE from "three";
 
 const vertexShader = `
 attribute float aochannel;
+attribute float isSelected;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying float vAO;
+varying float vIsSelected;
 varying vec3 vWorldPosition;
 
 void main() {
   vUv = uv;
   vNormal = normalize(mat3(modelMatrix) * normal);
   vAO = aochannel;
+  vIsSelected = isSelected;
   vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
  
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -24,6 +27,7 @@ uniform bool showGrid;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying float vAO;
+varying float vIsSelected;
 varying vec3 vWorldPosition;
 
 void main() {
@@ -45,7 +49,31 @@ void main() {
  
   vec3 finalColor = textureColor.rgb * darknessFactor * vAO;
   
-  if (showGrid) {
+  // Apply selection grid effect if this face is selected
+  if (vIsSelected > 0.5) {
+    float lineWidth = 0.025;
+    vec3 gridPos = fract(vWorldPosition);
+    
+    float gridLine = 0.0;
+    
+    if (gridPos.x > 0.0 && gridPos.x < 1.0) {
+      if (gridPos.x < lineWidth || gridPos.x > 1.0 - lineWidth) {
+        gridLine = 1.0;
+      }
+    }
+    if (gridPos.y > 0.0 && gridPos.y < 1.0){
+      if (gridPos.y < lineWidth || gridPos.y > 1.0 - lineWidth) {
+        gridLine = 1.0;
+      }
+    }
+    if (gridPos.z > 0.0 && gridPos.z < 1.0){
+      if (gridPos.z < lineWidth || gridPos.z > 1.0 - lineWidth) {
+        gridLine = 1.0;
+      }
+    }
+    
+    finalColor = mix(finalColor, vec3(1.0), gridLine * 0.5);
+  } else if (showGrid) {
     float lineWidth = 0.025;
     vec3 gridPos = fract(vWorldPosition);
     

@@ -34,7 +34,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -45,7 +44,6 @@ describe("ExteriorFacesFinder", () => {
         dimensions,
         meshArrays,
         previewMeshArrays,
-        selectionMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -73,7 +71,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -84,7 +81,6 @@ describe("ExteriorFacesFinder", () => {
         dimensions,
         meshArrays,
         previewMeshArrays,
-        selectionMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -120,7 +116,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -131,7 +126,6 @@ describe("ExteriorFacesFinder", () => {
         dimensions,
         meshArrays,
         previewMeshArrays,
-        selectionMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -158,7 +152,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -169,7 +162,6 @@ describe("ExteriorFacesFinder", () => {
         dimensions,
         meshArrays,
         previewMeshArrays,
-        selectionMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -189,7 +181,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -200,7 +191,6 @@ describe("ExteriorFacesFinder", () => {
         dimensions,
         meshArrays,
         previewMeshArrays,
-        selectionMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -221,7 +211,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -235,7 +224,6 @@ describe("ExteriorFacesFinder", () => {
         dimensions,
         meshArrays,
         previewMeshArrays,
-        selectionMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -274,7 +262,6 @@ describe("ExteriorFacesFinder", () => {
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new VoxelFrame(dimensions);
 
@@ -291,7 +278,6 @@ describe("ExteriorFacesFinder", () => {
           dimensions,
           meshArrays,
           previewMeshArrays,
-          selectionMeshArrays,
           previewFrame,
           selectionFrame,
           true
