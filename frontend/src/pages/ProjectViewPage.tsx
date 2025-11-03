@@ -12,7 +12,7 @@ import { useAuth } from "@/firebase/AuthContext";
 import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
 import { useProjectAccess } from "@/lib/useProjectAccess";
-import { ToolType } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";

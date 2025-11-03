@@ -1,7 +1,8 @@
 import { ProjectHeader } from "./ProjectHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
-import { AccessType, ToolType } from "@/module_bindings";
+import { AccessType } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";

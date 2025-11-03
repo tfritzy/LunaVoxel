@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import {
-  ToolType,
   Vector3,
   DbConnection,
   EventContext,
   Layer,
   Selection,
+  BlockModificationMode,
 } from "@/module_bindings";
 import {
   getBlockType,
@@ -264,9 +264,10 @@ export class Chunk {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public applyOptimisticRect(
     layer: DecompressedLayer,
-    tool: ToolType,
+    mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
@@ -287,14 +288,14 @@ export class Chunk {
           const idx = base + z;
           const currentType = getBlockType(layer.voxels[idx]);
 
-          switch (tool.tag) {
-            case ToolType.Build.tag:
+          switch (mode.tag) {
+            case "Attach":
               layer.voxels[idx] = blockType;
               break;
-            case ToolType.Erase.tag:
+            case "Erase":
               layer.voxels[idx] = 0;
               break;
-            case ToolType.Paint.tag:
+            case "Paint":
               if (currentType !== 0) {
                 layer.voxels[idx] = blockType;
               }

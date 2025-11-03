@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import type { ToolType, DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import type { DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import type { VoxelFrame } from "./voxel-frame";
 
@@ -21,7 +22,7 @@ export interface Tool {
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
     normal: THREE.Vector3,
-    mode: BlockModificationMode
+    mode?: BlockModificationMode
   ): THREE.Vector3;
 
   onMouseDown(context: ToolContext, position: THREE.Vector3): void;

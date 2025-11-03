@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { ToolType, DbConnection, Project } from "../../module_bindings";
+import { DbConnection, Project, BlockModificationMode } from "../../module_bindings";
+import type { ToolType } from "./tool-type";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { Chunk } from "./chunk";
@@ -120,7 +121,7 @@ export class ProjectManager {
 
   public applyOptimisticRectEdit = (
     layerIndex: number,
-    tool: ToolType,
+    mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
@@ -131,7 +132,7 @@ export class ProjectManager {
     const previousVoxels = new Uint8Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
       layer,
-      tool,
+      mode,
       start,
       end,
       blockType,

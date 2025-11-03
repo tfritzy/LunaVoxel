@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import { ToolType, DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import { DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
