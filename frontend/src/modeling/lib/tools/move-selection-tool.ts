@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { BlockModificationMode } from "@/module_bindings";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
