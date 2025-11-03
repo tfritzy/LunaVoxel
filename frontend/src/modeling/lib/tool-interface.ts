@@ -1,8 +1,7 @@
 import * as THREE from "three";
-import type { ToolType, DbConnection, Vector3 } from "../../module_bindings";
+import type { ToolType, DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
 import type { ProjectManager } from "./project-manager";
 import type { VoxelFrame } from "./voxel-frame";
-import type { BuildMode } from "./build-mode";
 
 export interface ToolContext {
   dbConn: DbConnection;
@@ -13,7 +12,7 @@ export interface ToolContext {
   selectedBlock: number;
   selectedLayer: number;
   setSelectedBlockInParent: (index: number) => void;
-  mode: BuildMode;
+  mode: BlockModificationMode;
 }
 
 export interface Tool {
@@ -22,7 +21,7 @@ export interface Tool {
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
     normal: THREE.Vector3,
-    mode: BuildMode
+    mode: BlockModificationMode
   ): THREE.Vector3;
 
   onMouseDown(context: ToolContext, position: THREE.Vector3): void;

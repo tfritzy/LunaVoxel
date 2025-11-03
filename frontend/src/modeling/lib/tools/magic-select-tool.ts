@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { ToolType } from "../../../module_bindings";
+import { ToolType, type BlockModificationMode } from "../../../module_bindings";
 import type { Tool, ToolContext } from "../tool-interface";
-import { floorVector3 } from "./tool-utils";
+import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
   getType(): ToolType {
@@ -10,10 +10,11 @@ export class MagicSelectTool implements Tool {
 
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
-    normal: THREE.Vector3
+    normal: THREE.Vector3,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mode: BlockModificationMode
   ): THREE.Vector3 {
-    const adjustedPoint = intersectionPoint.clone().add(normal.clone().multiplyScalar(-0.1));
-    return floorVector3(adjustedPoint);
+    return calculateGridPositionWithMode(intersectionPoint, normal, { tag: "Erase" });
   }
 
   onMouseDown(): void {}

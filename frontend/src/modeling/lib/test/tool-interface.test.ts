@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createTool } from "../tools";
 import type { Tool, ToolContext } from "../tool-interface";
-import type { Vector3 } from "@/module_bindings";
+import type { Vector3, BlockModificationMode } from "@/module_bindings";
 import * as THREE from "three";
 import { VoxelFrame } from "../voxel-frame";
-import { BuildMode } from "../build-mode";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
+  const attachMode: BlockModificationMode = { tag: "Attach" };
+  const eraseMode: BlockModificationMode = { tag: "Erase" };
+  const paintMode: BlockModificationMode = { tag: "Paint" };
 
   beforeEach(() => {
     mockContext = {
@@ -26,12 +28,12 @@ describe("Tool Interface", () => {
       selectedBlock: 1,
       selectedLayer: 0,
       setSelectedBlockInParent: () => {},
-      mode: BuildMode.Attach,
+      mode: attachMode,
     };
   });
 
   describe("Tool Factory", () => {
-    it("should create RectSelection tool for Build/Erase/Paint", () => {
+    it("should create RectTool for Build/Erase/Paint", () => {
       const buildTool = createTool({ tag: "Build" });
       const eraseTool = createTool({ tag: "Erase" });
       const paintTool = createTool({ tag: "Paint" });
@@ -52,7 +54,7 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("RectSelection Tool with modes", () => {
+  describe("RectTool with modes", () => {
     let tool: Tool;
 
     beforeEach(() => {
@@ -62,7 +64,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with positive offset in Attach mode", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Attach);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, attachMode);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);
@@ -72,7 +74,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with negative offset in Erase mode", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Erase);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, eraseMode);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);
@@ -82,7 +84,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with negative offset in Paint mode", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Paint);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, paintMode);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);
@@ -109,7 +111,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Attach);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, attachMode);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);
@@ -142,7 +144,7 @@ describe("Tool Interface", () => {
     it("should calculate grid position with negative offset", () => {
       const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
       const normal = new THREE.Vector3(0, 1, 0);
-      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, BuildMode.Attach);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, attachMode);
       
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);

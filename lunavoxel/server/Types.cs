@@ -231,6 +231,14 @@ public static partial class Module
     }
 
     [Type]
+    public enum BlockModificationMode
+    {
+        Attach,
+        Erase,
+        Paint
+    }
+
+    [Type]
     public enum AccessType
     {
         None,
