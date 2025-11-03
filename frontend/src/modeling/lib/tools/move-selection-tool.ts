@@ -16,6 +16,8 @@ export class MoveSelectionTool implements Tool {
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
+    // MoveSelection tool doesn't use mode since it moves selections rather than modifying blocks
+    // Always position under the surface for consistent selection interaction
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
@@ -110,16 +112,12 @@ export class MoveSelectionTool implements Tool {
     
     // For each world axis, determine how aligned it is with the drag direction
     // considering the camera's current orientation
-    const axes = [
-      { axis: worldX, name: "X" },
-      { axis: worldY, name: "Y" },
-      { axis: worldZ, name: "Z" }
-    ];
+    const axes = [worldX, worldY, worldZ];
 
     let bestAxis = worldX;
     let bestScore = -Infinity;
 
-    for (const { axis } of axes) {
+    for (const axis of axes) {
       // Project world axis onto camera axes
       const axisInCameraRight = axis.dot(cameraRight);
       const axisInCameraUp = axis.dot(cameraUp);
