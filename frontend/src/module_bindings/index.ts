@@ -99,6 +99,8 @@ export { UserProjectsTableHandle };
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
 export { AccessType };
+import { BlockModificationMode } from "./block_modification_mode_type.ts";
+export { BlockModificationMode };
 import { Layer } from "./layer_type.ts";
 export { Layer };
 import { PlayerCursor } from "./player_cursor_type.ts";

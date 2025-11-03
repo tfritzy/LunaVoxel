@@ -1,10 +1,10 @@
 import type { ToolType } from "../../../module_bindings";
 import type { Tool } from "../tool-interface";
-import { RectSelectionTool } from "./build-tool";
+import { RectTool } from "./rect-tool";
 import { BlockPickerTool } from "./block-picker-tool";
 import { MagicSelectTool } from "./magic-select-tool";
 
-export { RectSelectionTool } from "./build-tool";
+export { RectTool } from "./rect-tool";
 export { BlockPickerTool } from "./block-picker-tool";
 export { MagicSelectTool } from "./magic-select-tool";
 
@@ -13,7 +13,7 @@ export function createTool(toolType: ToolType): Tool {
     case "Build":
     case "Erase":
     case "Paint":
-      return new RectSelectionTool();
+      return new RectTool();
     case "BlockPicker":
       return new BlockPickerTool();
     case "MagicSelect":

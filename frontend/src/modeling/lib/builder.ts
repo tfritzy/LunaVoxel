@@ -1,13 +1,11 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import { ToolType, DbConnection, Vector3 } from "../../module_bindings";
+import { ToolType, DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
 import type { ProjectManager } from "./project-manager";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
 import { createTool } from "./tools";
 import type { Tool } from "./tool-interface";
-import { BuildMode } from "./build-mode";
-import type { BuildMode as BuildModeType } from "./build-mode";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
@@ -26,9 +24,8 @@ export const Builder = class {
   private scene: THREE.Scene;
   private domElement: HTMLElement;
 
-  private currentToolType: ToolType = { tag: "Build" };
   private currentTool: Tool;
-  private currentMode: BuildModeType = BuildMode.Attach;
+  private currentMode: BlockModificationMode = { tag: "Attach" };
   private toolContext: {
     dbConn: DbConnection;
     projectId: string;
@@ -38,7 +35,7 @@ export const Builder = class {
     selectedBlock: number;
     selectedLayer: number;
     setSelectedBlockInParent: (index: number) => void;
-    mode: BuildModeType;
+    mode: BlockModificationMode;
   };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
@@ -80,7 +77,7 @@ export const Builder = class {
     this.mouse = new THREE.Vector2();
 
     this.previewFrame = new VoxelFrame(dimensions);
-    this.currentTool = createTool(this.currentToolType);
+    this.currentTool = createTool({ tag: "Build" });
 
     this.toolContext = {
       dbConn: this.dbConn,
@@ -121,27 +118,30 @@ export const Builder = class {
 
   public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
-    this.currentToolType = tool;
     this.currentTool = createTool(tool);
     
     if (tool.tag === "Build") {
-      this.currentMode = BuildMode.Attach;
+      this.currentMode = { tag: "Attach" };
     } else if (tool.tag === "Erase") {
-      this.currentMode = BuildMode.Erase;
+      this.currentMode = { tag: "Erase" };
     } else if (tool.tag === "Paint") {
-      this.currentMode = BuildMode.Paint;
+      this.currentMode = { tag: "Paint" };
     }
     
     this.toolContext.mode = this.currentMode;
   }
 
-  public setMode(mode: BuildModeType): void {
+  public setMode(mode: BlockModificationMode): void {
     this.currentMode = mode;
     this.toolContext.mode = mode;
   }
 
-  public getMode(): BuildModeType {
+  public getMode(): BlockModificationMode {
     return this.currentMode;
+  }
+
+  public getTool(): ToolType {
+    return this.currentTool.getType();
   }
 
   public setSelectedBlock(
@@ -161,10 +161,6 @@ export const Builder = class {
 
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
-  }
-
-  public getTool(): ToolType {
-    return this.currentToolType;
   }
 
   private addEventListeners(): void {

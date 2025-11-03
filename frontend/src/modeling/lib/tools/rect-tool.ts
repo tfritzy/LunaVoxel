@@ -1,23 +1,20 @@
 import * as THREE from "three";
-import { ToolType } from "../../../module_bindings";
+import { ToolType, type BlockModificationMode } from "../../../module_bindings";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext } from "../tool-interface";
-import { floorVector3 } from "./tool-utils";
-import type { BuildMode } from "../build-mode";
+import { calculateGridPositionWithMode } from "./tool-utils";
 
-export abstract class RectTool implements Tool {
-  abstract getType(): ToolType;
+export class RectTool implements Tool {
+  getType(): ToolType {
+    return { tag: "Build" };
+  }
 
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
     normal: THREE.Vector3,
-    mode: BuildMode
+    mode: BlockModificationMode
   ): THREE.Vector3 {
-    const multiplier = mode === "Attach" ? 0.1 : -0.1;
-    const adjustedPoint = intersectionPoint
-      .clone()
-      .add(normal.clone().multiplyScalar(multiplier));
-    return floorVector3(adjustedPoint);
+    return calculateGridPositionWithMode(intersectionPoint, normal, mode);
   }
 
   onMouseDown(): void {}
@@ -70,8 +67,8 @@ export abstract class RectTool implements Tool {
     );
   }
 
-  private getModeBasedToolType(mode: BuildMode): ToolType {
-    switch (mode) {
+  private getModeBasedToolType(mode: BlockModificationMode): ToolType {
+    switch (mode.tag) {
       case "Attach":
         return { tag: "Build" };
       case "Erase":
