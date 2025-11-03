@@ -24,8 +24,18 @@ export const Builder = class {
   private scene: THREE.Scene;
   private domElement: HTMLElement;
 
-  private currentTool: ToolType = { tag: "Build" };
-  private currentToolImpl: Tool;
+  private currentToolType: ToolType = { tag: "Build" };
+  private currentTool: Tool;
+  private toolContext: {
+    dbConn: DbConnection;
+    projectId: string;
+    dimensions: Vector3;
+    projectManager: ProjectManager;
+    previewFrame: VoxelFrame;
+    selectedBlock: number;
+    selectedLayer: number;
+    setSelectedBlockInParent: (index: number) => void;
+  };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
   private lastPreviewStart: THREE.Vector3 | null = null;
@@ -66,7 +76,18 @@ export const Builder = class {
     this.mouse = new THREE.Vector2();
 
     this.previewFrame = new VoxelFrame(dimensions);
-    this.currentToolImpl = createTool(this.currentTool);
+    this.currentTool = createTool(this.currentToolType);
+
+    this.toolContext = {
+      dbConn: this.dbConn,
+      projectId: this.projectId,
+      dimensions: this.dimensions,
+      projectManager: this.projectManager,
+      previewFrame: this.previewFrame,
+      selectedBlock: this.selectedBlock,
+      selectedLayer: this.selectedLayer,
+      setSelectedBlockInParent: this.setSelectedBlockInParent,
+    };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
@@ -95,8 +116,8 @@ export const Builder = class {
 
   public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
-    this.currentTool = tool;
-    this.currentToolImpl = createTool(tool);
+    this.currentToolType = tool;
+    this.currentTool = createTool(tool);
   }
 
   public setSelectedBlock(
@@ -105,10 +126,13 @@ export const Builder = class {
   ): void {
     this.selectedBlock = block;
     this.setSelectedBlockInParent = setter;
+    this.toolContext.selectedBlock = block;
+    this.toolContext.setSelectedBlockInParent = setter;
   }
 
   public setSelectedLayer(layer: number): void {
     this.selectedLayer = layer;
+    this.toolContext.selectedLayer = layer;
   }
 
   public updateCamera(camera: THREE.Camera): void {
@@ -116,7 +140,7 @@ export const Builder = class {
   }
 
   public getTool(): ToolType {
-    return this.currentTool;
+    return this.currentToolType;
   }
 
   private addEventListeners(): void {
@@ -139,7 +163,7 @@ export const Builder = class {
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
     if (gridPos && this.accessManager.hasWriteAccess) {
-      this.preview(gridPos);
+      this.handleMouseDrag(gridPos);
     }
   }
 
@@ -157,7 +181,7 @@ export const Builder = class {
 
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
-      this.onMouseClickHandler(position);
+      this.handleMouseUp(position);
     }
   }
 
@@ -172,8 +196,7 @@ export const Builder = class {
       const gridPos = this.checkIntersection();
       if (gridPos) {
         this.startPosition = gridPos.clone();
-        const context = this.createToolContext();
-        this.currentToolImpl.onMouseDown(context, gridPos);
+        this.currentTool.onMouseDown(this.toolContext, gridPos);
       }
     }
   }
@@ -244,7 +267,6 @@ export const Builder = class {
         worldNormal.transformDirection(intersection.object.matrixWorld);
         worldNormal.normalize();
         
-        // Clone for cursor position update (modified for centering)
         const faceCenter = intersectionPoint.clone();
 
         if (Math.abs(worldNormal.x) < 0.1) {
@@ -261,8 +283,7 @@ export const Builder = class {
 
         this.throttledUpdateCursorPos(faceCenter, worldNormal);
 
-        // Clone for tool grid position calculation (uses raw face normal)
-        return this.currentToolImpl.calculateGridPosition(
+        return this.currentTool.calculateGridPosition(
           intersectionPoint.clone(),
           face.normal.clone()
         );
@@ -272,29 +293,7 @@ export const Builder = class {
     return null;
   }
 
-  private createToolContext(): {
-    dbConn: DbConnection;
-    projectId: string;
-    dimensions: Vector3;
-    projectManager: ProjectManager;
-    previewFrame: VoxelFrame;
-    selectedBlock: number;
-    selectedLayer: number;
-    setSelectedBlockInParent: (index: number) => void;
-  } {
-    return {
-      dbConn: this.dbConn,
-      projectId: this.projectId,
-      dimensions: this.dimensions,
-      projectManager: this.projectManager,
-      previewFrame: this.previewFrame,
-      selectedBlock: this.selectedBlock,
-      selectedLayer: this.selectedLayer,
-      setSelectedBlockInParent: this.setSelectedBlockInParent,
-    };
-  }
-
-  private preview(gridPos: THREE.Vector3): void {
+  private handleMouseDrag(gridPos: THREE.Vector3): void {
     if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     if (this.isMouseDown && !this.startPosition) {
@@ -312,21 +311,19 @@ export const Builder = class {
     }
 
     if (this.isMouseDown && this.startPosition) {
-      const context = this.createToolContext();
-      this.currentToolImpl.onDrag(context, this.startPosition, gridPos);
+      this.currentTool.onDrag(this.toolContext, this.startPosition, gridPos);
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
   }
 
-  private onMouseClickHandler(position: THREE.Vector3): void {
+  private handleMouseUp(position: THREE.Vector3): void {
     if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    const context = this.createToolContext();
-    this.currentToolImpl.onMouseUp(context, startPos, endPos);
+    this.currentTool.onMouseUp(this.toolContext, startPos, endPos);
 
     this.isMouseDown = false;
     this.startPosition = null;
