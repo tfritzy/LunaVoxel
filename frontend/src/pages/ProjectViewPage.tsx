@@ -2,7 +2,6 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useCurrentProject } from "@/lib/useCurrentProject";
@@ -25,7 +24,6 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<ToolType>({ tag: "Rect" });
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const project = useCurrentProject(connection, projectId);
-  const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
   const atlasData = useAtlas();
   const { currentUser } = useAuth();
@@ -259,7 +257,6 @@ export const ProjectViewPage = () => {
       <div
         ref={containerCallbackRef}
         className="w-full h-full bg-background"
-        style={{ cursor: customCursor }}
       />
     </ProjectLayout>
   );

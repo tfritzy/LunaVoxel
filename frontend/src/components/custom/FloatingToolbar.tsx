@@ -54,6 +54,9 @@ export const FloatingToolbar = ({
   const isEraseMode = currentTool.tag === "Rect" && currentMode.tag === "Erase";
   const isPaintMode = currentTool.tag === "Rect" && currentMode.tag === "Paint";
 
+  // TODO: Separate mode selector and tool selector in the UI. Currently, Build/Erase/Paint
+  // buttons set both tool (Rect) and mode (Attach/Erase/Paint). In the future, we should
+  // have independent mode and tool selectors so users can combine any tool with any mode.
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
       <div className="flex items-center gap-1">
