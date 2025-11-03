@@ -7,7 +7,6 @@ export class BuildTool extends RectTool {
   }
 
   protected getNormalMultiplier(): number {
-    // Build tool places blocks in the direction of the normal
     return 0.1;
   }
 }
