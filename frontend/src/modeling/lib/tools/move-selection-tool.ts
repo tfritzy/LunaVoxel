@@ -30,27 +30,11 @@ export class MoveSelectionTool implements Tool {
     startPos: THREE.Vector3,
     currentPos: THREE.Vector3
   ): void {
-    // Calculate the drag delta in world space
-    const dragDelta = new THREE.Vector3().subVectors(currentPos, startPos);
-
-    // If we haven't determined the axis yet, do so based on the initial drag direction
-    if (!this.snappedAxis && dragDelta.length() > 0.1) {
-      this.snappedAxis = this.determineSnapAxis(dragDelta, context.camera);
-    }
-
-    // If we have a snapped axis, project the drag delta onto it
-    if (this.snappedAxis) {
-      const projectedDistance = dragDelta.dot(this.snappedAxis);
-      const offset = this.snappedAxis.clone().multiplyScalar(projectedDistance);
-      
-      // Round to integer grid positions
-      offset.x = Math.round(offset.x);
-      offset.y = Math.round(offset.y);
-      offset.z = Math.round(offset.z);
-
-      // Preview could be shown here if needed
-      // For now, we'll just wait until mouse up to apply the move
-    }
+    // Calculate offset but don't apply it - just for potential preview
+    this.calculateOffset(startPos, currentPos, context.camera);
+    
+    // Preview could be shown here if needed
+    // For now, we'll just wait until mouse up to apply the move
   }
 
   onMouseUp(
@@ -58,12 +42,32 @@ export class MoveSelectionTool implements Tool {
     startPos: THREE.Vector3,
     endPos: THREE.Vector3
   ): void {
+    const offset = this.calculateOffset(startPos, endPos, context.camera);
+
+    // Only call the reducer if there's actual movement
+    if (offset.length() > 0.1) {
+      context.dbConn.reducers.moveSelection(
+        context.projectId,
+        offset
+      );
+    }
+
+    // Reset state
+    this.dragStartPos = null;
+    this.snappedAxis = null;
+  }
+
+  private calculateOffset(
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    camera: THREE.Camera
+  ): THREE.Vector3 {
     // Calculate the drag delta in world space
     const dragDelta = new THREE.Vector3().subVectors(endPos, startPos);
 
     // Determine the snap axis if not already determined
     if (!this.snappedAxis && dragDelta.length() > 0.1) {
-      this.snappedAxis = this.determineSnapAxis(dragDelta, context.camera);
+      this.snappedAxis = this.determineSnapAxis(dragDelta, camera);
     }
 
     // Calculate the offset along the snapped axis
@@ -78,17 +82,7 @@ export class MoveSelectionTool implements Tool {
     offset.y = Math.round(offset.y);
     offset.z = Math.round(offset.z);
 
-    // Only call the reducer if there's actual movement
-    if (offset.length() > 0.1) {
-      context.dbConn.reducers.moveSelection(
-        context.projectId,
-        offset
-      );
-    }
-
-    // Reset state
-    this.dragStartPos = null;
-    this.snappedAxis = null;
+    return offset;
   }
 
   private determineSnapAxis(dragDelta: THREE.Vector3, camera: THREE.Camera): THREE.Vector3 {

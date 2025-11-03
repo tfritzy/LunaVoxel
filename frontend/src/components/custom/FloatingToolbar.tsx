@@ -144,6 +144,7 @@ export const FloatingToolbar = ({
           <Wand2 className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">S</div>
         </Button>
+        {/* Placeholder slots for future tools */}
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
