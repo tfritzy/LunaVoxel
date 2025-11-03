@@ -4,7 +4,7 @@ import { useAuth } from "@/firebase/AuthContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { createProject } from "@/lib/createProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
-import { Project } from "@/module_bindings";
+import { Project, BlockModificationMode } from "@/module_bindings";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import { VoxelEngine } from "@/modeling/voxel-engine";
 import { ExportType } from "@/modeling/export/model-exporter";
@@ -26,7 +26,10 @@ export const SignInPage = () => {
   const engineRef = useRef<VoxelEngine | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [currentTool, setCurrentTool] = useState<ToolType>({
-    tag: "Build",
+    tag: "Rect",
+  });
+  const [currentMode, setCurrentMode] = useState<BlockModificationMode>({
+    tag: "Attach",
   });
   const atlasData = useAtlas();
   const isInitializedRef = useRef<boolean>(false);
@@ -159,6 +162,10 @@ export const SignInPage = () => {
     setCurrentTool(tool);
   }, []);
 
+  const handleModeChange = useCallback((mode: BlockModificationMode) => {
+    setCurrentMode(mode);
+  }, []);
+
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
   }, []);
@@ -169,7 +176,9 @@ export const SignInPage = () => {
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
+      currentMode={currentMode}
       onToolChange={handleToolChange}
+      onModeChange={handleModeChange}
       onExport={handleExport}
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}

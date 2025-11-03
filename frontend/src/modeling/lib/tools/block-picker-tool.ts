@@ -10,9 +10,10 @@ export class BlockPickerTool implements Tool {
 
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
-    normal: THREE.Vector3
+    normal: THREE.Vector3,
+    mode?: BlockModificationMode
   ): THREE.Vector3 {
-    return calculateGridPositionWithMode(intersectionPoint, normal, { tag: "Erase" });
+    return calculateGridPositionWithMode(intersectionPoint, normal, mode || { tag: "Erase" });
   }
 
   onMouseDown(): void {}

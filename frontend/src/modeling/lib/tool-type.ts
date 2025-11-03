@@ -1,6 +1,4 @@
 export type ToolType =
-  | { tag: "Build" }
-  | { tag: "Erase" }
-  | { tag: "Paint" }
+  | { tag: "Rect" }
   | { tag: "BlockPicker" }
   | { tag: "MagicSelect" };

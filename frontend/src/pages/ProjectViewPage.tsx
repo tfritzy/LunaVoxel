@@ -13,6 +13,7 @@ import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
 import { useProjectAccess } from "@/lib/useProjectAccess";
 import type { ToolType } from "@/modeling/lib/tool-type";
+import type { BlockModificationMode } from "@/module_bindings";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -21,7 +22,8 @@ export const ProjectViewPage = () => {
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<ToolType>(ToolType.Build);
+  const [currentTool, setCurrentTool] = useState<ToolType>({ tag: "Rect" });
+  const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const project = useCurrentProject(connection, projectId);
   const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
@@ -165,6 +167,12 @@ export const ProjectViewPage = () => {
   }, [currentTool]);
 
   useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.projectManager.setMode(currentMode);
+    }
+  }, [currentMode]);
+
+  useEffect(() => {
     if (engineRef.current?.projectManager && atlasData) {
       engineRef.current.projectManager.setAtlasData(atlasData);
     }
@@ -172,6 +180,10 @@ export const ProjectViewPage = () => {
 
   const handleToolChange = useCallback((tool: ToolType) => {
     setCurrentTool(tool);
+  }, []);
+
+  const handleModeChange = useCallback((mode: BlockModificationMode) => {
+    setCurrentMode(mode);
   }, []);
 
   const createNewProject = useCallback(() => {
@@ -233,7 +245,9 @@ export const ProjectViewPage = () => {
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
+      currentMode={currentMode}
       onToolChange={handleToolChange}
+      onModeChange={handleModeChange}
       onExport={handleExport}
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}
