@@ -3,19 +3,20 @@ import { ToolType } from "../../../module_bindings";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext } from "../tool-interface";
 import { floorVector3 } from "./tool-utils";
+import type { BuildMode } from "../build-mode";
 
 export abstract class RectTool implements Tool {
   abstract getType(): ToolType;
 
-  protected abstract getNormalMultiplier(): number;
-
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
-    normal: THREE.Vector3
+    normal: THREE.Vector3,
+    mode: BuildMode
   ): THREE.Vector3 {
+    const multiplier = mode === "Attach" ? 0.1 : -0.1;
     const adjustedPoint = intersectionPoint
       .clone()
-      .add(normal.clone().multiplyScalar(this.getNormalMultiplier()));
+      .add(normal.clone().multiplyScalar(multiplier));
     return floorVector3(adjustedPoint);
   }
 
@@ -46,9 +47,12 @@ export abstract class RectTool implements Tool {
     endPos: THREE.Vector3
   ): void {
     context.previewFrame.clear();
+    
+    const toolType = this.getModeBasedToolType(context.mode);
+    
     context.projectManager.applyOptimisticRectEdit(
       context.selectedLayer,
-      this.getType(),
+      toolType,
       startPos.clone(),
       endPos.clone(),
       context.selectedBlock,
@@ -57,12 +61,23 @@ export abstract class RectTool implements Tool {
 
     context.dbConn.reducers.modifyBlockRect(
       context.projectId,
-      this.getType(),
+      toolType,
       context.selectedBlock,
       startPos,
       endPos,
       0,
       context.selectedLayer
     );
+  }
+
+  private getModeBasedToolType(mode: BuildMode): ToolType {
+    switch (mode) {
+      case "Attach":
+        return { tag: "Build" };
+      case "Erase":
+        return { tag: "Erase" };
+      case "Paint":
+        return { tag: "Paint" };
+    }
   }
 }
