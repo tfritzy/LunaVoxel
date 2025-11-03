@@ -336,7 +336,10 @@ export class Chunk {
       .filter((l) => l.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
 
-    this.layers = rawLayers.map(this.decompressLayer);
+    this.layers = rawLayers.map((layer) => {
+      const existingLayer = this.layers.find((l) => l.id === layer.id);
+      return this.decompressLayer(layer, existingLayer?.voxels);
+    });
   };
 
   private refreshSelections = () => {
@@ -344,7 +347,10 @@ export class Chunk {
       this.dbConn.db.selections.tableCache.iter() as Selection[]
     ).filter((s) => s.projectId === this.projectId);
 
-    this.selections = rawSelections.map(this.decompressSelection);
+    this.selections = rawSelections.map((selection) => {
+      const existingSelection = this.selections.find((s) => s.id === selection.id);
+      return this.decompressSelection(selection, existingSelection?.selectionData);
+    });
   };
 
   private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {

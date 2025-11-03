@@ -61,6 +61,8 @@ import { ModifyBlockAmorphous } from "./modify_block_amorphous_reducer.ts";
 export { ModifyBlockAmorphous };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
+import { MoveSelection } from "./move_selection_reducer.ts";
+export { MoveSelection };
 import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
@@ -247,6 +249,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
     },
+    MoveSelection: {
+      reducerName: "MoveSelection",
+      argsType: MoveSelection.getTypeScriptAlgebraicType(),
+    },
     PokeProject: {
       reducerName: "PokeProject",
       argsType: PokeProject.getTypeScriptAlgebraicType(),
@@ -328,6 +334,7 @@ export type Reducer = never
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
+| { name: "MoveSelection", args: MoveSelection }
 | { name: "PokeProject", args: PokeProject }
 | { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
@@ -566,6 +573,22 @@ export class RemoteReducers {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
+  moveSelection(projectId: string, offset: Vector3) {
+    const __args = { projectId, offset };
+    let __writer = new __BinaryWriter(1024);
+    MoveSelection.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("MoveSelection", __argsBuffer, this.setCallReducerFlags.moveSelectionFlags);
+  }
+
+  onMoveSelection(callback: (ctx: ReducerEventContext, projectId: string, offset: Vector3) => void) {
+    this.connection.onReducer("MoveSelection", callback);
+  }
+
+  removeOnMoveSelection(callback: (ctx: ReducerEventContext, projectId: string, offset: Vector3) => void) {
+    this.connection.offReducer("MoveSelection", callback);
+  }
+
   pokeProject(projectId: string) {
     const __args = { projectId };
     let __writer = new __BinaryWriter(1024);
@@ -776,6 +799,11 @@ export class SetReducerFlags {
   modifyBlockRectFlags: __CallReducerFlags = 'FullUpdate';
   modifyBlockRect(flags: __CallReducerFlags) {
     this.modifyBlockRectFlags = flags;
+  }
+
+  moveSelectionFlags: __CallReducerFlags = 'FullUpdate';
+  moveSelection(flags: __CallReducerFlags) {
+    this.moveSelectionFlags = flags;
   }
 
   pokeProjectFlags: __CallReducerFlags = 'FullUpdate';
