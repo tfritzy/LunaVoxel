@@ -170,7 +170,7 @@ export class ExteriorFacesFinder {
                   hasPreviewFaces = true;
                 }
               } else if (blockIsSelected) {
-                const neighborIsSelected = selectionFrame.isSet(nx, ny, nz);
+                const neighborIsSelected = neighborInBounds && selectionFrame.isSet(nx, ny, nz);
                 const shouldRenderSelectionFace = !neighborIsSelected;
 
                 if (shouldRenderSelectionFace) {

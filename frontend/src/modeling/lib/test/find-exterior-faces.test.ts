@@ -240,6 +240,77 @@ describe("ExteriorFacesFinder", () => {
       expect(previewMeshArrays.indexCount).toBe(36); // 6 faces * 6 indices
       expect(previewMeshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices
     });
+
+    it("should mark selection faces with isSelected attribute", () => {
+      const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
+      const voxelData = createVoxelData(dimensions);
+      setVoxel(voxelData, 0, 0, 0, 1); // Real block
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
+
+      // Mark the block as selected
+      selectionFrame.set(0, 0, 0, 1);
+
+      finder.findExteriorFaces(
+        voxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        meshArrays,
+        previewMeshArrays,
+        previewFrame,
+        selectionFrame,
+        true
+      );
+
+      // The selected block should have all 6 faces visible
+      expect(meshArrays.indexCount).toBe(36); // 6 faces * 6 indices
+      expect(meshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices
+
+      // All vertices should be marked as selected
+      const isSelectedArray = meshArrays.getIsSelected();
+      for (let i = 0; i < meshArrays.vertexCount; i++) {
+        expect(isSelectedArray[i]).toBe(1);
+      }
+    });
+
+    it("should not mark non-selected faces with isSelected attribute", () => {
+      const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
+      const voxelData = createVoxelData(dimensions);
+      setVoxel(voxelData, 0, 0, 0, 1); // Real block without selection
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
+
+      finder.findExteriorFaces(
+        voxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        meshArrays,
+        previewMeshArrays,
+        previewFrame,
+        selectionFrame,
+        true
+      );
+
+      // The non-selected block should have all 6 faces visible
+      expect(meshArrays.indexCount).toBe(36); // 6 faces * 6 indices
+      expect(meshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices
+
+      // All vertices should NOT be marked as selected
+      const isSelectedArray = meshArrays.getIsSelected();
+      for (let i = 0; i < meshArrays.vertexCount; i++) {
+        expect(isSelectedArray[i]).toBe(0);
+      }
+    });
   });
 
   describe("Benchmark test", () => {
