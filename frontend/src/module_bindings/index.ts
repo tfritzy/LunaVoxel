@@ -538,7 +538,7 @@ export class RemoteReducers {
   }
 
   removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, diffData: Uint8Array, layerIndex: number) => void) {
-    this.connection.onReducer("ModifyBlock", callback);
+    this.connection.offReducer("ModifyBlock", callback);
   }
 
   modifyBlockAmorphous(projectId: string, mode: BlockModificationMode, compressedDiffData: Uint8Array, layerIndex: number) {

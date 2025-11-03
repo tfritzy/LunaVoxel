@@ -125,4 +125,65 @@ public class BlockModificationHelperTests
         // Assert
         Assert.AreEqual(0, voxels.Length, "Empty array should remain empty");
     }
+
+    [TestMethod]
+    [ExpectedException(typeof(ArgumentNullException))]
+    public void ApplyDiffData_NullVoxels_ThrowsArgumentNullException()
+    {
+        // Arrange
+        byte[] voxels = null!;
+        var diffData = new byte[] { 1, 2, 3 };
+        var mode = Module.BlockModificationMode.Attach;
+
+        // Act - should throw
+        Module.ApplyDiffData(voxels, diffData, mode);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(ArgumentNullException))]
+    public void ApplyDiffData_NullDiffData_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var voxels = new byte[] { 1, 2, 3 };
+        byte[] diffData = null!;
+        var mode = Module.BlockModificationMode.Attach;
+
+        // Act - should throw
+        Module.ApplyDiffData(voxels, diffData, mode);
+    }
+
+    [TestMethod]
+    public void ApplyDiffData_DiffDataLargerThanVoxels_OnlyModifiesVoxelsLength()
+    {
+        // Arrange
+        var voxels = new byte[] { 1, 2 };
+        var diffData = new byte[] { 10, 20, 30, 40 }; // Larger than voxels
+        var mode = Module.BlockModificationMode.Attach;
+
+        // Act
+        Module.ApplyDiffData(voxels, diffData, mode);
+
+        // Assert
+        Assert.AreEqual(10, voxels[0], "First voxel should be modified");
+        Assert.AreEqual(20, voxels[1], "Second voxel should be modified");
+        Assert.AreEqual(2, voxels.Length, "Voxels array length should not change");
+    }
+
+    [TestMethod]
+    public void ApplyDiffData_DiffDataSmallerThanVoxels_OnlyModifiesDiffDataLength()
+    {
+        // Arrange
+        var voxels = new byte[] { 1, 2, 3, 4 };
+        var diffData = new byte[] { 10, 20 }; // Smaller than voxels
+        var mode = Module.BlockModificationMode.Attach;
+
+        // Act
+        Module.ApplyDiffData(voxels, diffData, mode);
+
+        // Assert
+        Assert.AreEqual(10, voxels[0], "First voxel should be modified");
+        Assert.AreEqual(20, voxels[1], "Second voxel should be modified");
+        Assert.AreEqual(3, voxels[2], "Third voxel should be unchanged");
+        Assert.AreEqual(4, voxels[3], "Fourth voxel should be unchanged");
+    }
 }

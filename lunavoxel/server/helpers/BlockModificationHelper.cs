@@ -15,7 +15,11 @@ public static partial class Module
     /// </remarks>
     public static void ApplyDiffData(byte[] voxels, byte[] diffData, BlockModificationMode mode)
     {
-        for (int i = 0; i < diffData.Length; i++)
+        if (voxels == null) throw new ArgumentNullException(nameof(voxels));
+        if (diffData == null) throw new ArgumentNullException(nameof(diffData));
+        
+        int length = Math.Min(voxels.Length, diffData.Length);
+        for (int i = 0; i < length; i++)
         {
             if (diffData[i] != 0)
             {
