@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ToolType, type BlockModificationMode } from "../../../module_bindings";
+import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
@@ -10,9 +10,7 @@ export class BlockPickerTool implements Tool {
 
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
-    normal: THREE.Vector3,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mode: BlockModificationMode
+    normal: THREE.Vector3
   ): THREE.Vector3 {
     return calculateGridPositionWithMode(intersectionPoint, normal, { tag: "Erase" });
   }

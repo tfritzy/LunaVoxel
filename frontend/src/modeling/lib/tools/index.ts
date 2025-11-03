@@ -1,4 +1,4 @@
-import type { ToolType } from "../../../module_bindings";
+import type { ToolType } from "../tool-type";
 import type { Tool } from "../tool-interface";
 import { RectTool } from "./rect-tool";
 import { BlockPickerTool } from "./block-picker-tool";

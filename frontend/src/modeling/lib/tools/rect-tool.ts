@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { ToolType, type BlockModificationMode } from "../../../module_bindings";
+import type { BlockModificationMode } from "../../../module_bindings";
+import type { ToolType } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
@@ -45,11 +46,9 @@ export class RectTool implements Tool {
   ): void {
     context.previewFrame.clear();
     
-    const toolType = this.getModeBasedToolType(context.mode);
-    
     context.projectManager.applyOptimisticRectEdit(
       context.selectedLayer,
-      toolType,
+      context.mode,
       startPos.clone(),
       endPos.clone(),
       context.selectedBlock,
@@ -58,7 +57,7 @@ export class RectTool implements Tool {
 
     context.dbConn.reducers.modifyBlockRect(
       context.projectId,
-      toolType,
+      context.mode,
       context.selectedBlock,
       startPos,
       endPos,

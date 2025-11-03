@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ToolType } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
 
 const loadSvgAsCursor = async (
   svgPath: string,

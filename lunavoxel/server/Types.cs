@@ -221,16 +221,6 @@ public static partial class Module
     }
 
     [Type]
-    public enum ToolType
-    {
-        Build,
-        Erase,
-        Paint,
-        BlockPicker,
-        MagicSelect
-    }
-
-    [Type]
     public enum BlockModificationMode
     {
         Attach,
