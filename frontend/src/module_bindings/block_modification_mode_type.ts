@@ -27,54 +27,48 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
   type TableHandle as __TableHandle,
 } from "spacetimedb";
-import * as ToolTypeVariants from './tool_type_variants'
+import * as BlockModificationModeVariants from './block_modification_mode_variants'
 
-// The tagged union or sum type for the algebraic type `ToolType`.
-export type ToolType = ToolTypeVariants.Build |
-  ToolTypeVariants.Erase |
-  ToolTypeVariants.Paint |
-  ToolTypeVariants.BlockPicker |
-  ToolTypeVariants.MagicSelect;
+// The tagged union or sum type for the algebraic type `BlockModificationMode`.
+export type BlockModificationMode = BlockModificationModeVariants.Attach |
+  BlockModificationModeVariants.Erase |
+  BlockModificationModeVariants.Paint;
 
-let _cached_ToolType_type_value: __AlgebraicTypeType | null = null;
+let _cached_BlockModificationMode_type_value: __AlgebraicTypeType | null = null;
 
 // A value with helper functions to construct the type.
-export const ToolType = {
+export const BlockModificationMode = {
   // Helper functions for constructing each variant of the tagged union.
   // ```
   // const foo = Foo.A(42);
   // assert!(foo.tag === "A");
   // assert!(foo.value === 42);
   // ```
-  Build: { tag: "Build" } as const,
+  Attach: { tag: "Attach" } as const,
   Erase: { tag: "Erase" } as const,
   Paint: { tag: "Paint" } as const,
-  BlockPicker: { tag: "BlockPicker" } as const,
-  MagicSelect: { tag: "MagicSelect" } as const,
 
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    if (_cached_ToolType_type_value) return _cached_ToolType_type_value;
-    _cached_ToolType_type_value = __AlgebraicTypeValue.Sum({ variants: [] });
-    _cached_ToolType_type_value.value.variants.push(
-      { name: "Build", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
+    if (_cached_BlockModificationMode_type_value) return _cached_BlockModificationMode_type_value;
+    _cached_BlockModificationMode_type_value = __AlgebraicTypeValue.Sum({ variants: [] });
+    _cached_BlockModificationMode_type_value.value.variants.push(
+      { name: "Attach", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
       { name: "Erase", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
       { name: "Paint", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-      { name: "BlockPicker", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
-      { name: "MagicSelect", algebraicType: __AlgebraicTypeValue.Product({ elements: [] }) },
     );
-    return _cached_ToolType_type_value;
+    return _cached_BlockModificationMode_type_value;
   },
 
-  serialize(writer: __BinaryWriter, value: ToolType): void {
-      __AlgebraicTypeValue.serializeValue(writer, ToolType.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: BlockModificationMode): void {
+      __AlgebraicTypeValue.serializeValue(writer, BlockModificationMode.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): ToolType {
-      return __AlgebraicTypeValue.deserializeValue(reader, ToolType.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): BlockModificationMode {
+      return __AlgebraicTypeValue.deserializeValue(reader, BlockModificationMode.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default ToolType;
+export default BlockModificationMode;
 
 

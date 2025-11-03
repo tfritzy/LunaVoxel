@@ -4,7 +4,8 @@ import { useAuth } from "@/firebase/AuthContext";
 import { useDatabase } from "@/contexts/DatabaseContext";
 import { createProject } from "@/lib/createProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
-import { ToolType, Project } from "@/module_bindings";
+import { Project, BlockModificationMode } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
 import { VoxelEngine } from "@/modeling/voxel-engine";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useAtlas } from "@/lib/useAtlas";
@@ -24,8 +25,11 @@ export const SignInPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<ToolType>({
-    tag: "Build",
+  const [currentTool, setCurrentTool] = useState<ToolType>(
+    "Rect",
+  );
+  const [currentMode, setCurrentMode] = useState<BlockModificationMode>({
+    tag: "Attach",
   });
   const atlasData = useAtlas();
   const isInitializedRef = useRef<boolean>(false);
@@ -90,10 +94,6 @@ export const SignInPage = () => {
             connection,
             project: demoProject,
           });
-
-          engineRef.current.projectManager?.setSelectedBlock(selectedBlock);
-          engineRef.current.projectManager?.setTool(currentTool);
-          engineRef.current.projectManager?.setAtlasData(atlasData);
         });
       });
     },
@@ -126,21 +126,6 @@ export const SignInPage = () => {
     };
   }, []);
 
-  useEffect(() => {
-    engineRef.current?.projectManager?.setSelectedBlock(selectedBlock);
-  }, [selectedBlock]);
-
-  useEffect(() => {
-    if (engineRef.current) {
-      engineRef.current.projectManager?.setTool(currentTool);
-    }
-  }, [currentTool]);
-
-  useEffect(() => {
-    if (engineRef.current?.projectManager && atlasData) {
-      engineRef.current.projectManager.setAtlasData(atlasData);
-    }
-  }, [atlasData]);
 
   const handleExport = useCallback((type: ExportType) => {
 
@@ -158,6 +143,10 @@ export const SignInPage = () => {
     setCurrentTool(tool);
   }, []);
 
+  const handleModeChange = useCallback((mode: BlockModificationMode) => {
+    setCurrentMode(mode);
+  }, []);
+
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
   }, []);
@@ -168,7 +157,9 @@ export const SignInPage = () => {
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
+      currentMode={currentMode}
       onToolChange={handleToolChange}
+      onModeChange={handleModeChange}
       onExport={handleExport}
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}

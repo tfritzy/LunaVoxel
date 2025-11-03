@@ -2,7 +2,6 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { useDatabase } from "@/contexts/DatabaseContext";
-import { useCustomCursor } from "@/lib/useCustomCursor";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { useCurrentProject } from "@/lib/useCurrentProject";
@@ -12,7 +11,8 @@ import { useAuth } from "@/firebase/AuthContext";
 import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
 import { useProjectAccess } from "@/lib/useProjectAccess";
-import { ToolType } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
+import type { BlockModificationMode } from "@/module_bindings";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
@@ -21,9 +21,9 @@ export const ProjectViewPage = () => {
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<ToolType>(ToolType.Build);
+  const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
+  const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const project = useCurrentProject(connection, projectId);
-  const customCursor = useCustomCursor(currentTool);
   const [loading, setLoading] = useState<boolean>(true);
   const atlasData = useAtlas();
   const { currentUser } = useAuth();
@@ -135,7 +135,7 @@ export const ProjectViewPage = () => {
           selectedBlock,
           setSelectedBlock
         );
-        engineRef.current.projectManager.setTool(currentTool);
+        engineRef.current.projectManager.builder.setTool(currentTool);
         engineRef.current.projectManager.setAtlasData(atlasData);
       });
     },
@@ -160,9 +160,15 @@ export const ProjectViewPage = () => {
 
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.projectManager.setTool(currentTool);
+      engineRef.current.projectManager.builder.setTool(currentTool);
     }
   }, [currentTool]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.projectManager.builder.setMode(currentMode);
+    }
+  }, [currentMode]);
 
   useEffect(() => {
     if (engineRef.current?.projectManager && atlasData) {
@@ -172,6 +178,10 @@ export const ProjectViewPage = () => {
 
   const handleToolChange = useCallback((tool: ToolType) => {
     setCurrentTool(tool);
+  }, []);
+
+  const handleModeChange = useCallback((mode: BlockModificationMode) => {
+    setCurrentMode(mode);
   }, []);
 
   const createNewProject = useCallback(() => {
@@ -233,7 +243,9 @@ export const ProjectViewPage = () => {
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
+      currentMode={currentMode}
       onToolChange={handleToolChange}
+      onModeChange={handleModeChange}
       onExport={handleExport}
       onSelectLayer={handleLayerSelect}
       onUndo={handleUndo}
@@ -245,7 +257,6 @@ export const ProjectViewPage = () => {
       <div
         ref={containerCallbackRef}
         className="w-full h-full bg-background"
-        style={{ cursor: customCursor }}
       />
     </ProjectLayout>
   );

@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import {
-  ToolType,
   Vector3,
   DbConnection,
   EventContext,
   Layer,
   Selection,
+  BlockModificationMode,
 } from "@/module_bindings";
 import {
   getBlockType,
@@ -20,6 +20,7 @@ import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
 import { VoxelFrame } from "./voxel-frame";
+import { ToolType } from "./tool-type";
 
 export const CHUNK_SIZE = 16;
 
@@ -128,7 +129,7 @@ export class Chunk {
     }
   }
 
-  setTextureAtlas = (atlasData: AtlasData, buildMode: ToolType) => {
+  setTextureAtlas = (atlasData: AtlasData, buildMode: BlockModificationMode) => {
     if (this.material) {
       this.material.uniforms.map.value = atlasData.texture;
       this.material.needsUpdate = true;
@@ -179,13 +180,13 @@ export class Chunk {
   private updatePreviewState(
     previewFrame: VoxelFrame,
     blocks: Uint8Array,
-    buildMode: ToolType
+    buildMode: BlockModificationMode
   ): void {
     if (previewFrame.isEmpty()) return;
 
-    const isPaintMode = buildMode.tag === ToolType.Paint.tag;
-    const isBuildMode = buildMode.tag === ToolType.Build.tag;
-    const isEraseMode = buildMode.tag === ToolType.Erase.tag;
+    const isPaintMode = buildMode.tag === 'Paint';
+    const isAttachMode = buildMode.tag === 'Attach';
+    const isEraseMode = buildMode.tag === 'Erase';
 
     // Iterate through all voxels and apply the appropriate preview logic
     for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
@@ -198,7 +199,7 @@ export class Chunk {
       const realBlockValue = blocks[voxelIndex];
       const hasRealBlock = isBlockPresent(realBlockValue);
 
-      if (isBuildMode) {
+      if (isAttachMode) {
         // Build mode: Show preview blocks where they'll be placed
         // - If preview exists and there's NO real block: show the preview block
         // - If preview exists and there IS a real block: hide preview (can't place here)
@@ -264,9 +265,10 @@ export class Chunk {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public applyOptimisticRect(
     layer: DecompressedLayer,
-    tool: ToolType,
+    mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
@@ -287,14 +289,14 @@ export class Chunk {
           const idx = base + z;
           const currentType = getBlockType(layer.voxels[idx]);
 
-          switch (tool.tag) {
-            case ToolType.Build.tag:
+          switch (mode.tag) {
+            case "Attach":
               layer.voxels[idx] = blockType;
               break;
-            case ToolType.Erase.tag:
+            case "Erase":
               layer.voxels[idx] = 0;
               break;
-            case ToolType.Paint.tag:
+            case "Paint":
               if (currentType !== 0) {
                 layer.voxels[idx] = blockType;
               }
@@ -334,7 +336,10 @@ export class Chunk {
       .filter((l) => l.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
 
-    this.layers = rawLayers.map(this.decompressLayer);
+    this.layers = rawLayers.map((layer) => {
+      const existingLayer = this.layers.find((l) => l.id === layer.id);
+      return this.decompressLayer(layer, existingLayer?.voxels);
+    });
   };
 
   private refreshSelections = () => {
@@ -342,7 +347,10 @@ export class Chunk {
       this.dbConn.db.selections.tableCache.iter() as Selection[]
     ).filter((s) => s.projectId === this.projectId);
 
-    this.selections = rawSelections.map(this.decompressSelection);
+    this.selections = rawSelections.map((selection) => {
+      const existingSelection = this.selections.find((s) => s.id === selection.id);
+      return this.decompressSelection(selection, existingSelection?.selectionData);
+    });
   };
 
   private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
@@ -487,7 +495,7 @@ export class Chunk {
   };
 
   private updatePreviewMesh = (
-    buildMode: ToolType,
+    buildMode: BlockModificationMode,
     atlasData: AtlasData
   ): void => {
     if (!this.meshes.preview.mesh) {
@@ -503,15 +511,15 @@ export class Chunk {
     this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
 
     this.meshes.preview.mesh.visible =
-      buildMode.tag === ToolType.Build.tag ||
-      buildMode.tag === ToolType.Paint.tag;
+      buildMode.tag === 'Attach' ||
+      buildMode.tag === "Paint";
     this.meshes.preview.mesh.layers.set(
-      buildMode.tag === ToolType.Build.tag ? layers.ghost : layers.raycast
+      buildMode.tag === "Attach" ? layers.ghost : layers.raycast
     );
   };
 
-  private updateMeshes = (buildMode: ToolType, atlasData: AtlasData) => {
-    const previewOccludes = buildMode.tag !== ToolType.Erase.tag;
+  private updateMeshes = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
+    const previewOccludes = buildMode.tag !== "Erase";
     
     this.facesFinder.findExteriorFaces(
       this.voxelData,
@@ -531,7 +539,7 @@ export class Chunk {
 
   update = (
     previewFrame: VoxelFrame,
-    buildMode: ToolType,
+    buildMode: BlockModificationMode,
     atlasData: AtlasData
   ) => {
     try {

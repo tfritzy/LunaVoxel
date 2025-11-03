@@ -1,7 +1,8 @@
 import { ProjectHeader } from "./ProjectHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
-import { AccessType, ToolType } from "@/module_bindings";
+import { AccessType, BlockModificationMode } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
@@ -17,7 +18,9 @@ interface ProjectLayoutProps {
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
   currentTool: ToolType;
+  currentMode: BlockModificationMode;
   onToolChange: (tool: ToolType) => void;
+  onModeChange: (mode: BlockModificationMode) => void;
   onExport: (format: ExportType) => void;
   onSelectLayer?: (layerIndex: number) => void;
   onUndo: () => void;
@@ -32,7 +35,9 @@ export const ProjectLayout = ({
   selectedBlock,
   setSelectedBlock,
   currentTool,
+  currentMode,
   onToolChange,
+  onModeChange,
   onExport,
   onSelectLayer,
   onUndo,
@@ -63,7 +68,9 @@ export const ProjectLayout = ({
           {accessLevel?.tag === "ReadWrite" && (
             <FloatingToolbar
               currentTool={currentTool}
+              currentMode={currentMode}
               onToolChange={onToolChange}
+              onModeChange={onModeChange}
             />
           )}
         </div>

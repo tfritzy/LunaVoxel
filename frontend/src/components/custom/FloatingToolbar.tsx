@@ -1,16 +1,21 @@
 import { useEffect } from "react";
 import { Eraser, Paintbrush, PlusSquare, Pipette, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToolType } from "@/module_bindings";
+import type { ToolType } from "@/modeling/lib/tool-type";
+import type { BlockModificationMode } from "@/module_bindings";
 
 interface FloatingToolbarProps {
   currentTool: ToolType;
+  currentMode: BlockModificationMode;
   onToolChange: (tool: ToolType) => void;
+  onModeChange: (mode: BlockModificationMode) => void;
 }
 
 export const FloatingToolbar = ({
   currentTool,
+  currentMode,
   onToolChange,
+  onModeChange,
 }: FloatingToolbarProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -22,69 +27,88 @@ export const FloatingToolbar = ({
       }
       switch (event.key) {
         case "a":
-          onToolChange({ tag: "Build" });
+          onToolChange("Rect");
+          onModeChange({ tag: "Attach" });
           break;
         case "e":
-          onToolChange({ tag: "Erase" });
+          onToolChange("Rect");
+          onModeChange({ tag: "Erase" });
           break;
         case "t":
-          onToolChange({ tag: "Paint" });
+          onToolChange("Rect");
+          onModeChange({ tag: "Paint" });
           break;
         case "c":
-          onToolChange({ tag: "BlockPicker" });
+          onToolChange("BlockPicker");
           break;
         case "s":
-          onToolChange({ tag: "MagicSelect" });
+          onToolChange("MagicSelect");
           break;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onToolChange]);
+  }, [onToolChange, onModeChange]);
 
+  const isAttachMode = currentTool === "Rect" && currentMode.tag === "Attach";
+  const isEraseMode = currentTool === "Rect" && currentMode.tag === "Erase";
+  const isPaintMode = currentTool === "Rect" && currentMode.tag === "Paint";
+
+  // TODO: Separate mode selector and tool selector in the UI. Currently, Build/Erase/Paint
+  // buttons set both tool (Rect) and mode (Attach/Erase/Paint). In the future, we should
+  // have independent mode and tool selectors so users can combine any tool with any mode.
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
       <div className="flex items-center gap-1">
         <Button
-          onClick={() => onToolChange({ tag: "Build" })}
+          onClick={() => {
+            onToolChange("Rect");
+            onModeChange({ tag: "Attach" });
+          }}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "Build"
+            isAttachMode
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Attach Tool (A)"
+          title="Attach Mode (A)"
         >
           <PlusSquare className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">A</div>
         </Button>
         <Button
-          onClick={() => onToolChange({ tag: "Erase" })}
+          onClick={() => {
+            onToolChange("Rect");
+            onModeChange({ tag: "Erase" });
+          }}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "Erase"
+            isEraseMode
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Erase Tool (E)"
+          title="Erase Mode (E)"
         >
           <Eraser className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">E</div>
         </Button>
         <Button
-          onClick={() => onToolChange({ tag: "Paint" })}
+          onClick={() => {
+            onToolChange("Rect");
+            onModeChange({ tag: "Paint" });
+          }}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "Paint"
+            isPaintMode
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Paint Tool (T)"
+          title="Paint Mode (T)"
         >
           <Paintbrush className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
         </Button>
         <Button
-          onClick={() => onToolChange({ tag: "BlockPicker" })}
+          onClick={() => onToolChange("BlockPicker")}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "BlockPicker"
+            currentTool === "BlockPicker"
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
@@ -94,9 +118,9 @@ export const FloatingToolbar = ({
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">C</div>
         </Button>
         <Button
-          onClick={() => onToolChange({ tag: "MagicSelect" })}
+          onClick={() => onToolChange("MagicSelect")}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "MagicSelect"
+            currentTool === "MagicSelect"
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}

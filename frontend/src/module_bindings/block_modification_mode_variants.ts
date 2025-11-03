@@ -28,9 +28,7 @@ import {
   type TableHandle as __TableHandle,
 } from "spacetimedb";
 
-export type Build = { tag: "Build" };
+export type Attach = { tag: "Attach" };
 export type Erase = { tag: "Erase" };
 export type Paint = { tag: "Paint" };
-export type BlockPicker = { tag: "BlockPicker" };
-export type MagicSelect = { tag: "MagicSelect" };
 

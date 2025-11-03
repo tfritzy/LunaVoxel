@@ -31,53 +31,40 @@ import {
 import { Vector3 } from "./vector_3_type";
 // Mark import as potentially unused
 declare type __keep_Vector3 = Vector3;
-import { BlockModificationMode } from "./block_modification_mode_type";
-// Mark import as potentially unused
-declare type __keep_BlockModificationMode = BlockModificationMode;
 
-export type ModifyBlockRect = {
+export type MoveSelection = {
   projectId: string,
-  mode: BlockModificationMode,
-  type: number,
-  start: Vector3,
-  end: Vector3,
-  rotation: number,
-  layerIndex: number,
+  offset: Vector3,
 };
-let _cached_ModifyBlockRect_type_value: __AlgebraicTypeType | null = null;
+let _cached_MoveSelection_type_value: __AlgebraicTypeType | null = null;
 
 /**
  * An object for generated helper functions.
  */
-export const ModifyBlockRect = {
+export const MoveSelection = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    if (_cached_ModifyBlockRect_type_value) return _cached_ModifyBlockRect_type_value;
-    _cached_ModifyBlockRect_type_value = __AlgebraicTypeValue.Product({ elements: [] });
-    _cached_ModifyBlockRect_type_value.value.elements.push(
+    if (_cached_MoveSelection_type_value) return _cached_MoveSelection_type_value;
+    _cached_MoveSelection_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_MoveSelection_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
-      { name: "mode", algebraicType: BlockModificationMode.getTypeScriptAlgebraicType() },
-      { name: "type", algebraicType: __AlgebraicTypeValue.U8 },
-      { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "rotation", algebraicType: __AlgebraicTypeValue.U8 },
-      { name: "layerIndex", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "offset", algebraicType: Vector3.getTypeScriptAlgebraicType() },
     );
-    return _cached_ModifyBlockRect_type_value;
+    return _cached_MoveSelection_type_value;
   },
 
-  serialize(writer: __BinaryWriter, value: ModifyBlockRect): void {
-    __AlgebraicTypeValue.serializeValue(writer, ModifyBlockRect.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: MoveSelection): void {
+    __AlgebraicTypeValue.serializeValue(writer, MoveSelection.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): ModifyBlockRect {
-    return __AlgebraicTypeValue.deserializeValue(reader, ModifyBlockRect.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): MoveSelection {
+    return __AlgebraicTypeValue.deserializeValue(reader, MoveSelection.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default ModifyBlockRect;
+export default MoveSelection;
 

@@ -1,10 +1,14 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import { ToolType, DbConnection, Vector3 } from "../../module_bindings";
+import { DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import { calculateRectBounds } from "@/lib/rect-utils";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
+import { RectTool } from "./tools/rect-tool";
+import { BlockPickerTool } from "./tools/block-picker-tool";
+import { MagicSelectTool } from "./tools/magic-select-tool";
+import type { Tool } from "./tool-interface";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
@@ -23,7 +27,19 @@ export const Builder = class {
   private scene: THREE.Scene;
   private domElement: HTMLElement;
 
-  private currentTool: ToolType = { tag: "Build" };
+  private currentTool: Tool;
+  private currentMode: BlockModificationMode = { tag: "Attach" };
+  private toolContext: {
+    dbConn: DbConnection;
+    projectId: string;
+    dimensions: Vector3;
+    projectManager: ProjectManager;
+    previewFrame: VoxelFrame;
+    selectedBlock: number;
+    selectedLayer: number;
+    setSelectedBlockInParent: (index: number) => void;
+    mode: BlockModificationMode;
+  };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
   private lastPreviewStart: THREE.Vector3 | null = null;
@@ -64,6 +80,19 @@ export const Builder = class {
     this.mouse = new THREE.Vector2();
 
     this.previewFrame = new VoxelFrame(dimensions);
+    this.currentTool = this.createTool("Rect");
+
+    this.toolContext = {
+      dbConn: this.dbConn,
+      projectId: this.projectId,
+      dimensions: this.dimensions,
+      projectManager: this.projectManager,
+      previewFrame: this.previewFrame,
+      selectedBlock: this.selectedBlock,
+      selectedLayer: this.selectedLayer,
+      setSelectedBlockInParent: this.setSelectedBlockInParent,
+      mode: this.currentMode,
+    };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
     this.boundMouseClick = this.onMouseClick.bind(this);
@@ -79,16 +108,6 @@ export const Builder = class {
     );
   }
 
-  private setPreviewBlock(
-    x: number,
-    y: number,
-    z: number,
-    blockType: number,
-    rotation: number = 0
-  ): void {
-    this.previewFrame.set(x, y, z, blockType);
-  }
-
   cancelCurrentOperation(): void {
     if (this.isMouseDown) {
       this.clearPreviewBlocks();
@@ -102,7 +121,35 @@ export const Builder = class {
 
   public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
-    this.currentTool = tool;
+    this.currentTool = this.createTool(tool);
+  }
+
+  private createTool(toolType: ToolType): Tool {
+    switch (toolType) {
+      case "Rect":
+        return new RectTool();
+      case "BlockPicker":
+        return new BlockPickerTool();
+      case "MagicSelect":
+        return new MagicSelectTool();
+      default:
+        throw new Error(
+          `Unknown tool type: ${JSON.stringify(toolType)}`
+        );
+    }
+  }
+
+  public setMode(mode: BlockModificationMode): void {
+    this.currentMode = mode;
+    this.toolContext.mode = mode;
+  }
+
+  public getMode(): BlockModificationMode {
+    return this.currentMode;
+  }
+
+  public getTool(): ToolType {
+    return this.currentTool.getType();
   }
 
   public setSelectedBlock(
@@ -111,18 +158,17 @@ export const Builder = class {
   ): void {
     this.selectedBlock = block;
     this.setSelectedBlockInParent = setter;
+    this.toolContext.selectedBlock = block;
+    this.toolContext.setSelectedBlockInParent = setter;
   }
 
   public setSelectedLayer(layer: number): void {
     this.selectedLayer = layer;
+    this.toolContext.selectedLayer = layer;
   }
 
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
-  }
-
-  public getTool(): ToolType {
-    return this.currentTool;
   }
 
   private addEventListeners(): void {
@@ -145,7 +191,7 @@ export const Builder = class {
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
     if (gridPos && this.accessManager.hasWriteAccess) {
-      this.preview(gridPos);
+      this.handleMouseDrag(gridPos);
     }
   }
 
@@ -163,7 +209,7 @@ export const Builder = class {
 
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
-      this.onMouseClickHandler(position);
+      this.handleMouseUp(position);
     }
   }
 
@@ -177,7 +223,8 @@ export const Builder = class {
 
       const gridPos = this.checkIntersection();
       if (gridPos) {
-        this.preview(gridPos);
+        this.startPosition = gridPos.clone();
+        this.currentTool.onMouseDown(this.toolContext, gridPos);
       }
     }
   }
@@ -242,13 +289,13 @@ export const Builder = class {
       const intersection = intersects[0];
       const intersectionPoint = intersection.point;
       const face = intersection.face;
-      const gridPos = this.floorVector3(intersectionPoint.clone());
 
       if (face) {
         const worldNormal = face.normal.clone();
         worldNormal.transformDirection(intersection.object.matrixWorld);
         worldNormal.normalize();
-        const faceCenter = intersectionPoint;
+        
+        const faceCenter = intersectionPoint.clone();
 
         if (Math.abs(worldNormal.x) < 0.1) {
           faceCenter.x = Math.floor(faceCenter.x) + 0.5;
@@ -263,45 +310,20 @@ export const Builder = class {
         }
 
         this.throttledUpdateCursorPos(faceCenter, worldNormal);
-      }
 
-      if (
-        this.currentTool.tag === "Erase" ||
-        this.currentTool.tag === "Paint" ||
-        this.currentTool.tag === "BlockPicker" ||
-        this.currentTool.tag === "MagicSelect"
-      ) {
-        const normal = intersection.face?.normal.multiplyScalar(-0.1);
-        if (normal) {
-          return this.floorVector3(intersectionPoint.add(normal));
-        }
-        return gridPos;
-      } else {
-        const normal = intersection.face?.normal.multiplyScalar(0.1);
-        if (normal) {
-          return this.floorVector3(intersectionPoint.add(normal));
-        }
-        return gridPos;
+        return this.currentTool.calculateGridPosition(
+          intersectionPoint.clone(),
+          face.normal.clone(),
+          this.currentMode
+        );
       }
     }
 
     return null;
   }
 
-  private floorVector3(vector3: THREE.Vector3): THREE.Vector3 {
-    vector3.x = Math.floor(vector3.x);
-    vector3.y = Math.floor(vector3.y);
-    vector3.z = Math.floor(vector3.z);
-    return vector3;
-  }
-
-  private preview(gridPos: THREE.Vector3): void {
-    if (
-      !this.dbConn.isActive ||
-      !this.accessManager.hasWriteAccess ||
-      this.currentTool.tag === "BlockPicker"
-    )
-      return;
+  private handleMouseDrag(gridPos: THREE.Vector3): void {
+    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
@@ -318,38 +340,19 @@ export const Builder = class {
     }
 
     if (this.isMouseDown && this.startPosition) {
-      this.previewBlock(this.startPosition, gridPos);
+      this.currentTool.onDrag(this.toolContext, this.startPosition, gridPos);
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
   }
 
-  private onMouseClickHandler(position: THREE.Vector3): void {
-    if (this.currentTool.tag === "BlockPicker") {
-      const blockType = this.projectManager.getBlockAtPosition(
-        position,
-        this.selectedLayer
-      );
-      if (blockType !== null && blockType !== 0) {
-        this.setSelectedBlockInParent(blockType);
-      }
-      return;
-    }
-
+  private handleMouseUp(position: THREE.Vector3): void {
     if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
 
     const endPos = position;
     const startPos = this.startPosition || position;
 
-    if (this.currentTool.tag === "MagicSelect") {
-      this.dbConn.reducers.magicSelect(
-        this.projectId,
-        this.selectedLayer,
-        position
-      );
-    } else {
-      this.modifyBlock(this.currentTool, startPos, endPos);
-    }
+    this.currentTool.onMouseUp(this.toolContext, startPos, endPos);
 
     this.isMouseDown = false;
     this.startPosition = null;
@@ -358,50 +361,6 @@ export const Builder = class {
   }
   private clearPreviewBlocks(): void {
     this.previewFrame.clear();
-  }
-
-  private previewBlock(startPos: THREE.Vector3, endPos: THREE.Vector3): void {
-    this.clearPreviewBlocks();
-
-    const bounds = calculateRectBounds(startPos, endPos, this.dimensions);
-
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          this.setPreviewBlock(x, y, z, this.selectedBlock);
-        }
-      }
-    }
-
-    this.projectManager.onPreviewUpdate();
-  }
-
-  private modifyBlock(
-    tool: ToolType,
-    startPos: THREE.Vector3,
-    endPos: THREE.Vector3
-  ): void {
-    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
-
-    this.clearPreviewBlocks();
-    this.projectManager.applyOptimisticRectEdit(
-      this.selectedLayer,
-      tool,
-      startPos.clone(),
-      endPos.clone(),
-      this.selectedBlock,
-      0
-    );
-
-    this.dbConn.reducers.modifyBlockRect(
-      this.projectId,
-      tool,
-      this.selectedBlock,
-      startPos,
-      endPos,
-      0,
-      this.selectedLayer
-    );
   }
 
   private vectorsApproximatelyEqual(

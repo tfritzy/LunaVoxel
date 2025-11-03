@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { ToolType, DbConnection, Project } from "../../module_bindings";
+import { DbConnection, Project, BlockModificationMode } from "../../module_bindings";
+import type { ToolType } from "./tool-type";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { Chunk } from "./chunk";
@@ -105,7 +106,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.chunkManager.setTextureAtlas(atlasData, this.builder.getTool());
+      this.chunkManager.setTextureAtlas(atlasData, this.builder.getMode());
       this.updateChunkManager();
     }
   };
@@ -120,7 +121,7 @@ export class ProjectManager {
 
   public applyOptimisticRectEdit = (
     layerIndex: number,
-    tool: ToolType,
+    mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
@@ -131,7 +132,7 @@ export class ProjectManager {
     const previousVoxels = new Uint8Array(layer.voxels);
     this.chunkManager.applyOptimisticRect(
       layer,
-      tool,
+      mode,
       start,
       end,
       blockType,
@@ -165,8 +166,7 @@ export class ProjectManager {
     }
 
     const index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-    const blockValue = layer.voxels[index];
-    return getBlockType(blockValue);
+    return layer.voxels[index];
   }
 
   private updateChunkManager = () => {
@@ -175,17 +175,13 @@ export class ProjectManager {
 
     this.chunkManager.update(
       this.builder.previewFrame,
-      this.builder.getTool(),
+      this.builder.getMode(),
       this.atlasData
     );
 
     const end = performance.now();
     console.log(`ChunkManager update time: ${end - start} ms`);
-  };
-
-  public setTool(tool: ToolType): void {
-    this.builder.setTool(tool);
-  }
+  };  
 
   dispose(): void {
     this.builder.dispose();

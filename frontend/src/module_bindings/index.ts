@@ -61,6 +61,8 @@ import { ModifyBlockAmorphous } from "./modify_block_amorphous_reducer.ts";
 export { ModifyBlockAmorphous };
 import { ModifyBlockRect } from "./modify_block_rect_reducer.ts";
 export { ModifyBlockRect };
+import { MoveSelection } from "./move_selection_reducer.ts";
+export { MoveSelection };
 import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
@@ -99,6 +101,8 @@ export { UserProjectsTableHandle };
 // Import and reexport all types
 import { AccessType } from "./access_type_type.ts";
 export { AccessType };
+import { BlockModificationMode } from "./block_modification_mode_type.ts";
+export { BlockModificationMode };
 import { Layer } from "./layer_type.ts";
 export { Layer };
 import { PlayerCursor } from "./player_cursor_type.ts";
@@ -109,8 +113,6 @@ import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
 import { Selection } from "./selection_type.ts";
 export { Selection };
-import { ToolType } from "./tool_type_type.ts";
-export { ToolType };
 import { User } from "./user_type.ts";
 export { User };
 import { UserProject } from "./user_project_type.ts";
@@ -247,6 +249,10 @@ const REMOTE_MODULE = {
       reducerName: "ModifyBlockRect",
       argsType: ModifyBlockRect.getTypeScriptAlgebraicType(),
     },
+    MoveSelection: {
+      reducerName: "MoveSelection",
+      argsType: MoveSelection.getTypeScriptAlgebraicType(),
+    },
     PokeProject: {
       reducerName: "PokeProject",
       argsType: PokeProject.getTypeScriptAlgebraicType(),
@@ -328,6 +334,7 @@ export type Reducer = never
 | { name: "ModifyBlock", args: ModifyBlock }
 | { name: "ModifyBlockAmorphous", args: ModifyBlockAmorphous }
 | { name: "ModifyBlockRect", args: ModifyBlockRect }
+| { name: "MoveSelection", args: MoveSelection }
 | { name: "PokeProject", args: PokeProject }
 | { name: "ReorderLayers", args: ReorderLayers }
 | { name: "SyncUser", args: SyncUser }
@@ -550,7 +557,7 @@ export class RemoteReducers {
     this.connection.offReducer("ModifyBlockAmorphous", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
     const __args = { projectId, mode, type, start, end, rotation, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlockRect.serialize(__writer, __args);
@@ -558,12 +565,28 @@ export class RemoteReducers {
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
+  }
+
+  moveSelection(projectId: string, offset: Vector3) {
+    const __args = { projectId, offset };
+    let __writer = new __BinaryWriter(1024);
+    MoveSelection.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("MoveSelection", __argsBuffer, this.setCallReducerFlags.moveSelectionFlags);
+  }
+
+  onMoveSelection(callback: (ctx: ReducerEventContext, projectId: string, offset: Vector3) => void) {
+    this.connection.onReducer("MoveSelection", callback);
+  }
+
+  removeOnMoveSelection(callback: (ctx: ReducerEventContext, projectId: string, offset: Vector3) => void) {
+    this.connection.offReducer("MoveSelection", callback);
   }
 
   pokeProject(projectId: string) {
@@ -776,6 +799,11 @@ export class SetReducerFlags {
   modifyBlockRectFlags: __CallReducerFlags = 'FullUpdate';
   modifyBlockRect(flags: __CallReducerFlags) {
     this.modifyBlockRectFlags = flags;
+  }
+
+  moveSelectionFlags: __CallReducerFlags = 'FullUpdate';
+  moveSelection(flags: __CallReducerFlags) {
+    this.moveSelectionFlags = flags;
   }
 
   pokeProjectFlags: __CallReducerFlags = 'FullUpdate';

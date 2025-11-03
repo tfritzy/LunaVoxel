@@ -12,7 +12,7 @@ public static partial class Module
     public static void ModifyBlockRect(
         ReducerContext ctx,
         string projectId,
-        ToolType mode,
+        BlockModificationMode mode,
         byte type,
         Vector3 start,
         Vector3 end,
@@ -50,9 +50,9 @@ public static partial class Module
                     var cur = BlockType.FromInt(existingData[index]);
                     byte? newValue = mode switch
                     {
-                        ToolType.Build => type,
-                        ToolType.Erase => (byte)0,
-                        ToolType.Paint when cur.Type != 0 => type,
+                        BlockModificationMode.Attach => type,
+                        BlockModificationMode.Erase => (byte)0,
+                        BlockModificationMode.Paint when cur.Type != 0 => type,
                         _ => (byte)0
                     };
 
