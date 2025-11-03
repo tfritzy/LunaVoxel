@@ -31,18 +31,6 @@ const getCursorConfig = (
   mode: ToolType
 ): { path: string; hotspot: [number, number]; scale: number } => {
   switch (mode.tag) {
-    case "Erase":
-      return {
-        path: "/src/assets/drawing_eraser.svg",
-        hotspot: [1, 8],
-        scale: 0.7,
-      };
-    case "Paint":
-      return {
-        path: "/src/assets/drawing_brush.svg",
-        hotspot: [4, 4],
-        scale: 0.7,
-      };
     case "BlockPicker":
       return {
         path: "/src/assets/drawing_picker.svg",
@@ -55,7 +43,7 @@ const getCursorConfig = (
         hotspot: [4, 2],
         scale: 0.7,
       };
-    case "Build":
+    case "Rect":
     default:
       return {
         path: "/src/assets/cursor_none.svg",

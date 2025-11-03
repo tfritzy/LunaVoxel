@@ -7,7 +7,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class RectTool implements Tool {
   getType(): ToolType {
-    return { tag: "Build" };
+    return { tag: "Rect" };
   }
 
   calculateGridPosition(
@@ -64,16 +64,5 @@ export class RectTool implements Tool {
       0,
       context.selectedLayer
     );
-  }
-
-  private getModeBasedToolType(mode: BlockModificationMode): ToolType {
-    switch (mode.tag) {
-      case "Attach":
-        return { tag: "Build" };
-      case "Erase":
-        return { tag: "Erase" };
-      case "Paint":
-        return { tag: "Paint" };
-    }
   }
 }

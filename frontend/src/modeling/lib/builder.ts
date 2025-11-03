@@ -78,7 +78,7 @@ export const Builder = class {
     this.mouse = new THREE.Vector2();
 
     this.previewFrame = new VoxelFrame(dimensions);
-    this.currentTool = createTool({ tag: "Build" });
+    this.currentTool = createTool({ tag: "Rect" });
 
     this.toolContext = {
       dbConn: this.dbConn,
@@ -120,16 +120,6 @@ export const Builder = class {
   public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
     this.currentTool = createTool(tool);
-    
-    if (tool.tag === "Build") {
-      this.currentMode = { tag: "Attach" };
-    } else if (tool.tag === "Erase") {
-      this.currentMode = { tag: "Erase" };
-    } else if (tool.tag === "Paint") {
-      this.currentMode = { tag: "Paint" };
-    }
-    
-    this.toolContext.mode = this.currentMode;
   }
 
   public setMode(mode: BlockModificationMode): void {

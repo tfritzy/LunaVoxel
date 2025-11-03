@@ -33,14 +33,10 @@ describe("Tool Interface", () => {
   });
 
   describe("Tool Factory", () => {
-    it("should create RectTool for Build/Erase/Paint", () => {
-      const buildTool = createTool({ tag: "Build" });
-      const eraseTool = createTool({ tag: "Erase" });
-      const paintTool = createTool({ tag: "Paint" });
+    it("should create RectTool", () => {
+      const rectTool = createTool({ tag: "Rect" });
       
-      expect(buildTool.getType()).toEqual({ tag: "Build" });
-      expect(eraseTool.getType()).toEqual({ tag: "Build" });
-      expect(paintTool.getType()).toEqual({ tag: "Build" });
+      expect(rectTool.getType()).toEqual({ tag: "Rect" });
     });
 
     it("should create BlockPicker tool", () => {
@@ -58,7 +54,7 @@ describe("Tool Interface", () => {
     let tool: Tool;
 
     beforeEach(() => {
-      tool = createTool({ tag: "Build" });
+      tool = createTool({ tag: "Rect" });
     });
 
     it("should calculate grid position with positive offset in Attach mode", () => {

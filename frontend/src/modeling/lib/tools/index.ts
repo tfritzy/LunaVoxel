@@ -10,9 +10,7 @@ export { MagicSelectTool } from "./magic-select-tool";
 
 export function createTool(toolType: ToolType): Tool {
   switch (toolType.tag) {
-    case "Build":
-    case "Erase":
-    case "Paint":
+    case "Rect":
       return new RectTool();
     case "BlockPicker":
       return new BlockPickerTool();
