@@ -7,7 +7,6 @@ export class EraseTool extends RectTool {
   }
 
   protected getNormalMultiplier(): number {
-    // Erase tool targets existing blocks, so we go against the normal
     return -0.1;
   }
 }
