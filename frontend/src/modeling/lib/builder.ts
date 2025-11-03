@@ -8,6 +8,7 @@ import { VoxelFrame } from "./voxel-frame";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
+import { MoveSelectionTool } from "./tools/move-selection-tool";
 import type { Tool } from "./tool-interface";
 
 export const Builder = class {
@@ -39,6 +40,7 @@ export const Builder = class {
     selectedLayer: number;
     setSelectedBlockInParent: (index: number) => void;
     mode: BlockModificationMode;
+    camera: THREE.Camera;
   };
   private startPosition: THREE.Vector3 | null = null;
   private isMouseDown: boolean = false;
@@ -92,6 +94,7 @@ export const Builder = class {
       selectedLayer: this.selectedLayer,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
       mode: this.currentMode,
+      camera: this.camera,
     };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
@@ -126,6 +129,8 @@ export const Builder = class {
 
   private createTool(toolType: ToolType): Tool {
     switch (toolType) {
+      case "MoveSelection":
+        return new MoveSelectionTool();
       case "Rect":
         return new RectTool();
       case "BlockPicker":
@@ -169,6 +174,7 @@ export const Builder = class {
 
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
+    this.toolContext.camera = camera;
   }
 
   private addEventListeners(): void {

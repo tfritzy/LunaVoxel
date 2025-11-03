@@ -14,6 +14,7 @@ export interface ToolContext {
   selectedLayer: number;
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
+  camera: THREE.Camera;
 }
 
 export interface Tool {

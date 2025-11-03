@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { RectTool } from "../tools/rect-tool";
 import { BlockPickerTool } from "../tools/block-picker-tool";
 import { MagicSelectTool } from "../tools/magic-select-tool";
+import { MoveSelectionTool } from "../tools/move-selection-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/module_bindings";
 import * as THREE from "three";
@@ -15,6 +16,11 @@ describe("Tool Interface", () => {
   const paintMode: BlockModificationMode = { tag: "Paint" };
 
   beforeEach(() => {
+    const camera = new THREE.PerspectiveCamera();
+    camera.position.set(10, 10, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+
     mockContext = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dbConn: {} as any,
@@ -31,6 +37,7 @@ describe("Tool Interface", () => {
       selectedLayer: 0,
       setSelectedBlockInParent: () => {},
       mode: attachMode,
+      camera,
     };
   });
 
@@ -49,6 +56,11 @@ describe("Tool Interface", () => {
     it("should create MagicSelect tool", () => {
       const tool = new MagicSelectTool();
       expect(tool.getType()).toEqual("MagicSelect");
+    });
+
+    it("should create MoveSelection tool", () => {
+      const tool = new MoveSelectionTool();
+      expect(tool.getType()).toEqual("MoveSelection");
     });
   });
 
@@ -166,6 +178,67 @@ describe("Tool Interface", () => {
       tool.onMouseUp(mockContext, startPos, endPos);
 
       expect(magicSelectCalled).toBe(true);
+    });
+  });
+
+  describe("MoveSelection Tool", () => {
+    let tool: Tool;
+
+    beforeEach(() => {
+      tool = new MoveSelectionTool();
+    });
+
+    it("should calculate grid position with negative offset", () => {
+      const intersectionPoint = new THREE.Vector3(1.5, 2.5, 3.5);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(intersectionPoint, normal, attachMode);
+      
+      expect(gridPos.x).toBe(1);
+      expect(gridPos.y).toBe(2);
+      expect(gridPos.z).toBe(3);
+    });
+
+    it("should call moveSelection reducer on mouse up with movement", () => {
+      let moveSelectionCalled = false;
+      let passedOffset: Vector3 | null = null;
+      
+      mockContext.dbConn = {
+        reducers: {
+          moveSelection: (_projectId: string, offset: Vector3) => {
+            moveSelectionCalled = true;
+            passedOffset = offset;
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any;
+
+      const startPos = new THREE.Vector3(1, 2, 3);
+      const endPos = new THREE.Vector3(4, 2, 3);
+
+      tool.onMouseUp(mockContext, startPos, endPos);
+
+      expect(moveSelectionCalled).toBe(true);
+      expect(passedOffset).not.toBeNull();
+    });
+
+    it("should not call moveSelection reducer on mouse up without movement", () => {
+      let moveSelectionCalled = false;
+      
+      mockContext.dbConn = {
+        reducers: {
+          moveSelection: () => {
+            moveSelectionCalled = true;
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any;
+
+      const startPos = new THREE.Vector3(1, 2, 3);
+      const endPos = new THREE.Vector3(1, 2, 3);
+
+      tool.onMouseUp(mockContext, startPos, endPos);
+
+      expect(moveSelectionCalled).toBe(false);
     });
   });
 });
