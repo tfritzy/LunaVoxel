@@ -27,22 +27,22 @@ export const FloatingToolbar = ({
       }
       switch (event.key) {
         case "a":
-          onToolChange({ tag: "Rect" });
+          onToolChange("Rect");
           onModeChange({ tag: "Attach" });
           break;
         case "e":
-          onToolChange({ tag: "Rect" });
+          onToolChange("Rect");
           onModeChange({ tag: "Erase" });
           break;
         case "t":
-          onToolChange({ tag: "Rect" });
+          onToolChange("Rect");
           onModeChange({ tag: "Paint" });
           break;
         case "c":
-          onToolChange({ tag: "BlockPicker" });
+          onToolChange("BlockPicker");
           break;
         case "s":
-          onToolChange({ tag: "MagicSelect" });
+          onToolChange("MagicSelect");
           break;
       }
     };
@@ -50,9 +50,9 @@ export const FloatingToolbar = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onToolChange, onModeChange]);
 
-  const isAttachMode = currentTool.tag === "Rect" && currentMode.tag === "Attach";
-  const isEraseMode = currentTool.tag === "Rect" && currentMode.tag === "Erase";
-  const isPaintMode = currentTool.tag === "Rect" && currentMode.tag === "Paint";
+  const isAttachMode = currentTool === "Rect" && currentMode.tag === "Attach";
+  const isEraseMode = currentTool === "Rect" && currentMode.tag === "Erase";
+  const isPaintMode = currentTool === "Rect" && currentMode.tag === "Paint";
 
   // TODO: Separate mode selector and tool selector in the UI. Currently, Build/Erase/Paint
   // buttons set both tool (Rect) and mode (Attach/Erase/Paint). In the future, we should
@@ -62,7 +62,7 @@ export const FloatingToolbar = ({
       <div className="flex items-center gap-1">
         <Button
           onClick={() => {
-            onToolChange({ tag: "Rect" });
+            onToolChange("Rect");
             onModeChange({ tag: "Attach" });
           }}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
@@ -77,7 +77,7 @@ export const FloatingToolbar = ({
         </Button>
         <Button
           onClick={() => {
-            onToolChange({ tag: "Rect" });
+            onToolChange("Rect");
             onModeChange({ tag: "Erase" });
           }}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
@@ -92,7 +92,7 @@ export const FloatingToolbar = ({
         </Button>
         <Button
           onClick={() => {
-            onToolChange({ tag: "Rect" });
+            onToolChange("Rect");
             onModeChange({ tag: "Paint" });
           }}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
@@ -106,9 +106,9 @@ export const FloatingToolbar = ({
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
         </Button>
         <Button
-          onClick={() => onToolChange({ tag: "BlockPicker" })}
+          onClick={() => onToolChange("BlockPicker")}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "BlockPicker"
+            currentTool === "BlockPicker"
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
@@ -118,9 +118,9 @@ export const FloatingToolbar = ({
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">C</div>
         </Button>
         <Button
-          onClick={() => onToolChange({ tag: "MagicSelect" })}
+          onClick={() => onToolChange("MagicSelect")}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool.tag === "MagicSelect"
+            currentTool === "MagicSelect"
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}

@@ -7,7 +7,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class RectTool implements Tool {
   getType(): ToolType {
-    return { tag: "Rect" };
+    return "Rect";
   }
 
   calculateGridPosition(
@@ -15,7 +15,8 @@ export class RectTool implements Tool {
     normal: THREE.Vector3,
     mode: BlockModificationMode
   ): THREE.Vector3 {
-    return calculateGridPositionWithMode(intersectionPoint, normal, mode);
+    const direction = mode.tag === "Attach" ? "above" : "under";
+    return calculateGridPositionWithMode(intersectionPoint, normal, direction);
   }
 
   onMouseDown(): void {}

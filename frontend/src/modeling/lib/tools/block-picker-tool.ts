@@ -2,10 +2,11 @@ import * as THREE from "three";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
+import { BlockModificationMode } from "@/module_bindings";
 
 export class BlockPickerTool implements Tool {
   getType(): ToolType {
-    return { tag: "BlockPicker" };
+    return "BlockPicker";
   }
 
   calculateGridPosition(
@@ -13,7 +14,7 @@ export class BlockPickerTool implements Tool {
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
-    return calculateGridPositionWithMode(intersectionPoint, normal, mode || { tag: "Erase" });
+    return calculateGridPositionWithMode(intersectionPoint, normal, 'under');
   }
 
   onMouseDown(): void {}
@@ -29,6 +30,7 @@ export class BlockPickerTool implements Tool {
       endPos,
       context.selectedLayer
     );
+    console.log("Picked", blockType);
     if (blockType !== null && blockType !== 0) {
       context.setSelectedBlockInParent(blockType);
     }

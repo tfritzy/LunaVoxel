@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createTool } from "../tools";
+import { RectTool } from "../tools/rect-tool";
+import { BlockPickerTool } from "../tools/block-picker-tool";
+import { MagicSelectTool } from "../tools/magic-select-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/module_bindings";
 import * as THREE from "three";
@@ -34,19 +36,19 @@ describe("Tool Interface", () => {
 
   describe("Tool Factory", () => {
     it("should create RectTool", () => {
-      const rectTool = createTool({ tag: "Rect" });
+      const rectTool = new RectTool();
       
-      expect(rectTool.getType()).toEqual({ tag: "Rect" });
+      expect(rectTool.getType()).toEqual("Rect");
     });
 
     it("should create BlockPicker tool", () => {
-      const tool = createTool({ tag: "BlockPicker" });
-      expect(tool.getType()).toEqual({ tag: "BlockPicker" });
+      const tool = new BlockPickerTool();
+      expect(tool.getType()).toEqual("BlockPicker");
     });
 
     it("should create MagicSelect tool", () => {
-      const tool = createTool({ tag: "MagicSelect" });
-      expect(tool.getType()).toEqual({ tag: "MagicSelect" });
+      const tool = new MagicSelectTool();
+      expect(tool.getType()).toEqual("MagicSelect");
     });
   });
 
@@ -54,7 +56,7 @@ describe("Tool Interface", () => {
     let tool: Tool;
 
     beforeEach(() => {
-      tool = createTool({ tag: "Rect" });
+      tool = new RectTool();
     });
 
     it("should calculate grid position with positive offset in Attach mode", () => {
@@ -101,7 +103,7 @@ describe("Tool Interface", () => {
     let tool: Tool;
 
     beforeEach(() => {
-      tool = createTool({ tag: "BlockPicker" });
+      tool = new BlockPickerTool();
     });
 
     it("should calculate grid position with negative offset", () => {
@@ -134,7 +136,7 @@ describe("Tool Interface", () => {
     let tool: Tool;
 
     beforeEach(() => {
-      tool = createTool({ tag: "MagicSelect" });
+      tool = new MagicSelectTool();
     });
 
     it("should calculate grid position with negative offset", () => {

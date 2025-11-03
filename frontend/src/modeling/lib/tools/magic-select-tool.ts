@@ -5,14 +5,14 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
   getType(): ToolType {
-    return { tag: "MagicSelect" };
+    return "MagicSelect";
   }
 
   calculateGridPosition(
     intersectionPoint: THREE.Vector3,
     normal: THREE.Vector3
   ): THREE.Vector3 {
-    return calculateGridPositionWithMode(intersectionPoint, normal, { tag: "Erase" });
+    return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
   onMouseDown(): void {}

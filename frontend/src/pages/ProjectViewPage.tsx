@@ -21,7 +21,7 @@ export const ProjectViewPage = () => {
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<ToolType>({ tag: "Rect" });
+  const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const project = useCurrentProject(connection, projectId);
   const [loading, setLoading] = useState<boolean>(true);
@@ -135,7 +135,7 @@ export const ProjectViewPage = () => {
           selectedBlock,
           setSelectedBlock
         );
-        engineRef.current.projectManager.setTool(currentTool);
+        engineRef.current.projectManager.builder.setTool(currentTool);
         engineRef.current.projectManager.setAtlasData(atlasData);
       });
     },
@@ -160,13 +160,13 @@ export const ProjectViewPage = () => {
 
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.projectManager.setTool(currentTool);
+      engineRef.current.projectManager.builder.setTool(currentTool);
     }
   }, [currentTool]);
 
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.projectManager.setMode(currentMode);
+      engineRef.current.projectManager.builder.setMode(currentMode);
     }
   }, [currentMode]);
 

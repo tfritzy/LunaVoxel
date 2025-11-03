@@ -38,6 +38,12 @@ let _cached_BlockModificationMode_type_value: __AlgebraicTypeType | null = null;
 
 // A value with helper functions to construct the type.
 export const BlockModificationMode = {
+  // Helper functions for constructing each variant of the tagged union.
+  // ```
+  // const foo = Foo.A(42);
+  // assert!(foo.tag === "A");
+  // assert!(foo.value === 42);
+  // ```
   Attach: { tag: "Attach" } as const,
   Erase: { tag: "Erase" } as const,
   Paint: { tag: "Paint" } as const,
@@ -52,15 +58,17 @@ export const BlockModificationMode = {
     );
     return _cached_BlockModificationMode_type_value;
   },
-  
-  fromValue(value: BlockModificationMode): BlockModificationMode {
-    return value;
+
+  serialize(writer: __BinaryWriter, value: BlockModificationMode): void {
+      __AlgebraicTypeValue.serializeValue(writer, BlockModificationMode.getTypeScriptAlgebraicType(), value);
   },
 
-  safeFromValue(value: BlockModificationMode | undefined): BlockModificationMode | undefined {
-    if (value === undefined) return undefined;
-    return this.fromValue(value);
+  deserialize(reader: __BinaryReader): BlockModificationMode {
+      return __AlgebraicTypeValue.deserializeValue(reader, BlockModificationMode.getTypeScriptAlgebraicType());
   },
-};
+
+}
 
 export default BlockModificationMode;
+
+

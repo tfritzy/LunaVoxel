@@ -5,7 +5,9 @@ import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
-import { createTool } from "./tools";
+import { RectTool } from "./tools/rect-tool";
+import { BlockPickerTool } from "./tools/block-picker-tool";
+import { MagicSelectTool } from "./tools/magic-select-tool";
 import type { Tool } from "./tool-interface";
 
 export const Builder = class {
@@ -78,7 +80,7 @@ export const Builder = class {
     this.mouse = new THREE.Vector2();
 
     this.previewFrame = new VoxelFrame(dimensions);
-    this.currentTool = createTool({ tag: "Rect" });
+    this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
       dbConn: this.dbConn,
@@ -119,7 +121,22 @@ export const Builder = class {
 
   public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
-    this.currentTool = createTool(tool);
+    this.currentTool = this.createTool(tool);
+  }
+
+  private createTool(toolType: ToolType): Tool {
+    switch (toolType) {
+      case "Rect":
+        return new RectTool();
+      case "BlockPicker":
+        return new BlockPickerTool();
+      case "MagicSelect":
+        return new MagicSelectTool();
+      default:
+        throw new Error(
+          `Unknown tool type: ${JSON.stringify(toolType)}`
+        );
+    }
   }
 
   public setMode(mode: BlockModificationMode): void {

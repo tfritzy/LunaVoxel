@@ -31,13 +31,13 @@ import {
 import { Vector3 } from "./vector_3_type";
 // Mark import as potentially unused
 declare type __keep_Vector3 = Vector3;
-import { ToolType } from "./tool_type_type";
+import { BlockModificationMode } from "./block_modification_mode_type";
 // Mark import as potentially unused
-declare type __keep_ToolType = ToolType;
+declare type __keep_BlockModificationMode = BlockModificationMode;
 
 export type ModifyBlockRect = {
   projectId: string,
-  mode: ToolType,
+  mode: BlockModificationMode,
   type: number,
   start: Vector3,
   end: Vector3,
@@ -59,7 +59,7 @@ export const ModifyBlockRect = {
     _cached_ModifyBlockRect_type_value = __AlgebraicTypeValue.Product({ elements: [] });
     _cached_ModifyBlockRect_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
-      { name: "mode", algebraicType: ToolType.getTypeScriptAlgebraicType() },
+      { name: "mode", algebraicType: BlockModificationMode.getTypeScriptAlgebraicType() },
       { name: "type", algebraicType: __AlgebraicTypeValue.U8 },
       { name: "start", algebraicType: Vector3.getTypeScriptAlgebraicType() },
       { name: "end", algebraicType: Vector3.getTypeScriptAlgebraicType() },

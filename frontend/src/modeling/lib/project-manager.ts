@@ -106,7 +106,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.chunkManager.setTextureAtlas(atlasData, this.builder.getTool());
+      this.chunkManager.setTextureAtlas(atlasData, this.builder.getMode());
       this.updateChunkManager();
     }
   };
@@ -166,8 +166,7 @@ export class ProjectManager {
     }
 
     const index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-    const blockValue = layer.voxels[index];
-    return getBlockType(blockValue);
+    return layer.voxels[index];
   }
 
   private updateChunkManager = () => {
@@ -176,17 +175,13 @@ export class ProjectManager {
 
     this.chunkManager.update(
       this.builder.previewFrame,
-      this.builder.getTool(),
+      this.builder.getMode(),
       this.atlasData
     );
 
     const end = performance.now();
     console.log(`ChunkManager update time: ${end - start} ms`);
-  };
-
-  public setTool(tool: ToolType): void {
-    this.builder.setTool(tool);
-  }
+  };  
 
   dispose(): void {
     this.builder.dispose();

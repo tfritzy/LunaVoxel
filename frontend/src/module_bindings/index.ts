@@ -111,8 +111,6 @@ import { ProjectBlocks } from "./project_blocks_type.ts";
 export { ProjectBlocks };
 import { Selection } from "./selection_type.ts";
 export { Selection };
-import { ToolType } from "./tool_type_type.ts";
-export { ToolType };
 import { User } from "./user_type.ts";
 export { User };
 import { UserProject } from "./user_project_type.ts";
@@ -552,7 +550,7 @@ export class RemoteReducers {
     this.connection.offReducer("ModifyBlockAmorphous", callback);
   }
 
-  modifyBlockRect(projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
+  modifyBlockRect(projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) {
     const __args = { projectId, mode, type, start, end, rotation, layerIndex };
     let __writer = new __BinaryWriter(1024);
     ModifyBlockRect.serialize(__writer, __args);
@@ -560,11 +558,11 @@ export class RemoteReducers {
     this.connection.callReducer("ModifyBlockRect", __argsBuffer, this.setCallReducerFlags.modifyBlockRectFlags);
   }
 
-  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+  onModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.onReducer("ModifyBlockRect", callback);
   }
 
-  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: ToolType, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
+  removeOnModifyBlockRect(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, type: number, start: Vector3, end: Vector3, rotation: number, layerIndex: number) => void) {
     this.connection.offReducer("ModifyBlockRect", callback);
   }
 
