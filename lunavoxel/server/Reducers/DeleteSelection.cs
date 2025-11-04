@@ -35,18 +35,11 @@ public static partial class Module
             if (selectionData[i] != 0)
             {
                 // Calculate 3D position from flat index
-                int x = i / (layer.yDim * layer.zDim);
-                int y = (i % (layer.yDim * layer.zDim)) / layer.zDim;
-                int z = i % layer.zDim;
-                var position = new Vector3(x, y, z);
+                var position = FlatIndexTo3DPosition(i, layer.yDim, layer.zDim);
 
                 // Calculate chunk identifier
-                var chunkMinPos = new Vector3(
-                    (x / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
-                    (y / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
-                    (z / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE
-                );
-                var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
+                var chunkMinPos = CalculateChunkMinPosition(position);
+                var chunkKey = GetChunkKey(chunkMinPos);
 
                 if (!chunkUpdates.ContainsKey(chunkKey))
                 {
@@ -61,11 +54,7 @@ public static partial class Module
         foreach (var kvp in chunkUpdates)
         {
             var firstPos = kvp.Value[0];
-            var chunkMinPos = new Vector3(
-                (firstPos.X / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
-                (firstPos.Y / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
-                (firstPos.Z / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE
-            );
+            var chunkMinPos = CalculateChunkMinPosition(firstPos);
 
             var chunk = ctx.Db.chunk.chunk_layer_pos
                 .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
@@ -86,7 +75,7 @@ public static partial class Module
                     pos.Y - chunk.MinPosY,
                     pos.Z - chunk.MinPosZ
                 );
-                var index = localPos.X * chunk.SizeY * chunk.SizeZ + localPos.Y * chunk.SizeZ + localPos.Z;
+                var index = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
                 voxels[index] = 0; // Set to empty/air block
             }
 
