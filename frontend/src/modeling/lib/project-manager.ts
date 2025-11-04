@@ -74,7 +74,7 @@ export class ProjectManager {
           event.preventDefault();
           this.editHistory.undo();
         }
-      } else if (event.key === "Delete" || event.key === "Backspace") {
+      } else if (event.key === "Delete") {
         event.preventDefault();
         this.dbConn.reducers.deleteSelection(this.project.id);
       }
