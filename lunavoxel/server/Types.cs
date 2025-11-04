@@ -120,16 +120,12 @@ public static partial class Module
         public int yDim;
         public int zDim;
         public int Index;
-        // RLE then LZ4 compressed voxel data. When decompressed, each voxel is a block index.
-        public byte[] Voxels = [];
         public bool Visible;
         public bool Locked;
         public string Name;
 
         public static Layer Build(string projectId, int xDim, int yDim, int zDim, int index)
         {
-            var voxels = new byte[xDim * yDim * zDim];
-
             return new Layer
             {
                 Id = IdGenerator.Generate("lyr"),
@@ -138,10 +134,46 @@ public static partial class Module
                 yDim = yDim,
                 zDim = zDim,
                 Index = index,
-                Voxels = VoxelCompression.Compress(voxels),
                 Visible = true,
                 Locked = false,
                 Name = $"Layer {index}"
+            };
+        }
+    }
+
+    [Table(Name = "chunk", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "chunk_layer", Columns = new[] { nameof(LayerId) })]
+    [SpacetimeDB.Index.BTree(Name = "chunk_layer_pos", Columns = new[] { nameof(LayerId), nameof(MinPosX), nameof(MinPosY), nameof(MinPosZ) })]
+    public partial class Chunk
+    {
+        [PrimaryKey]
+        public string Id;
+        public string LayerId;
+        public int MinPosX;
+        public int MinPosY;
+        public int MinPosZ;
+        public int SizeX;
+        public int SizeY;
+        public int SizeZ;
+        // RLE then LZ4 compressed voxel data. When decompressed, each voxel is a block index.
+        public byte[] Voxels = [];
+
+        public static Chunk Build(string layerId, Vector3 minPos, Vector3 size)
+        {
+            var totalVoxels = size.X * size.Y * size.Z;
+            var voxels = new byte[totalVoxels];
+
+            return new Chunk
+            {
+                Id = IdGenerator.Generate("chk"),
+                LayerId = layerId,
+                MinPosX = minPos.X,
+                MinPosY = minPos.Y,
+                MinPosZ = minPos.Z,
+                SizeX = size.X,
+                SizeY = size.Y,
+                SizeZ = size.Z,
+                Voxels = VoxelCompression.Compress(voxels)
             };
         }
     }
