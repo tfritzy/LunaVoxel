@@ -1,4 +1,5 @@
 export type ToolType =
-  |  "Rect"
-  |  "BlockPicker"
-  |  "MagicSelect" 
+  | "MoveSelection"
+  | "Rect"
+  | "BlockPicker"
+  | "MagicSelect" 

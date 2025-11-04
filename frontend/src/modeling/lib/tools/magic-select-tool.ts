@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { ToolType } from "../tool-type";
-import type { Tool, ToolContext } from "../tool-interface";
+import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
@@ -15,19 +15,15 @@ export class MagicSelectTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
-  onMouseDown(): void {}
+  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
 
-  onDrag(): void {}
+  onDrag(_context: ToolContext, _event: ToolDragEvent): void {}
 
-  onMouseUp(
-    context: ToolContext,
-    _startPos: THREE.Vector3,
-    endPos: THREE.Vector3
-  ): void {
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     context.dbConn.reducers.magicSelect(
       context.projectId,
       context.selectedLayer,
-      endPos
+      event.currentGridPosition
     );
   }
 }

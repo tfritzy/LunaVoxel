@@ -8,6 +8,7 @@ import { VoxelFrame } from "./voxel-frame";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
+import { MoveSelectionTool } from "./tools/move-selection-tool";
 import type { Tool } from "./tool-interface";
 
 export const Builder = class {
@@ -39,8 +40,10 @@ export const Builder = class {
     selectedLayer: number;
     setSelectedBlockInParent: (index: number) => void;
     mode: BlockModificationMode;
+    camera: THREE.Camera;
   };
   private startPosition: THREE.Vector3 | null = null;
+  private startMousePos: THREE.Vector2 | null = null;
   private isMouseDown: boolean = false;
   private lastPreviewStart: THREE.Vector3 | null = null;
   private lastPreviewEnd: THREE.Vector3 | null = null;
@@ -92,6 +95,7 @@ export const Builder = class {
       selectedLayer: this.selectedLayer,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
       mode: this.currentMode,
+      camera: this.camera,
     };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
@@ -115,6 +119,7 @@ export const Builder = class {
     }
     this.isMouseDown = false;
     this.startPosition = null;
+    this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }
@@ -126,6 +131,8 @@ export const Builder = class {
 
   private createTool(toolType: ToolType): Tool {
     switch (toolType) {
+      case "MoveSelection":
+        return new MoveSelectionTool();
       case "Rect":
         return new RectTool();
       case "BlockPicker":
@@ -169,6 +176,7 @@ export const Builder = class {
 
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
+    this.toolContext.camera = camera;
   }
 
   private addEventListeners(): void {
@@ -220,11 +228,15 @@ export const Builder = class {
       }
 
       this.isMouseDown = true;
+      this.startMousePos = this.mouse.clone();
 
       const gridPos = this.checkIntersection();
       if (gridPos) {
         this.startPosition = gridPos.clone();
-        this.currentTool.onMouseDown(this.toolContext, gridPos);
+        this.currentTool.onMouseDown(this.toolContext, {
+          gridPosition: gridPos,
+          mousePosition: this.mouse.clone()
+        });
       }
     }
   }
@@ -327,6 +339,7 @@ export const Builder = class {
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
+      this.startMousePos = this.mouse.clone();
     }
 
     if (
@@ -339,8 +352,13 @@ export const Builder = class {
       return;
     }
 
-    if (this.isMouseDown && this.startPosition) {
-      this.currentTool.onDrag(this.toolContext, this.startPosition, gridPos);
+    if (this.isMouseDown && this.startPosition && this.startMousePos) {
+      this.currentTool.onDrag(this.toolContext, {
+        startGridPosition: this.startPosition,
+        currentGridPosition: gridPos,
+        startMousePosition: this.startMousePos,
+        currentMousePosition: this.mouse.clone()
+      });
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
@@ -351,11 +369,19 @@ export const Builder = class {
 
     const endPos = position;
     const startPos = this.startPosition || position;
+    const startMousePos = this.startMousePos || this.mouse.clone();
+    const endMousePos = this.mouse.clone();
 
-    this.currentTool.onMouseUp(this.toolContext, startPos, endPos);
+    this.currentTool.onMouseUp(this.toolContext, {
+      startGridPosition: startPos,
+      currentGridPosition: endPos,
+      startMousePosition: startMousePos,
+      currentMousePosition: endMousePos
+    });
 
     this.isMouseDown = false;
     this.startPosition = null;
+    this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }

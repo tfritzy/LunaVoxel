@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { ToolType } from "../tool-type";
-import type { Tool, ToolContext } from "../tool-interface";
+import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { BlockModificationMode } from "@/module_bindings";
 
@@ -17,17 +17,13 @@ export class BlockPickerTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, 'under');
   }
 
-  onMouseDown(): void {}
+  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
 
-  onDrag(): void {}
+  onDrag(_context: ToolContext, _event: ToolDragEvent): void {}
 
-  onMouseUp(
-    context: ToolContext,
-    _startPos: THREE.Vector3,
-    endPos: THREE.Vector3
-  ): void {
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     const blockType = context.projectManager.getBlockAtPosition(
-      endPos,
+      event.currentGridPosition,
       context.selectedLayer
     );
     console.log("Picked", blockType);
