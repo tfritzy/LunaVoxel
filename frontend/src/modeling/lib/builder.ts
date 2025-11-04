@@ -43,6 +43,7 @@ export const Builder = class {
     camera: THREE.Camera;
   };
   private startPosition: THREE.Vector3 | null = null;
+  private startMousePos: THREE.Vector2 | null = null;
   private isMouseDown: boolean = false;
   private lastPreviewStart: THREE.Vector3 | null = null;
   private lastPreviewEnd: THREE.Vector3 | null = null;
@@ -118,6 +119,7 @@ export const Builder = class {
     }
     this.isMouseDown = false;
     this.startPosition = null;
+    this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }
@@ -226,11 +228,12 @@ export const Builder = class {
       }
 
       this.isMouseDown = true;
+      this.startMousePos = this.mouse.clone();
 
       const gridPos = this.checkIntersection();
       if (gridPos) {
         this.startPosition = gridPos.clone();
-        this.currentTool.onMouseDown(this.toolContext, gridPos);
+        this.currentTool.onMouseDown(this.toolContext, gridPos, this.mouse.clone());
       }
     }
   }
@@ -333,6 +336,7 @@ export const Builder = class {
 
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
+      this.startMousePos = this.mouse.clone();
     }
 
     if (
@@ -345,8 +349,14 @@ export const Builder = class {
       return;
     }
 
-    if (this.isMouseDown && this.startPosition) {
-      this.currentTool.onDrag(this.toolContext, this.startPosition, gridPos);
+    if (this.isMouseDown && this.startPosition && this.startMousePos) {
+      this.currentTool.onDrag(
+        this.toolContext, 
+        this.startPosition, 
+        gridPos, 
+        this.startMousePos, 
+        this.mouse.clone()
+      );
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
@@ -357,11 +367,14 @@ export const Builder = class {
 
     const endPos = position;
     const startPos = this.startPosition || position;
+    const startMousePos = this.startMousePos || this.mouse.clone();
+    const endMousePos = this.mouse.clone();
 
-    this.currentTool.onMouseUp(this.toolContext, startPos, endPos);
+    this.currentTool.onMouseUp(this.toolContext, startPos, endPos, startMousePos, endMousePos);
 
     this.isMouseDown = false;
     this.startPosition = null;
+    this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
   }

@@ -26,17 +26,21 @@ export interface Tool {
     mode?: BlockModificationMode
   ): THREE.Vector3;
 
-  onMouseDown(context: ToolContext, position: THREE.Vector3): void;
+  onMouseDown(context: ToolContext, position: THREE.Vector3, mousePos: THREE.Vector2): void;
 
   onDrag(
     context: ToolContext,
     startPos: THREE.Vector3,
-    currentPos: THREE.Vector3
+    currentPos: THREE.Vector3,
+    startMousePos: THREE.Vector2,
+    currentMousePos: THREE.Vector2
   ): void;
 
   onMouseUp(
     context: ToolContext,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    endPos: THREE.Vector3,
+    startMousePos: THREE.Vector2,
+    endMousePos: THREE.Vector2
   ): void;
 }

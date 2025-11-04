@@ -24,7 +24,9 @@ export class RectTool implements Tool {
   onDrag(
     context: ToolContext,
     startPos: THREE.Vector3,
-    currentPos: THREE.Vector3
+    currentPos: THREE.Vector3,
+    _startMousePos: THREE.Vector2,
+    _currentMousePos: THREE.Vector2
   ): void {
     context.previewFrame.clear();
     const bounds = calculateRectBounds(startPos, currentPos, context.dimensions);
@@ -43,7 +45,9 @@ export class RectTool implements Tool {
   onMouseUp(
     context: ToolContext,
     startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    endPos: THREE.Vector3,
+    _startMousePos: THREE.Vector2,
+    _endMousePos: THREE.Vector2
   ): void {
     context.previewFrame.clear();
     

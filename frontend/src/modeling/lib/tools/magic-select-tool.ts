@@ -22,7 +22,9 @@ export class MagicSelectTool implements Tool {
   onMouseUp(
     context: ToolContext,
     _startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    endPos: THREE.Vector3,
+    _startMousePos: THREE.Vector2,
+    _endMousePos: THREE.Vector2
   ): void {
     context.dbConn.reducers.magicSelect(
       context.projectId,

@@ -24,7 +24,9 @@ export class BlockPickerTool implements Tool {
   onMouseUp(
     context: ToolContext,
     _startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    endPos: THREE.Vector3,
+    _startMousePos: THREE.Vector2,
+    _endMousePos: THREE.Vector2
   ): void {
     const blockType = context.projectManager.getBlockAtPosition(
       endPos,

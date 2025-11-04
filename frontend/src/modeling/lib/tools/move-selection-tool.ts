@@ -6,6 +6,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
+  private lastOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
   getType(): ToolType {
     return "MoveSelection";
@@ -16,61 +17,70 @@ export class MoveSelectionTool implements Tool {
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
-    // MoveSelection tool doesn't use mode since it moves selections rather than modifying blocks
-    // Always position under the surface for consistent selection interaction
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
-  onMouseDown(_context: ToolContext, _position: THREE.Vector3): void {
+  onMouseDown(_context: ToolContext, _position: THREE.Vector3, _mousePos: THREE.Vector2): void {
     this.snappedAxis = null;
+    this.lastOffset = new THREE.Vector3(0, 0, 0);
   }
 
   onDrag(
-    _context: ToolContext,
-    _startPos: THREE.Vector3,
-    _currentPos: THREE.Vector3
-  ): void {
-    // Preview could be shown here if needed in the future
-    // For now, we just wait until mouse up to apply the move
-  }
-
-  onMouseUp(
     context: ToolContext,
-    startPos: THREE.Vector3,
-    endPos: THREE.Vector3
+    _startPos: THREE.Vector3,
+    _currentPos: THREE.Vector3,
+    startMousePos: THREE.Vector2,
+    currentMousePos: THREE.Vector2
   ): void {
-    const offset = this.calculateOffset(startPos, endPos, context.camera);
+    const offset = this.calculateOffsetFromMouseDelta(
+      startMousePos,
+      currentMousePos,
+      context.camera
+    );
 
-    // Only call the reducer if there's actual movement
-    if (offset.length() > 0.1) {
+    // Only call the reducer if the offset has changed
+    if (!offset.equals(this.lastOffset)) {
       context.dbConn.reducers.moveSelection(
         context.projectId,
         offset
       );
+      this.lastOffset.copy(offset);
     }
-
-    // Reset state
-    this.snappedAxis = null;
   }
 
-  private calculateOffset(
-    startPos: THREE.Vector3,
-    endPos: THREE.Vector3,
+  onMouseUp(
+    _context: ToolContext,
+    _startPos: THREE.Vector3,
+    _endPos: THREE.Vector3,
+    _startMousePos: THREE.Vector2,
+    _endMousePos: THREE.Vector2
+  ): void {
+    // Reset state
+    this.snappedAxis = null;
+    this.lastOffset = new THREE.Vector3(0, 0, 0);
+  }
+
+  private calculateOffsetFromMouseDelta(
+    startMousePos: THREE.Vector2,
+    currentMousePos: THREE.Vector2,
     camera: THREE.Camera
   ): THREE.Vector3 {
-    // Calculate the drag delta in world space
-    const dragDelta = new THREE.Vector3().subVectors(endPos, startPos);
+    // Calculate screen-space mouse delta
+    const mouseDelta = new THREE.Vector2().subVectors(currentMousePos, startMousePos);
 
     // Determine the snap axis if not already determined
-    if (!this.snappedAxis && dragDelta.length() > 0.1) {
-      this.snappedAxis = this.determineSnapAxis(dragDelta, camera);
+    if (!this.snappedAxis && mouseDelta.length() > 0.01) {
+      this.snappedAxis = this.determineSnapAxisFromScreenDelta(mouseDelta, camera);
     }
 
     // Calculate the offset along the snapped axis
     let offset = new THREE.Vector3(0, 0, 0);
-    if (this.snappedAxis) {
-      const projectedDistance = dragDelta.dot(this.snappedAxis);
-      offset = this.snappedAxis.clone().multiplyScalar(projectedDistance);
+    if (this.snappedAxis && mouseDelta.length() > 0.01) {
+      // Project the mouse delta onto the snapped axis in screen space
+      // and scale by a sensitivity factor
+      const sensitivity = 10; // Adjust this to control movement speed
+      const movementDistance = this.projectMouseDeltaOntoAxis(mouseDelta, this.snappedAxis, camera) * sensitivity;
+      offset = this.snappedAxis.clone().multiplyScalar(movementDistance);
     }
 
     // Round to integer grid positions
@@ -81,37 +91,54 @@ export class MoveSelectionTool implements Tool {
     return offset;
   }
 
-  private determineSnapAxis(dragDelta: THREE.Vector3, camera: THREE.Camera): THREE.Vector3 {
-    // Get the camera's view matrix to determine which axes are most aligned with screen space
+  private projectMouseDeltaOntoAxis(
+    mouseDelta: THREE.Vector2,
+    worldAxis: THREE.Vector3,
+    camera: THREE.Camera
+  ): number {
+    // Get camera axes
+    const cameraMatrix = new THREE.Matrix4();
+    cameraMatrix.copy(camera.matrixWorld);
+
+    const cameraRight = new THREE.Vector3();
+    const cameraUp = new THREE.Vector3();
+    
+    cameraRight.setFromMatrixColumn(cameraMatrix, 0).normalize();
+    cameraUp.setFromMatrixColumn(cameraMatrix, 1).normalize();
+
+    // Project world axis onto screen space
+    const axisInCameraRight = worldAxis.dot(cameraRight);
+    const axisInCameraUp = worldAxis.dot(cameraUp);
+
+    // Calculate dot product of mouse delta with axis projection in screen space
+    const projection = mouseDelta.x * axisInCameraRight + mouseDelta.y * axisInCameraUp;
+
+    return projection;
+  }
+
+  private determineSnapAxisFromScreenDelta(
+    mouseDelta: THREE.Vector2,
+    camera: THREE.Camera
+  ): THREE.Vector3 {
+    // Get the camera's view matrix
     const cameraMatrix = new THREE.Matrix4();
     cameraMatrix.copy(camera.matrixWorld);
 
     // Extract camera axes
     const cameraRight = new THREE.Vector3();
     const cameraUp = new THREE.Vector3();
-    const cameraForward = new THREE.Vector3();
     
     cameraRight.setFromMatrixColumn(cameraMatrix, 0).normalize();
     cameraUp.setFromMatrixColumn(cameraMatrix, 1).normalize();
-    cameraForward.setFromMatrixColumn(cameraMatrix, 2).normalize().negate(); // Forward is -Z in camera space
 
     // World axes
     const worldX = new THREE.Vector3(1, 0, 0);
     const worldY = new THREE.Vector3(0, 1, 0);
     const worldZ = new THREE.Vector3(0, 0, 1);
 
-    // Project drag delta onto camera space to determine screen-space direction
-    const dragInCameraRight = dragDelta.dot(cameraRight);
-    const dragInCameraUp = dragDelta.dot(cameraUp);
-
     // Determine which direction in camera space the user is dragging more
-    const isDraggingMoreHorizontally = Math.abs(dragInCameraRight) > Math.abs(dragInCameraUp);
+    const isDraggingMoreHorizontally = Math.abs(mouseDelta.x) > Math.abs(mouseDelta.y);
     
-    // Normalize drag delta once for efficiency
-    const normalizedDragDelta = dragDelta.clone().normalize();
-    
-    // For each world axis, determine how aligned it is with the drag direction
-    // considering the camera's current orientation
     const axes = [worldX, worldY, worldZ];
 
     let bestAxis = worldX;
@@ -126,22 +153,19 @@ export class MoveSelectionTool implements Tool {
       let score = 0;
       if (isDraggingMoreHorizontally) {
         // User is dragging horizontally, prefer axes aligned with camera right
-        score = Math.abs(axisInCameraRight) * Math.sign(dragInCameraRight * axisInCameraRight);
+        score = Math.abs(axisInCameraRight) * Math.sign(mouseDelta.x * axisInCameraRight);
       } else {
         // User is dragging vertically, prefer axes aligned with camera up
-        score = Math.abs(axisInCameraUp) * Math.sign(dragInCameraUp * axisInCameraUp);
+        score = Math.abs(axisInCameraUp) * Math.sign(mouseDelta.y * axisInCameraUp);
       }
-
-      // Also consider how much the axis aligns with the actual 3D drag vector
-      const dragAlignment = Math.abs(normalizedDragDelta.dot(axis));
-      score += dragAlignment * 0.5; // Weight the 3D alignment slightly less
 
       if (score > bestScore) {
         bestScore = score;
         bestAxis = axis.clone();
         
-        // Determine the sign based on which direction gives better alignment
-        if (dragDelta.dot(axis) < 0) {
+        // Determine the sign based on mouse delta direction
+        const axisScreenDot = mouseDelta.x * axisInCameraRight + mouseDelta.y * axisInCameraUp;
+        if (axisScreenDot < 0) {
           bestAxis.negate();
         }
       }

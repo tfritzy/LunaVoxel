@@ -198,7 +198,7 @@ describe("Tool Interface", () => {
       expect(gridPos.z).toBe(3);
     });
 
-    it("should call moveSelection reducer on mouse up with movement", () => {
+    it("should call moveSelection reducer on drag with movement", () => {
       let moveSelectionCalled = false;
       let passedOffset: Vector3 | null = null;
       
@@ -213,15 +213,17 @@ describe("Tool Interface", () => {
       } as any;
 
       const startPos = new THREE.Vector3(1, 2, 3);
-      const endPos = new THREE.Vector3(4, 2, 3);
+      const currentPos = new THREE.Vector3(4, 2, 3);
+      const startMousePos = new THREE.Vector2(0, 0);
+      const currentMousePos = new THREE.Vector2(0.5, 0);
 
-      tool.onMouseUp(mockContext, startPos, endPos);
+      tool.onDrag(mockContext, startPos, currentPos, startMousePos, currentMousePos);
 
       expect(moveSelectionCalled).toBe(true);
       expect(passedOffset).not.toBeNull();
     });
 
-    it("should not call moveSelection reducer on mouse up without movement", () => {
+    it("should not call moveSelection reducer on drag without mouse movement", () => {
       let moveSelectionCalled = false;
       
       mockContext.dbConn = {
@@ -234,9 +236,11 @@ describe("Tool Interface", () => {
       } as any;
 
       const startPos = new THREE.Vector3(1, 2, 3);
-      const endPos = new THREE.Vector3(1, 2, 3);
+      const currentPos = new THREE.Vector3(1, 2, 3);
+      const startMousePos = new THREE.Vector2(0, 0);
+      const currentMousePos = new THREE.Vector2(0, 0);
 
-      tool.onMouseUp(mockContext, startPos, endPos);
+      tool.onDrag(mockContext, startPos, currentPos, startMousePos, currentMousePos);
 
       expect(moveSelectionCalled).toBe(false);
     });
