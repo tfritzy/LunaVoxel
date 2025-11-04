@@ -142,12 +142,14 @@ public static partial class Module
     }
 
     [Table(Name = "chunk", Public = true)]
+    [SpacetimeDB.Index.BTree(Name = "chunk_project", Columns = new[] { nameof(ProjectId) })]
     [SpacetimeDB.Index.BTree(Name = "chunk_layer", Columns = new[] { nameof(LayerId) })]
     [SpacetimeDB.Index.BTree(Name = "chunk_layer_pos", Columns = new[] { nameof(LayerId), nameof(MinPosX), nameof(MinPosY), nameof(MinPosZ) })]
     public partial class Chunk
     {
         [PrimaryKey]
         public string Id;
+        public string ProjectId;
         public string LayerId;
         public int MinPosX;
         public int MinPosY;
@@ -158,7 +160,7 @@ public static partial class Module
         // RLE then LZ4 compressed voxel data. When decompressed, each voxel is a block index.
         public byte[] Voxels = [];
 
-        public static Chunk Build(string layerId, Vector3 minPos, Vector3 size)
+        public static Chunk Build(string projectId, string layerId, Vector3 minPos, Vector3 size)
         {
             var totalVoxels = size.X * size.Y * size.Z;
             var voxels = new byte[totalVoxels];
@@ -166,6 +168,7 @@ public static partial class Module
             return new Chunk
             {
                 Id = IdGenerator.Generate("chk"),
+                ProjectId = projectId,
                 LayerId = layerId,
                 MinPosX = minPos.X,
                 MinPosY = minPos.Y,

@@ -120,42 +120,38 @@ export class ProjectManager {
     this.updateChunkManager();
   };
 
-  // applyOptimisticRectEdit is no longer supported with chunk-based storage
+  // Apply optimistic rect edit to preview changes before server confirmation
   public applyOptimisticRectEdit = (
     layerIndex: number,
-    _mode: BlockModificationMode,
-    _start: THREE.Vector3,
-    _end: THREE.Vector3,
-    _blockType: number,
-    _rotation: number
+    mode: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number,
+    rotation: number
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
     
-    // Note: Optimistic updates are no longer supported with chunk-based storage
-    // The server will handle updates and we'll receive them via subscriptions
+    this.chunkManager.applyOptimisticRect(layer, mode, start, end, blockType, rotation);
     this.updateChunkManager();
   };
 
-  // getBlockAtPosition is no longer supported with chunk-based storage
+  // Get block at a specific position
   public getBlockAtPosition(
-    _position: THREE.Vector3,
-    _layerIndex: number
+    position: THREE.Vector3,
+    layerIndex: number
   ): number | null {
-    // Note: Getting block at position is not directly supported with chunk-based storage
-    // We would need to implement a method to query chunks
-    return null;
+    const layer = this.chunkManager.getLayer(layerIndex);
+    if (!layer) return null;
+    
+    return this.chunkManager.getBlockAtPosition(position, layer);
   }
 
   private updateChunkManager = () => {
     if (!this.atlasData) return;
     const start = performance.now();
 
-    this.chunkManager.update(
-      this.builder.previewFrame,
-      this.builder.getMode(),
-      this.atlasData
-    );
+    this.chunkManager.setAtlasData(this.atlasData);
 
     const end = performance.now();
     console.log(`ChunkManager update time: ${end - start} ms`);

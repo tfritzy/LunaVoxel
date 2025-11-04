@@ -73,7 +73,7 @@ public static partial class Module
         );
 
         // Create new chunk
-        var newChunk = Chunk.Build(layerId, chunkMinPos, chunkSize);
+        var newChunk = Chunk.Build(layer.ProjectId, layerId, chunkMinPos, chunkSize);
         ctx.Db.chunk.Insert(newChunk);
         
         return newChunk;

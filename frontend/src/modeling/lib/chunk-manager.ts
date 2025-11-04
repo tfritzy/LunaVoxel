@@ -108,6 +108,8 @@ export class ChunkManager {
     const rawChunks = this.dbConn.db.chunk.tableCache.iter() as DbChunk[];
     
     for (const dbChunk of rawChunks) {
+      if (dbChunk.projectId !== this.projectId) continue;
+      
       const layer = this.layers.find(l => l.id === dbChunk.layerId);
       if (!layer) continue;
       
@@ -136,6 +138,8 @@ export class ChunkManager {
   };
 
   private onChunkInsert = (ctx: EventContext, newChunk: DbChunk) => {
+    if (newChunk.projectId !== this.projectId) return;
+    
     const layer = this.layers.find(l => l.id === newChunk.layerId);
     if (!layer) return;
     
@@ -154,6 +158,8 @@ export class ChunkManager {
   };
 
   private onChunkDelete = (ctx: EventContext, deletedChunk: DbChunk) => {
+    if (deletedChunk.projectId !== this.projectId) return;
+    
     const layer = this.layers.find(l => l.id === deletedChunk.layerId);
     if (!layer) return;
 
@@ -266,8 +272,25 @@ export class ChunkManager {
     }
   };
 
-  public getChunkDimensions(): Vector3 {
-    return { x: 1, y: 1, z: 1 };
+  public getBlockAtPosition(position: THREE.Vector3, layer: Layer): number | null {
+    const chunkMinPos = this.getChunkMinPos(position);
+    const key = this.getChunkKey(chunkMinPos);
+    const chunk = this.chunks.get(key);
+    
+    if (!chunk) return 0; // No chunk means empty
+    
+    const layerChunk = chunk.getLayerChunk(layer.index);
+    if (!layerChunk) return 0;
+    
+    // Calculate local position within chunk
+    const localX = position.x - chunkMinPos.x;
+    const localY = position.y - chunkMinPos.y;
+    const localZ = position.z - chunkMinPos.z;
+    
+    // Calculate index in voxel array
+    const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
+    
+    return layerChunk.voxels[index] || 0;
   }
 
   public applyOptimisticRect(
@@ -288,16 +311,15 @@ export class ChunkManager {
     const maxZ = Math.floor(Math.max(start.z, end.z));
 
     // Iterate in chunk-sized increments
-    const chunkMinX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
-    const chunkMaxX = Math.floor(maxX / CHUNK_SIZE) * CHUNK_SIZE;
-    const chunkMinY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
-    const chunkMaxY = Math.floor(maxY / CHUNK_SIZE) * CHUNK_SIZE;
-    const chunkMinZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
-    const chunkMaxZ = Math.floor(maxZ / CHUNK_SIZE) * CHUNK_SIZE;
-
-    for (let chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX += CHUNK_SIZE) {
-      for (let chunkY = chunkMinY; chunkY <= chunkMaxY; chunkY += CHUNK_SIZE) {
-        for (let chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ += CHUNK_SIZE) {
+    for (let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE; 
+         chunkX <= maxX; 
+         chunkX += CHUNK_SIZE) {
+      for (let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE; 
+           chunkY <= maxY; 
+           chunkY += CHUNK_SIZE) {
+        for (let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE; 
+             chunkZ <= maxZ; 
+             chunkZ += CHUNK_SIZE) {
           const chunk = this.getOrCreateChunk({ x: chunkX, y: chunkY, z: chunkZ });
           
           // Calculate bounds within this chunk
@@ -328,14 +350,8 @@ export class ChunkManager {
     }
   }
 
-  update = (
-    previewFrame: VoxelFrame,
-    buildMode: BlockModificationMode,
-    atlasData: AtlasData
-  ) => {
-    // Store atlas data for future chunk updates
+  setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
-    // Chunks are updated via subscriptions, not via this method
   };
 
   dispose = () => {
