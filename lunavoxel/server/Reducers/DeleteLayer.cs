@@ -13,7 +13,6 @@ public static partial class Module
 
         layers.Sort((l1, l2) => l1.Index - l2.Index);
 
-        // Delete all chunks associated with this layer
         DeleteLayerChunks(ctx, id);
 
         ctx.Db.layer.Id.Delete(id);
