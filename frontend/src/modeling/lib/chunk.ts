@@ -9,19 +9,15 @@ import {
   BlockModificationMode,
 } from "@/module_bindings";
 import {
-  getBlockType,
   isBlockPresent,
-  decompressVoxelData,
   decompressVoxelDataInto,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
-import { calculateRectBounds } from "@/lib/rect-utils";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { layers } from "./layers";
 import { VoxelFrame } from "./voxel-frame";
-import { ToolType } from "./tool-type";
 
 export const CHUNK_SIZE = 16;
 
@@ -294,17 +290,15 @@ export class Chunk {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // applyOptimisticRect is no longer supported with chunk-based storage
   public applyOptimisticRect(
-    layer: Layer,
-    mode: BlockModificationMode,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    blockType: number,
-    rotation: number
+    _layer: Layer,
+    _mode: BlockModificationMode,
+    _start: THREE.Vector3,
+    _end: THREE.Vector3,
+    _blockType: number,
+    _rotation: number
   ) {
-    if (layer.locked) return;
-
     // Note: Optimistic updates for chunks would require loading/creating chunks here
     // For now, we'll skip optimistic updates for chunk-based storage
     // The server will handle the updates and we'll get them via subscriptions

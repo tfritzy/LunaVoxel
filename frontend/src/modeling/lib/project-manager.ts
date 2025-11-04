@@ -1,13 +1,11 @@
 import * as THREE from "three";
 import { DbConnection, Project, BlockModificationMode } from "../../module_bindings";
-import type { ToolType } from "./tool-type";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { Chunk } from "./chunk";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
-import { getBlockType } from "./voxel-data-utils";
 
 export class ProjectManager {
   public builder;
@@ -122,13 +120,14 @@ export class ProjectManager {
     this.updateChunkManager();
   };
 
+  // applyOptimisticRectEdit is no longer supported with chunk-based storage
   public applyOptimisticRectEdit = (
     layerIndex: number,
-    mode: BlockModificationMode,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    blockType: number,
-    rotation: number
+    _mode: BlockModificationMode,
+    _start: THREE.Vector3,
+    _end: THREE.Vector3,
+    _blockType: number,
+    _rotation: number
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
@@ -138,9 +137,10 @@ export class ProjectManager {
     this.updateChunkManager();
   };
 
+  // getBlockAtPosition is no longer supported with chunk-based storage
   public getBlockAtPosition(
-    position: THREE.Vector3,
-    layerIndex: number
+    _position: THREE.Vector3,
+    _layerIndex: number
   ): number | null {
     // Note: Getting block at position is not directly supported with chunk-based storage
     // We would need to implement a method to query chunks
