@@ -21,7 +21,7 @@ public static partial class Module
         Log.Info($"Found selection {selection.Id} - Layer: {selection.Layer}");
 
         var layer = ctx.Db.layer.project_index.Filter((projectId, selection.Layer)).FirstOrDefault()
-            ?? throw new ArgumentException($"Layer not found for project {projectId} at index {selection.Layer}");
+            ?? throw new ArgumentException($"Layer not found for project {projectId} with layer {selection.Layer}");
 
         if (layer.Locked)
         {
@@ -37,7 +37,7 @@ public static partial class Module
         if (selectionData.Length != layerVoxels.Length)
         {
             Log.Error($"Selection data length ({selectionData.Length}) doesn't match layer voxels length ({layerVoxels.Length})");
-            throw new ArgumentException("Selection data size mismatch with layer");
+            throw new ArgumentException("Selection data dimensions do not match layer dimensions");
         }
 
         int deletedCount = 0;
