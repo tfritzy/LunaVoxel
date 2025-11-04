@@ -22,9 +22,6 @@ public static partial class Module
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
             ?? throw new ArgumentException("No layer for this project");
 
-        byte[] diffData = new byte[layer.xDim * layer.yDim * layer.zDim];
-        var existingData = VoxelCompression.Decompress(layer.Voxels);
-
         int sx = Clamp(start.X, layer.xDim);
         int sy = Clamp(start.Y, layer.yDim);
         int sz = Clamp(start.Z, layer.zDim);
@@ -40,29 +37,79 @@ public static partial class Module
         int minZ = Math.Min(sz, ez);
         int maxZ = Math.Max(sz, ez);
 
+        var chunkUpdates = new Dictionary<string, List<(Vector3 pos, byte value)>>();
+
         for (int x = minX; x <= maxX; x++)
         {
             for (int y = minY; y <= maxY; y++)
             {
                 for (int z = minZ; z <= maxZ; z++)
                 {
-                    int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                    byte? newValue = mode switch
+                    var position = new Vector3(x, y, z);
+                    
+                    byte valueToSet;
+                    if (mode == BlockModificationMode.Erase)
                     {
-                        BlockModificationMode.Attach => type,
-                        BlockModificationMode.Erase => 1, // any value > 0 erases in erase mode.
-                        BlockModificationMode.Paint when existingData[index] != 0 => type,
-                        _ => (byte)0
-                    };
-
-                    if (newValue.HasValue)
-                    {
-                        diffData[index] = newValue.Value;
+                        valueToSet = 0;
                     }
+                    else if (mode == BlockModificationMode.Paint)
+                    {
+                        byte currentValue = GetVoxelFromChunks(ctx, layer.Id, position);
+                        if (currentValue == 0)
+                        {
+                            continue; // Skip empty voxels in paint mode
+                        }
+                        valueToSet = type;
+                    }
+                    else
+                    {
+                        valueToSet = type;
+                    }
+
+                    var chunkMinPos = new Vector3(
+                        (x / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
+                        (y / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
+                        (z / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE
+                    );
+                    var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
+
+                    if (!chunkUpdates.ContainsKey(chunkKey))
+                    {
+                        chunkUpdates[chunkKey] = new List<(Vector3, byte)>();
+                    }
+
+                    chunkUpdates[chunkKey].Add((position, valueToSet));
                 }
             }
         }
 
-        ModifyBlock(ctx, projectId, mode, diffData, layerIndex);
+        // Apply updates to each affected chunk
+        foreach (var kvp in chunkUpdates)
+        {
+            var firstPos = kvp.Value[0].pos;
+            var chunk = GetOrCreateChunk(ctx, layer.Id, firstPos, layer);
+            var voxels = VoxelCompression.Decompress(chunk.Voxels);
+
+            foreach (var (pos, value) in kvp.Value)
+            {
+                // Calculate local position within chunk
+                var localPos = new Vector3(
+                    pos.X - chunk.MinPosX,
+                    pos.Y - chunk.MinPosY,
+                    pos.Z - chunk.MinPosZ
+                );
+                var index = localPos.X * chunk.SizeY * chunk.SizeZ + localPos.Y * chunk.SizeZ + localPos.Z;
+                voxels[index] = value;
+            }
+
+            chunk.Voxels = VoxelCompression.Compress(voxels);
+            ctx.Db.chunk.Id.Update(chunk);
+
+            // Delete chunk if it becomes empty after erase
+            if (mode == BlockModificationMode.Erase)
+            {
+                DeleteChunkIfEmpty(ctx, chunk);
+            }
+        }
     }
 }

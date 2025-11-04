@@ -31,14 +31,10 @@ public static partial class Module
             Log.Info($"Found existing selection for user - Selection ID: {existingSelection.Id}");
         }
 
-        var layerVoxels = VoxelCompression.Decompress(layer.Voxels);
-        Log.Info($"Decompressed {layerVoxels.Length} voxels from layer");
-
-        int clickedIndex = position.X * layer.yDim * layer.zDim + position.Y * layer.zDim + position.Z;
-        byte clickedVoxel = layerVoxels[clickedIndex];
+        byte clickedVoxel = GetVoxelFromChunks(ctx, layer.Id, position);
         byte targetBlockType = VoxelDataUtils.GetBlockType(clickedVoxel);
 
-        Log.Info($"Clicked voxel - Index: {clickedIndex}, Block type: {targetBlockType}");
+        Log.Info($"Clicked voxel - Block type: {targetBlockType}");
 
         if (targetBlockType == 0)
         {
@@ -52,11 +48,9 @@ public static partial class Module
         }
 
         Log.Info($"Starting flood fill for block type {targetBlockType}");
-        var selectionData = FloodFillSelect(
-            layerVoxels,
-            layer.xDim,
-            layer.yDim,
-            layer.zDim,
+        var selectionData = FloodFillSelectFromChunks(
+            ctx,
+            layer,
             position,
             targetBlockType
         );
@@ -80,6 +74,7 @@ public static partial class Module
                 Id = IdGenerator.Generate("sel"),
                 Identity = ctx.Sender,
                 ProjectId = projectId,
+                Layer = layerIndex,
                 SelectionData = compressedSelection
             };
             ctx.Db.selections.Insert(newSelection);
@@ -89,20 +84,18 @@ public static partial class Module
         Log.Info($"MagicSelect completed successfully - {selectedCount} voxels selected");
     }
 
-    private static byte[] FloodFillSelect(
-        byte[] voxels,
-        int xDim,
-        int yDim,
-        int zDim,
+    private static byte[] FloodFillSelectFromChunks(
+        ReducerContext ctx,
+        Layer layer,
         Vector3 startPos,
         byte targetBlockType)
     {
-        var selectionData = new byte[voxels.Length];
-        var visited = new bool[voxels.Length];
+        var selectionData = new byte[layer.xDim * layer.yDim * layer.zDim];
+        var visited = new bool[layer.xDim * layer.yDim * layer.zDim];
         var queue = new Queue<(int x, int y, int z)>();
 
         queue.Enqueue((startPos.X, startPos.Y, startPos.Z));
-        int startIndex = startPos.X * yDim * zDim + startPos.Y * zDim + startPos.Z;
+        int startIndex = startPos.X * layer.yDim * layer.zDim + startPos.Y * layer.zDim + startPos.Z;
         visited[startIndex] = true;
 
         int[] dx = { 1, -1, 0, 0, 0, 0 };
@@ -115,10 +108,11 @@ public static partial class Module
         while (queue.Count > 0)
         {
             var (x, y, z) = queue.Dequeue();
-            int currentIndex = x * yDim * zDim + y * zDim + z;
+            int currentIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
             processedCount++;
 
-            byte currentVoxel = voxels[currentIndex];
+            var position = new Vector3(x, y, z);
+            byte currentVoxel = GetVoxelFromChunks(ctx, layer.Id, position);
             byte currentBlockType = VoxelDataUtils.GetBlockType(currentVoxel);
 
             if (currentBlockType != targetBlockType)
@@ -135,16 +129,17 @@ public static partial class Module
                 int ny = y + dy[i];
                 int nz = z + dz[i];
 
-                if (nx >= 0 && nx < xDim &&
-                    ny >= 0 && ny < yDim &&
-                    nz >= 0 && nz < zDim)
+                if (nx >= 0 && nx < layer.xDim &&
+                    ny >= 0 && ny < layer.yDim &&
+                    nz >= 0 && nz < layer.zDim)
                 {
-                    int neighborIndex = nx * yDim * zDim + ny * zDim + nz;
+                    int neighborIndex = nx * layer.yDim * layer.zDim + ny * layer.zDim + nz;
 
                     if (!visited[neighborIndex])
                     {
                         visited[neighborIndex] = true;
-                        byte neighborVoxel = voxels[neighborIndex];
+                        var neighborPos = new Vector3(nx, ny, nz);
+                        byte neighborVoxel = GetVoxelFromChunks(ctx, layer.Id, neighborPos);
                         byte neighborBlockType = VoxelDataUtils.GetBlockType(neighborVoxel);
 
                         if (neighborBlockType == targetBlockType)
