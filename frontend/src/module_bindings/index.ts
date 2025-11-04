@@ -49,6 +49,8 @@ import { DeleteBlock } from "./delete_block_reducer.ts";
 export { DeleteBlock };
 import { DeleteLayer } from "./delete_layer_reducer.ts";
 export { DeleteLayer };
+import { DeleteSelection } from "./delete_selection_reducer.ts";
+export { DeleteSelection };
 import { InitializeBlocks } from "./initialize_blocks_reducer.ts";
 export { InitializeBlocks };
 import { InviteToProject } from "./invite_to_project_reducer.ts";
@@ -224,6 +226,10 @@ const REMOTE_MODULE = {
     DeleteLayer: {
       reducerName: "DeleteLayer",
       argsType: DeleteLayer.getTypeScriptAlgebraicType(),
+    },
+    DeleteSelection: {
+      reducerName: "DeleteSelection",
+      argsType: DeleteSelection.getTypeScriptAlgebraicType(),
     },
     InitializeBlocks: {
       reducerName: "InitializeBlocks",
@@ -475,6 +481,22 @@ export class RemoteReducers {
 
   removeOnDeleteLayer(callback: (ctx: ReducerEventContext, id: string) => void) {
     this.connection.offReducer("DeleteLayer", callback);
+  }
+
+  deleteSelection(projectId: string) {
+    const __args = { projectId };
+    let __writer = new __BinaryWriter(1024);
+    DeleteSelection.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("DeleteSelection", __argsBuffer, this.setCallReducerFlags.deleteSelectionFlags);
+  }
+
+  onDeleteSelection(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("DeleteSelection", callback);
+  }
+
+  removeOnDeleteSelection(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("DeleteSelection", callback);
   }
 
   initializeBlocks(projectId: string) {
@@ -769,6 +791,11 @@ export class SetReducerFlags {
   deleteLayerFlags: __CallReducerFlags = 'FullUpdate';
   deleteLayer(flags: __CallReducerFlags) {
     this.deleteLayerFlags = flags;
+  }
+
+  deleteSelectionFlags: __CallReducerFlags = 'FullUpdate';
+  deleteSelection(flags: __CallReducerFlags) {
+    this.deleteSelectionFlags = flags;
   }
 
   initializeBlocksFlags: __CallReducerFlags = 'FullUpdate';
