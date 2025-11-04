@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { DbConnection, Project, BlockModificationMode } from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
-import { Chunk } from "./chunk";
+import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
@@ -26,7 +26,7 @@ export class ProjectManager {
   ) {
     this.dbConn = dbConn;
     this.project = project;
-    this.chunkManager = new Chunk(
+    this.chunkManager = new ChunkManager(
       scene,
       project.dimensions,
       dbConn,
