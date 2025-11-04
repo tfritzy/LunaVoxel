@@ -66,12 +66,10 @@ public static partial class Module
                         valueToSet = type;
                     }
 
-                    var chunkMinPos = new Vector3(
-                        (x / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
-                        (y / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE,
-                        (z / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE
-                    );
-                    var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
+
+                    // Calculate chunk identifier
+                    var chunkMinPos = CalculateChunkMinPosition(position);
+                    var chunkKey = GetChunkKey(chunkMinPos);
 
                     if (!chunkUpdates.ContainsKey(chunkKey))
                     {
@@ -98,7 +96,7 @@ public static partial class Module
                     pos.Y - chunk.MinPosY,
                     pos.Z - chunk.MinPosZ
                 );
-                var index = localPos.X * chunk.SizeY * chunk.SizeZ + localPos.Y * chunk.SizeZ + localPos.Z;
+                var index = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
                 voxels[index] = value;
             }
 
