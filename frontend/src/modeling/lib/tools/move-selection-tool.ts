@@ -45,10 +45,7 @@ export class MoveSelectionTool implements Tool {
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     // Commit the selection move to convert offsets to actual positions
     if (this.lastOffset.length() > 0.1) {
-      // Check if commitSelectionMove reducer exists
-      if ('commitSelectionMove' in context.dbConn.reducers) {
-        (context.dbConn.reducers as any).commitSelectionMove(context.projectId);
-      }
+      context.dbConn.reducers.commitSelectionMove(context.projectId);
     }
 
     // Reset state

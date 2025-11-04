@@ -43,6 +43,8 @@ import { ClientConnected } from "./client_connected_reducer.ts";
 export { ClientConnected };
 import { ClientDisconnected } from "./client_disconnected_reducer.ts";
 export { ClientDisconnected };
+import { CommitSelectionMove } from "./commit_selection_move_reducer.ts";
+export { CommitSelectionMove };
 import { CreateProject } from "./create_project_reducer.ts";
 export { CreateProject };
 import { DeleteBlock } from "./delete_block_reducer.ts";
@@ -213,6 +215,10 @@ const REMOTE_MODULE = {
       reducerName: "ClientDisconnected",
       argsType: ClientDisconnected.getTypeScriptAlgebraicType(),
     },
+    CommitSelectionMove: {
+      reducerName: "CommitSelectionMove",
+      argsType: CommitSelectionMove.getTypeScriptAlgebraicType(),
+    },
     CreateProject: {
       reducerName: "CreateProject",
       argsType: CreateProject.getTypeScriptAlgebraicType(),
@@ -325,6 +331,7 @@ export type Reducer = never
 | { name: "ChangeUserAccessToProject", args: ChangeUserAccessToProject }
 | { name: "ClientConnected", args: ClientConnected }
 | { name: "ClientDisconnected", args: ClientDisconnected }
+| { name: "CommitSelectionMove", args: CommitSelectionMove }
 | { name: "CreateProject", args: CreateProject }
 | { name: "DeleteBlock", args: DeleteBlock }
 | { name: "DeleteLayer", args: DeleteLayer }
@@ -427,6 +434,22 @@ export class RemoteReducers {
 
   removeOnClientDisconnected(callback: (ctx: ReducerEventContext) => void) {
     this.connection.offReducer("ClientDisconnected", callback);
+  }
+
+  commitSelectionMove(projectId: string) {
+    const __args = { projectId };
+    let __writer = new __BinaryWriter(1024);
+    CommitSelectionMove.serialize(__writer, __args);
+    let __argsBuffer = __writer.getBuffer();
+    this.connection.callReducer("CommitSelectionMove", __argsBuffer, this.setCallReducerFlags.commitSelectionMoveFlags);
+  }
+
+  onCommitSelectionMove(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.onReducer("CommitSelectionMove", callback);
+  }
+
+  removeOnCommitSelectionMove(callback: (ctx: ReducerEventContext, projectId: string) => void) {
+    this.connection.offReducer("CommitSelectionMove", callback);
   }
 
   createProject(id: string, name: string, xDim: number, yDim: number, zDim: number) {
@@ -754,6 +777,11 @@ export class SetReducerFlags {
   changeUserAccessToProjectFlags: __CallReducerFlags = 'FullUpdate';
   changeUserAccessToProject(flags: __CallReducerFlags) {
     this.changeUserAccessToProjectFlags = flags;
+  }
+
+  commitSelectionMoveFlags: __CallReducerFlags = 'FullUpdate';
+  commitSelectionMove(flags: __CallReducerFlags) {
+    this.commitSelectionMoveFlags = flags;
   }
 
   createProjectFlags: __CallReducerFlags = 'FullUpdate';
