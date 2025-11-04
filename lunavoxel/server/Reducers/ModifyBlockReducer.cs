@@ -15,57 +15,65 @@ public static partial class Module
 
         if (layer.Locked) return;
 
-        // Group diff data by chunks to minimize chunk loads
-        var chunkUpdates = new Dictionary<string, List<(Vector3 pos, byte value)>>();
+        // Process diff data by iterating in place and updating chunks as we go
+        Chunk currentChunk = null;
+        var currentChunkMinPos = new Vector3(-1, -1, -1);
+        byte[] currentVoxels = null;
+        bool chunkModified = false;
 
         for (int i = 0; i < diffData.Length; i++)
         {
             if (diffData[i] != 0)
             {
-                // Calculate 3D position from flat index
                 var position = FlatIndexTo3DPosition(i, layer.yDim, layer.zDim);
-
-                // Calculate chunk identifier
                 var chunkMinPos = CalculateChunkMinPosition(position);
-                var chunkKey = GetChunkKey(chunkMinPos);
 
-                if (!chunkUpdates.ContainsKey(chunkKey))
+                // Load new chunk if we've moved to a different chunk
+                if (currentChunk == null || 
+                    currentChunkMinPos.X != chunkMinPos.X || 
+                    currentChunkMinPos.Y != chunkMinPos.Y || 
+                    currentChunkMinPos.Z != chunkMinPos.Z)
                 {
-                    chunkUpdates[chunkKey] = new List<(Vector3, byte)>();
+                    // Save previous chunk if it was modified
+                    if (currentChunk != null && chunkModified)
+                    {
+                        currentChunk.Voxels = VoxelCompression.Compress(currentVoxels);
+                        ctx.Db.chunk.Id.Update(currentChunk);
+                        if (mode == BlockModificationMode.Erase)
+                        {
+                            DeleteChunkIfEmpty(ctx, currentChunk);
+                        }
+                    }
+
+                    // Load next chunk
+                    currentChunk = GetOrCreateChunk(ctx, layer.Id, position, layer);
+                    currentChunkMinPos = chunkMinPos;
+                    currentVoxels = VoxelCompression.Decompress(currentChunk.Voxels);
+                    chunkModified = false;
                 }
 
-                // Determine the value to set based on mode
+                // Update voxel in current chunk
+                var localPos = new Vector3(
+                    position.X - currentChunk.MinPosX,
+                    position.Y - currentChunk.MinPosY,
+                    position.Z - currentChunk.MinPosZ
+                );
+                var index = CalculateVoxelIndex(localPos, currentChunk.SizeY, currentChunk.SizeZ);
+                
                 byte valueToSet = mode == BlockModificationMode.Erase ? (byte)0 : diffData[i];
-                chunkUpdates[chunkKey].Add((position, valueToSet));
+                currentVoxels[index] = valueToSet;
+                chunkModified = true;
             }
         }
 
-        // Apply updates to each affected chunk
-        foreach (var kvp in chunkUpdates)
+        // Save the last chunk if it was modified
+        if (currentChunk != null && chunkModified)
         {
-            var firstPos = kvp.Value[0].pos;
-            var chunk = GetOrCreateChunk(ctx, layer.Id, firstPos, layer);
-            var voxels = VoxelCompression.Decompress(chunk.Voxels);
-
-            foreach (var (pos, value) in kvp.Value)
-            {
-                // Calculate local position within chunk
-                var localPos = new Vector3(
-                    pos.X - chunk.MinPosX,
-                    pos.Y - chunk.MinPosY,
-                    pos.Z - chunk.MinPosZ
-                );
-                var index = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
-                voxels[index] = value;
-            }
-
-            chunk.Voxels = VoxelCompression.Compress(voxels);
-            ctx.Db.chunk.Id.Update(chunk);
-
-            // Delete chunk if it becomes empty after erase
+            currentChunk.Voxels = VoxelCompression.Compress(currentVoxels);
+            ctx.Db.chunk.Id.Update(currentChunk);
             if (mode == BlockModificationMode.Erase)
             {
-                DeleteChunkIfEmpty(ctx, chunk);
+                DeleteChunkIfEmpty(ctx, currentChunk);
             }
         }
 

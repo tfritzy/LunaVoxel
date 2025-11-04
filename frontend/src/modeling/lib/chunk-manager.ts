@@ -111,13 +111,11 @@ export class ChunkManager {
       const layer = this.layers.find(l => l.id === dbChunk.layerId);
       if (!layer) continue;
       
-      const minPos: Vector3 = {
+      const chunk = this.getOrCreateChunk({
         x: dbChunk.minPosX,
         y: dbChunk.minPosY,
         z: dbChunk.minPosZ,
-      };
-      
-      const chunk = this.getOrCreateChunk(minPos);
+      });
       chunk.setLayerChunk(layer.index, dbChunk);
     }
   };
@@ -141,39 +139,42 @@ export class ChunkManager {
     const layer = this.layers.find(l => l.id === newChunk.layerId);
     if (!layer) return;
     
-    const minPos: Vector3 = {
+    const chunk = this.getOrCreateChunk({
       x: newChunk.minPosX,
       y: newChunk.minPosY,
       z: newChunk.minPosZ,
-    };
-    
-    const chunk = this.getOrCreateChunk(minPos);
+    });
     chunk.setLayerChunk(layer.index, newChunk);
     
-    this.updateChunk(minPos);
+    this.updateChunk({
+      x: newChunk.minPosX,
+      y: newChunk.minPosY,
+      z: newChunk.minPosZ,
+    });
   };
 
   private onChunkDelete = (ctx: EventContext, deletedChunk: DbChunk) => {
     const layer = this.layers.find(l => l.id === deletedChunk.layerId);
     if (!layer) return;
 
-    const minPos: Vector3 = {
+    const key = this.getChunkKey({
       x: deletedChunk.minPosX,
       y: deletedChunk.minPosY,
       z: deletedChunk.minPosZ,
-    };
-    
-    const key = this.getChunkKey(minPos);
+    });
     const chunk = this.chunks.get(key);
     if (chunk) {
       chunk.setLayerChunk(layer.index, null);
       
-      // If chunk is now empty, dispose it
       if (chunk.isEmpty()) {
         chunk.dispose();
         this.chunks.delete(key);
       } else {
-        this.updateChunk(minPos);
+        this.updateChunk({
+          x: deletedChunk.minPosX,
+          y: deletedChunk.minPosY,
+          z: deletedChunk.minPosZ,
+        });
       }
     }
   };
@@ -269,12 +270,6 @@ export class ChunkManager {
     return { x: 1, y: 1, z: 1 };
   }
 
-  // TODO: Needs to handle multi-chunk world
-  // public getMesh(): THREE.Mesh | null {
-  //   const firstChunk = this.chunks.values().next().value;
-  //   return firstChunk ? firstChunk.getMesh() : null;
-  // }
-
   public applyOptimisticRect(
     layer: Layer,
     mode: BlockModificationMode,
@@ -285,44 +280,50 @@ export class ChunkManager {
   ) {
     if (layer.locked) return;
 
-    // Iterate over the bounds and figure out which chunks they go into
-    const minX = Math.min(start.x, end.x);
-    const maxX = Math.max(start.x, end.x);
-    const minY = Math.min(start.y, end.y);
-    const maxY = Math.max(start.y, end.y);
-    const minZ = Math.min(start.z, end.z);
-    const maxZ = Math.max(start.z, end.z);
+    const minX = Math.floor(Math.min(start.x, end.x));
+    const maxX = Math.floor(Math.max(start.x, end.x));
+    const minY = Math.floor(Math.min(start.y, end.y));
+    const maxY = Math.floor(Math.max(start.y, end.y));
+    const minZ = Math.floor(Math.min(start.z, end.z));
+    const maxZ = Math.floor(Math.max(start.z, end.z));
 
-    // Find all affected chunks
-    const affectedChunks = new Map<string, { chunk: Chunk; positions: Vector3[] }>();
+    // Iterate in chunk-sized increments
+    const chunkMinX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
+    const chunkMaxX = Math.floor(maxX / CHUNK_SIZE) * CHUNK_SIZE;
+    const chunkMinY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
+    const chunkMaxY = Math.floor(maxY / CHUNK_SIZE) * CHUNK_SIZE;
+    const chunkMinZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
+    const chunkMaxZ = Math.floor(maxZ / CHUNK_SIZE) * CHUNK_SIZE;
 
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        for (let z = minZ; z <= maxZ; z++) {
-          const worldPos: Vector3 = { x, y, z };
-          const chunkMinPos = this.getChunkMinPos(worldPos);
-          const key = this.getChunkKey(chunkMinPos);
+    for (let chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX += CHUNK_SIZE) {
+      for (let chunkY = chunkMinY; chunkY <= chunkMaxY; chunkY += CHUNK_SIZE) {
+        for (let chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ += CHUNK_SIZE) {
+          const chunk = this.getOrCreateChunk({ x: chunkX, y: chunkY, z: chunkZ });
           
-          if (!affectedChunks.has(key)) {
-            const chunk = this.getOrCreateChunk(chunkMinPos);
-            affectedChunks.set(key, { chunk, positions: [] });
+          // Calculate bounds within this chunk
+          const localMinX = Math.max(0, minX - chunkX);
+          const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
+          const localMinY = Math.max(0, minY - chunkY);
+          const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
+          const localMinZ = Math.max(0, minZ - chunkZ);
+          const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
+
+          chunk.applyOptimisticRect(
+            layer.index,
+            mode,
+            localMinX, localMaxX,
+            localMinY, localMaxY,
+            localMinZ, localMaxZ,
+            blockType
+          );
+          
+          if (this.atlasData) {
+            const visibleLayerIndices = this.layers
+              .filter(l => l.visible)
+              .map(l => l.index);
+            chunk.update(visibleLayerIndices, this.atlasData);
           }
-          
-          affectedChunks.get(key)!.positions.push(worldPos);
         }
-      }
-    }
-
-    // Apply optimistic updates to each chunk
-    for (const { chunk, positions } of affectedChunks.values()) {
-      chunk.applyOptimisticRect(layer.index, mode, positions, blockType);
-      
-      // Update the chunk with current atlas
-      if (this.atlasData) {
-        const visibleLayerIndices = this.layers
-          .filter(l => l.visible)
-          .map(l => l.index);
-        chunk.update(visibleLayerIndices, this.atlasData);
       }
     }
   }

@@ -114,39 +114,33 @@ export class Chunk {
   public applyOptimisticRect(
     layerIndex: number,
     mode: { tag: string },
-    positions: Vector3[],
+    localMinX: number, localMaxX: number,
+    localMinY: number, localMaxY: number,
+    localMinZ: number, localMaxZ: number,
     blockType: number
   ): void {
     const layerChunk = this.layerChunks[layerIndex];
     if (!layerChunk) return;
 
-    for (const worldPos of positions) {
-      // Convert world position to local chunk position
-      const localX = worldPos.x - this.minPos.x;
-      const localY = worldPos.y - this.minPos.y;
-      const localZ = worldPos.z - this.minPos.z;
+    for (let x = localMinX; x <= localMaxX; x++) {
+      for (let y = localMinY; y <= localMaxY; y++) {
+        for (let z = localMinZ; z <= localMaxZ; z++) {
+          const index = x * this.size.y * this.size.z + y * this.size.z + z;
 
-      // Check bounds
-      if (localX < 0 || localX >= this.size.x ||
-          localY < 0 || localY >= this.size.y ||
-          localZ < 0 || localZ >= this.size.z) {
-        continue;
-      }
-
-      const index = localX * this.size.y * this.size.z + localY * this.size.z + localZ;
-
-      switch (mode.tag) {
-        case "Attach":
-          layerChunk.voxels[index] = blockType;
-          break;
-        case "Erase":
-          layerChunk.voxels[index] = 0;
-          break;
-        case "Paint":
-          if (layerChunk.voxels[index] !== 0) {
-            layerChunk.voxels[index] = blockType;
+          switch (mode.tag) {
+            case "Attach":
+              layerChunk.voxels[index] = blockType;
+              break;
+            case "Erase":
+              layerChunk.voxels[index] = 0;
+              break;
+            case "Paint":
+              if (layerChunk.voxels[index] !== 0) {
+                layerChunk.voxels[index] = blockType;
+              }
+              break;
           }
-          break;
+        }
       }
     }
   }
