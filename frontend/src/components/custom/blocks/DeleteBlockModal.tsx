@@ -6,10 +6,6 @@ import { AtlasData } from "@/lib/useAtlas";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { X, ChevronDown } from "lucide-react";
 import {
-  decompressVoxelData,
-  getBlockType,
-} from "@/modeling/lib/voxel-data-utils";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -63,16 +59,13 @@ export const DeleteBlockModal = ({
   }, [isOpen]);
 
   const blockCount = useMemo(() => {
-    let count = 0;
-    const targetBlockType = blockIndex;
-
     // Note: With chunk-based storage, counting blocks would require
     // iterating through all chunks across all layers. For now, we'll
     // return 0 which means we can't show the exact count.
     // A better approach would be to add a server-side query for this.
     
-    return count;
-  }, [layers, blockIndex]);
+    return 0;
+  }, [blockIndex]);
 
   const handleDelete = () => {
     setSubmitPending(true);
