@@ -14,7 +14,7 @@ import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
 
-export const CHUNK_SIZE = 32; // Max chunk size as per backend
+export const CHUNK_SIZE = 32;
 
 type MeshType = "main" | "preview";
 
@@ -25,15 +25,11 @@ interface MeshData {
 
 export type DecompressedChunk = Omit<DbChunk, "voxels"> & { voxels: Uint8Array };
 
-/**
- * Represents a single chunk of world space (up to 32x32x32 voxels).
- * Contains multiple database chunk rows (one per layer) that share the same minPos.
- */
 export class Chunk {
   private scene: THREE.Scene;
-  public readonly minPos: Vector3; // World position of this chunk
-  public readonly size: Vector3; // Actual size of this chunk region
-  private layerChunks: (DecompressedChunk | null)[]; // Indexed by layer index
+  public readonly minPos: Vector3;
+  public readonly size: Vector3;
+  private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
 
@@ -54,7 +50,6 @@ export class Chunk {
     this.minPos = minPos;
     this.size = size;
     
-    // Initialize layer chunks array with nulls
     this.layerChunks = new Array(maxLayers).fill(null);
 
     const totalVoxels = size.x * size.y * size.z;
@@ -88,16 +83,12 @@ export class Chunk {
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  /**
-   * Set or update the chunk data for a specific layer
-   */
   public setLayerChunk(layerIndex: number, chunk: DbChunk | null): void {
     if (chunk === null) {
       this.layerChunks[layerIndex] = null;
       return;
     }
 
-    // Decompress and store
     const existing = this.layerChunks[layerIndex];
     const voxels = decompressVoxelDataInto(chunk.voxels, existing?.voxels);
     this.layerChunks[layerIndex] = {
@@ -118,6 +109,46 @@ export class Chunk {
    */
   public isEmpty(): boolean {
     return this.layerChunks.every(chunk => chunk === null);
+  }
+
+  public applyOptimisticRect(
+    layerIndex: number,
+    mode: { tag: string },
+    positions: Vector3[],
+    blockType: number
+  ): void {
+    const layerChunk = this.layerChunks[layerIndex];
+    if (!layerChunk) return;
+
+    for (const worldPos of positions) {
+      // Convert world position to local chunk position
+      const localX = worldPos.x - this.minPos.x;
+      const localY = worldPos.y - this.minPos.y;
+      const localZ = worldPos.z - this.minPos.z;
+
+      // Check bounds
+      if (localX < 0 || localX >= this.size.x ||
+          localY < 0 || localY >= this.size.y ||
+          localZ < 0 || localZ >= this.size.z) {
+        continue;
+      }
+
+      const index = localX * this.size.y * this.size.z + localY * this.size.z + localZ;
+
+      switch (mode.tag) {
+        case "Attach":
+          layerChunk.voxels[index] = blockType;
+          break;
+        case "Erase":
+          layerChunk.voxels[index] = 0;
+          break;
+        case "Paint":
+          if (layerChunk.voxels[index] !== 0) {
+            layerChunk.voxels[index] = blockType;
+          }
+          break;
+      }
+    }
   }
 
   private copyChunkData(blocks: Uint8Array): void {

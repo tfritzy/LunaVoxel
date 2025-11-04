@@ -14,21 +14,20 @@ import {
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
 import { Chunk, CHUNK_SIZE } from "./chunk";
+import { QueryRunner, TableHandle } from "@/lib/queryRunner";
 
 export type DecompressedSelection = Omit<Selection, "selectionData"> & {
   selectionData: Uint8Array;
 };
 
-/**
- * Manages multiple Chunk instances and handles subscriptions to the database
- */
 export class ChunkManager {
   private scene: THREE.Scene;
   private dimensions: Vector3;
   private dbConn: DbConnection;
   private projectId: string;
   private layers: Layer[] = [];
-  private chunks: Map<string, Chunk> = new Map(); // keyed by chunk minPos as "x,y,z"
+  private layersQueryRunner: QueryRunner<Layer> | null = null;
+  private chunks: Map<string, Chunk> = new Map();
   private selections: DecompressedSelection[] = [];
   private atlasData: AtlasData | null = null;
 
@@ -43,19 +42,31 @@ export class ChunkManager {
     this.dbConn = dbConn;
     this.projectId = projectId;
 
-    // Subscribe to chunk updates
+    // Subscribe to chunk updates - only insert and delete
     this.dbConn.db.chunk.onInsert(this.onChunkInsert);
-    this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
     this.dbConn.db.chunk.onDelete(this.onChunkDelete);
 
     this.dbConn.db.selections.onInsert(this.onSelectionInsert);
     this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.onDelete(this.onSelectionDelete);
 
-    // Use queryRunner for layers instead of lifecycle events
-    this.refreshLayers();
+    // Use QueryRunner for layers
+    this.initializeLayersQueryRunner();
     this.refreshChunks();
     this.refreshSelections();
+  }
+
+  private initializeLayersQueryRunner(): void {
+    const getTable = (db: DbConnection): TableHandle<Layer> => db.db.layer;
+    const filter = (layer: Layer) => layer.projectId === this.projectId;
+    
+    this.layersQueryRunner = new QueryRunner<Layer>(
+      getTable(this.dbConn),
+      (layers) => {
+        this.layers = layers.sort((a, b) => a.index - b.index);
+      },
+      filter
+    );
   }
 
   private getChunkKey(minPos: Vector3): string {
@@ -93,35 +104,21 @@ export class ChunkManager {
     return chunk;
   }
 
-  private refreshLayers = () => {
-    // Use queryRunner pattern for layers
-    this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
-      .filter((l) => l.projectId === this.projectId)
-      .sort((a, b) => a.index - b.index);
-  };
-
   private refreshChunks = () => {
     const rawChunks = this.dbConn.db.chunk.tableCache.iter() as DbChunk[];
     
-    // Only load chunks that belong to layers in this project
-    const projectLayerIds = new Set(this.layers.map(l => l.id));
-    
     for (const dbChunk of rawChunks) {
-      if (projectLayerIds.has(dbChunk.layerId)) {
-        const minPos = {
-          x: dbChunk.minPosX,
-          y: dbChunk.minPosY,
-          z: dbChunk.minPosZ,
-        };
-        
-        const chunk = this.getOrCreateChunk(minPos);
-        
-        // Find the layer index for this chunk
-        const layer = this.layers.find(l => l.id === dbChunk.layerId);
-        if (layer) {
-          chunk.setLayerChunk(layer.index, dbChunk);
-        }
-      }
+      const layer = this.layers.find(l => l.id === dbChunk.layerId);
+      if (!layer) continue;
+      
+      const minPos: Vector3 = {
+        x: dbChunk.minPosX,
+        y: dbChunk.minPosY,
+        z: dbChunk.minPosZ,
+      };
+      
+      const chunk = this.getOrCreateChunk(minPos);
+      chunk.setLayerChunk(layer.index, dbChunk);
     }
   };
 
@@ -141,32 +138,10 @@ export class ChunkManager {
   };
 
   private onChunkInsert = (ctx: EventContext, newChunk: DbChunk) => {
-    // Only load chunks for layers in this project
     const layer = this.layers.find(l => l.id === newChunk.layerId);
     if (!layer) return;
     
-    const minPos = {
-      x: newChunk.minPosX,
-      y: newChunk.minPosY,
-      z: newChunk.minPosZ,
-    };
-    
-    const chunk = this.getOrCreateChunk(minPos);
-    chunk.setLayerChunk(layer.index, newChunk);
-    
-    this.updateChunk(minPos);
-  };
-
-  private onChunkUpdate = (
-    ctx: EventContext,
-    oldChunk: DbChunk,
-    newChunk: DbChunk
-  ) => {
-    // Only update chunks for layers in this project
-    const layer = this.layers.find(l => l.id === newChunk.layerId);
-    if (!layer) return;
-
-    const minPos = {
+    const minPos: Vector3 = {
       x: newChunk.minPosX,
       y: newChunk.minPosY,
       z: newChunk.minPosZ,
@@ -182,7 +157,7 @@ export class ChunkManager {
     const layer = this.layers.find(l => l.id === deletedChunk.layerId);
     if (!layer) return;
 
-    const minPos = {
+    const minPos: Vector3 = {
       x: deletedChunk.minPosX,
       y: deletedChunk.minPosY,
       z: deletedChunk.minPosZ,
@@ -280,30 +255,76 @@ export class ChunkManager {
       chunk.setTextureAtlas(atlasData);
     }
     
-    this.updateAllChunks();
+    // Update all chunks with new atlas
+    const visibleLayerIndices = this.layers
+      .filter(l => l.visible)
+      .map(l => l.index);
+
+    for (const chunk of this.chunks.values()) {
+      chunk.update(visibleLayerIndices, atlasData);
+    }
   };
 
   public getChunkDimensions(): Vector3 {
     return { x: 1, y: 1, z: 1 };
   }
 
-  public getMesh(): THREE.Mesh | null {
-    // Return the first chunk's mesh (for compatibility)
-    const firstChunk = this.chunks.values().next().value;
-    return firstChunk ? firstChunk.getMesh() : null;
-  }
+  // TODO: Needs to handle multi-chunk world
+  // public getMesh(): THREE.Mesh | null {
+  //   const firstChunk = this.chunks.values().next().value;
+  //   return firstChunk ? firstChunk.getMesh() : null;
+  // }
 
-  // applyOptimisticRect is no longer supported with chunk-based storage
   public applyOptimisticRect(
-    _layer: Layer,
-    _mode: BlockModificationMode,
-    _start: THREE.Vector3,
-    _end: THREE.Vector3,
-    _blockType: number,
-    _rotation: number
+    layer: Layer,
+    mode: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number,
+    rotation: number
   ) {
-    // Note: Optimistic updates are no longer supported
-    // The server will handle updates and we'll receive them via subscriptions
+    if (layer.locked) return;
+
+    // Iterate over the bounds and figure out which chunks they go into
+    const minX = Math.min(start.x, end.x);
+    const maxX = Math.max(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxY = Math.max(start.y, end.y);
+    const minZ = Math.min(start.z, end.z);
+    const maxZ = Math.max(start.z, end.z);
+
+    // Find all affected chunks
+    const affectedChunks = new Map<string, { chunk: Chunk; positions: Vector3[] }>();
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          const worldPos: Vector3 = { x, y, z };
+          const chunkMinPos = this.getChunkMinPos(worldPos);
+          const key = this.getChunkKey(chunkMinPos);
+          
+          if (!affectedChunks.has(key)) {
+            const chunk = this.getOrCreateChunk(chunkMinPos);
+            affectedChunks.set(key, { chunk, positions: [] });
+          }
+          
+          affectedChunks.get(key)!.positions.push(worldPos);
+        }
+      }
+    }
+
+    // Apply optimistic updates to each chunk
+    for (const { chunk, positions } of affectedChunks.values()) {
+      chunk.applyOptimisticRect(layer.index, mode, positions, blockType);
+      
+      // Update the chunk with current atlas
+      if (this.atlasData) {
+        const visibleLayerIndices = this.layers
+          .filter(l => l.visible)
+          .map(l => l.index);
+        chunk.update(visibleLayerIndices, this.atlasData);
+      }
+    }
   }
 
   update = (
@@ -311,18 +332,22 @@ export class ChunkManager {
     buildMode: BlockModificationMode,
     atlasData: AtlasData
   ) => {
+    // Store atlas data for future chunk updates
     this.atlasData = atlasData;
-    this.updateAllChunks();
+    // Chunks are updated via subscriptions, not via this method
   };
 
   dispose = () => {
     // Unsubscribe from database events
     this.dbConn.db.chunk.removeOnInsert(this.onChunkInsert);
-    this.dbConn.db.chunk.removeOnUpdate(this.onChunkUpdate);
     this.dbConn.db.chunk.removeOnDelete(this.onChunkDelete);
     this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
     this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
+
+    // Dispose QueryRunner
+    this.layersQueryRunner?.dispose();
+    this.layersQueryRunner = null;
 
     // Dispose all chunks
     for (const chunk of this.chunks.values()) {
