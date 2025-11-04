@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/module_bindings";
 import type { ToolType } from "../tool-type";
-import type { Tool, ToolContext } from "../tool-interface";
+import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
@@ -20,21 +20,15 @@ export class MoveSelectionTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
-  onMouseDown(_context: ToolContext, _position: THREE.Vector3, _mousePos: THREE.Vector2): void {
+  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
   }
 
-  onDrag(
-    context: ToolContext,
-    _startPos: THREE.Vector3,
-    _currentPos: THREE.Vector3,
-    startMousePos: THREE.Vector2,
-    currentMousePos: THREE.Vector2
-  ): void {
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
     const offset = this.calculateOffsetFromMouseDelta(
-      startMousePos,
-      currentMousePos,
+      event.startMousePosition,
+      event.currentMousePosition,
       context.camera
     );
 
@@ -48,13 +42,15 @@ export class MoveSelectionTool implements Tool {
     }
   }
 
-  onMouseUp(
-    _context: ToolContext,
-    _startPos: THREE.Vector3,
-    _endPos: THREE.Vector3,
-    _startMousePos: THREE.Vector2,
-    _endMousePos: THREE.Vector2
-  ): void {
+  onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
+    // Commit the selection move to convert offsets to actual positions
+    if (this.lastOffset.length() > 0.1) {
+      // Check if commitSelectionMove reducer exists
+      if ('commitSelectionMove' in context.dbConn.reducers) {
+        (context.dbConn.reducers as any).commitSelectionMove(context.projectId);
+      }
+    }
+
     // Reset state
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);

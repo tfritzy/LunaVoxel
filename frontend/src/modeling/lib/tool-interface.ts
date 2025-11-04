@@ -17,6 +17,18 @@ export interface ToolContext {
   camera: THREE.Camera;
 }
 
+export interface ToolMouseEvent {
+  gridPosition: THREE.Vector3;
+  mousePosition: THREE.Vector2;
+}
+
+export interface ToolDragEvent {
+  startGridPosition: THREE.Vector3;
+  currentGridPosition: THREE.Vector3;
+  startMousePosition: THREE.Vector2;
+  currentMousePosition: THREE.Vector2;
+}
+
 export interface Tool {
   getType(): ToolType;
 
@@ -26,21 +38,9 @@ export interface Tool {
     mode?: BlockModificationMode
   ): THREE.Vector3;
 
-  onMouseDown(context: ToolContext, position: THREE.Vector3, mousePos: THREE.Vector2): void;
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void;
 
-  onDrag(
-    context: ToolContext,
-    startPos: THREE.Vector3,
-    currentPos: THREE.Vector3,
-    startMousePos: THREE.Vector2,
-    currentMousePos: THREE.Vector2
-  ): void;
+  onDrag(context: ToolContext, event: ToolDragEvent): void;
 
-  onMouseUp(
-    context: ToolContext,
-    startPos: THREE.Vector3,
-    endPos: THREE.Vector3,
-    startMousePos: THREE.Vector2,
-    endMousePos: THREE.Vector2
-  ): void;
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void;
 }

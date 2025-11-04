@@ -102,10 +102,12 @@ describe("Tool Interface", () => {
     });
 
     it("should show preview on drag", () => {
-      const startPos = new THREE.Vector3(1, 2, 3);
-      const endPos = new THREE.Vector3(3, 4, 5);
-      
-      tool.onDrag(mockContext, startPos, endPos);
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(3, 4, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5)
+      });
       
       expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
     });
@@ -212,12 +214,12 @@ describe("Tool Interface", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
-      const startPos = new THREE.Vector3(1, 2, 3);
-      const currentPos = new THREE.Vector3(4, 2, 3);
-      const startMousePos = new THREE.Vector2(0, 0);
-      const currentMousePos = new THREE.Vector2(0.5, 0);
-
-      tool.onDrag(mockContext, startPos, currentPos, startMousePos, currentMousePos);
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(4, 2, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0)
+      });
 
       expect(moveSelectionCalled).toBe(true);
       expect(passedOffset).not.toBeNull();
@@ -235,12 +237,12 @@ describe("Tool Interface", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
-      const startPos = new THREE.Vector3(1, 2, 3);
-      const currentPos = new THREE.Vector3(1, 2, 3);
-      const startMousePos = new THREE.Vector2(0, 0);
-      const currentMousePos = new THREE.Vector2(0, 0);
-
-      tool.onDrag(mockContext, startPos, currentPos, startMousePos, currentMousePos);
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(1, 2, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0)
+      });
 
       expect(moveSelectionCalled).toBe(false);
     });

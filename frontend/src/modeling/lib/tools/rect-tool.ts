@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode } from "../../../module_bindings";
 import type { ToolType } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
-import type { Tool, ToolContext } from "../tool-interface";
+import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class RectTool implements Tool {
@@ -19,17 +19,15 @@ export class RectTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, direction);
   }
 
-  onMouseDown(): void {}
+  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
 
-  onDrag(
-    context: ToolContext,
-    startPos: THREE.Vector3,
-    currentPos: THREE.Vector3,
-    _startMousePos: THREE.Vector2,
-    _currentMousePos: THREE.Vector2
-  ): void {
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
     context.previewFrame.clear();
-    const bounds = calculateRectBounds(startPos, currentPos, context.dimensions);
+    const bounds = calculateRectBounds(
+      event.startGridPosition, 
+      event.currentGridPosition, 
+      context.dimensions
+    );
 
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
@@ -42,20 +40,14 @@ export class RectTool implements Tool {
     context.projectManager.onPreviewUpdate();
   }
 
-  onMouseUp(
-    context: ToolContext,
-    startPos: THREE.Vector3,
-    endPos: THREE.Vector3,
-    _startMousePos: THREE.Vector2,
-    _endMousePos: THREE.Vector2
-  ): void {
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     context.previewFrame.clear();
     
     context.projectManager.applyOptimisticRectEdit(
       context.selectedLayer,
       context.mode,
-      startPos.clone(),
-      endPos.clone(),
+      event.startGridPosition.clone(),
+      event.currentGridPosition.clone(),
       context.selectedBlock,
       0
     );
@@ -64,8 +56,8 @@ export class RectTool implements Tool {
       context.projectId,
       context.mode,
       context.selectedBlock,
-      startPos,
-      endPos,
+      event.startGridPosition,
+      event.currentGridPosition,
       0,
       context.selectedLayer
     );

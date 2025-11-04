@@ -233,7 +233,10 @@ export const Builder = class {
       const gridPos = this.checkIntersection();
       if (gridPos) {
         this.startPosition = gridPos.clone();
-        this.currentTool.onMouseDown(this.toolContext, gridPos, this.mouse.clone());
+        this.currentTool.onMouseDown(this.toolContext, {
+          gridPosition: gridPos,
+          mousePosition: this.mouse.clone()
+        });
       }
     }
   }
@@ -350,13 +353,12 @@ export const Builder = class {
     }
 
     if (this.isMouseDown && this.startPosition && this.startMousePos) {
-      this.currentTool.onDrag(
-        this.toolContext, 
-        this.startPosition, 
-        gridPos, 
-        this.startMousePos, 
-        this.mouse.clone()
-      );
+      this.currentTool.onDrag(this.toolContext, {
+        startGridPosition: this.startPosition,
+        currentGridPosition: gridPos,
+        startMousePosition: this.startMousePos,
+        currentMousePosition: this.mouse.clone()
+      });
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
@@ -370,7 +372,12 @@ export const Builder = class {
     const startMousePos = this.startMousePos || this.mouse.clone();
     const endMousePos = this.mouse.clone();
 
-    this.currentTool.onMouseUp(this.toolContext, startPos, endPos, startMousePos, endMousePos);
+    this.currentTool.onMouseUp(this.toolContext, {
+      startGridPosition: startPos,
+      currentGridPosition: endPos,
+      startMousePosition: startMousePos,
+      currentMousePosition: endMousePos
+    });
 
     this.isMouseDown = false;
     this.startPosition = null;
