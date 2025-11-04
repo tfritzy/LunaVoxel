@@ -28,54 +28,54 @@ import {
   type TableHandle as __TableHandle,
 } from "spacetimedb";
 
-export type Layer = {
+export type Chunk = {
   id: string,
-  projectId: string,
-  xDim: number,
-  yDim: number,
-  zDim: number,
-  index: number,
-  visible: boolean,
-  locked: boolean,
-  name: string,
+  layerId: string,
+  minPosX: number,
+  minPosY: number,
+  minPosZ: number,
+  sizeX: number,
+  sizeY: number,
+  sizeZ: number,
+  voxels: Uint8Array,
 };
-let _cached_Layer_type_value: __AlgebraicTypeType | null = null;
+let _cached_Chunk_type_value: __AlgebraicTypeType | null = null;
 
 /**
  * An object for generated helper functions.
  */
-export const Layer = {
+export const Chunk = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    if (_cached_Layer_type_value) return _cached_Layer_type_value;
-    _cached_Layer_type_value = __AlgebraicTypeValue.Product({ elements: [] });
-    _cached_Layer_type_value.value.elements.push(
+    if (_cached_Chunk_type_value) return _cached_Chunk_type_value;
+    _cached_Chunk_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_Chunk_type_value.value.elements.push(
       { name: "id", algebraicType: __AlgebraicTypeValue.String },
-      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
-      { name: "xDim", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "yDim", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "zDim", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "index", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "visible", algebraicType: __AlgebraicTypeValue.Bool },
-      { name: "locked", algebraicType: __AlgebraicTypeValue.Bool },
-      { name: "name", algebraicType: __AlgebraicTypeValue.String },
+      { name: "layerId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "minPosX", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "minPosY", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "minPosZ", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "sizeX", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "sizeY", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "sizeZ", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "voxels", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
     );
-    return _cached_Layer_type_value;
+    return _cached_Chunk_type_value;
   },
 
-  serialize(writer: __BinaryWriter, value: Layer): void {
-    __AlgebraicTypeValue.serializeValue(writer, Layer.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: Chunk): void {
+    __AlgebraicTypeValue.serializeValue(writer, Chunk.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): Layer {
-    return __AlgebraicTypeValue.deserializeValue(reader, Layer.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): Chunk {
+    return __AlgebraicTypeValue.deserializeValue(reader, Chunk.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default Layer;
+export default Chunk;
 
 
