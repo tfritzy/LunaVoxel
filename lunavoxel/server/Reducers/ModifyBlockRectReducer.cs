@@ -47,12 +47,11 @@ public static partial class Module
                 for (int z = minZ; z <= maxZ; z++)
                 {
                     int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                    var cur = BlockType.FromInt(existingData[index]);
                     byte? newValue = mode switch
                     {
                         BlockModificationMode.Attach => type,
-                        BlockModificationMode.Erase => (byte)0,
-                        BlockModificationMode.Paint when cur.Type != 0 => type,
+                        BlockModificationMode.Erase => 1, // any value > 0 erases in erase mode.
+                        BlockModificationMode.Paint when existingData[index] != 0 => type,
                         _ => (byte)0
                     };
 
