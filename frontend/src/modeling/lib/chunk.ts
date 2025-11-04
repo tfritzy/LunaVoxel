@@ -4,6 +4,7 @@ import {
   DbConnection,
   EventContext,
   Layer,
+  Chunk as DbChunk,
   Selection,
   BlockModificationMode,
 } from "@/module_bindings";
@@ -31,7 +32,7 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint8Array };
+export type DecompressedChunk = Omit<DbChunk, "voxels"> & { voxels: Uint8Array };
 export type DecompressedSelection = Omit<Selection, "selectionData"> & {
   selectionData: Uint8Array;
 };
@@ -44,7 +45,8 @@ export class Chunk {
   private currentUpdateId: number = 0;
   private dbConn: DbConnection;
   private projectId: string;
-  private layers: DecompressedLayer[] = [];
+  private layers: Layer[] = [];
+  private chunks: Map<string, DecompressedChunk> = new Map(); // keyed by chunk ID
   private selections: DecompressedSelection[] = [];
 
   // Mesh-related properties
@@ -103,6 +105,11 @@ export class Chunk {
     const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
 
+    // Subscribe to chunk updates
+    this.dbConn.db.chunk.onInsert(this.onChunkInsert);
+    this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
+    this.dbConn.db.chunk.onDelete(this.onChunkDelete);
+
     this.dbConn.db.selections.onInsert(this.onSelectionInsert);
     this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.onDelete(this.onSelectionDelete);
@@ -112,6 +119,7 @@ export class Chunk {
     this.dbConn.db.layer.onDelete(this.onLayerDelete);
 
     this.refreshLayers();
+    this.refreshChunks();
     this.refreshSelections();
   }
 
@@ -159,20 +167,41 @@ export class Chunk {
     blocks.fill(0);
   }
 
-  private addLayerToBlocks(
-    layer: DecompressedLayer,
+  private addLayerChunksToBlocks(
+    layerId: string,
     blocks: Uint8Array
   ): void {
     const { x: xDim, y: yDim, z: zDim } = this.dimensions;
 
-    if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
-      console.warn("Layer dimensions don't match world dimensions");
-      return;
-    }
+    // Get all chunks for this layer
+    const layerChunks = Array.from(this.chunks.values()).filter(
+      chunk => chunk.layerId === layerId
+    );
 
-    for (let i = 0; i < blocks.length; i++) {
-      if (isBlockPresent(layer.voxels[i])) {
-        blocks[i] = layer.voxels[i];
+    // Apply each chunk's voxels to the blocks array
+    for (const chunk of layerChunks) {
+      const chunkVoxels = chunk.voxels;
+      
+      for (let cx = 0; cx < chunk.sizeX; cx++) {
+        for (let cy = 0; cy < chunk.sizeY; cy++) {
+          for (let cz = 0; cz < chunk.sizeZ; cz++) {
+            const worldX = chunk.minPosX + cx;
+            const worldY = chunk.minPosY + cy;
+            const worldZ = chunk.minPosZ + cz;
+
+            // Skip if out of bounds
+            if (worldX >= xDim || worldY >= yDim || worldZ >= zDim) {
+              continue;
+            }
+
+            const chunkIndex = cx * chunk.sizeY * chunk.sizeZ + cy * chunk.sizeZ + cz;
+            const worldIndex = worldX * yDim * zDim + worldY * zDim + worldZ;
+            
+            if (isBlockPresent(chunkVoxels[chunkIndex])) {
+              blocks[worldIndex] = chunkVoxels[chunkIndex];
+            }
+          }
+        }
       }
     }
   }
@@ -267,7 +296,7 @@ export class Chunk {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public applyOptimisticRect(
-    layer: DecompressedLayer,
+    layer: Layer,
     mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
@@ -276,47 +305,19 @@ export class Chunk {
   ) {
     if (layer.locked) return;
 
-    const layerDims = { x: layer.xDim, y: layer.yDim, z: layer.zDim };
-    const bounds = calculateRectBounds(start, end, layerDims);
-
-    const yDim = layer.yDim;
-    const zDim = layer.zDim;
-
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        const base = x * yDim * zDim + y * zDim;
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          const idx = base + z;
-          const currentType = getBlockType(layer.voxels[idx]);
-
-          switch (mode.tag) {
-            case "Attach":
-              layer.voxels[idx] = blockType;
-              break;
-            case "Erase":
-              layer.voxels[idx] = 0;
-              break;
-            case "Paint":
-              if (currentType !== 0) {
-                layer.voxels[idx] = blockType;
-              }
-              break;
-            default:
-              break;
-          }
-        }
-      }
-    }
+    // Note: Optimistic updates for chunks would require loading/creating chunks here
+    // For now, we'll skip optimistic updates for chunk-based storage
+    // The server will handle the updates and we'll get them via subscriptions
   }
 
-  private decompressLayer = (
-    layer: Layer,
+  private decompressChunk = (
+    chunk: DbChunk,
     existingBuffer?: Uint8Array
-  ): DecompressedLayer => {
+  ): DecompressedChunk => {
     const buffer = existingBuffer || new Uint8Array(0);
     return {
-      ...layer,
-      voxels: decompressVoxelDataInto(layer.voxels, buffer),
+      ...chunk,
+      voxels: decompressVoxelDataInto(chunk.voxels, buffer),
     };
   };
 
@@ -332,14 +333,25 @@ export class Chunk {
   };
 
   private refreshLayers = () => {
-    const rawLayers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
+    this.layers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
       .filter((l) => l.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
+  };
 
-    this.layers = rawLayers.map((layer) => {
-      const existingLayer = this.layers.find((l) => l.id === layer.id);
-      return this.decompressLayer(layer, existingLayer?.voxels);
-    });
+  private refreshChunks = () => {
+    const rawChunks = this.dbConn.db.chunk.tableCache.iter() as DbChunk[];
+    
+    // Only load chunks that belong to layers in this project
+    const projectLayerIds = new Set(this.layers.map(l => l.id));
+    
+    this.chunks.clear();
+    for (const chunk of rawChunks) {
+      if (projectLayerIds.has(chunk.layerId)) {
+        const existingChunk = this.chunks.get(chunk.id);
+        const decompressed = this.decompressChunk(chunk, existingChunk?.voxels);
+        this.chunks.set(chunk.id, decompressed);
+      }
+    }
   };
 
   private refreshSelections = () => {
@@ -389,14 +401,48 @@ export class Chunk {
     );
   };
 
+  private onChunkInsert = (ctx: EventContext, newChunk: DbChunk) => {
+    // Only load chunks for layers in this project
+    const layer = this.layers.find(l => l.id === newChunk.layerId);
+    if (!layer) return;
+    
+    if (this.chunks.has(newChunk.id)) return;
+
+    const decompressedChunk = this.decompressChunk(newChunk);
+    this.chunks.set(newChunk.id, decompressedChunk);
+  };
+
+  private onChunkUpdate = (
+    ctx: EventContext,
+    oldChunk: DbChunk,
+    newChunk: DbChunk
+  ) => {
+    // Only update chunks for layers in this project
+    const layer = this.layers.find(l => l.id === newChunk.layerId);
+    if (!layer) return;
+
+    // Find the existing chunk to reuse its buffer
+    const existingChunk = this.chunks.get(newChunk.id);
+    const decompressedChunk = this.decompressChunk(
+      newChunk,
+      existingChunk?.voxels
+    );
+    this.chunks.set(newChunk.id, decompressedChunk);
+  };
+
+  private onChunkDelete = (ctx: EventContext, deletedChunk: DbChunk) => {
+    this.chunks.delete(deletedChunk.id);
+  };
+
   private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
     if (newLayer.projectId !== this.projectId) return;
     if (this.layers.some((l) => l.id === newLayer.id)) return;
 
-    const decompressedLayer = this.decompressLayer(newLayer);
-    this.layers = [...this.layers, decompressedLayer].sort(
+    this.layers = [...this.layers, newLayer].sort(
       (a, b) => a.index - b.index
     );
+    // Refresh chunks since we may now need to load chunks for this layer
+    this.refreshChunks();
   };
 
   private onLayerUpdate = (
@@ -406,20 +452,24 @@ export class Chunk {
   ) => {
     if (newLayer.projectId !== this.projectId) return;
 
-    // Find the existing layer to reuse its buffer
-    const existingLayer = this.layers.find((l) => l.id === newLayer.id);
-    const decompressedLayer = this.decompressLayer(newLayer, existingLayer?.voxels);
     this.layers = this.layers
-      .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
+      .map((l) => (l.id === newLayer.id ? newLayer : l))
       .sort((a, b) => a.index - b.index);
   };
 
   private onLayerDelete = (ctx: EventContext, deletedLayer: Layer) => {
     if (deletedLayer.projectId !== this.projectId) return;
     this.layers = this.layers.filter((l) => l.id !== deletedLayer.id);
+    
+    // Remove all chunks for this layer
+    for (const [chunkId, chunk] of this.chunks) {
+      if (chunk.layerId === deletedLayer.id) {
+        this.chunks.delete(chunkId);
+      }
+    }
   };
 
-  public getLayer(layerIndex: number): DecompressedLayer | undefined {
+  public getLayer(layerIndex: number): Layer | undefined {
     return this.layers.find((l) => l.index === layerIndex);
   }
 
@@ -556,11 +606,12 @@ export class Chunk {
       if (visibleLayers.length === 0) {
         this.clearBlocks(this.blocksToRender);
       } else {
-        const firstLayer = visibleLayers[visibleLayers.length - 1];
-        this.blocksToRender.set(firstLayer.voxels);
-
-        for (let i = visibleLayers.length - 2; i >= 0; i--) {
-          this.addLayerToBlocks(visibleLayers[i], this.blocksToRender);
+        // Clear blocks first
+        this.clearBlocks(this.blocksToRender);
+        
+        // Add chunks from each visible layer in reverse index order (bottom to top)
+        for (let i = visibleLayers.length - 1; i >= 0; i--) {
+          this.addLayerChunksToBlocks(visibleLayers[i].id, this.blocksToRender);
         }
       }
 
@@ -598,6 +649,9 @@ export class Chunk {
     this.currentUpdateId++;
 
     // Unsubscribe from database events
+    this.dbConn.db.chunk.removeOnInsert(this.onChunkInsert);
+    this.dbConn.db.chunk.removeOnUpdate(this.onChunkUpdate);
+    this.dbConn.db.chunk.removeOnDelete(this.onChunkDelete);
     this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
     this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);

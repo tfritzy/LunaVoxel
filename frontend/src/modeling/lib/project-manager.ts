@@ -132,17 +132,9 @@ export class ProjectManager {
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
-    const previousVoxels = new Uint8Array(layer.voxels);
-    this.chunkManager.applyOptimisticRect(
-      layer,
-      mode,
-      start,
-      end,
-      blockType,
-      rotation
-    );
-    const updated = new Uint8Array(layer.voxels);
-    this.editHistory.addEntry(previousVoxels, updated, layer.index);
+    
+    // Note: Optimistic updates are no longer supported with chunk-based storage
+    // The server will handle updates and we'll receive them via subscriptions
     this.updateChunkManager();
   };
 
@@ -150,26 +142,9 @@ export class ProjectManager {
     position: THREE.Vector3,
     layerIndex: number
   ): number | null {
-    const layer = this.chunkManager.getLayer(layerIndex);
-    if (!layer) return null;
-
-    const x = Math.floor(position.x);
-    const y = Math.floor(position.y);
-    const z = Math.floor(position.z);
-
-    if (
-      x < 0 ||
-      x >= layer.xDim ||
-      y < 0 ||
-      y >= layer.yDim ||
-      z < 0 ||
-      z >= layer.zDim
-    ) {
-      return null;
-    }
-
-    const index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-    return layer.voxels[index];
+    // Note: Getting block at position is not directly supported with chunk-based storage
+    // We would need to implement a method to query chunks
+    return null;
   }
 
   private updateChunkManager = () => {

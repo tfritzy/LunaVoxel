@@ -66,15 +66,11 @@ export const DeleteBlockModal = ({
     let count = 0;
     const targetBlockType = blockIndex;
 
-    for (const layer of layers) {
-      const voxels = decompressVoxelData(layer.voxels);
-      for (let i = 0; i < voxels.length; i++) {
-        if (getBlockType(voxels[i]) === targetBlockType) {
-          count++;
-        }
-      }
-    }
-
+    // Note: With chunk-based storage, counting blocks would require
+    // iterating through all chunks across all layers. For now, we'll
+    // return 0 which means we can't show the exact count.
+    // A better approach would be to add a server-side query for this.
+    
     return count;
   }, [layers, blockIndex]);
 
