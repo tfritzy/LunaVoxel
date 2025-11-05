@@ -149,12 +149,6 @@ export class ChunkManager {
       z: newChunk.minPosZ,
     });
     chunk.setLayerChunk(layer.index, newChunk);
-    
-    this.updateChunk({
-      x: newChunk.minPosX,
-      y: newChunk.minPosY,
-      z: newChunk.minPosZ,
-    });
   };
 
   private onChunkDelete = (ctx: EventContext, deletedChunk: DbChunk) => {
@@ -175,12 +169,6 @@ export class ChunkManager {
       if (chunk.isEmpty()) {
         chunk.dispose();
         this.chunks.delete(key);
-      } else {
-        this.updateChunk({
-          x: deletedChunk.minPosX,
-          y: deletedChunk.minPosY,
-          z: deletedChunk.minPosZ,
-        });
       }
     }
   };
@@ -229,46 +217,23 @@ export class ChunkManager {
     return this.layers.find((l) => l.index === layerIndex);
   }
 
-  private updateChunk(minPos: Vector3): void {
-    const key = this.getChunkKey(minPos);
-    const chunk = this.chunks.get(key);
-    if (!chunk || !this.atlasData) return;
-
-    // Get visible layer indices
-    const visibleLayerIndices = this.layers
-      .filter(l => l.visible)
-      .map(l => l.index);
-
-    chunk.update(visibleLayerIndices, this.atlasData);
-  }
-
-  private updateAllChunks(): void {
-    if (!this.atlasData) return;
-
-    const visibleLayerIndices = this.layers
-      .filter(l => l.visible)
-      .map(l => l.index);
-
-    for (const chunk of this.chunks.values()) {
-      chunk.update(visibleLayerIndices, this.atlasData);
-    }
-  }
-
-  setTextureAtlas = (atlasData: AtlasData, buildMode: BlockModificationMode) => {
+  setTextureAtlas = (atlasData: AtlasData, buildMode: BlockModificationMode, previewFrame: VoxelFrame) => {
     this.atlasData = atlasData;
     
-    // Update all existing chunks
     for (const chunk of this.chunks.values()) {
       chunk.setTextureAtlas(atlasData);
     }
     
-    // Update all chunks with new atlas
     const visibleLayerIndices = this.layers
       .filter(l => l.visible)
       .map(l => l.index);
 
+    const visibleSelections = this.selections.filter(
+      (s) => this.layers.find(l => l.id === s.layer)?.visible
+    );
+
     for (const chunk of this.chunks.values()) {
-      chunk.update(visibleLayerIndices, atlasData);
+      chunk.update(visibleLayerIndices, visibleSelections, previewFrame, buildMode, atlasData);
     }
   };
 
@@ -338,13 +303,6 @@ export class ChunkManager {
             localMinZ, localMaxZ,
             blockType
           );
-          
-          if (this.atlasData) {
-            const visibleLayerIndices = this.layers
-              .filter(l => l.visible)
-              .map(l => l.index);
-            chunk.update(visibleLayerIndices, this.atlasData);
-          }
         }
       }
     }

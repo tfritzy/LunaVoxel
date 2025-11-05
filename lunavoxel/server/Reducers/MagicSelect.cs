@@ -94,6 +94,9 @@ public static partial class Module
         var visited = new bool[layer.xDim * layer.yDim * layer.zDim];
         var queue = new Queue<(int x, int y, int z)>();
 
+        // Cache for loaded chunks
+        var chunkCache = new Dictionary<string, byte[]>();
+
         queue.Enqueue((startPos.X, startPos.Y, startPos.Z));
         int startIndex = startPos.X * layer.yDim * layer.zDim + startPos.Y * layer.zDim + startPos.Z;
         visited[startIndex] = true;
@@ -112,7 +115,41 @@ public static partial class Module
             processedCount++;
 
             var position = new Vector3(x, y, z);
-            byte currentVoxel = GetVoxelFromChunks(ctx, layer.Id, position);
+            var chunkMinPos = CalculateChunkMinPosition(position);
+            var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
+            
+            // Load chunk into cache if not already loaded
+            if (!chunkCache.ContainsKey(chunkKey))
+            {
+                var chunk = ctx.Db.chunk.chunk_layer_pos
+                    .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
+                    .FirstOrDefault();
+                
+                if (chunk == null)
+                {
+                    chunkCache[chunkKey] = null; // Empty chunk
+                }
+                else
+                {
+                    chunkCache[chunkKey] = VoxelCompression.Decompress(chunk.Voxels);
+                }
+            }
+            
+            byte currentVoxel = 0;
+            var cachedVoxels = chunkCache[chunkKey];
+            if (cachedVoxels != null)
+            {
+                var localPos = new Vector3(x - chunkMinPos.X, y - chunkMinPos.Y, z - chunkMinPos.Z);
+                var chunk = ctx.Db.chunk.chunk_layer_pos
+                    .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
+                    .FirstOrDefault();
+                if (chunk != null)
+                {
+                    var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
+                    currentVoxel = cachedVoxels[localIndex];
+                }
+            }
+            
             byte currentBlockType = VoxelDataUtils.GetBlockType(currentVoxel);
 
             if (currentBlockType != targetBlockType)

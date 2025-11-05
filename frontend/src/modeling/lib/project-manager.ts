@@ -107,7 +107,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.chunkManager.setTextureAtlas(atlasData, this.builder.getMode());
+      this.chunkManager.setTextureAtlas(atlasData, this.builder.getMode(), this.builder.previewFrame);
       this.updateChunkManager();
     }
   };
@@ -120,7 +120,6 @@ export class ProjectManager {
     this.updateChunkManager();
   };
 
-  // Apply optimistic rect edit to preview changes before server confirmation
   public applyOptimisticRectEdit = (
     layerIndex: number,
     mode: BlockModificationMode,
@@ -136,7 +135,6 @@ export class ProjectManager {
     this.updateChunkManager();
   };
 
-  // Get block at a specific position
   public getBlockAtPosition(
     position: THREE.Vector3,
     layerIndex: number
@@ -151,7 +149,7 @@ export class ProjectManager {
     if (!this.atlasData) return;
     const start = performance.now();
 
-    this.chunkManager.setAtlasData(this.atlasData);
+    this.chunkManager.setTextureAtlas(this.atlasData, this.builder.getMode(), this.builder.previewFrame);
 
     const end = performance.now();
     console.log(`ChunkManager update time: ${end - start} ms`);
