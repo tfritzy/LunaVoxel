@@ -28,7 +28,8 @@ LunaVoxel is a voxel-based block builder application with:
 - **Location**: `frontend/`
 
 ### Firebase Functions
-- **Language**: TypeScript (Node.js 22)
+- **Language**: TypeScript
+- **Runtime**: Node.js v22
 - **Framework**: Firebase Functions
 - **Location**: `functions/`
 
