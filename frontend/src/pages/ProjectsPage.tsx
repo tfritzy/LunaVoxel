@@ -11,7 +11,6 @@ export function ProjectsPage() {
     const sortedProjects = userProjects.sort((a, b) => {
       return b.updated.toDate().getTime() - a.updated.toDate().getTime();
     });
-    console.log(sortedProjects);
 
     if (sortedProjects.length > 0) {
       navigate(`/project/${sortedProjects[0].id}`);

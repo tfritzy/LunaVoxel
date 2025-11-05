@@ -29,21 +29,24 @@ export class ChunkManager {
   private layersQueryRunner: QueryRunner<Layer> | null = null;
   private chunks: Map<string, Chunk> = new Map();
   private selections: DecompressedSelection[] = [];
-  private atlasData: AtlasData | null = null;
+  private atlasData: AtlasData | undefined;
+  private getMode: () => BlockModificationMode;
 
   constructor(
     scene: THREE.Scene,
     dimensions: Vector3,
     dbConn: DbConnection,
-    projectId: string
+    projectId: string,
+    getMode: () => BlockModificationMode
   ) {
     this.scene = scene;
     this.dimensions = dimensions;
     this.dbConn = dbConn;
     this.projectId = projectId;
+    this.getMode = getMode;
 
-    // Subscribe to chunk updates - only insert and delete
     this.dbConn.db.chunk.onInsert(this.onChunkInsert);
+    this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
     this.dbConn.db.chunk.onDelete(this.onChunkDelete);
 
     this.dbConn.db.selections.onInsert(this.onSelectionInsert);
@@ -92,13 +95,10 @@ export class ChunkManager {
         y: Math.min(CHUNK_SIZE, this.dimensions.y - minPos.y),
         z: Math.min(CHUNK_SIZE, this.dimensions.z - minPos.z),
       };
-      
-      chunk = new Chunk(this.scene, minPos, size, 10); // Max 10 layers
-      this.chunks.set(key, chunk);
-      
-      if (this.atlasData) {
-        chunk.setTextureAtlas(this.atlasData);
-      }
+     
+      console.log("Creating a new chunk at", minPos, size);
+      chunk = new Chunk(this.scene, minPos, size, 10, this.atlasData, this.getMode); // Max 10 layers
+      this.chunks.set(key, chunk); 
     }
     
     return chunk;
@@ -151,6 +151,19 @@ export class ChunkManager {
     chunk.setLayerChunk(layer.index, newChunk);
   };
 
+  private onChunkUpdate = (ctx: EventContext, oldChunk: DbChunk, newChunk: DbChunk) => {
+    if (newChunk.projectId !== this.projectId) return;
+
+    const layer = this.layers.find(l => l.id === newChunk.layerId);
+    if (!layer) return;
+    const chunk = this.getOrCreateChunk({
+      x: newChunk.minPosX,
+      y: newChunk.minPosY,
+      z: newChunk.minPosZ
+    });
+    chunk.setLayerChunk(layer.index, newChunk);    
+  }
+
   private onChunkDelete = (ctx: EventContext, deletedChunk: DbChunk) => {
     if (deletedChunk.projectId !== this.projectId) return;
     
@@ -183,6 +196,8 @@ export class ChunkManager {
       selectionData: decompressVoxelDataInto(newSelection.selectionData, buffer),
     };
     this.selections = [...this.selections, decompressedSelection];
+
+    // TODO apply selection to relevant chunk selection frames and update those that change.
   };
 
   private onSelectionUpdate = (
@@ -201,9 +216,8 @@ export class ChunkManager {
     this.selections = this.selections.map((s) =>
       s.id === newSelection.id ? decompressedSelection : s
     );
-    
-    // Update affected chunks when selection changes
-    this.updateChunksForSelections();
+
+    // TODO apply selection to relevant chunk selection frames and update those that change.
   };
 
   private onSelectionDelete = (
@@ -214,20 +228,11 @@ export class ChunkManager {
     this.selections = this.selections.filter(
       (s) => s.id !== deletedSelection.id
     );
+    // TODO apply selection to relevant chunk selection frames and update those that change.
   };
 
   public getLayer(layerIndex: number): Layer | undefined {
     return this.layers.find((l) => l.index === layerIndex);
-  }
-
-  private updateChunksForSelections(): void {
-    const visibleLayerIndices = this.layers
-      .filter(l => l.visible)
-      .map(l => l.index);
-    
-    for (const chunk of this.chunks.values()) {
-      chunk.update(visibleLayerIndices, this.selections, this.atlasData);
-    }
   }
 
   setTextureAtlas = (atlasData: AtlasData) => {
@@ -238,19 +243,30 @@ export class ChunkManager {
     }
   };
 
-  setPreview = (buildMode: BlockModificationMode, previewFrame: VoxelFrame) => {
-    const visibleLayerIndices = this.layers
-      .filter(l => l.visible)
-      .map(l => l.index);
-
-    const visibleSelections = this.selections.filter(
-      (s) => this.layers.find(l => l.id === s.layer)?.visible
-    );
-
-    for (const chunk of this.chunks.values()) {
-      chunk.update(visibleLayerIndices, visibleSelections, previewFrame, buildMode, atlasData);
+  setPreview = (previewFrame: VoxelFrame) => {
+    const frameDimensions = previewFrame.getDimensions();
+    
+    for (let chunkX = 0; chunkX < frameDimensions.x; chunkX += CHUNK_SIZE) {
+      for (let chunkY = 0; chunkY < frameDimensions.y; chunkY += CHUNK_SIZE) {
+        for (let chunkZ = 0; chunkZ < frameDimensions.z; chunkZ += CHUNK_SIZE) {
+          const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
+          const key = this.getChunkKey(chunkMinPos);
+          const chunk = this.chunks.get(key);
+          
+          if (!chunk) continue; // todo: create a chunk
+          
+          const copyMinX = chunkX;
+          const copyMinY = chunkY;
+          const copyMinZ = chunkZ;
+          const copyMaxX = Math.min(chunkX + chunk.size.x, frameDimensions.x);
+          const copyMaxY = Math.min(chunkY + chunk.size.y, frameDimensions.y);
+          const copyMaxZ = Math.min(chunkZ + chunk.size.z, frameDimensions.z);
+          
+          chunk.setPreviewData(previewFrame, copyMinX, copyMinY, copyMinZ, copyMaxX, copyMaxY, copyMaxZ);  
+        }
+      }
     }
-  };
+  }
 
   public getBlockAtPosition(position: THREE.Vector3, layer: Layer): number | null {
     const chunkMinPos = this.getChunkMinPos(position);

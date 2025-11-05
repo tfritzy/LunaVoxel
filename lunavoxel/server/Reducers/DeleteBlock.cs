@@ -38,40 +38,41 @@ public static partial class Module
         projectBlocks.FaceColors = updatedFaceColors;
         ctx.Db.project_blocks.ProjectId.Update(projectBlocks);
 
-        if (replacementBlockType > blockIndex)
-        {
-            replacementBlockType -= 1;
-        }
+        // TODO: Re implement considering chunks
+        // if (replacementBlockType > blockIndex)
+        // {
+        //     replacementBlockType -= 1;
+        // }
 
-        var layers = ctx.Db.layer.layer_project.Filter(projectId).ToList();
-        foreach (var layer in layers)
-        {
-            if (layer.Locked) continue;
+        // var layers = ctx.Db.layer.layer_project.Filter(projectId).ToList();
+        // foreach (var layer in layers)
+        // {
+        //     if (layer.Locked) continue;
 
-            byte[] voxels = VoxelCompression.Decompress(layer.Voxels);
-            bool layerModified = false;
+        //     byte[] voxels = VoxelCompression.Decompress(layer.Voxels);
+        //     bool layerModified = false;
 
-            for (int i = 0; i < voxels.Length; i++)
-            {
-                var blockType = VoxelDataUtils.GetBlockType(voxels[i]);
+        //     for (int i = 0; i < voxels.Length; i++)
+        //     {
+        //         var blockType = VoxelDataUtils.GetBlockType(voxels[i]);
 
-                if (blockType == blockIndex)
-                {
-                    voxels[i] = replacementBlockType;
-                    layerModified = true;
-                }
-                else if (blockType > blockIndex)
-                {
-                    voxels[i] = (byte)(blockType - 1);
-                    layerModified = true;
-                }
-            }
+        //         if (blockType == blockIndex)
+        //         {
+        //             voxels[i] = replacementBlockType;
+        //             layerModified = true;
+        //         }
+        //         else if (blockType > blockIndex)
+        //         {
+        //             voxels[i] = (byte)(blockType - 1);
+        //             layerModified = true;
+        //         }
+        //     }
 
-            if (layerModified)
-            {
-                layer.Voxels = VoxelCompression.Compress(voxels);
-                ctx.Db.layer.Id.Update(layer);
-            }
-        }
+        //     if (layerModified)
+        //     {
+        //         layer.Voxels = VoxelCompression.Compress(voxels);
+        //         ctx.Db.layer.Id.Update(layer);
+        //     }
+        // }
     }
 }

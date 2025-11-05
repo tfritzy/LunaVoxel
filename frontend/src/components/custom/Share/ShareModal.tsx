@@ -31,7 +31,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
     []
   );
   const { data: userProjects } = useQueryRunner(connection, getTable, filter);
-  console.log(userProjects);
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/project/${projectId}`;

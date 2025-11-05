@@ -1,13 +1,5 @@
 import { Vector3 } from "@/module_bindings";
 
-/**
- * VoxelFrame represents a sparse 8-bit array in 3D space.
- * Used to track block data like preview or selection without modifying the main voxel data.
- * Each voxel stores an 8-bit value (block index, where 0 = not set).
- * Block indices are 8-bit, allowing up to 256 different block types.
- * 
- * The frame uses a 3D array structure for zero-overhead direct access.
- */
 export class VoxelFrame {
   private dimensions: Vector3;
   private data: Uint8Array[][]; // 3D array for direct access: data[x][y][z]

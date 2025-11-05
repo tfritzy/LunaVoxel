@@ -13,7 +13,7 @@ import type { Tool } from "./tool-interface";
 
 export const Builder = class {
   private accessManager: ProjectAccessManager;
-  public previewFrame: VoxelFrame;
+  private previewFrame: VoxelFrame;
   private dbConn: DbConnection;
   private projectId: string;
   private dimensions: Vector3;
@@ -115,7 +115,7 @@ export const Builder = class {
   cancelCurrentOperation(): void {
     if (this.isMouseDown) {
       this.clearPreviewBlocks();
-      this.projectManager.onPreviewUpdate();
+      this.projectManager.chunkManager.setPreview(this.previewFrame);
     }
     this.isMouseDown = false;
     this.startPosition = null;

@@ -12,6 +12,6 @@ public static partial class Module
     {
         // Redirect to ModifyBlockRect which handles all cases efficiently
         // This is a no-op now - clients should use ModifyBlockRect instead
-        Log.Warning("ModifyBlock reducer is deprecated. Use ModifyBlockRect instead.");
+        Log.Error("ModifyBlock reducer is deprecated. Use ModifyBlockRect instead.");
     }
 }

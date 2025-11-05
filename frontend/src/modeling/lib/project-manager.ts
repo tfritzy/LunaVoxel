@@ -1,15 +1,20 @@
 import * as THREE from "three";
-import { DbConnection, Project, BlockModificationMode } from "../../module_bindings";
+import {
+  DbConnection,
+  Project,
+  BlockModificationMode,
+} from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
+import { VoxelFrame } from "./voxel-frame";
 
 export class ProjectManager {
   public builder;
-  private chunkManager;
+  public chunkManager;
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
@@ -30,7 +35,8 @@ export class ProjectManager {
       scene,
       project.dimensions,
       dbConn,
-      project.id
+      project.id,
+      () => this.builder.getMode()
     );
     this.cursorManager = new CursorManager(scene, project.id, dbConn);
     this.editHistory = new EditHistory(dbConn, project.id);
@@ -115,12 +121,6 @@ export class ProjectManager {
     this.builder.setSelectedBlock(block, () => {});
   };
 
-  onPreviewUpdate = () => {
-    if (this.atlasData) {
-      this.chunkManager.setPreview(this.builder.getMode(), this.builder.previewFrame);
-    }
-  };
-
   public applyOptimisticRectEdit = (
     layerIndex: number,
     mode: BlockModificationMode,
@@ -131,8 +131,15 @@ export class ProjectManager {
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
-    
-    this.chunkManager.applyOptimisticRect(layer, mode, start, end, blockType, rotation);
+
+    this.chunkManager.applyOptimisticRect(
+      layer,
+      mode,
+      start,
+      end,
+      blockType,
+      rotation
+    );
   };
 
   public getBlockAtPosition(
@@ -141,9 +148,9 @@ export class ProjectManager {
   ): number | null {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return null;
-    
+
     return this.chunkManager.getBlockAtPosition(position, layer);
-  }  
+  }
 
   dispose(): void {
     this.builder.dispose();

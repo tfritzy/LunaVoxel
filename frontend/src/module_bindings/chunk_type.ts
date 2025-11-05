@@ -30,6 +30,7 @@ import {
 
 export type Chunk = {
   id: string,
+  projectId: string,
   layerId: string,
   minPosX: number,
   minPosY: number,
@@ -54,6 +55,7 @@ export const Chunk = {
     _cached_Chunk_type_value = __AlgebraicTypeValue.Product({ elements: [] });
     _cached_Chunk_type_value.value.elements.push(
       { name: "id", algebraicType: __AlgebraicTypeValue.String },
+      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
       { name: "layerId", algebraicType: __AlgebraicTypeValue.String },
       { name: "minPosX", algebraicType: __AlgebraicTypeValue.I32 },
       { name: "minPosY", algebraicType: __AlgebraicTypeValue.I32 },

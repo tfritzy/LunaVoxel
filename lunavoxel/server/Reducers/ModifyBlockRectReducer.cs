@@ -97,6 +97,7 @@ public static partial class Module
 
                     if (chunkModified)
                     {
+                        Log.Info("Updating chunk because there were modifications");
                         chunk.Voxels = VoxelCompression.Compress(voxels);
                         ctx.Db.chunk.Id.Update(chunk);
 
@@ -104,6 +105,10 @@ public static partial class Module
                         {
                             DeleteChunkIfEmpty(ctx, chunk);
                         }
+                    }
+                    else
+                    {
+                        Log.Info("no modifications so no need to update chunk");
                     }
                 }
             }

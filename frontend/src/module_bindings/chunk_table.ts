@@ -80,41 +80,6 @@ export class ChunkTableHandle<TableName extends string> implements __TableHandle
     },
   };
 
-  /**
-   * Access to the `chunk_layer` index on the table `chunk`,
-   * which allows filtering by the `layerId` field.
-   */
-  chunk_layer = {
-    filter: (layerId: string): Chunk[] => {
-      const results: Chunk[] = [];
-      for (let row of this.tableCache.iter()) {
-        if (__deepEqual(row.layerId, layerId)) {
-          results.push(row);
-        }
-      }
-      return results;
-    },
-  };
-
-  /**
-   * Access to the `chunk_layer_pos` index on the table `chunk`,
-   * which allows filtering by the `layerId`, `minPosX`, `minPosY`, and `minPosZ` fields.
-   */
-  chunk_layer_pos = {
-    filter: (layerId: string, minPosX: number, minPosY: number, minPosZ: number): Chunk[] => {
-      const results: Chunk[] = [];
-      for (let row of this.tableCache.iter()) {
-        if (__deepEqual(row.layerId, layerId) && 
-            __deepEqual(row.minPosX, minPosX) &&
-            __deepEqual(row.minPosY, minPosY) &&
-            __deepEqual(row.minPosZ, minPosZ)) {
-          results.push(row);
-        }
-      }
-      return results;
-    },
-  };
-
   onInsert = (cb: (ctx: EventContext, row: Chunk) => void) => {
     return this.tableCache.onInsert(cb);
   }
