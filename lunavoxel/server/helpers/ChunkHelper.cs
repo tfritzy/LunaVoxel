@@ -80,70 +80,11 @@ public static partial class Module
     }
 
     /// <summary>
-    /// Get voxel at position from chunks. Returns 0 if no chunk exists at that position.
-    /// </summary>
-    public static byte GetVoxelFromChunks(ReducerContext ctx, string layerId, Vector3 position)
-    {
-        var chunkMinPos = CalculateChunkMinPosition(position);
-
-        var chunk = ctx.Db.chunk.chunk_layer_pos
-            .Filter((layerId, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
-            .FirstOrDefault();
-
-        if (chunk == null)
-        {
-            return 0; // No chunk means empty voxel
-        }
-
-        // Calculate local position within chunk
-        var localPos = new Vector3(
-            position.X - chunkMinPos.X,
-            position.Y - chunkMinPos.Y,
-            position.Z - chunkMinPos.Z
-        );
-
-        var voxels = VoxelCompression.Decompress(chunk.Voxels);
-        var index = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
-        
-        return voxels[index];
-    }
-
-    /// <summary>
-    /// Set voxel at position in chunks. Creates chunk if it doesn't exist.
-    /// </summary>
-    public static void SetVoxelInChunk(ReducerContext ctx, string layerId, Vector3 position, byte value, Layer layer)
-    {
-        var chunk = GetOrCreateChunk(ctx, layerId, position, layer);
-
-        // Calculate local position within chunk
-        var localPos = new Vector3(
-            position.X - chunk.MinPosX,
-            position.Y - chunk.MinPosY,
-            position.Z - chunk.MinPosZ
-        );
-
-        var voxels = VoxelCompression.Decompress(chunk.Voxels);
-        var index = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
-        
-        voxels[index] = value;
-        chunk.Voxels = VoxelCompression.Compress(voxels);
-        ctx.Db.chunk.Id.Update(chunk);
-    }
-
-    /// <summary>
-    /// Get all chunks for a layer
-    /// </summary>
-    public static System.Collections.Generic.List<Chunk> GetLayerChunks(ReducerContext ctx, string layerId)
-    {
-        return ctx.Db.chunk.chunk_layer.Filter(layerId).ToList();
-    }
-
-    /// <summary>
     /// Delete all chunks for a layer
     /// </summary>
     public static void DeleteLayerChunks(ReducerContext ctx, string layerId)
     {
-        var chunks = GetLayerChunks(ctx, layerId);
+        var chunks = ctx.Db.chunk.chunk_layer.Filter(layerId).ToList();
         foreach (var chunk in chunks)
         {
             ctx.Db.chunk.Id.Delete(chunk.Id);

@@ -107,8 +107,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.chunkManager.setTextureAtlas(atlasData, this.builder.getMode(), this.builder.previewFrame);
-      this.updateChunkManager();
+      this.chunkManager.setTextureAtlas(atlasData);
     }
   };
 
@@ -117,7 +116,9 @@ export class ProjectManager {
   };
 
   onPreviewUpdate = () => {
-    this.updateChunkManager();
+    if (this.atlasData) {
+      this.chunkManager.setPreview(this.builder.getMode(), this.builder.previewFrame);
+    }
   };
 
   public applyOptimisticRectEdit = (
@@ -132,7 +133,6 @@ export class ProjectManager {
     if (!layer) return;
     
     this.chunkManager.applyOptimisticRect(layer, mode, start, end, blockType, rotation);
-    this.updateChunkManager();
   };
 
   public getBlockAtPosition(
@@ -143,17 +143,7 @@ export class ProjectManager {
     if (!layer) return null;
     
     return this.chunkManager.getBlockAtPosition(position, layer);
-  }
-
-  private updateChunkManager = () => {
-    if (!this.atlasData) return;
-    const start = performance.now();
-
-    this.chunkManager.setTextureAtlas(this.atlasData, this.builder.getMode(), this.builder.previewFrame);
-
-    const end = performance.now();
-    console.log(`ChunkManager update time: ${end - start} ms`);
-  };  
+  }  
 
   dispose(): void {
     this.builder.dispose();

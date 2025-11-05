@@ -26,72 +26,34 @@ public static partial class Module
 
         var selectionData = VoxelCompression.Decompress(selection.SelectionData);
 
-        // Iterate through world space in chunk-sized increments
-        // Only process chunks where selection data might be non-zero
-        for (int chunkX = 0; chunkX < layer.xDim; chunkX += MAX_CHUNK_SIZE)
+        // Single loop through selection data with JIT chunk loading
+        for (int x = 0; x < layer.xDim; x++)
         {
-            for (int chunkY = 0; chunkY < layer.yDim; chunkY += MAX_CHUNK_SIZE)
+            for (int y = 0; y < layer.yDim; y++)
             {
-                for (int chunkZ = 0; chunkZ < layer.zDim; chunkZ += MAX_CHUNK_SIZE)
+                for (int z = 0; z < layer.zDim; z++)
                 {
-                    // Check if this chunk region has any selection data
-                    bool hasSelection = false;
-                    int chunkEndX = Math.Min(chunkX + MAX_CHUNK_SIZE, layer.xDim);
-                    int chunkEndY = Math.Min(chunkY + MAX_CHUNK_SIZE, layer.yDim);
-                    int chunkEndZ = Math.Min(chunkZ + MAX_CHUNK_SIZE, layer.zDim);
-                    
-                    for (int x = chunkX; x < chunkEndX && !hasSelection; x++)
+                    int worldIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
+                    if (selectionData[worldIndex] != 0)
                     {
-                        for (int y = chunkY; y < chunkEndY && !hasSelection; y++)
+                        // Found a selected voxel - load chunk JIT if needed
+                        var position = new Vector3(x, y, z);
+                        var chunkMinPos = CalculateChunkMinPosition(position);
+                        
+                        var chunk = ctx.Db.chunk.chunk_layer_pos
+                            .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
+                            .FirstOrDefault();
+                        
+                        if (chunk != null)
                         {
-                            for (int z = chunkZ; z < chunkEndZ && !hasSelection; z++)
-                            {
-                                int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                                if (selectionData[index] != 0)
-                                {
-                                    hasSelection = true;
-                                }
-                            }
+                            var voxels = VoxelCompression.Decompress(chunk.Voxels);
+                            var localPos = new Vector3(x - chunkMinPos.X, y - chunkMinPos.Y, z - chunkMinPos.Z);
+                            var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
+                            voxels[localIndex] = 0;
+                            chunk.Voxels = VoxelCompression.Compress(voxels);
+                            ctx.Db.chunk.Id.Update(chunk);
+                            DeleteChunkIfEmpty(ctx, chunk);
                         }
-                    }
-                    
-                    if (!hasSelection) continue;
-                    
-                    // Load the chunk if it exists
-                    var chunkMinPos = new Vector3(chunkX, chunkY, chunkZ);
-                    var chunk = ctx.Db.chunk.chunk_layer_pos
-                        .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
-                        .FirstOrDefault();
-                    
-                    if (chunk == null) continue; // No chunk means already empty
-                    
-                    var voxels = VoxelCompression.Decompress(chunk.Voxels);
-                    bool modified = false;
-                    
-                    // Process voxels in this chunk
-                    for (int x = chunkX; x < chunkEndX; x++)
-                    {
-                        for (int y = chunkY; y < chunkEndY; y++)
-                        {
-                            for (int z = chunkZ; z < chunkEndZ; z++)
-                            {
-                                int worldIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                                if (selectionData[worldIndex] != 0)
-                                {
-                                    var localPos = new Vector3(x - chunkX, y - chunkY, z - chunkZ);
-                                    var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
-                                    voxels[localIndex] = 0;
-                                    modified = true;
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (modified)
-                    {
-                        chunk.Voxels = VoxelCompression.Compress(voxels);
-                        ctx.Db.chunk.Id.Update(chunk);
-                        DeleteChunkIfEmpty(ctx, chunk);
                     }
                 }
             }

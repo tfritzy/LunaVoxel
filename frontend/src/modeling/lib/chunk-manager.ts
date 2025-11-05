@@ -201,6 +201,9 @@ export class ChunkManager {
     this.selections = this.selections.map((s) =>
       s.id === newSelection.id ? decompressedSelection : s
     );
+    
+    // Update affected chunks when selection changes
+    this.updateChunksForSelections();
   };
 
   private onSelectionDelete = (
@@ -217,13 +220,25 @@ export class ChunkManager {
     return this.layers.find((l) => l.index === layerIndex);
   }
 
-  setTextureAtlas = (atlasData: AtlasData, buildMode: BlockModificationMode, previewFrame: VoxelFrame) => {
+  private updateChunksForSelections(): void {
+    const visibleLayerIndices = this.layers
+      .filter(l => l.visible)
+      .map(l => l.index);
+    
+    for (const chunk of this.chunks.values()) {
+      chunk.update(visibleLayerIndices, this.selections, this.atlasData);
+    }
+  }
+
+  setTextureAtlas = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     
     for (const chunk of this.chunks.values()) {
       chunk.setTextureAtlas(atlasData);
     }
-    
+  };
+
+  setPreview = (buildMode: BlockModificationMode, previewFrame: VoxelFrame) => {
     const visibleLayerIndices = this.layers
       .filter(l => l.visible)
       .map(l => l.index);
@@ -307,10 +322,6 @@ export class ChunkManager {
       }
     }
   }
-
-  setAtlasData = (atlasData: AtlasData) => {
-    this.atlasData = atlasData;
-  };
 
   dispose = () => {
     // Unsubscribe from database events

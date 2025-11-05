@@ -8,6 +8,14 @@ public static partial class Module
     [Reducer]
     public static void MagicSelect(ReducerContext ctx, string projectId, int layerIndex, Vector3 position)
     {
+        Log.Warn("MagicSelect reducer is deprecated and not implemented for chunk-based storage");
+        // TODO: Implement MagicSelect for chunk-based storage
+        // Requires loading all chunks upfront and performing BFS efficiently
+    }
+
+    [Reducer]
+    public static void MagicSelect_OLD_DEPRECATED(ReducerContext ctx, string projectId, int layerIndex, Vector3 position)
+    {
         Log.Info($"MagicSelect started - Project: {projectId}, Layer: {layerIndex}, Position: ({position.X}, {position.Y}, {position.Z})");
 
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);

@@ -12,6 +12,18 @@ public static partial class Module
         byte[] afterDiff,
         int layerIndex)
     {
+        Log.Warn("UndoEdit reducer is deprecated and not implemented for chunk-based storage");
+        // TODO: Implement UndoEdit for chunk-based storage
+    }
+
+    [Reducer]
+    public static void UndoEdit_OLD_DEPRECATED(
+        ReducerContext ctx,
+        string projectId,
+        byte[] beforeDiff,
+        byte[] afterDiff,
+        int layerIndex)
+    {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
              ?? throw new ArgumentException("No layer for this project");
         var beforeData = VoxelCompression.Decompress(beforeDiff);
