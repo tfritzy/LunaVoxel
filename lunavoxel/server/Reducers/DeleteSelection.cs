@@ -26,73 +26,75 @@ public static partial class Module
 
         var selectionData = VoxelCompression.Decompress(selection.SelectionData);
 
-        // Process selection data by iterating in place and updating chunks as we go
-        Chunk currentChunk = null;
-        var currentChunkMinPos = new Vector3(-1, -1, -1);
-        byte[] currentVoxels = null;
-        bool chunkModified = false;
-
-        for (int i = 0; i < selectionData.Length; i++)
+        // Iterate through world space in chunk-sized increments
+        // Only process chunks where selection data might be non-zero
+        for (int chunkX = 0; chunkX < layer.xDim; chunkX += MAX_CHUNK_SIZE)
         {
-            if (selectionData[i] != 0)
+            for (int chunkY = 0; chunkY < layer.yDim; chunkY += MAX_CHUNK_SIZE)
             {
-                var position = FlatIndexTo3DPosition(i, layer.yDim, layer.zDim);
-                var chunkMinPos = CalculateChunkMinPosition(position);
-
-                // Load new chunk if we've moved to a different chunk
-                if (currentChunk == null || 
-                    currentChunkMinPos.X != chunkMinPos.X || 
-                    currentChunkMinPos.Y != chunkMinPos.Y || 
-                    currentChunkMinPos.Z != chunkMinPos.Z)
+                for (int chunkZ = 0; chunkZ < layer.zDim; chunkZ += MAX_CHUNK_SIZE)
                 {
-                    // Save previous chunk if it was modified
-                    if (currentChunk != null && chunkModified)
+                    // Check if this chunk region has any selection data
+                    bool hasSelection = false;
+                    int chunkEndX = Math.Min(chunkX + MAX_CHUNK_SIZE, layer.xDim);
+                    int chunkEndY = Math.Min(chunkY + MAX_CHUNK_SIZE, layer.yDim);
+                    int chunkEndZ = Math.Min(chunkZ + MAX_CHUNK_SIZE, layer.zDim);
+                    
+                    for (int x = chunkX; x < chunkEndX && !hasSelection; x++)
                     {
-                        currentChunk.Voxels = VoxelCompression.Compress(currentVoxels);
-                        ctx.Db.chunk.Id.Update(currentChunk);
-                        DeleteChunkIfEmpty(ctx, currentChunk);
+                        for (int y = chunkY; y < chunkEndY && !hasSelection; y++)
+                        {
+                            for (int z = chunkZ; z < chunkEndZ && !hasSelection; z++)
+                            {
+                                int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
+                                if (selectionData[index] != 0)
+                                {
+                                    hasSelection = true;
+                                }
+                            }
+                        }
                     }
-
-                    // Load next chunk
-                    currentChunk = ctx.Db.chunk.chunk_layer_pos
+                    
+                    if (!hasSelection) continue;
+                    
+                    // Load the chunk if it exists
+                    var chunkMinPos = new Vector3(chunkX, chunkY, chunkZ);
+                    var chunk = ctx.Db.chunk.chunk_layer_pos
                         .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
                         .FirstOrDefault();
                     
-                    if (currentChunk == null)
+                    if (chunk == null) continue; // No chunk means already empty
+                    
+                    var voxels = VoxelCompression.Decompress(chunk.Voxels);
+                    bool modified = false;
+                    
+                    // Process voxels in this chunk
+                    for (int x = chunkX; x < chunkEndX; x++)
                     {
-                        // No chunk means voxels are already empty, continue to next voxel
-                        currentChunkMinPos = chunkMinPos;
-                        currentVoxels = null;
-                        chunkModified = false;
-                        continue;
+                        for (int y = chunkY; y < chunkEndY; y++)
+                        {
+                            for (int z = chunkZ; z < chunkEndZ; z++)
+                            {
+                                int worldIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
+                                if (selectionData[worldIndex] != 0)
+                                {
+                                    var localPos = new Vector3(x - chunkX, y - chunkY, z - chunkZ);
+                                    var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
+                                    voxels[localIndex] = 0;
+                                    modified = true;
+                                }
+                            }
+                        }
                     }
-
-                    currentChunkMinPos = chunkMinPos;
-                    currentVoxels = VoxelCompression.Decompress(currentChunk.Voxels);
-                    chunkModified = false;
-                }
-
-                if (currentChunk != null && currentVoxels != null)
-                {
-                    // Delete voxel in current chunk
-                    var localPos = new Vector3(
-                        position.X - currentChunk.MinPosX,
-                        position.Y - currentChunk.MinPosY,
-                        position.Z - currentChunk.MinPosZ
-                    );
-                    var index = CalculateVoxelIndex(localPos, currentChunk.SizeY, currentChunk.SizeZ);
-                    currentVoxels[index] = 0;
-                    chunkModified = true;
+                    
+                    if (modified)
+                    {
+                        chunk.Voxels = VoxelCompression.Compress(voxels);
+                        ctx.Db.chunk.Id.Update(chunk);
+                        DeleteChunkIfEmpty(ctx, chunk);
+                    }
                 }
             }
-        }
-
-        // Save the last chunk if it was modified
-        if (currentChunk != null && chunkModified)
-        {
-            currentChunk.Voxels = VoxelCompression.Compress(currentVoxels);
-            ctx.Db.chunk.Id.Update(currentChunk);
-            DeleteChunkIfEmpty(ctx, currentChunk);
         }
 
         // Delete the selection after applying it

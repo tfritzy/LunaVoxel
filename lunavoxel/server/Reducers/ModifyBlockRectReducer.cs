@@ -37,7 +37,6 @@ public static partial class Module
         int minZ = Math.Min(sz, ez);
         int maxZ = Math.Max(sz, ez);
 
-        // Iterate in chunk-sized increments
         int chunkMinX = (minX / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
         int chunkMaxX = (maxX / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
         int chunkMinY = (minY / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;

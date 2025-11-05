@@ -32,6 +32,8 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
+  private selectionFrame: VoxelFrame;
+  private previewFrame: VoxelFrame;
 
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
@@ -55,6 +57,8 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
+    this.selectionFrame = new VoxelFrame(size);
+    this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
     const maxVertices = maxFaces * 4;
@@ -183,10 +187,81 @@ export class Chunk {
     layerChunk: DecompressedChunk,
     blocks: Uint8Array
   ): void {
-    // Add this layer's voxel data to the composite blocks
     for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
       if (isBlockPresent(layerChunk.voxels[i])) {
         blocks[i] = layerChunk.voxels[i];
+      }
+    }
+  }
+
+  private updatePreviewState(
+    previewFrame: VoxelFrame,
+    blocks: Uint8Array,
+    buildMode: { tag: string }
+  ): void {
+    if (previewFrame.isEmpty()) return;
+
+    const isPaintMode = buildMode.tag === 'Paint';
+    const isAttachMode = buildMode.tag === 'Attach';
+    const isEraseMode = buildMode.tag === 'Erase';
+
+    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+      const x = Math.floor(voxelIndex / (this.size.y * this.size.z));
+      const y = Math.floor((voxelIndex % (this.size.y * this.size.z)) / this.size.z);
+      const z = voxelIndex % this.size.z;
+      
+      const previewBlockValue = previewFrame.get(x, y, z);
+      const hasPreview = previewBlockValue !== 0;
+      const realBlockValue = blocks[voxelIndex];
+      const hasRealBlock = isBlockPresent(realBlockValue);
+
+      if (isAttachMode) {
+        if (hasPreview) {
+          if (hasRealBlock) {
+            previewFrame.set(x, y, z, 0);
+          }
+        }
+      } else if (isEraseMode) {
+        if (hasPreview) {
+          if (!hasRealBlock) {
+            previewFrame.set(x, y, z, 0);
+          } else {
+            previewFrame.set(x, y, z, realBlockValue);
+          }
+        }
+      } else if (isPaintMode) {
+        if (hasPreview) {
+          if (!hasRealBlock) {
+            previewFrame.set(x, y, z, 0);
+          }
+        }
+      }
+    }
+  }
+
+  private updateSelectionState(
+    selections: Array<{ selectionData: Uint8Array }>,
+    blocks: Uint8Array
+  ): void {
+    this.selectionFrame.clear();
+
+    for (let i = 0; i < selections.length; i++) {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        if (selections[i].selectionData[voxelIndex] != 0) {
+          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1;
+          
+          const blockValue = blocks[voxelIndex];
+          
+          const x = Math.floor(newVoxelPos / (this.size.y * this.size.z));
+          const y = Math.floor((newVoxelPos % (this.size.y * this.size.z)) / this.size.z);
+          const z = newVoxelPos % this.size.z;
+          
+          this.selectionFrame.set(x, y, z, blockValue || 1);
+
+          if (newVoxelPos != voxelIndex) {
+            blocks[voxelIndex] = 0;
+          }
+        }
       }
     }
   }
@@ -277,7 +352,9 @@ export class Chunk {
     this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
   };
 
-  private updateMeshes = (atlasData: AtlasData) => {
+  private updateMeshes = (buildMode: { tag: string }, atlasData: AtlasData) => {
+    const previewOccludes = buildMode.tag !== "Erase";
+    
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
@@ -285,27 +362,27 @@ export class Chunk {
       this.size,
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
-      new VoxelFrame(this.size), // Empty preview frame for now
-      new VoxelFrame(this.size), // Empty selection frame for now
-      false
+      this.previewFrame,
+      this.selectionFrame,
+      previewOccludes
     );
 
     this.updateMainMesh(atlasData);
     this.updatePreviewMesh(atlasData);
   };
 
-  /**
-   * Update the chunk's mesh based on visible layers
-   */
   update = (
     visibleLayerIndices: number[],
+    selections: Array<{ selectionData: Uint8Array }>,
+    previewFrame: VoxelFrame,
+    buildMode: { tag: string },
     atlasData: AtlasData
   ) => {
     try {
-      // Build composite voxel data from visible layers
+      this.previewFrame = previewFrame;
+      
       this.clearBlocks(this.blocksToRender);
 
-      // Sort layers from bottom to top (lowest index first)
       const sortedLayers = [...visibleLayerIndices].sort((a, b) => a - b);
 
       for (const layerIndex of sortedLayers) {
@@ -315,7 +392,9 @@ export class Chunk {
         }
       }
 
-      // Check if any blocks changed
+      this.updatePreviewState(previewFrame, this.blocksToRender, buildMode);
+      this.updateSelectionState(selections, this.blocksToRender);
+
       let hasChanges = false;
       for (let i = 0; i < this.blocksToRender.length; i++) {
         if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
@@ -324,10 +403,13 @@ export class Chunk {
         }
       }
 
-      // Update mesh if there are changes
+      if (!hasChanges && (!this.previewFrame.isEmpty() || !this.selectionFrame.isEmpty())) {
+        hasChanges = true;
+      }
+
       if (hasChanges) {
         this.copyChunkData(this.blocksToRender);
-        this.updateMeshes(atlasData);
+        this.updateMeshes(buildMode, atlasData);
       }
 
       this.renderedBlocks.set(this.blocksToRender);
