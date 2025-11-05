@@ -43,7 +43,7 @@ LunaVoxel/
 │   ├── src/              # Source code
 │   ├── public/           # Static assets
 │   ├── package.json      # Dependencies and scripts
-│   └── vite.config.js    # Vite configuration
+│   └── vite.config.js    # Vite configuration (JavaScript)
 ├── functions/            # Firebase Cloud Functions
 │   ├── src/              # Function source code
 │   └── package.json      # Dependencies and scripts
@@ -171,6 +171,6 @@ npm run serve        # Start Firebase emulator
 4. Deploy with `npm run deploy`
 
 ## Environment Setup
-- Node.js: v20+ (frontend), v22 (functions)
+- Node.js: v20 (frontend, as used in CI), v22 (functions)
 - .NET: 8.0 SDK
 - Firebase CLI: Required for functions development
