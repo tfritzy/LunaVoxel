@@ -119,16 +119,10 @@ export class Chunk {
     this.update();
   }
 
-  /**
-   * Get the chunk data for a specific layer
-   */
   public getLayerChunk(layerIndex: number): DecompressedChunk | null {
     return this.layerChunks[layerIndex] || null;
   }
 
-  /**
-   * Check if this chunk has any data
-   */
   public isEmpty(): boolean {
     return this.layerChunks.every((chunk) => chunk === null);
   }
@@ -387,7 +381,6 @@ export class Chunk {
       this.meshes.main.mesh.castShadow = true;
       this.meshes.main.mesh.receiveShadow = true;
 
-      // Position the mesh at the chunk's world position
       this.meshes.main.mesh.position.set(
         this.minPos.x,
         this.minPos.y,
@@ -472,7 +465,6 @@ export class Chunk {
   };
 
   dispose = () => {
-    // Dispose mesh resources
     if (this.geometry) {
       this.geometry.dispose();
       this.geometry = null;

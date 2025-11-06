@@ -55,7 +55,6 @@ public static partial class Module
                     var voxels = VoxelCompression.Decompress(chunk.Voxels);
                     bool chunkModified = false;
 
-                    // Calculate bounds within this chunk
                     int localMinX = Math.Max(0, minX - chunkX);
                     int localMaxX = Math.Min(chunk.SizeX - 1, maxX - chunkX);
                     int localMinY = Math.Max(0, minY - chunkY);
@@ -103,7 +102,7 @@ public static partial class Module
 
                         if (mode == BlockModificationMode.Erase)
                         {
-                            DeleteChunkIfEmpty(ctx, chunk);
+                            // TODO Find a way to clean up empty chunks
                         }
                     }
                     else

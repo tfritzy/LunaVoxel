@@ -53,7 +53,6 @@ export class ChunkManager {
     this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.onDelete(this.onSelectionDelete);
 
-    // Use QueryRunner for layers
     this.initializeLayersQueryRunner();
     this.refreshChunks();
     this.refreshSelections();
@@ -89,7 +88,6 @@ export class ChunkManager {
     let chunk = this.chunks.get(key);
     
     if (!chunk) {
-      // Calculate chunk size (bounded by world dimensions)
       const size = {
         x: Math.min(CHUNK_SIZE, this.dimensions.x - minPos.x),
         y: Math.min(CHUNK_SIZE, this.dimensions.y - minPos.y),

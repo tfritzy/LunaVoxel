@@ -26,7 +26,6 @@ public static partial class Module
 
         var selectionData = VoxelCompression.Decompress(selection.SelectionData);
 
-        // Single loop through selection data with JIT chunk loading
         for (int x = 0; x < layer.xDim; x++)
         {
             for (int y = 0; y < layer.yDim; y++)
@@ -36,7 +35,6 @@ public static partial class Module
                     int worldIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
                     if (selectionData[worldIndex] != 0)
                     {
-                        // Found a selected voxel - load chunk JIT if needed
                         var position = new Vector3(x, y, z);
                         var chunkMinPos = CalculateChunkMinPosition(position);
                         
@@ -52,14 +50,14 @@ public static partial class Module
                             voxels[localIndex] = 0;
                             chunk.Voxels = VoxelCompression.Compress(voxels);
                             ctx.Db.chunk.Id.Update(chunk);
-                            DeleteChunkIfEmpty(ctx, chunk);
+                            
+                            // TODO find way to clean up empty chunks
                         }
                     }
                 }
             }
         }
 
-        // Delete the selection after applying it
         ctx.Db.selections.Id.Delete(selection.Id);
     }
 }
