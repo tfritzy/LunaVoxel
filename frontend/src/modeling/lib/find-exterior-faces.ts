@@ -110,8 +110,6 @@ export class ExteriorFacesFinder {
 
           for (let iu = 0; iu < uSize; iu++) {
             for (let iv = 0; iv < vSize; iv++) {
-              const maskIndex = iu + iv * uSize;
-
               const x = axis === 0 ? d : u === 0 ? iu : iv;
               const y = axis === 1 ? d : u === 1 ? iu : iv;
               const z = axis === 2 ? d : u === 2 ? iu : iv;
@@ -148,8 +146,7 @@ export class ExteriorFacesFinder {
               const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
 
               if (blockIsPreview) {
-                const shouldRenderFace =
-                  !isBlockPresent(neighborValue) || !neighborIsPreview;
+                const shouldRenderFace = !neighborIsPreview;
 
                 if (shouldRenderFace) {
                   const textureIndex =

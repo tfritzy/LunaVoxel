@@ -250,10 +250,7 @@ export class ChunkManager {
       for (let chunkY = 0; chunkY < frameDimensions.y; chunkY += CHUNK_SIZE) {
         for (let chunkZ = 0; chunkZ < frameDimensions.z; chunkZ += CHUNK_SIZE) {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
-          const key = this.getChunkKey(chunkMinPos);
-          const chunk = this.chunks.get(key);
-          
-          if (!chunk) continue; // todo: create a chunk
+          const chunk = this.getOrCreateChunk(chunkMinPos);
           
           const copyMinX = chunkX;
           const copyMinY = chunkY;
@@ -306,7 +303,6 @@ export class ChunkManager {
     const minZ = Math.floor(Math.min(start.z, end.z));
     const maxZ = Math.floor(Math.max(start.z, end.z));
 
-    // Iterate in chunk-sized increments
     for (let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE; 
          chunkX <= maxX; 
          chunkX += CHUNK_SIZE) {
@@ -318,7 +314,6 @@ export class ChunkManager {
              chunkZ += CHUNK_SIZE) {
           const chunk = this.getOrCreateChunk({ x: chunkX, y: chunkY, z: chunkZ });
           
-          // Calculate bounds within this chunk
           const localMinX = Math.max(0, minX - chunkX);
           const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
           const localMinY = Math.max(0, minY - chunkY);

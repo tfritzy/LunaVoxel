@@ -114,7 +114,7 @@ export const Builder = class {
 
   cancelCurrentOperation(): void {
     if (this.isMouseDown) {
-      this.clearPreviewBlocks();
+      this.previewFrame.clear();
       this.projectManager.chunkManager.setPreview(this.previewFrame);
     }
     this.isMouseDown = false;
@@ -384,9 +384,6 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
-  }
-  private clearPreviewBlocks(): void {
-    this.previewFrame.clear();
   }
 
   private vectorsApproximatelyEqual(

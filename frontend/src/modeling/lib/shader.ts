@@ -86,7 +86,7 @@ void main() {
 export const createVoxelMaterial = (
   textureAtlas: THREE.Texture | null,
   opacity: number = 1,
-  showGrid: boolean = false
+  showGrid: boolean = false,
 ) => {
   return new THREE.ShaderMaterial({
     uniforms: {

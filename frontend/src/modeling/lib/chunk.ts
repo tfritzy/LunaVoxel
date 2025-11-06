@@ -1,11 +1,21 @@
 import * as THREE from "three";
-import { Vector3, Chunk as DbChunk, Layer, BlockModificationMode } from "@/module_bindings";
-import { isBlockPresent, decompressVoxelDataInto, decompressVoxelData } from "./voxel-data-utils";
+import {
+  Vector3,
+  Chunk as DbChunk,
+  Layer,
+  BlockModificationMode,
+} from "@/module_bindings";
+import {
+  isBlockPresent,
+  decompressVoxelDataInto,
+  decompressVoxelData,
+} from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
+import { layers } from "./layers";
 
 export const CHUNK_SIZE = 32;
 
@@ -189,15 +199,25 @@ export class Chunk {
         (meshData.mesh.material as THREE.ShaderMaterial).needsUpdate = true;
       }
     });
+
+    this.update();
   };
 
   public getMesh(): THREE.Mesh | null {
     return this.meshes.main.mesh;
   }
 
-  public setPreviewData(sourceFrame: VoxelFrame, sourceMinX: number, sourceMinY: number, sourceMinZ: number, sourceMaxX: number, sourceMaxY: number, sourceMaxZ: number): void {
+  public setPreviewData(
+    sourceFrame: VoxelFrame,
+    sourceMinX: number,
+    sourceMinY: number,
+    sourceMinZ: number,
+    sourceMaxX: number,
+    sourceMaxY: number,
+    sourceMaxZ: number
+  ): void {
     this.previewFrame.clear();
-    
+
     for (let x = sourceMinX; x < sourceMaxX; x++) {
       for (let y = sourceMinY; y < sourceMaxY; y++) {
         for (let z = sourceMinZ; z < sourceMaxZ; z++) {
@@ -228,48 +248,55 @@ export class Chunk {
     }
   }
 
-  private updatePreviewState(
-    previewFrame: VoxelFrame,
-    blocks: Uint8Array,
-    buildMode: { tag: string }
-  ): void {
-    if (previewFrame.isEmpty()) return;
+  private updatePreviewState(blocks: Uint8Array): void {
+    if (this.previewFrame.isEmpty()) return;
 
-    const isPaintMode = buildMode.tag === "Paint";
-    const isAttachMode = buildMode.tag === "Attach";
-    const isEraseMode = buildMode.tag === "Erase";
+    const buildMode = this.getMode();
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+    const sizeYZ = sizeY * sizeZ;
 
-    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      const x = Math.floor(voxelIndex / (this.size.y * this.size.z));
-      const y = Math.floor(
-        (voxelIndex % (this.size.y * this.size.z)) / this.size.z
-      );
-      const z = voxelIndex % this.size.z;
+    if (buildMode.tag === "Attach") {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        const x = Math.floor(voxelIndex / sizeYZ);
+        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
+        const z = voxelIndex % sizeZ;
 
-      const previewBlockValue = previewFrame.get(x, y, z);
-      const hasPreview = previewBlockValue !== 0;
-      const realBlockValue = blocks[voxelIndex];
-      const hasRealBlock = isBlockPresent(realBlockValue);
+        const previewBlockValue = this.previewFrame.get(x, y, z);
+        if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
+          this.previewFrame.set(x, y, z, 0);
+        }
+      }
+    } else if (buildMode.tag === "Erase") {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        const previewBlockValue = this.previewFrame.get(
+          Math.floor(voxelIndex / sizeYZ),
+          Math.floor((voxelIndex % sizeYZ) / sizeZ),
+          voxelIndex % sizeZ
+        );
 
-      if (isAttachMode) {
-        if (hasPreview) {
-          if (hasRealBlock) {
-            previewFrame.set(x, y, z, 0);
+        if (previewBlockValue !== 0) {
+          const realBlockValue = blocks[voxelIndex];
+          const newValue = isBlockPresent(realBlockValue) ? realBlockValue : 0;
+          if (newValue !== previewBlockValue) {
+            this.previewFrame.set(
+              Math.floor(voxelIndex / sizeYZ),
+              Math.floor((voxelIndex % sizeYZ) / sizeZ),
+              voxelIndex % sizeZ,
+              newValue
+            );
           }
         }
-      } else if (isEraseMode) {
-        if (hasPreview) {
-          if (!hasRealBlock) {
-            previewFrame.set(x, y, z, 0);
-          } else {
-            previewFrame.set(x, y, z, realBlockValue);
-          }
-        }
-      } else if (isPaintMode) {
-        if (hasPreview) {
-          if (!hasRealBlock) {
-            previewFrame.set(x, y, z, 0);
-          }
+      }
+    } else if (buildMode.tag === "Paint") {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        const x = Math.floor(voxelIndex / sizeYZ);
+        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
+        const z = voxelIndex % sizeZ;
+
+        const previewBlockValue = this.previewFrame.get(x, y, z);
+        if (previewBlockValue !== 0 && !isBlockPresent(blocks[voxelIndex])) {
+          this.previewFrame.set(x, y, z, 0);
         }
       }
     }
@@ -373,10 +400,10 @@ export class Chunk {
     this.updateMeshGeometry("main", this.meshes.main.meshArrays);
   };
 
-  private updatePreviewMesh = (atlasData: AtlasData): void => {
-    if (!this.meshes.preview.mesh) {
+  private updatePreviewMesh = (): void => {
+    if (!this.meshes.preview.mesh && this.atlasData) {
       const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(atlasData.texture, 1);
+      const material = createVoxelMaterial(this.atlasData.texture, 1);
       this.meshes.preview.mesh = new THREE.Mesh(geometry, material);
 
       this.meshes.preview.mesh.position.set(
@@ -388,12 +415,18 @@ export class Chunk {
       this.scene.add(this.meshes.preview.mesh);
     }
 
+    const mode = this.getMode();
+    console.log("Mode for preview mesh", mode);
+    this.meshes.preview.mesh!.visible =
+      mode.tag === "Attach" || mode.tag === "Paint";
+    this.meshes.preview.mesh!.layers.set(
+      mode.tag === "Attach" ? layers.ghost : layers.raycast
+    );
+
     this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
   };
 
-  private updateMeshes = (buildMode: { tag: string }, atlasData: AtlasData) => {
-    const previewOccludes = buildMode.tag !== "Erase";
-
+  private updateMeshes = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
@@ -403,11 +436,11 @@ export class Chunk {
       this.meshes.preview.meshArrays,
       this.previewFrame,
       this.selectionFrame,
-      previewOccludes
+      buildMode.tag !== "Erase"
     );
 
     this.updateMainMesh(atlasData);
-    this.updatePreviewMesh(atlasData);
+    this.updatePreviewMesh();
   };
 
   update = () => {
@@ -423,18 +456,10 @@ export class Chunk {
         }
       }
 
-      let hasChanges =
-        !this.previewFrame.isEmpty() || !this.selectionFrame.isEmpty();
-      if (!hasChanges) {
-        for (let i = 0; i < this.blocksToRender.length; i++) {
-          if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
-            hasChanges = true;
-            break;
-          }
-        }
-      }
+      this.updatePreviewState(this.blocksToRender);
 
-      if (hasChanges && this.atlasData) {
+      // todo: consider whether there is a diff, including preview.
+      if (this.atlasData) {
         this.copyChunkData(this.blocksToRender);
         this.updateMeshes(this.getMode(), this.atlasData);
       }
