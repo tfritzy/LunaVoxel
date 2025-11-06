@@ -314,9 +314,9 @@ describe("ExteriorFacesFinder", () => {
   });
 
   describe("Benchmark test", () => {
-    it("should handle a large 256x256x256 chunk (benchmark only)", () => {
-      const dimensions: Vector3 = { x: 256, y: 256, z: 256 };
-      const finder = new ExteriorFacesFinder(256);
+    it("should handle a large 128x128x128 chunk with real blocks (benchmark only)", () => {
+      const dimensions: Vector3 = { x: 128, y: 128, z: 128 };
+      const finder = new ExteriorFacesFinder(128);
       const voxelData = createVoxelData(dimensions);
 
       // Set every other voxel to create a more complex pattern
@@ -362,11 +362,68 @@ describe("ExteriorFacesFinder", () => {
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
 
-      console.log(`256x256x256 chunk with every other voxel set:`);
+      console.log(`128x128x128 chunk with every other real block set:`);
       console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
       console.log(`  Generated ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
+
+      // This is a benchmark test - no assertions, just timing
+    }, 120000); // 120 second timeout for benchmark
+
+    it("should handle a large 128x128x128 chunk with preview blocks (benchmark only)", () => {
+      const dimensions: Vector3 = { x: 128, y: 128, z: 128 };
+      const finder = new ExteriorFacesFinder(128);
+      const voxelData = createVoxelData(dimensions);
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
+
+      // Set every other voxel as preview block to create a more complex pattern
+      for (let x = 0; x < dimensions.x; x++) {
+        for (let y = 0; y < dimensions.y; y++) {
+          for (let z = 0; z < dimensions.z; z++) {
+            if ((x + y + z) % 2 === 0) {
+              previewFrame.set(x, y, z, 1);
+            }
+          }
+        }
+      }
+
+      const iterations = 3;
+      const durations: number[] = [];
+
+      for (let i = 0; i < iterations; i++) {
+        const startTime = performance.now();
+
+        finder.findExteriorFaces(
+          voxelData,
+          4,
+          createBlockAtlasMappings(2),
+          dimensions,
+          meshArrays,
+          previewMeshArrays,
+          previewFrame,
+          selectionFrame,
+          true
+        );
+
+        const endTime = performance.now();
+        durations.push(endTime - startTime);
+      }
+
+      const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+      const minDuration = Math.min(...durations);
+      const maxDuration = Math.max(...durations);
+
+      console.log(`128x128x128 chunk with every other preview block set:`);
+      console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
+      console.log(`  Min: ${minDuration.toFixed(2)}ms`);
+      console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
+      console.log(`  Generated ${previewMeshArrays.vertexCount} vertices and ${previewMeshArrays.indexCount} indices`);
 
       // This is a benchmark test - no assertions, just timing
     }, 120000); // 120 second timeout for benchmark
