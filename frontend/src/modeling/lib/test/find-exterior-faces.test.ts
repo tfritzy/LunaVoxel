@@ -311,6 +311,84 @@ describe("ExteriorFacesFinder", () => {
         expect(isSelectedArray[i]).toBe(0);
       }
     });
+
+    it("should generate identical geometry for 8x8x8 preview cube and 8x8x8 real cube", () => {
+      const dimensions: Vector3 = { x: 8, y: 8, z: 8 };
+      
+      // Create and test real cube
+      const realVoxelData = createVoxelData(dimensions);
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          for (let z = 0; z < 8; z++) {
+            setVoxel(realVoxelData, x, y, z, 1);
+          }
+        }
+      }
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const realMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const realPreviewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const realPreviewFrame = new VoxelFrame(dimensions);
+      const realSelectionFrame = new VoxelFrame(dimensions);
+
+      finder.findExteriorFaces(
+        realVoxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        realMeshArrays,
+        realPreviewMeshArrays,
+        realPreviewFrame,
+        realSelectionFrame,
+        true
+      );
+
+      // Create preview cube with underlying real blocks
+      // This tests that when preview blocks overlay real blocks,
+      // they produce the same exterior-only geometry
+      const previewVoxelData = createVoxelData(dimensions);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays2 = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const previewSelectionFrame = new VoxelFrame(dimensions);
+
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          for (let z = 0; z < 8; z++) {
+            setVoxel(previewVoxelData, x, y, z, 1);
+            previewFrame.set(x, y, z, 1);
+          }
+        }
+      }
+
+      finder.findExteriorFaces(
+        previewVoxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        previewMeshArrays,
+        previewMeshArrays2,
+        previewFrame,
+        previewSelectionFrame,
+        true
+      );
+
+      // Both cubes should have identical geometry
+      // A solid cube has 6 exterior faces (one per direction) due to greedy meshing
+      expect(realMeshArrays.indexCount).toBe(36); // 6 faces * 6 indices per face
+      expect(realMeshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices per face
+      
+      // Preview cube with underlying real blocks should also have only 6 exterior faces
+      // The condition !isBlockPresent(neighborValue) || !neighborIsPreview evaluates to:
+      // - false || false = false when neighbor is both real AND preview (don't render internal faces)
+      // - true || X = true when neighbor is empty (render exterior faces)
+      expect(previewMeshArrays2.indexCount).toBe(36); // 6 faces * 6 indices per face
+      expect(previewMeshArrays2.vertexCount).toBe(24); // 6 faces * 4 vertices per face
+
+      // Verify the geometry is identical
+      expect(previewMeshArrays2.indexCount).toBe(realMeshArrays.indexCount);
+      expect(previewMeshArrays2.vertexCount).toBe(realMeshArrays.vertexCount);
+    });
   });
 
   describe("Benchmark test", () => {
