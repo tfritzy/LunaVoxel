@@ -40,7 +40,8 @@ export class RectTool implements Tool {
       z: bounds.minZ,
     };
     
-    // Resize the existing preview frame to match the selection
+    // Clear and resize the existing preview frame to match the selection
+    context.previewFrame.clear();
     context.previewFrame.resize(frameSize, frameMinPos);
 
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
