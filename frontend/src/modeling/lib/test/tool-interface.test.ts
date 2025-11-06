@@ -30,6 +30,9 @@ describe("Tool Interface", () => {
         onPreviewUpdate: () => {},
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
+        chunkManager: {
+          setPreview: () => {},
+        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       previewFrame: new VoxelFrame(dimensions),
