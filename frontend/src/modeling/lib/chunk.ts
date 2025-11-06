@@ -212,14 +212,16 @@ export class Chunk {
   ): void {
     this.previewFrame.clear();
 
-    for (let x = sourceMinX; x < sourceMaxX; x++) {
-      for (let y = sourceMinY; y < sourceMaxY; y++) {
-        for (let z = sourceMinZ; z < sourceMaxZ; z++) {
-          const blockValue = sourceFrame.get(x, y, z);
-          const localX = x - sourceMinX;
-          const localY = y - sourceMinY;
-          const localZ = z - sourceMinZ;
-          this.previewFrame.set(localX, localY, localZ, blockValue);
+    for (let worldX = sourceMinX; worldX < sourceMaxX; worldX++) {
+      for (let worldY = sourceMinY; worldY < sourceMaxY; worldY++) {
+        for (let worldZ = sourceMinZ; worldZ < sourceMaxZ; worldZ++) {
+          const blockValue = sourceFrame.get(worldX, worldY, worldZ);
+          if (blockValue !== 0) {
+            const localX = worldX - this.minPos.x;
+            const localY = worldY - this.minPos.y;
+            const localZ = worldZ - this.minPos.z;
+            this.previewFrame.set(localX, localY, localZ, blockValue);
+          }
         }
       }
     }

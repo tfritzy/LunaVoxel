@@ -242,20 +242,28 @@ export class ChunkManager {
   };
 
   setPreview = (previewFrame: VoxelFrame) => {
-    const frameDimensions = previewFrame.getDimensions();
+    const frameMinPos = previewFrame.getMinPos();
+    const frameMaxPos = previewFrame.getMaxPos();
     
-    for (let chunkX = 0; chunkX < frameDimensions.x; chunkX += CHUNK_SIZE) {
-      for (let chunkY = 0; chunkY < frameDimensions.y; chunkY += CHUNK_SIZE) {
-        for (let chunkZ = 0; chunkZ < frameDimensions.z; chunkZ += CHUNK_SIZE) {
+    const minChunkX = Math.floor(frameMinPos.x / CHUNK_SIZE) * CHUNK_SIZE;
+    const minChunkY = Math.floor(frameMinPos.y / CHUNK_SIZE) * CHUNK_SIZE;
+    const minChunkZ = Math.floor(frameMinPos.z / CHUNK_SIZE) * CHUNK_SIZE;
+    const maxChunkX = Math.floor((frameMaxPos.x - 1) / CHUNK_SIZE) * CHUNK_SIZE;
+    const maxChunkY = Math.floor((frameMaxPos.y - 1) / CHUNK_SIZE) * CHUNK_SIZE;
+    const maxChunkZ = Math.floor((frameMaxPos.z - 1) / CHUNK_SIZE) * CHUNK_SIZE;
+    
+    for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += CHUNK_SIZE) {
+      for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
+        for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
           const chunk = this.getOrCreateChunk(chunkMinPos);
           
-          const copyMinX = chunkX;
-          const copyMinY = chunkY;
-          const copyMinZ = chunkZ;
-          const copyMaxX = Math.min(chunkX + chunk.size.x, frameDimensions.x);
-          const copyMaxY = Math.min(chunkY + chunk.size.y, frameDimensions.y);
-          const copyMaxZ = Math.min(chunkZ + chunk.size.z, frameDimensions.z);
+          const copyMinX = Math.max(chunkX, frameMinPos.x);
+          const copyMinY = Math.max(chunkY, frameMinPos.y);
+          const copyMinZ = Math.max(chunkZ, frameMinPos.z);
+          const copyMaxX = Math.min(chunkX + chunk.size.x, frameMaxPos.x);
+          const copyMaxY = Math.min(chunkY + chunk.size.y, frameMaxPos.y);
+          const copyMaxZ = Math.min(chunkZ + chunk.size.z, frameMaxPos.z);
           
           chunk.setPreviewData(previewFrame, copyMinX, copyMinY, copyMinZ, copyMaxX, copyMaxY, copyMaxZ);  
         }

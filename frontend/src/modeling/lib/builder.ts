@@ -82,7 +82,7 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewFrame = new VoxelFrame(dimensions);
+    this.previewFrame = new VoxelFrame({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {

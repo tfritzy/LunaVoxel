@@ -22,12 +22,25 @@ export class RectTool implements Tool {
   onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    context.previewFrame.clear();
     const bounds = calculateRectBounds(
       event.startGridPosition, 
       event.currentGridPosition, 
       context.dimensions
     );
+
+    const frameSize = {
+      x: bounds.maxX - bounds.minX + 1,
+      y: bounds.maxY - bounds.minY + 1,
+      z: bounds.maxZ - bounds.minZ + 1,
+    };
+    const frameMinPos = {
+      x: bounds.minX,
+      y: bounds.minY,
+      z: bounds.minZ,
+    };
+    
+    context.previewFrame.clear();
+    context.previewFrame.resize(frameSize, frameMinPos);
 
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
