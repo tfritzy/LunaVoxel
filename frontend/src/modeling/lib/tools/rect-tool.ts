@@ -28,7 +28,6 @@ export class RectTool implements Tool {
       context.dimensions
     );
 
-    // Create a preview frame sized exactly to the selection bounds
     const frameSize = {
       x: bounds.maxX - bounds.minX + 1,
       y: bounds.maxY - bounds.minY + 1,
@@ -40,7 +39,6 @@ export class RectTool implements Tool {
       z: bounds.minZ,
     };
     
-    // Clear and resize the existing preview frame to match the selection
     context.previewFrame.clear();
     context.previewFrame.resize(frameSize, frameMinPos);
 

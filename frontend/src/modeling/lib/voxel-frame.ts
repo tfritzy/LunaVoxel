@@ -150,7 +150,6 @@ export class VoxelFrame {
       }
     }
 
-    // Copy overlapping data
     const overlapMinX = Math.max(this.minPos.x, targetMinPos.x);
     const overlapMinY = Math.max(this.minPos.y, targetMinPos.y);
     const overlapMinZ = Math.max(this.minPos.z, targetMinPos.z);
@@ -224,7 +223,6 @@ export class VoxelFrame {
    */
   public clone(newMinPos?: Vector3, newMaxPos?: Vector3): VoxelFrame {
     if (newMinPos && newMaxPos) {
-      // Create a bounded clone
       const newDimensions = {
         x: newMaxPos.x - newMinPos.x,
         y: newMaxPos.y - newMinPos.y,
@@ -232,7 +230,6 @@ export class VoxelFrame {
       };
       const cloned = new VoxelFrame(newDimensions, newMinPos);
       
-      // Copy overlapping data
       for (let worldX = newMinPos.x; worldX < newMaxPos.x; worldX++) {
         for (let worldY = newMinPos.y; worldY < newMaxPos.y; worldY++) {
           for (let worldZ = newMinPos.z; worldZ < newMaxPos.z; worldZ++) {
@@ -246,7 +243,6 @@ export class VoxelFrame {
       
       return cloned;
     } else {
-      // Clone with same bounds
       const cloned = new VoxelFrame(this.dimensions, this.minPos);
       
       for (let x = 0; x < this.dimensions.x; x++) {

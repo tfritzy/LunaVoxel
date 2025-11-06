@@ -245,7 +245,6 @@ export class ChunkManager {
     const frameMinPos = previewFrame.getMinPos();
     const frameMaxPos = previewFrame.getMaxPos();
     
-    // Iterate only over chunks that intersect with the preview frame bounds
     const minChunkX = Math.floor(frameMinPos.x / CHUNK_SIZE) * CHUNK_SIZE;
     const minChunkY = Math.floor(frameMinPos.y / CHUNK_SIZE) * CHUNK_SIZE;
     const minChunkZ = Math.floor(frameMinPos.z / CHUNK_SIZE) * CHUNK_SIZE;
@@ -259,7 +258,6 @@ export class ChunkManager {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
           const chunk = this.getOrCreateChunk(chunkMinPos);
           
-          // Calculate the intersection between the chunk and the preview frame
           const copyMinX = Math.max(chunkX, frameMinPos.x);
           const copyMinY = Math.max(chunkY, frameMinPos.y);
           const copyMinZ = Math.max(chunkZ, frameMinPos.z);
