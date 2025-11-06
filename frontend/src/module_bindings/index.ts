@@ -87,6 +87,8 @@ import { UpdateProjectName } from "./update_project_name_reducer.ts";
 export { UpdateProjectName };
 
 // Import and reexport all table handle types
+import { ChunkTableHandle } from "./chunk_table.ts";
+export { ChunkTableHandle };
 import { LayerTableHandle } from "./layer_table.ts";
 export { LayerTableHandle };
 import { PlayerCursorTableHandle } from "./player_cursor_table.ts";
@@ -107,6 +109,8 @@ import { AccessType } from "./access_type_type.ts";
 export { AccessType };
 import { BlockModificationMode } from "./block_modification_mode_type.ts";
 export { BlockModificationMode };
+import { Chunk } from "./chunk_type.ts";
+export { Chunk };
 import { Layer } from "./layer_type.ts";
 export { Layer };
 import { PlayerCursor } from "./player_cursor_type.ts";
@@ -128,6 +132,15 @@ export { Vector3Float };
 
 const REMOTE_MODULE = {
   tables: {
+    chunk: {
+      tableName: "chunk" as const,
+      rowType: Chunk.getTypeScriptAlgebraicType(),
+      primaryKey: "id",
+      primaryKeyInfo: {
+        colName: "id",
+        colType: (Chunk.getTypeScriptAlgebraicType() as __AlgebraicTypeVariants.Product).value.elements[0].algebraicType,
+      },
+    },
     layer: {
       tableName: "layer" as const,
       rowType: Layer.getTypeScriptAlgebraicType(),
@@ -341,6 +354,7 @@ export type Reducer = never
 | { name: "CreateProject", args: CreateProject }
 | { name: "DeleteBlock", args: DeleteBlock }
 | { name: "DeleteLayer", args: DeleteLayer }
+| { name: "DeleteSelection", args: DeleteSelection }
 | { name: "InitializeBlocks", args: InitializeBlocks }
 | { name: "InviteToProject", args: InviteToProject }
 | { name: "MagicSelect", args: MagicSelect }
@@ -583,7 +597,7 @@ export class RemoteReducers {
   }
 
   removeOnModifyBlock(callback: (ctx: ReducerEventContext, projectId: string, mode: BlockModificationMode, diffData: Uint8Array, layerIndex: number) => void) {
-    this.connection.onReducer("ModifyBlock", callback);
+    this.connection.offReducer("ModifyBlock", callback);
   }
 
   modifyBlockAmorphous(projectId: string, mode: BlockModificationMode, compressedDiffData: Uint8Array, layerIndex: number) {
@@ -910,6 +924,11 @@ export class SetReducerFlags {
 
 export class RemoteTables {
   constructor(private connection: __DbConnectionImpl) {}
+
+  get chunk(): ChunkTableHandle<'chunk'> {
+    // clientCache is a private property
+    return new ChunkTableHandle((this.connection as unknown as { clientCache: __ClientCache }).clientCache.getOrCreateTable<Chunk>(REMOTE_MODULE.tables.chunk));
+  }
 
   get layer(): LayerTableHandle<'layer'> {
     // clientCache is a private property

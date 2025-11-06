@@ -1,17 +1,20 @@
 import * as THREE from "three";
-import { DbConnection, Project, BlockModificationMode } from "../../module_bindings";
-import type { ToolType } from "./tool-type";
+import {
+  DbConnection,
+  Project,
+  BlockModificationMode,
+} from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
-import { Chunk } from "./chunk";
+import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
-import { getBlockType } from "./voxel-data-utils";
+import { VoxelFrame } from "./voxel-frame";
 
 export class ProjectManager {
   public builder;
-  private chunkManager;
+  public chunkManager;
   private cursorManager: CursorManager;
   private dbConn: DbConnection;
   private project: Project;
@@ -28,11 +31,12 @@ export class ProjectManager {
   ) {
     this.dbConn = dbConn;
     this.project = project;
-    this.chunkManager = new Chunk(
+    this.chunkManager = new ChunkManager(
       scene,
       project.dimensions,
       dbConn,
-      project.id
+      project.id,
+      () => this.builder.getMode()
     );
     this.cursorManager = new CursorManager(scene, project.id, dbConn);
     this.editHistory = new EditHistory(dbConn, project.id);
@@ -109,17 +113,12 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.chunkManager.setTextureAtlas(atlasData, this.builder.getMode());
-      this.updateChunkManager();
+      this.chunkManager.setTextureAtlas(atlasData);
     }
   };
 
   setSelectedBlock = (block: number) => {
     this.builder.setSelectedBlock(block, () => {});
-  };
-
-  onPreviewUpdate = () => {
-    this.updateChunkManager();
   };
 
   public applyOptimisticRectEdit = (
@@ -132,7 +131,7 @@ export class ProjectManager {
   ) => {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return;
-    const previousVoxels = new Uint8Array(layer.voxels);
+
     this.chunkManager.applyOptimisticRect(
       layer,
       mode,
@@ -141,9 +140,6 @@ export class ProjectManager {
       blockType,
       rotation
     );
-    const updated = new Uint8Array(layer.voxels);
-    this.editHistory.addEntry(previousVoxels, updated, layer.index);
-    this.updateChunkManager();
   };
 
   public getBlockAtPosition(
@@ -153,38 +149,8 @@ export class ProjectManager {
     const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return null;
 
-    const x = Math.floor(position.x);
-    const y = Math.floor(position.y);
-    const z = Math.floor(position.z);
-
-    if (
-      x < 0 ||
-      x >= layer.xDim ||
-      y < 0 ||
-      y >= layer.yDim ||
-      z < 0 ||
-      z >= layer.zDim
-    ) {
-      return null;
-    }
-
-    const index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-    return layer.voxels[index];
+    return this.chunkManager.getBlockAtPosition(position, layer);
   }
-
-  private updateChunkManager = () => {
-    if (!this.atlasData) return;
-    const start = performance.now();
-
-    this.chunkManager.update(
-      this.builder.previewFrame,
-      this.builder.getMode(),
-      this.atlasData
-    );
-
-    const end = performance.now();
-    console.log(`ChunkManager update time: ${end - start} ms`);
-  };  
 
   dispose(): void {
     this.builder.dispose();

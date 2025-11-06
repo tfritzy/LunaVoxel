@@ -26,7 +26,6 @@ export class BlockPickerTool implements Tool {
       event.currentGridPosition,
       context.selectedLayer
     );
-    console.log("Picked", blockType);
     if (blockType !== null && blockType !== 0) {
       context.setSelectedBlockInParent(blockType);
     }

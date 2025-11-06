@@ -1,6 +1,5 @@
-using System;
-using System.Collections.Generic;
 using SpacetimeDB;
+
 public static partial class Module
 {
     [Reducer]
@@ -11,23 +10,7 @@ public static partial class Module
         byte[] afterDiff,
         int layerIndex)
     {
-        var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
-             ?? throw new ArgumentException("No layer for this project");
-        var beforeData = VoxelCompression.Decompress(beforeDiff);
-        var afterData = VoxelCompression.Decompress(afterDiff);
-        var layerData = VoxelCompression.Decompress(layer.Voxels);
-
-        for (int i = 0; i < beforeData.Length; i++)
-        {
-            // Only revert voxels that are in the modified state.
-            // Voxel data includes version so that should handle 
-            // multiple authors writing the same blocks.
-            if (afterData[i] != layerData[i])
-            {
-                beforeData[i] = 0;
-            }
-        }
-
-        ModifyBlock(ctx, projectId, BlockModificationMode.Attach, beforeData, layerIndex);
+        Log.Warn("UndoEdit reducer is deprecated and not implemented for chunk-based storage");
+        // TODO: Implement UndoEdit for chunk-based storage
     }
 }

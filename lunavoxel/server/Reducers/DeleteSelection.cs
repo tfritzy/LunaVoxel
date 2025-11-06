@@ -25,28 +25,39 @@ public static partial class Module
         }
 
         var selectionData = VoxelCompression.Decompress(selection.SelectionData);
-        var layerVoxels = VoxelCompression.Decompress(layer.Voxels);
 
-        if (selectionData.Length != layerVoxels.Length)
+        for (int x = 0; x < layer.xDim; x++)
         {
-            Log.Error($"Selection data length ({selectionData.Length}) doesn't match layer voxels length ({layerVoxels.Length})");
-            // Delete the selection to recover from this error state
-            ctx.Db.selections.Id.Delete(selection.Id);
-            return;
-        }
-
-        for (int i = 0; i < selectionData.Length; i++)
-        {
-            if (selectionData[i] != 0)
+            for (int y = 0; y < layer.yDim; y++)
             {
-                layerVoxels[i] = 0; // Set to empty/air block
+                for (int z = 0; z < layer.zDim; z++)
+                {
+                    int worldIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
+                    if (selectionData[worldIndex] != 0)
+                    {
+                        var position = new Vector3(x, y, z);
+                        var chunkMinPos = CalculateChunkMinPosition(position);
+                        
+                        var chunk = ctx.Db.chunk.chunk_layer_pos
+                            .Filter((layer.Id, chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z))
+                            .FirstOrDefault();
+                        
+                        if (chunk != null)
+                        {
+                            var voxels = VoxelCompression.Decompress(chunk.Voxels);
+                            var localPos = new Vector3(x - chunkMinPos.X, y - chunkMinPos.Y, z - chunkMinPos.Z);
+                            var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
+                            voxels[localIndex] = 0;
+                            chunk.Voxels = VoxelCompression.Compress(voxels);
+                            ctx.Db.chunk.Id.Update(chunk);
+                            
+                            // TODO find way to clean up empty chunks
+                        }
+                    }
+                }
             }
         }
 
-        layer.Voxels = VoxelCompression.Compress(layerVoxels);
-        ctx.Db.layer.Id.Update(layer);
-
-        // Delete the selection after applying it
         ctx.Db.selections.Id.Delete(selection.Id);
     }
 }

@@ -1,28 +1,23 @@
 import * as THREE from "three";
 import {
   Vector3,
-  DbConnection,
-  EventContext,
+  Chunk as DbChunk,
   Layer,
-  Selection,
   BlockModificationMode,
 } from "@/module_bindings";
 import {
-  getBlockType,
   isBlockPresent,
-  decompressVoxelData,
   decompressVoxelDataInto,
+  decompressVoxelData,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
-import { calculateRectBounds } from "@/lib/rect-utils";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
-import { layers } from "./layers";
 import { VoxelFrame } from "./voxel-frame";
-import { ToolType } from "./tool-type";
+import { layers } from "./layers";
 
-export const CHUNK_SIZE = 16;
+export const CHUNK_SIZE = 32;
 
 type MeshType = "main" | "preview";
 
@@ -31,21 +26,21 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type DecompressedLayer = Omit<Layer, "voxels"> & { voxels: Uint8Array };
-export type DecompressedSelection = Omit<Selection, "selectionData"> & {
-  selectionData: Uint8Array;
+export type DecompressedChunk = Omit<DbChunk, "voxels"> & {
+  voxels: Uint8Array;
 };
 
 export class Chunk {
   private scene: THREE.Scene;
-  private dimensions: Vector3;
+  public readonly minPos: Vector3;
+  public readonly size: Vector3;
+  private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private currentUpdateId: number = 0;
-  private dbConn: DbConnection;
-  private projectId: string;
-  private layers: DecompressedLayer[] = [];
-  private selections: DecompressedSelection[] = [];
+  private selectionFrame: VoxelFrame;
+  private previewFrame: VoxelFrame;
+  private atlasData: AtlasData | undefined;
+  private getMode: () => BlockModificationMode;
 
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
@@ -53,31 +48,30 @@ export class Chunk {
   private meshes: Record<MeshType, MeshData>;
   private voxelData: Uint8Array[][];
   private facesFinder: ExteriorFacesFinder;
-  private selectionFrame: VoxelFrame;
-  private previewFrame: VoxelFrame;
 
   constructor(
     scene: THREE.Scene,
-    dimensions: Vector3,
-    dbConn: DbConnection,
-    projectId: string
+    minPos: Vector3,
+    size: Vector3,
+    maxLayers: number,
+    atlasData: AtlasData | undefined,
+    getMode: () => BlockModificationMode
   ) {
     this.scene = scene;
-    this.dimensions = dimensions;
-    this.dbConn = dbConn;
-    this.projectId = projectId;
+    this.minPos = minPos;
+    this.size = size;
+    this.atlasData = atlasData;
+    this.getMode = getMode;
 
-    this.renderedBlocks = new Uint8Array(
-      dimensions.x * dimensions.y * dimensions.z
-    );
-    this.blocksToRender = new Uint8Array(
-      dimensions.x * dimensions.y * dimensions.z
-    );
+    this.layerChunks = new Array(maxLayers).fill(null);
 
-    this.selectionFrame = new VoxelFrame(dimensions);
-    this.previewFrame = new VoxelFrame(dimensions);
+    const totalVoxels = size.x * size.y * size.z;
+    this.renderedBlocks = new Uint8Array(totalVoxels);
+    this.blocksToRender = new Uint8Array(totalVoxels);
+    this.selectionFrame = new VoxelFrame(size);
+    this.previewFrame = new VoxelFrame(size);
 
-    const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+    const maxFaces = totalVoxels * 6;
     const maxVertices = maxFaces * 4;
     const maxIndices = maxFaces * 6;
 
@@ -93,48 +87,105 @@ export class Chunk {
     };
 
     this.voxelData = [];
-    for (let x = 0; x < dimensions.x; x++) {
+    for (let x = 0; x < size.x; x++) {
       this.voxelData[x] = [];
-      for (let y = 0; y < dimensions.y; y++) {
-        this.voxelData[x][y] = new Uint8Array(dimensions.z);
+      for (let y = 0; y < size.y; y++) {
+        this.voxelData[x][y] = new Uint8Array(size.z);
       }
     }
 
-    const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
+    const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
+  }
 
-    this.dbConn.db.selections.onInsert(this.onSelectionInsert);
-    this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
-    this.dbConn.db.selections.onDelete(this.onSelectionDelete);
+  public setLayerChunk(layerIndex: number, chunk: DbChunk | null): void {
+    if (chunk === null) {
+      this.layerChunks[layerIndex] = null;
+      return;
+    }
 
-    this.dbConn.db.layer.onInsert(this.onLayerInsert);
-    this.dbConn.db.layer.onUpdate(this.onLayerUpdate);
-    this.dbConn.db.layer.onDelete(this.onLayerDelete);
+    const existing = this.layerChunks[layerIndex];
+    let voxels: Uint8Array;
+    if (existing) {
+      decompressVoxelDataInto(chunk.voxels, existing.voxels);
+      voxels = existing.voxels;
+    } else {
+      voxels = decompressVoxelData(chunk.voxels);
+    }
+    this.layerChunks[layerIndex] = {
+      ...chunk,
+      voxels,
+    };
+    this.update();
+  }
 
-    this.refreshLayers();
-    this.refreshSelections();
+  public getLayerChunk(layerIndex: number): DecompressedChunk | null {
+    return this.layerChunks[layerIndex] || null;
+  }
+
+  public isEmpty(): boolean {
+    return this.layerChunks.every((chunk) => chunk === null);
+  }
+
+  public applyOptimisticRect(
+    layerIndex: number,
+    mode: { tag: string },
+    localMinX: number,
+    localMaxX: number,
+    localMinY: number,
+    localMaxY: number,
+    localMinZ: number,
+    localMaxZ: number,
+    blockType: number
+  ): void {
+    const layerChunk = this.layerChunks[layerIndex];
+    if (!layerChunk) return;
+
+    for (let x = localMinX; x <= localMaxX; x++) {
+      for (let y = localMinY; y <= localMaxY; y++) {
+        for (let z = localMinZ; z <= localMaxZ; z++) {
+          const index = x * this.size.y * this.size.z + y * this.size.z + z;
+
+          switch (mode.tag) {
+            case "Attach":
+              layerChunk.voxels[index] = blockType;
+              break;
+            case "Erase":
+              layerChunk.voxels[index] = 0;
+              break;
+            case "Paint":
+              if (layerChunk.voxels[index] !== 0) {
+                layerChunk.voxels[index] = blockType;
+              }
+              break;
+          }
+        }
+      }
+    }
+
+    this.update();
   }
 
   private copyChunkData(blocks: Uint8Array): void {
-    for (let x = 0; x < this.dimensions.x; x++) {
-      for (let y = 0; y < this.dimensions.y; y++) {
-        for (let z = 0; z < this.dimensions.z; z++) {
+    for (let x = 0; x < this.size.x; x++) {
+      for (let y = 0; y < this.size.y; y++) {
+        for (let z = 0; z < this.size.z; z++) {
           const blockIndex =
-            x * this.dimensions.y * this.dimensions.z +
-            y * this.dimensions.z +
-            z;
+            x * this.size.y * this.size.z + y * this.size.z + z;
           this.voxelData[x][y][z] = blocks[blockIndex];
         }
       }
     }
   }
 
-  setTextureAtlas = (atlasData: AtlasData, buildMode: BlockModificationMode) => {
+  public setTextureAtlas = (atlasData: AtlasData) => {
+    this.atlasData = atlasData;
+
     if (this.material) {
       this.material.uniforms.map.value = atlasData.texture;
       this.material.needsUpdate = true;
     }
-    
+
     Object.values(this.meshes).forEach((meshData) => {
       if (meshData.mesh?.material) {
         (meshData.mesh.material as THREE.ShaderMaterial).uniforms.map.value =
@@ -143,103 +194,110 @@ export class Chunk {
       }
     });
 
-    this.copyChunkData(this.renderedBlocks);
-    this.updateMeshes(buildMode, atlasData);
+    this.update();
   };
-
-  public getChunkDimensions(): Vector3 {
-    return { x: 1, y: 1, z: 1 };
-  }
 
   public getMesh(): THREE.Mesh | null {
     return this.meshes.main.mesh;
+  }
+
+  public setPreviewData(
+    sourceFrame: VoxelFrame,
+    sourceMinX: number,
+    sourceMinY: number,
+    sourceMinZ: number,
+    sourceMaxX: number,
+    sourceMaxY: number,
+    sourceMaxZ: number
+  ): void {
+    this.previewFrame.clear();
+
+    for (let x = sourceMinX; x < sourceMaxX; x++) {
+      for (let y = sourceMinY; y < sourceMaxY; y++) {
+        for (let z = sourceMinZ; z < sourceMaxZ; z++) {
+          const blockValue = sourceFrame.get(x, y, z);
+          const localX = x - sourceMinX;
+          const localY = y - sourceMinY;
+          const localZ = z - sourceMinZ;
+          this.previewFrame.set(localX, localY, localZ, blockValue);
+        }
+      }
+    }
+
+    this.update();
   }
 
   private clearBlocks(blocks: Uint8Array) {
     blocks.fill(0);
   }
 
-  private addLayerToBlocks(
-    layer: DecompressedLayer,
+  private addLayerChunkToBlocks(
+    layerChunk: DecompressedChunk,
     blocks: Uint8Array
   ): void {
-    const { x: xDim, y: yDim, z: zDim } = this.dimensions;
-
-    if (layer.xDim !== xDim || layer.yDim !== yDim || layer.zDim !== zDim) {
-      console.warn("Layer dimensions don't match world dimensions");
-      return;
-    }
-
-    for (let i = 0; i < blocks.length; i++) {
-      if (isBlockPresent(layer.voxels[i])) {
-        blocks[i] = layer.voxels[i];
+    for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
+      if (isBlockPresent(layerChunk.voxels[i])) {
+        blocks[i] = layerChunk.voxels[i];
       }
     }
   }
 
-  private updatePreviewState(
-    previewFrame: VoxelFrame,
-    blocks: Uint8Array,
-    buildMode: BlockModificationMode
-  ): void {
-    if (previewFrame.isEmpty()) return;
+  private updatePreviewState(blocks: Uint8Array): void {
+    if (this.previewFrame.isEmpty()) return;
 
-    const isPaintMode = buildMode.tag === 'Paint';
-    const isAttachMode = buildMode.tag === 'Attach';
-    const isEraseMode = buildMode.tag === 'Erase';
+    const buildMode = this.getMode();
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+    const sizeYZ = sizeY * sizeZ;
 
-    // Iterate through all voxels and apply the appropriate preview logic
-    for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-      const x = Math.floor(voxelIndex / (this.dimensions.y * this.dimensions.z));
-      const y = Math.floor((voxelIndex % (this.dimensions.y * this.dimensions.z)) / this.dimensions.z);
-      const z = voxelIndex % this.dimensions.z;
-      
-      const previewBlockValue = previewFrame.get(x, y, z);
-      const hasPreview = previewBlockValue !== 0;
-      const realBlockValue = blocks[voxelIndex];
-      const hasRealBlock = isBlockPresent(realBlockValue);
+    if (buildMode.tag === "Attach") {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        const x = Math.floor(voxelIndex / sizeYZ);
+        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
+        const z = voxelIndex % sizeZ;
 
-      if (isAttachMode) {
-        // Build mode: Show preview blocks where they'll be placed
-        // - If preview exists and there's NO real block: show the preview block
-        // - If preview exists and there IS a real block: hide preview (can't place here)
-        if (hasPreview) {
-          if (hasRealBlock) {
-            // Can't build here, clear the preview for this voxel
-            previewFrame.set(x, y, z, 0);
-          }
-          // else: keep preview as-is to show where block will be placed
+        const previewBlockValue = this.previewFrame.get(x, y, z);
+        if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
+          this.previewFrame.set(x, y, z, 0);
         }
-      } else if (isEraseMode) {
-        // Erase mode: Show existing blocks as ghosted where they'll be erased
-        // - If preview is active and there's a real block: the real block gets ghosted
-        // - If preview is active but no real block: clear preview (nothing to erase)
-        if (hasPreview) {
-          if (!hasRealBlock) {
-            // Nothing to erase here
-            previewFrame.set(x, y, z, 0);
-          } else {
-            // Show the real block as ghosted - set preview to the real block value
-            previewFrame.set(x, y, z, realBlockValue);
+      }
+    } else if (buildMode.tag === "Erase") {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        const previewBlockValue = this.previewFrame.get(
+          Math.floor(voxelIndex / sizeYZ),
+          Math.floor((voxelIndex % sizeYZ) / sizeZ),
+          voxelIndex % sizeZ
+        );
+
+        if (previewBlockValue !== 0) {
+          const realBlockValue = blocks[voxelIndex];
+          const newValue = isBlockPresent(realBlockValue) ? realBlockValue : 0;
+          if (newValue !== previewBlockValue) {
+            this.previewFrame.set(
+              Math.floor(voxelIndex / sizeYZ),
+              Math.floor((voxelIndex % sizeYZ) / sizeZ),
+              voxelIndex % sizeZ,
+              newValue
+            );
           }
         }
-      } else if (isPaintMode) {
-        // Paint mode: Show new block type where existing blocks will be repainted
-        // - If preview is active and there's a real block: show the new block as preview
-        // - If preview is active but no real block: clear preview (nothing to paint)
-        if (hasPreview) {
-          if (!hasRealBlock) {
-            // Nothing to paint here
-            previewFrame.set(x, y, z, 0);
-          }
-          // else: keep preview as-is (it contains the new block type)
+      }
+    } else if (buildMode.tag === "Paint") {
+      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
+        const x = Math.floor(voxelIndex / sizeYZ);
+        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
+        const z = voxelIndex % sizeZ;
+
+        const previewBlockValue = this.previewFrame.get(x, y, z);
+        if (previewBlockValue !== 0 && !isBlockPresent(blocks[voxelIndex])) {
+          this.previewFrame.set(x, y, z, 0);
         }
       }
     }
   }
 
   private updateSelectionState(
-    selections: DecompressedSelection[],
+    selections: Array<{ selectionData: Uint8Array }>,
     blocks: Uint8Array
   ): void {
     this.selectionFrame.clear();
@@ -247,15 +305,17 @@ export class Chunk {
     for (let i = 0; i < selections.length; i++) {
       for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
         if (selections[i].selectionData[voxelIndex] != 0) {
-          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1; // -1 bc 1 indexed
-          
+          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1;
+
           const blockValue = blocks[voxelIndex];
-          
-          const x = Math.floor(newVoxelPos / (this.dimensions.y * this.dimensions.z));
-          const y = Math.floor((newVoxelPos % (this.dimensions.y * this.dimensions.z)) / this.dimensions.z);
-          const z = newVoxelPos % this.dimensions.z;
-          
-          this.selectionFrame.set(x, y, z, blockValue || 1); // Use 1 if block is 0, so selection is visible
+
+          const x = Math.floor(newVoxelPos / (this.size.y * this.size.z));
+          const y = Math.floor(
+            (newVoxelPos % (this.size.y * this.size.z)) / this.size.z
+          );
+          const z = newVoxelPos % this.size.z;
+
+          this.selectionFrame.set(x, y, z, blockValue || 1);
 
           if (newVoxelPos != voxelIndex) {
             blocks[voxelIndex] = 0;
@@ -265,173 +325,12 @@ export class Chunk {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public applyOptimisticRect(
-    layer: DecompressedLayer,
-    mode: BlockModificationMode,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    blockType: number,
-    rotation: number
-  ) {
-    if (layer.locked) return;
-
-    const layerDims = { x: layer.xDim, y: layer.yDim, z: layer.zDim };
-    const bounds = calculateRectBounds(start, end, layerDims);
-
-    const yDim = layer.yDim;
-    const zDim = layer.zDim;
-
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        const base = x * yDim * zDim + y * zDim;
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          const idx = base + z;
-          const currentType = getBlockType(layer.voxels[idx]);
-
-          switch (mode.tag) {
-            case "Attach":
-              layer.voxels[idx] = blockType;
-              break;
-            case "Erase":
-              layer.voxels[idx] = 0;
-              break;
-            case "Paint":
-              if (currentType !== 0) {
-                layer.voxels[idx] = blockType;
-              }
-              break;
-            default:
-              break;
-          }
-        }
-      }
-    }
-  }
-
-  private decompressLayer = (
-    layer: Layer,
-    existingBuffer?: Uint8Array
-  ): DecompressedLayer => {
-    const buffer = existingBuffer || new Uint8Array(0);
-    return {
-      ...layer,
-      voxels: decompressVoxelDataInto(layer.voxels, buffer),
-    };
-  };
-
-  private decompressSelection = (
-    selection: Selection,
-    existingBuffer?: Uint8Array
-  ): DecompressedSelection => {
-    const buffer = existingBuffer || new Uint8Array(0);
-    return {
-      ...selection,
-      selectionData: decompressVoxelDataInto(selection.selectionData, buffer),
-    };
-  };
-
-  private refreshLayers = () => {
-    const rawLayers = (this.dbConn.db.layer.tableCache.iter() as Layer[])
-      .filter((l) => l.projectId === this.projectId)
-      .sort((a, b) => a.index - b.index);
-
-    this.layers = rawLayers.map((layer) => {
-      const existingLayer = this.layers.find((l) => l.id === layer.id);
-      return this.decompressLayer(layer, existingLayer?.voxels);
-    });
-  };
-
-  private refreshSelections = () => {
-    const rawSelections = (
-      this.dbConn.db.selections.tableCache.iter() as Selection[]
-    ).filter((s) => s.projectId === this.projectId);
-
-    this.selections = rawSelections.map((selection) => {
-      const existingSelection = this.selections.find((s) => s.id === selection.id);
-      return this.decompressSelection(selection, existingSelection?.selectionData);
-    });
-  };
-
-  private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
-    if (newSelection.projectId !== this.projectId) return;
-    if (this.selections.some((s) => s.id === newSelection.id)) return;
-
-    const decompressedSelection = this.decompressSelection(newSelection);
-    this.selections = [...this.selections, decompressedSelection];
-  };
-
-  private onSelectionUpdate = (
-    ctx: EventContext,
-    oldSelection: Selection,
-    newSelection: Selection
-  ) => {
-    if (newSelection.projectId !== this.projectId) return;
-
-    // Find the existing selection to reuse its buffer
-    const existingSelection = this.selections.find((s) => s.id === newSelection.id);
-    const decompressedSelection = this.decompressSelection(
-      newSelection,
-      existingSelection?.selectionData
-    );
-    this.selections = this.selections.map((s) =>
-      s.id === newSelection.id ? decompressedSelection : s
-    );
-  };
-
-  private onSelectionDelete = (
-    ctx: EventContext,
-    deletedSelection: Selection
-  ) => {
-    if (deletedSelection.projectId !== this.projectId) return;
-    this.selections = this.selections.filter(
-      (s) => s.id !== deletedSelection.id
-    );
-  };
-
-  private onLayerInsert = (ctx: EventContext, newLayer: Layer) => {
-    if (newLayer.projectId !== this.projectId) return;
-    if (this.layers.some((l) => l.id === newLayer.id)) return;
-
-    const decompressedLayer = this.decompressLayer(newLayer);
-    this.layers = [...this.layers, decompressedLayer].sort(
-      (a, b) => a.index - b.index
-    );
-  };
-
-  private onLayerUpdate = (
-    ctx: EventContext,
-    oldLayer: Layer,
-    newLayer: Layer
-  ) => {
-    if (newLayer.projectId !== this.projectId) return;
-
-    // Find the existing layer to reuse its buffer
-    const existingLayer = this.layers.find((l) => l.id === newLayer.id);
-    const decompressedLayer = this.decompressLayer(newLayer, existingLayer?.voxels);
-    this.layers = this.layers
-      .map((l) => (l.id === newLayer.id ? decompressedLayer : l))
-      .sort((a, b) => a.index - b.index);
-  };
-
-  private onLayerDelete = (ctx: EventContext, deletedLayer: Layer) => {
-    if (deletedLayer.projectId !== this.projectId) return;
-    this.layers = this.layers.filter((l) => l.id !== deletedLayer.id);
-  };
-
-  public getLayer(layerIndex: number): DecompressedLayer | undefined {
-    return this.layers.find((l) => l.index === layerIndex);
-  }
-
-  private updateMeshGeometry(
-    meshType: MeshType,
-    meshArrays: MeshArrays
-  ): void {
+  private updateMeshGeometry(meshType: MeshType, meshArrays: MeshArrays): void {
     const meshData = this.meshes[meshType];
     if (!meshData.mesh) return;
 
     const geometry = meshData.mesh.geometry;
-    
+
     geometry.setAttribute(
       "position",
       new THREE.BufferAttribute(meshArrays.getVertices(), 3)
@@ -452,9 +351,7 @@ export class Chunk {
       "isSelected",
       new THREE.BufferAttribute(meshArrays.getIsSelected(), 1)
     );
-    geometry.setIndex(
-      new THREE.BufferAttribute(meshArrays.getIndices(), 1)
-    );
+    geometry.setIndex(new THREE.BufferAttribute(meshArrays.getIndices(), 1));
 
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.normal.needsUpdate = true;
@@ -466,14 +363,12 @@ export class Chunk {
     }
 
     const center = new THREE.Vector3(
-      this.dimensions.x / 2,
-      this.dimensions.y / 2,
-      this.dimensions.z / 2
+      this.size.x / 2,
+      this.size.y / 2,
+      this.size.z / 2
     );
     const radius = Math.sqrt(
-      (this.dimensions.x / 2) ** 2 +
-        (this.dimensions.y / 2) ** 2 +
-        (this.dimensions.z / 2) ** 2
+      (this.size.x / 2) ** 2 + (this.size.y / 2) ** 2 + (this.size.z / 2) ** 2
     );
     geometry.boundingSphere = new THREE.Sphere(center, radius);
   }
@@ -486,7 +381,11 @@ export class Chunk {
       this.meshes.main.mesh.castShadow = true;
       this.meshes.main.mesh.receiveShadow = true;
 
-      this.meshes.main.mesh.position.set(0, 0, 0);
+      this.meshes.main.mesh.position.set(
+        this.minPos.x,
+        this.minPos.y,
+        this.minPos.z
+      );
 
       this.scene.add(this.meshes.main.mesh);
     }
@@ -494,118 +393,78 @@ export class Chunk {
     this.updateMeshGeometry("main", this.meshes.main.meshArrays);
   };
 
-  private updatePreviewMesh = (
-    buildMode: BlockModificationMode,
-    atlasData: AtlasData
-  ): void => {
-    if (!this.meshes.preview.mesh) {
+  private updatePreviewMesh = (): void => {
+    if (!this.meshes.preview.mesh && this.atlasData) {
       const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(atlasData.texture, 1);
+      const material = createVoxelMaterial(this.atlasData.texture, 1);
       this.meshes.preview.mesh = new THREE.Mesh(geometry, material);
 
-      this.meshes.preview.mesh.position.set(0, 0, 0);
+      this.meshes.preview.mesh.position.set(
+        this.minPos.x,
+        this.minPos.y,
+        this.minPos.z
+      );
 
       this.scene.add(this.meshes.preview.mesh);
     }
 
-    this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
-
-    this.meshes.preview.mesh.visible =
-      buildMode.tag === 'Attach' ||
-      buildMode.tag === "Paint";
-    this.meshes.preview.mesh.layers.set(
-      buildMode.tag === "Attach" ? layers.ghost : layers.raycast
+    const mode = this.getMode();
+    console.log("Mode for preview mesh", mode);
+    this.meshes.preview.mesh!.visible =
+      mode.tag === "Attach" || mode.tag === "Paint";
+    this.meshes.preview.mesh!.layers.set(
+      mode.tag === "Attach" ? layers.ghost : layers.raycast
     );
+
+    this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
   };
 
   private updateMeshes = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
-    const previewOccludes = buildMode.tag !== "Erase";
-    
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,
-      this.dimensions,
+      this.size,
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
       this.previewFrame,
       this.selectionFrame,
-      previewOccludes
+      buildMode.tag !== "Erase"
     );
 
     this.updateMainMesh(atlasData);
-    this.updatePreviewMesh(buildMode, atlasData);
+    this.updatePreviewMesh();
   };
 
-  update = (
-    previewFrame: VoxelFrame,
-    buildMode: BlockModificationMode,
-    atlasData: AtlasData
-  ) => {
+  update = () => {
     try {
-      this.previewFrame = previewFrame;
+      // todo: consider layer visibility
+      this.clearBlocks(this.blocksToRender);
 
-      const visibleLayers = this.layers
-        .filter((layer) => layer.visible)
-        .sort((l1, l2) => l2.index - l1.index);
+      for (const chunk of this.layerChunks) {
+        if (!chunk) continue;
 
-      const visibleSelections = this.selections.filter(
-        (s) => this.layers[s.layer]?.visible
-      );
-
-      if (visibleLayers.length === 0) {
-        this.clearBlocks(this.blocksToRender);
-      } else {
-        const firstLayer = visibleLayers[visibleLayers.length - 1];
-        this.blocksToRender.set(firstLayer.voxels);
-
-        for (let i = visibleLayers.length - 2; i >= 0; i--) {
-          this.addLayerToBlocks(visibleLayers[i], this.blocksToRender);
+        if (chunk) {
+          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
         }
       }
 
-      this.updatePreviewState(previewFrame, this.blocksToRender, buildMode);
-      this.updateSelectionState(visibleSelections, this.blocksToRender);
+      this.updatePreviewState(this.blocksToRender);
 
-      // Check if any blocks changed
-      let hasChanges = false;
-      for (let i = 0; i < this.blocksToRender.length; i++) {
-        if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
-          hasChanges = true;
-          break;
-        }
-      }
-
-      // Always update if preview or selection is active
-      if (!hasChanges && (!this.previewFrame.isEmpty() || !this.selectionFrame.isEmpty())) {
-        hasChanges = true;
-      }
-
-      // Update the single chunk mesh if there are changes
-      if (hasChanges) {
+      // todo: consider whether there is a diff, including preview.
+      if (this.atlasData) {
         this.copyChunkData(this.blocksToRender);
-        this.updateMeshes(buildMode, atlasData);
+        this.updateMeshes(this.getMode(), this.atlasData);
       }
 
       this.renderedBlocks.set(this.blocksToRender);
     } catch (error) {
-      console.error(`[ChunkManager] Update failed:`, error);
+      console.error(`[Chunk] Update failed:`, error);
       throw error;
     }
   };
 
   dispose = () => {
-    this.currentUpdateId++;
-
-    // Unsubscribe from database events
-    this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
-    this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
-    this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
-    this.dbConn.db.layer.removeOnInsert(this.onLayerInsert);
-    this.dbConn.db.layer.removeOnUpdate(this.onLayerUpdate);
-    this.dbConn.db.layer.removeOnDelete(this.onLayerDelete);
-
-    // Dispose mesh resources
     if (this.geometry) {
       this.geometry.dispose();
       this.geometry = null;

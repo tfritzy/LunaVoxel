@@ -22,9 +22,6 @@ public static partial class Module
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
             ?? throw new ArgumentException("No layer for this project");
 
-        byte[] diffData = new byte[layer.xDim * layer.yDim * layer.zDim];
-        var existingData = VoxelCompression.Decompress(layer.Voxels);
-
         int sx = Clamp(start.X, layer.xDim);
         int sy = Clamp(start.Y, layer.yDim);
         int sz = Clamp(start.Z, layer.zDim);
@@ -40,29 +37,80 @@ public static partial class Module
         int minZ = Math.Min(sz, ez);
         int maxZ = Math.Max(sz, ez);
 
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int y = minY; y <= maxY; y++)
-            {
-                for (int z = minZ; z <= maxZ; z++)
-                {
-                    int index = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                    byte? newValue = mode switch
-                    {
-                        BlockModificationMode.Attach => type,
-                        BlockModificationMode.Erase => 1, // any value > 0 erases in erase mode.
-                        BlockModificationMode.Paint when existingData[index] != 0 => type,
-                        _ => (byte)0
-                    };
+        int chunkMinX = (minX / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
+        int chunkMaxX = (maxX / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
+        int chunkMinY = (minY / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
+        int chunkMaxY = (maxY / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
+        int chunkMinZ = (minZ / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
+        int chunkMaxZ = (maxZ / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
 
-                    if (newValue.HasValue)
+        for (int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX += MAX_CHUNK_SIZE)
+        {
+            for (int chunkY = chunkMinY; chunkY <= chunkMaxY; chunkY += MAX_CHUNK_SIZE)
+            {
+                for (int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ += MAX_CHUNK_SIZE)
+                {
+                    var chunkPos = new Vector3(chunkX, chunkY, chunkZ);
+                    var chunk = GetOrCreateChunk(ctx, layer.Id, chunkPos, layer);
+                    var voxels = VoxelCompression.Decompress(chunk.Voxels);
+                    bool chunkModified = false;
+
+                    int localMinX = Math.Max(0, minX - chunkX);
+                    int localMaxX = Math.Min(chunk.SizeX - 1, maxX - chunkX);
+                    int localMinY = Math.Max(0, minY - chunkY);
+                    int localMaxY = Math.Min(chunk.SizeY - 1, maxY - chunkY);
+                    int localMinZ = Math.Max(0, minZ - chunkZ);
+                    int localMaxZ = Math.Min(chunk.SizeZ - 1, maxZ - chunkZ);
+
+                    for (int x = localMinX; x <= localMaxX; x++)
                     {
-                        diffData[index] = newValue.Value;
+                        for (int y = localMinY; y <= localMaxY; y++)
+                        {
+                            for (int z = localMinZ; z <= localMaxZ; z++)
+                            {
+                                var index = CalculateVoxelIndex(new Vector3(x, y, z), chunk.SizeY, chunk.SizeZ);
+                                
+                                byte valueToSet;
+                                if (mode == BlockModificationMode.Erase)
+                                {
+                                    valueToSet = 0;
+                                }
+                                else if (mode == BlockModificationMode.Paint)
+                                {
+                                    if (voxels[index] == 0)
+                                    {
+                                        continue; // Skip empty voxels in paint mode
+                                    }
+                                    valueToSet = type;
+                                }
+                                else // Attach mode
+                                {
+                                    valueToSet = type;
+                                }
+
+                                voxels[index] = valueToSet;
+                                chunkModified = true;
+                            }
+                        }
+                    }
+
+                    if (chunkModified)
+                    {
+                        Log.Info("Updating chunk because there were modifications");
+                        chunk.Voxels = VoxelCompression.Compress(voxels);
+                        ctx.Db.chunk.Id.Update(chunk);
+
+                        if (mode == BlockModificationMode.Erase)
+                        {
+                            // TODO Find a way to clean up empty chunks
+                        }
+                    }
+                    else
+                    {
+                        Log.Info("no modifications so no need to update chunk");
                     }
                 }
             }
         }
-
-        ModifyBlock(ctx, projectId, mode, diffData, layerIndex);
     }
 }

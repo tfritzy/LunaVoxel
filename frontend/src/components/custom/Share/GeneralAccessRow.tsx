@@ -10,7 +10,6 @@ import { useDatabase } from "@/contexts/DatabaseContext";
 import { toast } from "sonner";
 
 export const GeneralAccessRow = ({ project }: { project: Project }) => {
-  console.log("project", project);
   const { connection } = useDatabase();
   const getAccessLabel = (access: AccessType) => {
     switch (access.tag) {

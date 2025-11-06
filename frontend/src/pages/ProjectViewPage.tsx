@@ -83,6 +83,7 @@ export const ProjectViewPage = () => {
         `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
         `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
         `SELECT * FROM selections WHERE ProjectId='${projectId}'`,
+        `SELECT * FROM chunk WHERE ProjectId='${projectId}'`,
         `SELECT * FROM user_projects`,
       ]);
 
