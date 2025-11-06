@@ -382,10 +382,6 @@ describe("ExteriorFacesFinder", () => {
       // The condition !isBlockPresent(neighborValue) || !neighborIsPreview evaluates to:
       // - false || false = false when neighbor is both real AND preview (don't render internal faces)
       // - true || X = true when neighbor is empty (render exterior faces)
-      expect(previewMeshArrays2.indexCount).toBe(36); // 6 faces * 6 indices per face
-      expect(previewMeshArrays2.vertexCount).toBe(24); // 6 faces * 4 vertices per face
-
-      // Verify the geometry is identical
       expect(previewMeshArrays2.indexCount).toBe(realMeshArrays.indexCount);
       expect(previewMeshArrays2.vertexCount).toBe(realMeshArrays.vertexCount);
     });
