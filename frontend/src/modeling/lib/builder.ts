@@ -82,7 +82,8 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewFrame = new VoxelFrame(dimensions);
+    // Initialize with minimal size - tools will resize as needed
+    this.previewFrame = new VoxelFrame({ x: 1, y: 1, z: 1 }, { x: 0, y: 0, z: 0 });
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
