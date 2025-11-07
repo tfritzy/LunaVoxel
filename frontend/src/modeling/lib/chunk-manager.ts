@@ -26,6 +26,7 @@ export class ChunkManager {
   private dbConn: DbConnection;
   private projectId: string;
   private layers: Layer[] = [];
+  private layerVisibilityMap: Map<number, boolean> = new Map();
   private layersQueryRunner: QueryRunner<Layer> | null = null;
   private chunks: Map<string, Chunk> = new Map();
   private selections: DecompressedSelection[] = [];
@@ -66,6 +67,10 @@ export class ChunkManager {
       getTable(this.dbConn),
       (layers) => {
         this.layers = layers.sort((a, b) => a.index - b.index);
+        this.layerVisibilityMap.clear();
+        for (const layer of this.layers) {
+          this.layerVisibilityMap.set(layer.index, layer.visible);
+        }
         this.updateAllChunks();
       },
       filter
@@ -110,8 +115,7 @@ export class ChunkManager {
         this.atlasData, 
         this.getMode,
         (layerIndex: number) => {
-          const layer = this.layers.find(l => l.index === layerIndex);
-          return layer ? layer.visible : true;
+          return this.layerVisibilityMap.get(layerIndex) ?? true;
         }
       );
       this.chunks.set(key, chunk); 
