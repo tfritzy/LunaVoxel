@@ -36,7 +36,7 @@ export type Selection = {
   layer: number,
   minPos: Vector3,
   maxPos: Vector3,
-  voxelData: Uint8Array,
+  selectionData: Uint8Array,
 };
 let _cached_Selection_type_value: __AlgebraicTypeType | null = null;
 
@@ -58,7 +58,7 @@ export const Selection = {
       { name: "layer", algebraicType: __AlgebraicTypeValue.I32 },
       { name: "minPos", algebraicType: Vector3.getTypeScriptAlgebraicType() },
       { name: "maxPos", algebraicType: Vector3.getTypeScriptAlgebraicType() },
-      { name: "voxelData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
+      { name: "selectionData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
     );
     return _cached_Selection_type_value;
   },

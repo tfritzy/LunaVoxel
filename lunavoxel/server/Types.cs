@@ -210,10 +210,12 @@ public static partial class Module
         public Vector3 MaxPos;
 
         // Compressed RLE then LZ4
-        // Voxel data for the bounding box defined by MinPos and MaxPos
-        // Each voxel is a block index (0 means empty/not selected)
-        // Size is (MaxPos.X - MinPos.X) * (MaxPos.Y - MinPos.Y) * (MaxPos.Z - MinPos.Z)
-        public byte[] VoxelData;
+        // A 1 indexed mapping of selected blocks and where they are now within the bounded region.
+        // The array index represents a position within the MinPos/MaxPos bounds.
+        // The value at that index is the target position (1-indexed, 0 = not selected).
+        // Changed from byte[] to support positions beyond 255.
+        // Array size is (MaxPos.X - MinPos.X) * (MaxPos.Y - MinPos.Y) * (MaxPos.Z - MinPos.Z)
+        public byte[] SelectionData;
     }
 
 

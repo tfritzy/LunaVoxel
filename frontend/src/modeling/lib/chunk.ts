@@ -303,7 +303,7 @@ export class Chunk {
   }
 
   private updateSelectionState(
-    selections: Array<{ minPos: Vector3; maxPos: Vector3; voxelData: Uint8Array }>,
+    selections: Array<{ minPos: Vector3; maxPos: Vector3; selectionData: Uint8Array }>,
     blocks: Uint8Array
   ): void {
     this.selectionFrame.clear();
@@ -315,34 +315,47 @@ export class Chunk {
         z: selection.maxPos.z - selection.minPos.z,
       };
 
-      // Iterate over the selection's bounding box
-      for (let sx = 0; sx < selectionDims.x; sx++) {
-        for (let sy = 0; sy < selectionDims.y; sy++) {
-          for (let sz = 0; sz < selectionDims.z; sz++) {
-            const selectionIndex = sx * selectionDims.y * selectionDims.z + sy * selectionDims.z + sz;
-            const blockValue = selection.voxelData[selectionIndex];
+      // Iterate over the bounded selection region
+      for (let i = 0; i < selection.selectionData.length; i++) {
+        if (selection.selectionData[i] !== 0) {
+          // This is a selected voxel - selectionData[i] is the target position (1-indexed)
+          const targetLayerPos = selection.selectionData[i] - 1;
+          
+          // Convert bounded index i to original world position
+          const localZ = i % selectionDims.z;
+          const localY = Math.floor((i % (selectionDims.y * selectionDims.z)) / selectionDims.z);
+          const localX = Math.floor(i / (selectionDims.y * selectionDims.z));
+          
+          const originalWorldX = selection.minPos.x + localX;
+          const originalWorldY = selection.minPos.y + localY;
+          const originalWorldZ = selection.minPos.z + localZ;
+          
+          // Check if original position is in this chunk
+          if (originalWorldX >= this.minPos.x && originalWorldX < this.minPos.x + this.size.x &&
+              originalWorldY >= this.minPos.y && originalWorldY < this.minPos.y + this.size.y &&
+              originalWorldZ >= this.minPos.z && originalWorldZ < this.minPos.z + this.size.z) {
+            
+            // Get the block type from the original position in this chunk
+            const chunkLocalX = originalWorldX - this.minPos.x;
+            const chunkLocalY = originalWorldY - this.minPos.y;
+            const chunkLocalZ = originalWorldZ - this.minPos.z;
+            const blockIndex = chunkLocalX * this.size.y * this.size.z + chunkLocalY * this.size.z + chunkLocalZ;
+            const blockValue = blocks[blockIndex];
             
             if (blockValue !== 0) {
-              // Convert from selection-local coordinates to world coordinates
-              const worldX = selection.minPos.x + sx;
-              const worldY = selection.minPos.y + sy;
-              const worldZ = selection.minPos.z + sz;
+              // Convert target layer position to world coordinates
+              // Target position is in layer space, need to account for layer dimensions
+              // For now, we need to know the layer dimensions to properly convert
+              // This is a limitation - we'll use the chunk's coordinate space
+              const targetWorldZ = targetLayerPos % this.size.z;
+              const targetWorldY = Math.floor((targetLayerPos % (this.size.y * this.size.z)) / this.size.z);
+              const targetWorldX = Math.floor(targetLayerPos / (this.size.y * this.size.z));
               
-              // Only process if this world position is within this chunk
-              if (worldX >= this.minPos.x && worldX < this.minPos.x + this.size.x &&
-                  worldY >= this.minPos.y && worldY < this.minPos.y + this.size.y &&
-                  worldZ >= this.minPos.z && worldZ < this.minPos.z + this.size.z) {
-                
-                // Convert to chunk-local coordinates
-                const chunkLocalX = worldX - this.minPos.x;
-                const chunkLocalY = worldY - this.minPos.y;
-                const chunkLocalZ = worldZ - this.minPos.z;
-                
-                // Set the block in the selection frame
-                this.selectionFrame.set(worldX, worldY, worldZ, blockValue || 1);
-                
-                // Clear the original block position in the blocks array
-                const blockIndex = chunkLocalX * this.size.y * this.size.z + chunkLocalY * this.size.z + chunkLocalZ;
+              // Render the block at its target position in the selection frame
+              this.selectionFrame.set(targetWorldX, targetWorldY, targetWorldZ, blockValue || 1);
+              
+              // Clear the original position if the voxel moved
+              if (targetLayerPos !== blockIndex) {
                 blocks[blockIndex] = 0;
               }
             }
