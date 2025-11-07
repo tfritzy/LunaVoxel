@@ -66,6 +66,7 @@ export class ChunkManager {
       getTable(this.dbConn),
       (layers) => {
         this.layers = layers.sort((a, b) => a.index - b.index);
+        this.updateAllChunks();
       },
       filter
     );
@@ -73,6 +74,12 @@ export class ChunkManager {
 
   private getChunkKey(minPos: Vector3): string {
     return `${minPos.x},${minPos.y},${minPos.z}`;
+  }
+
+  private updateAllChunks(): void {
+    for (const chunk of this.chunks.values()) {
+      chunk.update();
+    }
   }
 
   private getChunkMinPos(worldPos: Vector3): Vector3 {
@@ -95,7 +102,18 @@ export class ChunkManager {
       };
      
       console.log("Creating a new chunk at", minPos, size);
-      chunk = new Chunk(this.scene, minPos, size, 10, this.atlasData, this.getMode); // Max 10 layers
+      chunk = new Chunk(
+        this.scene, 
+        minPos, 
+        size, 
+        10, 
+        this.atlasData, 
+        this.getMode,
+        (layerIndex: number) => {
+          const layer = this.layers.find(l => l.index === layerIndex);
+          return layer ? layer.visible : true;
+        }
+      );
       this.chunks.set(key, chunk); 
     }
     
