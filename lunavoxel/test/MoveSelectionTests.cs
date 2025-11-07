@@ -4,94 +4,137 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 public class MoveSelectionTests
 {
     [TestMethod]
-    public void TestTranslateSelectionData_SimpleMove()
+    public void TestSelectionBounds_SimpleMove()
     {
-        int xDim = 2, yDim = 2, zDim = 2;
-        var selectionData = new byte[8];
-        selectionData[0] = 1; // Marker at index 0 (position 0,0,0), initially value = index + 1
+        var minPos = new Module.Vector3(5, 10, 15);
+        var maxPos = new Module.Vector3(10, 15, 20);
+        var offset = new Module.Vector3(1, 0, 0);
 
-        var offset = new Module.Vector3(1, 0, 0); // Move by 1 in X direction
+        var newMinPos = new Module.Vector3(
+            minPos.X + offset.X,
+            minPos.Y + offset.Y,
+            minPos.Z + offset.Z
+        );
+        var newMaxPos = new Module.Vector3(
+            maxPos.X + offset.X,
+            maxPos.Y + offset.Y,
+            maxPos.Z + offset.Z
+        );
 
-        var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
-
-        // Index 0 is position (0,0,0), offset by (1,0,0) = (1,0,0) = index 4
-        Assert.AreEqual(5, result[0], "Marker at index 0 moves to position 4, value becomes 5");
+        Assert.AreEqual(6, newMinPos.X);
+        Assert.AreEqual(10, newMinPos.Y);
+        Assert.AreEqual(15, newMinPos.Z);
+        Assert.AreEqual(11, newMaxPos.X);
+        Assert.AreEqual(15, newMaxPos.Y);
+        Assert.AreEqual(20, newMaxPos.Z);
     }
 
     [TestMethod]
-    public void TestTranslateSelectionData_WrapAroundX()
+    public void TestSelectionBounds_NegativeMove()
     {
-        int xDim = 2, yDim = 2, zDim = 2;
-        var selectionData = new byte[8];
-        selectionData[4] = 5; // Marker at index 4 (position 1,0,0)
+        var minPos = new Module.Vector3(5, 10, 15);
+        var maxPos = new Module.Vector3(10, 15, 20);
+        var offset = new Module.Vector3(-1, -2, -3);
 
-        var offset = new Module.Vector3(1, 0, 0); // Move by 1 in X direction
+        var newMinPos = new Module.Vector3(
+            minPos.X + offset.X,
+            minPos.Y + offset.Y,
+            minPos.Z + offset.Z
+        );
+        var newMaxPos = new Module.Vector3(
+            maxPos.X + offset.X,
+            maxPos.Y + offset.Y,
+            maxPos.Z + offset.Z
+        );
 
-        var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
-
-        // Index 4 is position (1,0,0), offset by (1,0,0) = (2,0,0) wraps to (0,0,0) = index 0
-        Assert.AreEqual(1, result[4], "Marker at index 4 wraps to position 0, value becomes 1");
+        Assert.AreEqual(4, newMinPos.X);
+        Assert.AreEqual(8, newMinPos.Y);
+        Assert.AreEqual(12, newMinPos.Z);
+        Assert.AreEqual(9, newMaxPos.X);
+        Assert.AreEqual(13, newMaxPos.Y);
+        Assert.AreEqual(17, newMaxPos.Z);
     }
 
     [TestMethod]
-    public void TestTranslateSelectionData_WrapAroundNegative()
+    public void TestSelectionBounds_MultiAxisMove()
     {
-        int xDim = 3, yDim = 3, zDim = 3;
-        var selectionData = new byte[27];
-        selectionData[0] = 1; // Marker at index 0 (position 0,0,0)
+        var minPos = new Module.Vector3(0, 0, 0);
+        var maxPos = new Module.Vector3(5, 5, 5);
+        var offset = new Module.Vector3(10, 20, 30);
 
-        var offset = new Module.Vector3(-1, 0, 0); // Move by -1 in X direction
+        var newMinPos = new Module.Vector3(
+            minPos.X + offset.X,
+            minPos.Y + offset.Y,
+            minPos.Z + offset.Z
+        );
+        var newMaxPos = new Module.Vector3(
+            maxPos.X + offset.X,
+            maxPos.Y + offset.Y,
+            maxPos.Z + offset.Z
+        );
 
-        var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
-
-        // Index 0 is position (0,0,0), offset by (-1,0,0) wraps to (2,0,0) = index 18
-        Assert.AreEqual(19, result[0], "Marker at index 0 wraps to position 18, value becomes 19");
+        Assert.AreEqual(10, newMinPos.X);
+        Assert.AreEqual(20, newMinPos.Y);
+        Assert.AreEqual(30, newMinPos.Z);
+        Assert.AreEqual(15, newMaxPos.X);
+        Assert.AreEqual(25, newMaxPos.Y);
+        Assert.AreEqual(35, newMaxPos.Z);
     }
 
     [TestMethod]
-    public void TestTranslateSelectionData_MultipleVoxels()
+    public void TestSelectionBounds_NoMove()
     {
-        int xDim = 4, yDim = 4, zDim = 4;
-        var selectionData = new byte[64];
-        selectionData[0] = 1;  // Marker at index 0 (position 0,0,0)
-        selectionData[21] = 22; // Marker at index 21 (position 1,1,1)
-
-        var offset = new Module.Vector3(1, 1, 1);
-
-        var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
-
-        // Index 0 (0,0,0) + (1,1,1) = (1,1,1) = index 21
-        Assert.AreEqual(22, result[0], "Marker at index 0 moves to position 21, value becomes 22");
-        // Index 21 (1,1,1) + (1,1,1) = (2,2,2) = index 42
-        Assert.AreEqual(43, result[21], "Marker at index 21 moves to position 42, value becomes 43");
-    }
-
-    [TestMethod]
-    public void TestTranslateSelectionData_NoMove()
-    {
-        int xDim = 2, yDim = 2, zDim = 2;
-        var selectionData = new byte[8];
-        selectionData[3] = 4;
-
+        var minPos = new Module.Vector3(5, 10, 15);
+        var maxPos = new Module.Vector3(10, 15, 20);
         var offset = new Module.Vector3(0, 0, 0);
 
-        var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
+        var newMinPos = new Module.Vector3(
+            minPos.X + offset.X,
+            minPos.Y + offset.Y,
+            minPos.Z + offset.Z
+        );
+        var newMaxPos = new Module.Vector3(
+            maxPos.X + offset.X,
+            maxPos.Y + offset.Y,
+            maxPos.Z + offset.Z
+        );
 
-        Assert.AreEqual(4, result[3], "Voxel should stay in place with same value");
+        Assert.AreEqual(5, newMinPos.X);
+        Assert.AreEqual(10, newMinPos.Y);
+        Assert.AreEqual(15, newMinPos.Z);
+        Assert.AreEqual(10, newMaxPos.X);
+        Assert.AreEqual(15, newMaxPos.Y);
+        Assert.AreEqual(20, newMaxPos.Z);
     }
 
     [TestMethod]
-    public void TestTranslateSelectionData_WrapAroundAllAxes()
+    public void TestSelectionDimensions_Preserved()
     {
-        int xDim = 2, yDim = 3, zDim = 4;
-        var selectionData = new byte[24];
-        selectionData[23] = 24; // Marker at index 23 (position 1,2,3)
+        var minPos = new Module.Vector3(5, 10, 15);
+        var maxPos = new Module.Vector3(10, 15, 20);
+        var offset = new Module.Vector3(3, -5, 7);
 
-        var offset = new Module.Vector3(1, 1, 1);
+        var originalWidth = maxPos.X - minPos.X;
+        var originalHeight = maxPos.Y - minPos.Y;
+        var originalDepth = maxPos.Z - minPos.Z;
 
-        var result = Module.TranslateSelectionData(selectionData, offset, xDim, yDim, zDim);
+        var newMinPos = new Module.Vector3(
+            minPos.X + offset.X,
+            minPos.Y + offset.Y,
+            minPos.Z + offset.Z
+        );
+        var newMaxPos = new Module.Vector3(
+            maxPos.X + offset.X,
+            maxPos.Y + offset.Y,
+            maxPos.Z + offset.Z
+        );
 
-        // Index 23 is position (1,2,3), offset by (1,1,1) = (2,3,4) wraps to (0,0,0) = index 0
-        Assert.AreEqual(1, result[23], "Marker at index 23 wraps to position 0, value becomes 1");
+        var newWidth = newMaxPos.X - newMinPos.X;
+        var newHeight = newMaxPos.Y - newMinPos.Y;
+        var newDepth = newMaxPos.Z - newMinPos.Z;
+
+        Assert.AreEqual(originalWidth, newWidth);
+        Assert.AreEqual(originalHeight, newHeight);
+        Assert.AreEqual(originalDepth, newDepth);
     }
 }

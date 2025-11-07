@@ -24,18 +24,26 @@ public static partial class Module
             throw new InvalidOperationException("Cannot delete selection on a locked layer");
         }
 
-        var selectionData = VoxelCompression.Decompress(selection.SelectionData);
+        var voxelData = VoxelCompression.Decompress(selection.VoxelData);
+        var dimensions = new Vector3(
+            selection.MaxPos.X - selection.MinPos.X,
+            selection.MaxPos.Y - selection.MinPos.Y,
+            selection.MaxPos.Z - selection.MinPos.Z
+        );
 
-        for (int x = 0; x < layer.xDim; x++)
+        for (int x = 0; x < dimensions.X; x++)
         {
-            for (int y = 0; y < layer.yDim; y++)
+            for (int y = 0; y < dimensions.Y; y++)
             {
-                for (int z = 0; z < layer.zDim; z++)
+                for (int z = 0; z < dimensions.Z; z++)
                 {
-                    int worldIndex = x * layer.yDim * layer.zDim + y * layer.zDim + z;
-                    if (selectionData[worldIndex] != 0)
+                    int localIndex = x * dimensions.Y * dimensions.Z + y * dimensions.Z + z;
+                    if (voxelData[localIndex] != 0)
                     {
-                        var position = new Vector3(x, y, z);
+                        var worldX = selection.MinPos.X + x;
+                        var worldY = selection.MinPos.Y + y;
+                        var worldZ = selection.MinPos.Z + z;
+                        var position = new Vector3(worldX, worldY, worldZ);
                         var chunkMinPos = CalculateChunkMinPosition(position);
                         
                         var chunk = ctx.Db.chunk.chunk_layer_pos
@@ -45,13 +53,11 @@ public static partial class Module
                         if (chunk != null)
                         {
                             var voxels = VoxelCompression.Decompress(chunk.Voxels);
-                            var localPos = new Vector3(x - chunkMinPos.X, y - chunkMinPos.Y, z - chunkMinPos.Z);
-                            var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
-                            voxels[localIndex] = 0;
+                            var localPos = new Vector3(worldX - chunkMinPos.X, worldY - chunkMinPos.Y, worldZ - chunkMinPos.Z);
+                            var chunkLocalIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
+                            voxels[chunkLocalIndex] = 0;
                             chunk.Voxels = VoxelCompression.Compress(voxels);
                             ctx.Db.chunk.Id.Update(chunk);
-                            
-                            // TODO find way to clean up empty chunks
                         }
                     }
                 }

@@ -13,22 +13,8 @@ public static partial class Module
             return;
         }
 
-        var selectionData = VoxelCompression.Decompress(selection.SelectionData);
-        var tempData = new byte[selectionData.Length];
-
-        for (int i = 0; i < selectionData.Length; i++)
-        {
-            if (selectionData[i] != 0)
-            {
-                int targetPosition = selectionData[i] - 1;
-                if (targetPosition >= 0 && targetPosition < selectionData.Length)
-                {
-                    tempData[targetPosition] = (byte)(targetPosition + 1);
-                }
-            }
-        }
-
-        selection.SelectionData = VoxelCompression.Compress(tempData);
-        ctx.Db.selections.Id.Update(selection);
+        // With the new structure, MinPos and MaxPos already represent the actual positions,
+        // so there's nothing to commit - the positions are already updated by MoveSelection
+        // We just need to ensure the selection exists and is valid
     }
 }
