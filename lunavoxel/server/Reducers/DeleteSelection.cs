@@ -25,6 +25,9 @@ public static partial class Module
         }
 
         var voxelData = VoxelCompression.Decompress(selection.VoxelData);
+        
+        // Calculate dimensions from bounds (MaxPos is exclusive, like array indices)
+        // e.g., MinPos=(0,0,0) and MaxPos=(5,5,5) means dimensions are 5x5x5
         var dimensions = new Vector3(
             selection.MaxPos.X - selection.MinPos.X,
             selection.MaxPos.Y - selection.MinPos.Y,
