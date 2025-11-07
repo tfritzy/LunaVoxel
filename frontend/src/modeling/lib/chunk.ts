@@ -205,6 +205,12 @@ export class Chunk {
     return this.meshes.main.mesh;
   }
 
+  public clearPreviewData()
+  {
+    this.previewFrame.clear();
+    this.update();
+  }
+
   public setPreviewData(
     sourceFrame: VoxelFrame,
     sourceMinX: number,

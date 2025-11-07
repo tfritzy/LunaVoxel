@@ -272,10 +272,6 @@ const REMOTE_MODULE = {
       reducerName: "ReorderLayers",
       argsType: ReorderLayers.getTypeScriptAlgebraicType(),
     },
-    SyncUser: {
-      reducerName: "SyncUser",
-      argsType: SyncUser.getTypeScriptAlgebraicType(),
-    },
     ToggleLayerLock: {
       reducerName: "ToggleLayerLock",
       argsType: ToggleLayerLock.getTypeScriptAlgebraicType(),
@@ -348,7 +344,6 @@ export type Reducer = never
 | { name: "MoveSelection", args: MoveSelection }
 | { name: "PokeProject", args: PokeProject }
 | { name: "ReorderLayers", args: ReorderLayers }
-| { name: "SyncUser", args: SyncUser }
 | { name: "ToggleLayerLock", args: ToggleLayerLock }
 | { name: "ToggleLayerVisibility", args: ToggleLayerVisibility }
 | { name: "UndoEdit", args: UndoEdit }

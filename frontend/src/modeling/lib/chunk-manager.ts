@@ -32,6 +32,7 @@ export class ChunkManager {
   private selections: DecompressedSelection[] = [];
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
+  private chunksWithPreview: Set<string> = new Set();
 
   constructor(
     scene: THREE.Scene,
@@ -274,10 +275,13 @@ export class ChunkManager {
     const maxChunkY = Math.floor((frameMaxPos.y - 1) / CHUNK_SIZE) * CHUNK_SIZE;
     const maxChunkZ = Math.floor((frameMaxPos.z - 1) / CHUNK_SIZE) * CHUNK_SIZE;
     
+    const currentChunksWithPreview = new Set<string>();
+    
     for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += CHUNK_SIZE) {
       for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
         for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
+          const chunkKey = this.getChunkKey(chunkMinPos);
           const chunk = this.getOrCreateChunk(chunkMinPos);
           
           const copyMinX = Math.max(chunkX, frameMinPos.x);
@@ -287,10 +291,22 @@ export class ChunkManager {
           const copyMaxY = Math.min(chunkY + chunk.size.y, frameMaxPos.y);
           const copyMaxZ = Math.min(chunkZ + chunk.size.z, frameMaxPos.z);
           
-          chunk.setPreviewData(previewFrame, copyMinX, copyMinY, copyMinZ, copyMaxX, copyMaxY, copyMaxZ);  
+          chunk.setPreviewData(previewFrame, copyMinX, copyMinY, copyMinZ, copyMaxX, copyMaxY, copyMaxZ);
+          currentChunksWithPreview.add(chunkKey);
         }
       }
     }
+    
+    for (const chunkKey of this.chunksWithPreview) {
+      if (!currentChunksWithPreview.has(chunkKey)) {
+        const chunk = this.chunks.get(chunkKey);
+        if (chunk) {
+          chunk.clearPreviewData();
+        }
+      }
+    }
+    
+    this.chunksWithPreview = currentChunksWithPreview;
   }
 
   public getBlockAtPosition(position: THREE.Vector3, layer: Layer): number | null {
@@ -303,12 +319,10 @@ export class ChunkManager {
     const layerChunk = chunk.getLayerChunk(layer.index);
     if (!layerChunk) return 0;
     
-    // Calculate local position within chunk
     const localX = position.x - chunkMinPos.x;
     const localY = position.y - chunkMinPos.y;
     const localZ = position.z - chunkMinPos.z;
     
-    // Calculate index in voxel array
     const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
     
     return layerChunk.voxels[index] || 0;
@@ -363,21 +377,19 @@ export class ChunkManager {
   }
 
   dispose = () => {
-    // Unsubscribe from database events
     this.dbConn.db.chunk.removeOnInsert(this.onChunkInsert);
     this.dbConn.db.chunk.removeOnDelete(this.onChunkDelete);
     this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
     this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
     this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
 
-    // Dispose QueryRunner
     this.layersQueryRunner?.dispose();
     this.layersQueryRunner = null;
 
-    // Dispose all chunks
     for (const chunk of this.chunks.values()) {
       chunk.dispose();
     }
     this.chunks.clear();
+    this.chunksWithPreview.clear();
   };
 }

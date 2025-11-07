@@ -64,7 +64,7 @@ export class VoxelEngine {
     );
 
     window.addEventListener("resize", this.handleResize);
-    this.setupPerformanceMonitoring();
+    // this.setupPerformanceMonitoring();
     this.animate();
   }
 
