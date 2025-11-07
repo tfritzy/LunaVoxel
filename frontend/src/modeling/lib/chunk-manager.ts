@@ -16,8 +16,8 @@ import { VoxelFrame } from "./voxel-frame";
 import { Chunk, CHUNK_SIZE } from "./chunk";
 import { QueryRunner, TableHandle } from "@/lib/queryRunner";
 
-export type DecompressedSelection = Omit<Selection, "selectionData"> & {
-  selectionData: Uint8Array;
+export type DecompressedSelection = Omit<Selection, "voxelData"> & {
+  voxelData: Uint8Array;
 };
 
 export class ChunkManager {
@@ -213,7 +213,7 @@ export class ChunkManager {
     const buffer = new Uint8Array(0);
     const decompressedSelection = {
       ...newSelection,
-      selectionData: decompressVoxelDataInto(newSelection.selectionData, buffer),
+      voxelData: decompressVoxelDataInto(newSelection.voxelData, buffer),
     };
     this.selections = [...this.selections, decompressedSelection];
 
@@ -228,10 +228,10 @@ export class ChunkManager {
     if (newSelection.projectId !== this.projectId) return;
 
     const existingSelection = this.selections.find((s) => s.id === newSelection.id);
-    const buffer = existingSelection?.selectionData || new Uint8Array(0);
+    const buffer = existingSelection?.voxelData || new Uint8Array(0);
     const decompressedSelection = {
       ...newSelection,
-      selectionData: decompressVoxelDataInto(newSelection.selectionData, buffer),
+      voxelData: decompressVoxelDataInto(newSelection.voxelData, buffer),
     };
     this.selections = this.selections.map((s) =>
       s.id === newSelection.id ? decompressedSelection : s

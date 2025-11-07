@@ -303,28 +303,49 @@ export class Chunk {
   }
 
   private updateSelectionState(
-    selections: Array<{ selectionData: Uint8Array }>,
+    selections: Array<{ minPos: Vector3; maxPos: Vector3; voxelData: Uint8Array }>,
     blocks: Uint8Array
   ): void {
     this.selectionFrame.clear();
 
-    for (let i = 0; i < selections.length; i++) {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        if (selections[i].selectionData[voxelIndex] != 0) {
-          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1;
+    for (const selection of selections) {
+      const selectionDims = {
+        x: selection.maxPos.x - selection.minPos.x,
+        y: selection.maxPos.y - selection.minPos.y,
+        z: selection.maxPos.z - selection.minPos.z,
+      };
 
-          const blockValue = blocks[voxelIndex];
-
-          const x = Math.floor(newVoxelPos / (this.size.y * this.size.z));
-          const y = Math.floor(
-            (newVoxelPos % (this.size.y * this.size.z)) / this.size.z
-          );
-          const z = newVoxelPos % this.size.z;
-
-          this.selectionFrame.set(x, y, z, blockValue || 1);
-
-          if (newVoxelPos != voxelIndex) {
-            blocks[voxelIndex] = 0;
+      // Iterate over the selection's bounding box
+      for (let sx = 0; sx < selectionDims.x; sx++) {
+        for (let sy = 0; sy < selectionDims.y; sy++) {
+          for (let sz = 0; sz < selectionDims.z; sz++) {
+            const selectionIndex = sx * selectionDims.y * selectionDims.z + sy * selectionDims.z + sz;
+            const blockValue = selection.voxelData[selectionIndex];
+            
+            if (blockValue !== 0) {
+              // Convert from selection-local coordinates to world coordinates
+              const worldX = selection.minPos.x + sx;
+              const worldY = selection.minPos.y + sy;
+              const worldZ = selection.minPos.z + sz;
+              
+              // Only process if this world position is within this chunk
+              if (worldX >= this.minPos.x && worldX < this.minPos.x + this.size.x &&
+                  worldY >= this.minPos.y && worldY < this.minPos.y + this.size.y &&
+                  worldZ >= this.minPos.z && worldZ < this.minPos.z + this.size.z) {
+                
+                // Convert to chunk-local coordinates
+                const chunkLocalX = worldX - this.minPos.x;
+                const chunkLocalY = worldY - this.minPos.y;
+                const chunkLocalZ = worldZ - this.minPos.z;
+                
+                // Set the block in the selection frame
+                this.selectionFrame.set(worldX, worldY, worldZ, blockValue || 1);
+                
+                // Clear the original block position in the blocks array
+                const blockIndex = chunkLocalX * this.size.y * this.size.z + chunkLocalY * this.size.z + chunkLocalZ;
+                blocks[blockIndex] = 0;
+              }
+            }
           }
         }
       }
