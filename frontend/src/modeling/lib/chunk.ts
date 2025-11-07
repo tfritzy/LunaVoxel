@@ -39,6 +39,7 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrame: VoxelFrame;
   private previewFrame: VoxelFrame;
+  private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
 
@@ -438,6 +439,28 @@ export class Chunk {
     this.updatePreviewMesh();
   };
 
+  private needsRender(): boolean {
+    for (let i = 0; i < this.blocksToRender.length; i++) {
+      if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
+        return true;
+      }
+    }
+
+    if (this.previewFrame.isEmpty() && this.renderedPreviewFrame === null) {
+      return false;
+    }
+
+    if (this.previewFrame.isEmpty() !== (this.renderedPreviewFrame === null)) {
+      return true;
+    }
+
+    if (this.renderedPreviewFrame && !this.previewFrame.equals(this.renderedPreviewFrame)) {
+      return true;
+    }
+
+    return false;
+  }
+
   update = () => {
     try {
       // todo: consider layer visibility
@@ -453,13 +476,17 @@ export class Chunk {
 
       this.updatePreviewState(this.blocksToRender);
 
-      // todo: consider whether there is a diff, including preview.
-      if (this.atlasData) {
+      if (this.atlasData && this.needsRender()) {
         this.copyChunkData(this.blocksToRender);
         this.updateMeshes(this.getMode(), this.atlasData);
-      }
+        this.renderedBlocks.set(this.blocksToRender);
 
-      this.renderedBlocks.set(this.blocksToRender);
+        if (this.previewFrame.isEmpty()) {
+          this.renderedPreviewFrame = null;
+        } else {
+          this.renderedPreviewFrame = this.previewFrame.clone();
+        }
+      }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);
       throw error;
