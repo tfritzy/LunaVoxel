@@ -15,7 +15,7 @@ public class DeleteBlockTests
         Assert.AreEqual(0, voxels[0], "Block 0 should remain unchanged");
         Assert.AreEqual(1, voxels[1], "Block 1 should remain unchanged");
         Assert.AreEqual(0, voxels[2], "Block 2 should be replaced with 0");
-        Assert.AreEqual(2, voxels[3], "Block 3 should be decremented to 2");
+        Assert.AreEqual(0, voxels[3], "Block 3 should be replaced with 0");
         Assert.AreEqual(0, voxels[4], "Block 2 should be replaced with 0");
         Assert.AreEqual(1, voxels[5], "Block 1 should remain unchanged");
         Assert.AreEqual(0, voxels[6], "Block 0 should remain unchanged");
@@ -32,9 +32,9 @@ public class DeleteBlockTests
 
         Assert.AreEqual(5, voxels[0], "Block 5 should remain unchanged");
         Assert.AreEqual(3, voxels[1], "Block 10 should be replaced with 3");
-        Assert.AreEqual(14, voxels[2], "Block 15 should be decremented to 14");
+        Assert.AreEqual(3, voxels[2], "Block 15 should be replaced with 3");
         Assert.AreEqual(3, voxels[3], "Block 10 should be replaced with 3");
-        Assert.AreEqual(19, voxels[4], "Block 20 should be decremented to 19");
+        Assert.AreEqual(3, voxels[4], "Block 20 should be replaced with 3");
     }
 
     [TestMethod]
@@ -47,10 +47,10 @@ public class DeleteBlockTests
         UpdateVoxelsForDeletedBlock(voxels, deletedBlockIndex, replacementBlockType);
 
         Assert.AreEqual(0, voxels[0], "Block 1 should be replaced with 0");
-        Assert.AreEqual(1, voxels[1], "Block 2 should be decremented to 1");
-        Assert.AreEqual(2, voxels[2], "Block 3 should be decremented to 2");
-        Assert.AreEqual(3, voxels[3], "Block 4 should be decremented to 3");
-        Assert.AreEqual(4, voxels[4], "Block 5 should be decremented to 4");
+        Assert.AreEqual(0, voxels[1], "Block 2 should be replaced with 0");
+        Assert.AreEqual(0, voxels[2], "Block 3 should be replaced with 0");
+        Assert.AreEqual(0, voxels[3], "Block 4 should be replaced with 0");
+        Assert.AreEqual(0, voxels[4], "Block 5 should be replaced with 0");
     }
 
     [TestMethod]
@@ -102,13 +102,9 @@ public class DeleteBlockTests
         {
             byte voxelValue = voxels[i];
             
-            if (voxelValue == deletedBlockIndex)
+            if (voxelValue >= deletedBlockIndex)
             {
                 voxels[i] = replacementBlockType;
-            }
-            else if (voxelValue > deletedBlockIndex)
-            {
-                voxels[i] = (byte)(voxelValue - 1);
             }
         }
     }

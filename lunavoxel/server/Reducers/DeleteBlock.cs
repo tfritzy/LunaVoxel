@@ -48,14 +48,9 @@ public static partial class Module
             {
                 byte voxelValue = voxels[i];
                 
-                if (voxelValue == blockIndex)
+                if (voxelValue >= blockIndex)
                 {
                     voxels[i] = replacementBlockType;
-                    chunkModified = true;
-                }
-                else if (voxelValue > blockIndex)
-                {
-                    voxels[i] = (byte)(voxelValue - 1);
                     chunkModified = true;
                 }
             }
