@@ -26,6 +26,7 @@ export class ChunkManager {
   private dbConn: DbConnection;
   private projectId: string;
   private layers: Layer[] = [];
+  private layerVisibilityMap: Map<number, boolean> = new Map();
   private layersQueryRunner: QueryRunner<Layer> | null = null;
   private chunks: Map<string, Chunk> = new Map();
   private selections: DecompressedSelection[] = [];
@@ -66,6 +67,11 @@ export class ChunkManager {
       getTable(this.dbConn),
       (layers) => {
         this.layers = layers.sort((a, b) => a.index - b.index);
+        this.layerVisibilityMap.clear();
+        for (const layer of this.layers) {
+          this.layerVisibilityMap.set(layer.index, layer.visible);
+        }
+        this.updateAllChunks();
       },
       filter
     );
@@ -73,6 +79,12 @@ export class ChunkManager {
 
   private getChunkKey(minPos: Vector3): string {
     return `${minPos.x},${minPos.y},${minPos.z}`;
+  }
+
+  private updateAllChunks(): void {
+    for (const chunk of this.chunks.values()) {
+      chunk.update();
+    }
   }
 
   private getChunkMinPos(worldPos: Vector3): Vector3 {
@@ -95,7 +107,17 @@ export class ChunkManager {
       };
      
       console.log("Creating a new chunk at", minPos, size);
-      chunk = new Chunk(this.scene, minPos, size, 10, this.atlasData, this.getMode); // Max 10 layers
+      chunk = new Chunk(
+        this.scene, 
+        minPos, 
+        size, 
+        10, 
+        this.atlasData, 
+        this.getMode,
+        (layerIndex: number) => {
+          return this.layerVisibilityMap.get(layerIndex) ?? true;
+        }
+      );
       this.chunks.set(key, chunk); 
     }
     

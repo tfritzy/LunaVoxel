@@ -42,6 +42,7 @@ export class Chunk {
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
+  private getLayerVisible: (layerIndex: number) => boolean;
 
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
@@ -56,13 +57,15 @@ export class Chunk {
     size: Vector3,
     maxLayers: number,
     atlasData: AtlasData | undefined,
-    getMode: () => BlockModificationMode
+    getMode: () => BlockModificationMode,
+    getLayerVisible: (layerIndex: number) => boolean
   ) {
     this.scene = scene;
     this.minPos = minPos;
     this.size = size;
     this.atlasData = atlasData;
     this.getMode = getMode;
+    this.getLayerVisible = getLayerVisible;
 
     this.layerChunks = new Array(maxLayers).fill(null);
 
@@ -463,15 +466,15 @@ export class Chunk {
 
   update = () => {
     try {
-      // todo: consider layer visibility
       this.clearBlocks(this.blocksToRender);
 
-      for (const chunk of this.layerChunks) {
+      for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
+        const chunk = this.layerChunks[layerIndex];
         if (!chunk) continue;
 
-        if (chunk) {
-          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
-        }
+        if (!this.getLayerVisible(layerIndex)) continue;
+
+        this.addLayerChunkToBlocks(chunk, this.blocksToRender);
       }
 
       this.updatePreviewState(this.blocksToRender);
