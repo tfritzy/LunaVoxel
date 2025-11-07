@@ -1,4 +1,6 @@
 // Stub SpacetimeDB types for testing
+using System.Collections.Generic;
+
 namespace SpacetimeDB
 {
     [AttributeUsage(AttributeTargets.Method)]
