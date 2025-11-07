@@ -51,7 +51,9 @@ public static partial class Module
             return;
         }
 
+        Log.Info($"Starting magic select flood fill for block type {targetBlockType} at position {position.X},{position.Y},{position.Z}");
         var selectionData = PerformFloodFill(ctx, layer, position, targetBlockType);
+        Log.Info($"Flood fill completed, compressing selection data");
         var compressedSelection = VoxelCompression.Compress(selectionData);
 
         var existingSelection = ctx.Db.selections.Identity_ProjectId.Filter((ctx.Sender, projectId)).FirstOrDefault();
@@ -94,41 +96,46 @@ public static partial class Module
 
             selectionData[worldIndex] = (byte)(worldIndex + 1);
 
-            var neighbors = new[]
-            {
-                new Vector3(current.X - 1, current.Y, current.Z),
-                new Vector3(current.X + 1, current.Y, current.Z),
-                new Vector3(current.X, current.Y - 1, current.Z),
-                new Vector3(current.X, current.Y + 1, current.Z),
-                new Vector3(current.X, current.Y, current.Z - 1),
-                new Vector3(current.X, current.Y, current.Z + 1)
-            };
-
-            foreach (var neighbor in neighbors)
-            {
-                if (neighbor.X < 0 || neighbor.X >= layer.xDim ||
-                    neighbor.Y < 0 || neighbor.Y >= layer.yDim ||
-                    neighbor.Z < 0 || neighbor.Z >= layer.zDim)
-                {
-                    continue;
-                }
-
-                int neighborIndex = CalculateWorldIndex(neighbor, layer.yDim, layer.zDim);
-                if (visited.Contains(neighborIndex))
-                {
-                    continue;
-                }
-
-                byte blockType = GetVoxelAtPosition(ctx, layer.Id, neighbor, chunkCache);
-                if (blockType == targetBlockType)
-                {
-                    visited.Add(neighborIndex);
-                    queue.Enqueue(neighbor);
-                }
-            }
+            CheckAndEnqueueNeighbor(ctx, layer, current.X - 1, current.Y, current.Z, visited, queue, chunkCache, targetBlockType);
+            CheckAndEnqueueNeighbor(ctx, layer, current.X + 1, current.Y, current.Z, visited, queue, chunkCache, targetBlockType);
+            CheckAndEnqueueNeighbor(ctx, layer, current.X, current.Y - 1, current.Z, visited, queue, chunkCache, targetBlockType);
+            CheckAndEnqueueNeighbor(ctx, layer, current.X, current.Y + 1, current.Z, visited, queue, chunkCache, targetBlockType);
+            CheckAndEnqueueNeighbor(ctx, layer, current.X, current.Y, current.Z - 1, visited, queue, chunkCache, targetBlockType);
+            CheckAndEnqueueNeighbor(ctx, layer, current.X, current.Y, current.Z + 1, visited, queue, chunkCache, targetBlockType);
         }
 
         return selectionData;
+    }
+
+    private static void CheckAndEnqueueNeighbor(
+        ReducerContext ctx,
+        Layer layer,
+        int x, int y, int z,
+        HashSet<int> visited,
+        Queue<Vector3> queue,
+        Dictionary<(int, int, int), (byte[], int, int)> chunkCache,
+        byte targetBlockType)
+    {
+        if (x < 0 || x >= layer.xDim ||
+            y < 0 || y >= layer.yDim ||
+            z < 0 || z >= layer.zDim)
+        {
+            return;
+        }
+
+        int neighborIndex = CalculateWorldIndex(new Vector3(x, y, z), layer.yDim, layer.zDim);
+        if (visited.Contains(neighborIndex))
+        {
+            return;
+        }
+
+        var neighbor = new Vector3(x, y, z);
+        byte blockType = GetVoxelAtPosition(ctx, layer.Id, neighbor, chunkCache);
+        if (blockType == targetBlockType)
+        {
+            visited.Add(neighborIndex);
+            queue.Enqueue(neighbor);
+        }
     }
 
     private static byte GetVoxelAtPosition(
