@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { DbConnection, ErrorContext, Vector3 } from "./module_bindings";
+import { DbConnection, ErrorContext } from "./module_bindings";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
 import { DatabaseProvider } from "./contexts/DatabaseContext";
 import { Layout } from "./components/custom/Layout";
@@ -20,68 +19,26 @@ const getSpacetimeConfig = () => {
   };
 };
 
-interface SyncUserRequest {
-  idToken: string;
-  identity: string;
-  spacetimeToken: string;
-}
-
-interface SyncUserResult {
-  success: boolean;
-  uid?: string;
-  error?: string;
-}
-
 function AppContent() {
   const [conn, setConn] = useState<DbConnection | null>(null);
-  const [userSynced, setUserSynced] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const { currentUser } = useAuth();
-
-  const syncUserWithCloudFunction = useCallback(
-    async (idToken: string, identity: Identity, spacetimeToken: string) => {
-      try {
-        const functions = getFunctions();
-        const syncUser = httpsCallable<SyncUserRequest, SyncUserResult>(
-          functions,
-          "syncUser"
-        );
-
-        await syncUser({
-          idToken,
-          identity: identity.toHexString(),
-          spacetimeToken,
-        });
-
-        setUserSynced(true);
-        return true;
-      } catch (error) {
-        console.error("Error calling syncUser:", error);
-        return false;
-      }
-    },
-    []
-  );
 
   const handleConnect = useCallback(
     async (connection: DbConnection, identity: Identity, token: string) => {
       setConn(connection);
-
       setIsConnecting(false);
 
-      if (currentUser && !userSynced && !currentUser.isAnonymous) {
+      if (currentUser && !currentUser.isAnonymous) {
         localStorage.setItem("auth_token", token);
-        const idToken = await currentUser.getIdToken();
-        await syncUserWithCloudFunction(idToken, identity, token);
       }
     },
-    [currentUser, userSynced, syncUserWithCloudFunction]
+    [currentUser]
   );
 
   const handleDisconnect = useCallback(() => {
     console.log("Disconnected from SpacetimeDB");
     setConn(null);
-    setUserSynced(false);
     setIsConnecting(false);
   }, []);
 
@@ -100,7 +57,6 @@ function AppContent() {
       try {
         setIsConnecting(true);
         setConn(null);
-        setUserSynced(false);
 
         const idToken = await currentUser.getIdToken();
         const config = getSpacetimeConfig();
