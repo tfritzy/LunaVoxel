@@ -72,7 +72,7 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
-    this.selectionFrame = new VoxelFrame(size);
+    this.selectionFrame = new VoxelFrame(size, minPos);
     this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
