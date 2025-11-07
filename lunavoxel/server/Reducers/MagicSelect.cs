@@ -48,7 +48,7 @@ public static partial class Module
         if (targetBlockType == 0)
         {
             Log.Info("Cannot select empty voxels");
-            return;
+            throw new InvalidOperationException("Cannot create selection on empty voxels");
         }
 
         Log.Info($"Starting magic select flood fill for block type {targetBlockType} at position {position.X},{position.Y},{position.Z}");
@@ -83,7 +83,7 @@ public static partial class Module
         var selectionData = new byte[totalVoxels];
         var visited = new HashSet<int>();
         var queue = new Queue<Vector3>();
-        var chunkCache = new Dictionary<(int, int, int), (byte[], int, int)>();
+        var chunkCache = new Dictionary<(int, int, int), (byte[] voxels, int sizeY, int sizeZ)>();
 
         queue.Enqueue(startPosition);
         int startIndex = CalculateWorldIndex(startPosition, layer.yDim, layer.zDim);
@@ -113,7 +113,7 @@ public static partial class Module
         int x, int y, int z,
         HashSet<int> visited,
         Queue<Vector3> queue,
-        Dictionary<(int, int, int), (byte[], int, int)> chunkCache,
+        Dictionary<(int, int, int), (byte[] voxels, int sizeY, int sizeZ)> chunkCache,
         byte targetBlockType)
     {
         if (x < 0 || x >= layer.xDim ||
@@ -142,7 +142,7 @@ public static partial class Module
         ReducerContext ctx,
         string layerId,
         Vector3 position,
-        Dictionary<(int, int, int), (byte[], int, int)> chunkCache)
+        Dictionary<(int, int, int), (byte[] voxels, int sizeY, int sizeZ)> chunkCache)
     {
         var chunkMinPos = CalculateChunkMinPosition(position);
         var cacheKey = (chunkMinPos.X, chunkMinPos.Y, chunkMinPos.Z);
@@ -164,8 +164,8 @@ public static partial class Module
         }
 
         var localPos = new Vector3(position.X - chunkMinPos.X, position.Y - chunkMinPos.Y, position.Z - chunkMinPos.Z);
-        var localIndex = CalculateVoxelIndex(localPos, cachedData.Item2, cachedData.Item3);
-        return cachedData.Item1[localIndex];
+        var localIndex = CalculateVoxelIndex(localPos, cachedData.sizeY, cachedData.sizeZ);
+        return cachedData.voxels[localIndex];
     }
 
     public static int CalculateWorldIndex(Vector3 position, int yDim, int zDim)
