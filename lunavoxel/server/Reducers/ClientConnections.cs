@@ -7,13 +7,27 @@ public static partial class Module
     public static void ClientConnected(ReducerContext ctx)
     {
         var existingUser = ctx.Db.user.Identity.Find(ctx.Sender);
+        string? email = null;
+        
+        // Read email from issuer claims (SpacetimeDB 1.7.0+)
+        // AuthCtx provides access to authentication context including issuer claims
+        if (ctx.AuthCtx?.Issuer?.Claims != null)
+        {
+            ctx.AuthCtx.Issuer.Claims.TryGetValue("email", out email);
+        }
+        
         if (existingUser == null)
         {
             ctx.Db.user.Insert(new User
             {
                 Identity = ctx.Sender,
-                Email = null
+                Email = email
             });
+        }
+        else if (email != null && existingUser.Email != email)
+        {
+            existingUser.Email = email;
+            ctx.Db.user.Identity.Update(existingUser);
         }
     }
 

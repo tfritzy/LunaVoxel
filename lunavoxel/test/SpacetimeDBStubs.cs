@@ -22,6 +22,17 @@ namespace SpacetimeDB
         public Identity Sender { get; set; }
         public dynamic Db { get; set; } = null!;
         public Timestamp Timestamp { get; set; }
+        public AuthContext? AuthCtx { get; set; }
+    }
+    
+    public class AuthContext
+    {
+        public IssuerInfo? Issuer { get; set; }
+    }
+    
+    public class IssuerInfo
+    {
+        public Dictionary<string, string>? Claims { get; set; }
     }
 
     public struct Identity
