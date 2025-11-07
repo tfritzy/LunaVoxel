@@ -311,6 +311,66 @@ describe("ExteriorFacesFinder", () => {
         expect(isSelectedArray[i]).toBe(0);
       }
     });
+
+    it("should generate identical geometry for 8x8x8 preview cube and 8x8x8 real cube", () => {
+      const dimensions: Vector3 = { x: 8, y: 8, z: 8 };
+      
+      const realVoxelData = createVoxelData(dimensions);
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          for (let z = 0; z < 8; z++) {
+            setVoxel(realVoxelData, x, y, z, 1);
+          }
+        }
+      }
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const realMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const realPreviewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const realPreviewFrame = new VoxelFrame(dimensions);
+      const realSelectionFrame = new VoxelFrame(dimensions);
+
+      finder.findExteriorFaces(
+        realVoxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        realMeshArrays,
+        realPreviewMeshArrays,
+        realPreviewFrame,
+        realSelectionFrame,
+        true
+      );
+
+      const previewVoxelData = createVoxelData(dimensions);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays2 = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const previewSelectionFrame = new VoxelFrame(dimensions);
+
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          for (let z = 0; z < 8; z++) {
+            previewFrame.set(x, y, z, 1);
+          }
+        }
+      }
+
+      finder.findExteriorFaces(
+        previewVoxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        previewMeshArrays,
+        previewMeshArrays2,
+        previewFrame,
+        previewSelectionFrame,
+        true
+      );
+
+      expect(previewMeshArrays2.indexCount).toBe(realMeshArrays.indexCount);
+      expect(previewMeshArrays2.vertexCount).toBe(realMeshArrays.vertexCount);
+    });
   });
 
   describe("Benchmark test", () => {
