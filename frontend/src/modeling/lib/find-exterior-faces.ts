@@ -148,8 +148,7 @@ export class ExteriorFacesFinder {
               const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
 
               if (blockIsPreview) {
-                const shouldRenderFace =
-                  !isBlockPresent(neighborValue) || !neighborIsPreview;
+                const shouldRenderFace = !neighborIsPreview;
 
                 if (shouldRenderFace) {
                   const textureIndex =
