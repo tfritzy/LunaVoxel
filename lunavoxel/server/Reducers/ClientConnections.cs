@@ -24,7 +24,7 @@ public static partial class Module
                 Email = email
             });
         }
-        else if (email != null && existingUser.Email != email)
+        else if (email != existingUser.Email)
         {
             existingUser.Email = email;
             ctx.Db.user.Identity.Update(existingUser);
