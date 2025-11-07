@@ -19,7 +19,7 @@ public static partial class Module
 
         EnsureAccessToProject.Check(ctx, projectId, ctx.Sender);
 
-        if (blockIndex < 0 || blockIndex > projectBlocks.FaceColors.Length)
+        if (blockIndex < 1 || blockIndex > projectBlocks.FaceColors.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(blockIndex), "Block index is out of range.");
         }
