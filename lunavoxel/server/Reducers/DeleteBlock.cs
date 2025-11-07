@@ -37,5 +37,34 @@ public static partial class Module
 
         projectBlocks.FaceColors = updatedFaceColors;
         ctx.Db.project_blocks.ProjectId.Update(projectBlocks);
+
+        var allChunks = ctx.Db.chunk.chunk_project.Filter(projectId);
+        foreach (var chunk in allChunks)
+        {
+            var voxels = VoxelCompression.Decompress(chunk.Voxels);
+            bool chunkModified = false;
+
+            for (int i = 0; i < voxels.Length; i++)
+            {
+                byte voxelValue = voxels[i];
+                
+                if (voxelValue == blockIndex)
+                {
+                    voxels[i] = replacementBlockType;
+                    chunkModified = true;
+                }
+                else if (voxelValue > blockIndex)
+                {
+                    voxels[i] = (byte)(voxelValue - 1);
+                    chunkModified = true;
+                }
+            }
+
+            if (chunkModified)
+            {
+                chunk.Voxels = VoxelCompression.Compress(voxels);
+                ctx.Db.chunk.Id.Update(chunk);
+            }
+        }
     }
 }
