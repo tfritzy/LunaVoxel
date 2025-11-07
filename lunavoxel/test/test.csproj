@@ -25,10 +25,13 @@
   <ItemGroup>
     <!-- Compile the source files we need for testing without the WASI runtime -->
     <Compile Include="..\server\Reducers\MoveSelection.cs" Link="MoveSelection.cs" />
+    <Compile Include="..\server\Reducers\MagicSelect.cs" Link="MagicSelect.cs" />
     <Compile Include="..\server\VoxelCompression.cs" Link="VoxelCompression.cs" />
     <Compile Include="..\server\VoxelDataUtils.cs" Link="VoxelDataUtils.cs" />
     <Compile Include="..\server\Types.cs" Link="Types.cs" />
     <Compile Include="..\server\helpers\BlockModificationHelper.cs" Link="BlockModificationHelper.cs" />
+    <Compile Include="..\server\helpers\ChunkHelper.cs" Link="ChunkHelper.cs" />
+    <Compile Include="..\server\helpers\EnsureAccessToProject.cs" Link="EnsureAccessToProject.cs" />
   </ItemGroup>
 
 </Project>
