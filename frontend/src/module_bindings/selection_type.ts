@@ -27,13 +27,16 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
   type TableHandle as __TableHandle,
 } from "spacetimedb";
+import { Vector3 } from "./vector_3_type";
 
 export type Selection = {
   id: string,
   identity: __Identity,
   projectId: string,
   layer: number,
-  selectionData: Uint8Array,
+  minPos: Vector3,
+  maxPos: Vector3,
+  voxelData: Uint8Array,
 };
 let _cached_Selection_type_value: __AlgebraicTypeType | null = null;
 
@@ -53,7 +56,9 @@ export const Selection = {
       { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType() },
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
       { name: "layer", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "selectionData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
+      { name: "minPos", algebraicType: Vector3.getTypeScriptAlgebraicType() },
+      { name: "maxPos", algebraicType: Vector3.getTypeScriptAlgebraicType() },
+      { name: "voxelData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
     );
     return _cached_Selection_type_value;
   },
