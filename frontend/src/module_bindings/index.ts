@@ -71,8 +71,6 @@ import { PokeProject } from "./poke_project_reducer.ts";
 export { PokeProject };
 import { ReorderLayers } from "./reorder_layers_reducer.ts";
 export { ReorderLayers };
-import { SyncUser } from "./sync_user_reducer.ts";
-export { SyncUser };
 import { ToggleLayerLock } from "./toggle_layer_lock_reducer.ts";
 export { ToggleLayerLock };
 import { ToggleLayerVisibility } from "./toggle_layer_visibility_reducer.ts";
@@ -680,22 +678,6 @@ export class RemoteReducers {
     this.connection.offReducer("ReorderLayers", callback);
   }
 
-  syncUser(identityHex: string, email: string, name: string) {
-    const __args = { identityHex, email, name };
-    let __writer = new __BinaryWriter(1024);
-    SyncUser.serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("SyncUser", __argsBuffer, this.setCallReducerFlags.syncUserFlags);
-  }
-
-  onSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
-    this.connection.onReducer("SyncUser", callback);
-  }
-
-  removeOnSyncUser(callback: (ctx: ReducerEventContext, identityHex: string, email: string, name: string) => void) {
-    this.connection.offReducer("SyncUser", callback);
-  }
-
   toggleLayerLock(layerId: string) {
     const __args = { layerId };
     let __writer = new __BinaryWriter(1024);
@@ -883,11 +865,6 @@ export class SetReducerFlags {
   reorderLayersFlags: __CallReducerFlags = 'FullUpdate';
   reorderLayers(flags: __CallReducerFlags) {
     this.reorderLayersFlags = flags;
-  }
-
-  syncUserFlags: __CallReducerFlags = 'FullUpdate';
-  syncUser(flags: __CallReducerFlags) {
-    this.syncUserFlags = flags;
   }
 
   toggleLayerLockFlags: __CallReducerFlags = 'FullUpdate';
