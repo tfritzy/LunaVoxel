@@ -28,8 +28,13 @@ import {
   type TableHandle as __TableHandle,
 } from "spacetimedb";
 
+import { Vector3 } from "./vector_3_type";
+// Mark import as potentially unused
+declare type __keep_Vector3 = Vector3;
+
 export type CommitSelectionMove = {
   projectId: string,
+  offset: Vector3,
 };
 let _cached_CommitSelectionMove_type_value: __AlgebraicTypeType | null = null;
 
@@ -46,6 +51,7 @@ export const CommitSelectionMove = {
     _cached_CommitSelectionMove_type_value = __AlgebraicTypeValue.Product({ elements: [] });
     _cached_CommitSelectionMove_type_value.value.elements.push(
       { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
+      { name: "offset", algebraicType: Vector3.getTypeScriptAlgebraicType() },
     );
     return _cached_CommitSelectionMove_type_value;
   },

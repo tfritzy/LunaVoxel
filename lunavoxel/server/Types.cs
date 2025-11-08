@@ -206,10 +206,8 @@ public static partial class Module
         public int Layer;
 
         // Compressed RLE then LZ4
-        // A 1 indexed mapping of selected blocks and where they are now. The index
-        // at a given point is where the block has been moved to. Needs to be one indexed 
-        // so that we can indicate that 0 means no movement. Otherwise we'd have to use 
-        // -1 which would halve the max world size. 
+        // Boolean-valued voxel data indicating which voxels are selected.
+        // 0 = not selected, non-zero = selected
         public byte[] SelectionData;
     }
 
