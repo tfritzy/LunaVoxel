@@ -42,14 +42,12 @@ public static partial class Module
             return;
         }
 
-        var selectionData = new byte[layer.xDim * layer.yDim * layer.zDim];
         var visited = new HashSet<int>();
         var queue = new Queue<Vector3>();
         
         queue.Enqueue(position);
         int startIndex = position.X * layer.yDim * layer.zDim + position.Y * layer.zDim + position.Z;
         visited.Add(startIndex);
-        selectionData[startIndex] = 1;
 
         Vector3[] directions = new Vector3[]
         {
@@ -92,7 +90,6 @@ public static partial class Module
                 if (neighborBlockType == targetBlockType)
                 {
                     visited.Add(neighborIndex);
-                    selectionData[neighborIndex] = 1;
                     queue.Enqueue(neighbor);
                 }
             }
@@ -100,8 +97,55 @@ public static partial class Module
 
         Log.Info($"Flood fill complete. Selected {visited.Count} voxels");
 
-        // Convert the global selection data into chunk-based VoxelFrames
-        var selectionFrames = ConvertGlobalArrayToFrames(selectionData, layer.xDim, layer.yDim, layer.zDim);
+        // Build chunk-based VoxelFrames directly from visited positions
+        var chunkFrames = new Dictionary<string, (Vector3 minPos, Vector3 dimensions, Dictionary<int, byte> data)>();
+        
+        foreach (var globalIndex in visited)
+        {
+            // Convert global index to position
+            var x = globalIndex / (layer.yDim * layer.zDim);
+            var y = (globalIndex % (layer.yDim * layer.zDim)) / layer.zDim;
+            var z = globalIndex % layer.zDim;
+            
+            // Calculate which chunk this belongs to
+            var chunkMinPos = CalculateChunkMinPosition(new Vector3(x, y, z));
+            var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
+            
+            // Get or create chunk frame data
+            if (!chunkFrames.TryGetValue(chunkKey, out var chunkFrame))
+            {
+                var chunkDimensions = new Vector3(
+                    Math.Min(MAX_CHUNK_SIZE, layer.xDim - chunkMinPos.X),
+                    Math.Min(MAX_CHUNK_SIZE, layer.yDim - chunkMinPos.Y),
+                    Math.Min(MAX_CHUNK_SIZE, layer.zDim - chunkMinPos.Z)
+                );
+                chunkFrame = (chunkMinPos, chunkDimensions, new Dictionary<int, byte>());
+                chunkFrames[chunkKey] = chunkFrame;
+            }
+            
+            // Add this voxel to the chunk's data
+            var localX = x - chunkFrame.minPos.X;
+            var localY = y - chunkFrame.minPos.Y;
+            var localZ = z - chunkFrame.minPos.Z;
+            var localIndex = CalculateVoxelIndex(localX, localY, localZ, chunkFrame.dimensions.Y, chunkFrame.dimensions.Z);
+            chunkFrame.data[localIndex] = 1;
+        }
+        
+        // Convert chunk frames to VoxelFrame array
+        var selectionFrames = new VoxelFrame[chunkFrames.Count];
+        int frameIndex = 0;
+        foreach (var kvp in chunkFrames)
+        {
+            var (minPos, dimensions, data) = kvp.Value;
+            var chunkData = new byte[dimensions.X * dimensions.Y * dimensions.Z];
+            foreach (var entry in data)
+            {
+                chunkData[entry.Key] = entry.Value;
+            }
+            var compressedData = VoxelCompression.Compress(chunkData);
+            selectionFrames[frameIndex++] = new VoxelFrame(minPos, dimensions, compressedData);
+        }
+        
         Log.Info($"Created {selectionFrames.Length} selection frames from {visited.Count} selected voxels");
 
         var existingSelection = ctx.Db.selections.Identity_ProjectId.Filter((ctx.Sender, projectId)).FirstOrDefault();
@@ -147,73 +191,5 @@ public static partial class Module
         );
 
         return chunkData.voxels[localIndex];
-    }
-
-    /// <summary>
-    /// Converts a global selection array into chunk-based VoxelFrames.
-    /// Only creates frames for chunks that have non-zero selection data.
-    /// </summary>
-    private static VoxelFrame[] ConvertGlobalArrayToFrames(byte[] globalSelectionData, int xDim, int yDim, int zDim)
-    {
-        var frames = new List<VoxelFrame>();
-        var processedChunks = new HashSet<string>();
-
-        // Iterate through all positions to find selected voxels
-        for (int globalIndex = 0; globalIndex < globalSelectionData.Length; globalIndex++)
-        {
-            if (globalSelectionData[globalIndex] == 0) continue;
-
-            // Convert global index to position
-            var x = globalIndex / (yDim * zDim);
-            var y = (globalIndex % (yDim * zDim)) / zDim;
-            var z = globalIndex % zDim;
-            var position = new Vector3(x, y, z);
-
-            // Calculate which chunk this belongs to
-            var chunkMinPos = CalculateChunkMinPosition(position);
-            var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
-
-            // Skip if we already processed this chunk
-            if (processedChunks.Contains(chunkKey)) continue;
-            processedChunks.Add(chunkKey);
-
-            // Calculate chunk dimensions (may be smaller at edges)
-            var chunkDimensions = new Vector3(
-                Math.Min(MAX_CHUNK_SIZE, xDim - chunkMinPos.X),
-                Math.Min(MAX_CHUNK_SIZE, yDim - chunkMinPos.Y),
-                Math.Min(MAX_CHUNK_SIZE, zDim - chunkMinPos.Z)
-            );
-
-            // Extract selection data for this chunk
-            var chunkData = new byte[chunkDimensions.X * chunkDimensions.Y * chunkDimensions.Z];
-            for (int cx = 0; cx < chunkDimensions.X; cx++)
-            {
-                for (int cy = 0; cy < chunkDimensions.Y; cy++)
-                {
-                    for (int cz = 0; cz < chunkDimensions.Z; cz++)
-                    {
-                        var worldX = chunkMinPos.X + cx;
-                        var worldY = chunkMinPos.Y + cy;
-                        var worldZ = chunkMinPos.Z + cz;
-                        var worldIndex = CalculateVoxelIndex(worldX, worldY, worldZ, yDim, zDim);
-                        var chunkIndex = CalculateVoxelIndex(cx, cy, cz, chunkDimensions.Y, chunkDimensions.Z);
-                        
-                        if (worldIndex < globalSelectionData.Length)
-                        {
-                            chunkData[chunkIndex] = globalSelectionData[worldIndex];
-                        }
-                    }
-                }
-            }
-
-            // Only add frame if it has non-zero data
-            if (chunkData.Any(b => b != 0))
-            {
-                var compressedData = VoxelCompression.Compress(chunkData);
-                frames.Add(new VoxelFrame(chunkMinPos, chunkDimensions, compressedData));
-            }
-        }
-
-        return frames.ToArray();
     }
 }
