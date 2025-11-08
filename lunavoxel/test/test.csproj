@@ -24,7 +24,6 @@
 
   <ItemGroup>
     <!-- Compile the source files we need for testing without the WASI runtime -->
-    <Compile Include="..\server\Reducers\MoveSelection.cs" Link="MoveSelection.cs" />
     <Compile Include="..\server\Reducers\ModifyBlocks.cs" Link="ModifyBlocks.cs" />
     <Compile Include="..\server\VoxelCompression.cs" Link="VoxelCompression.cs" />
     <Compile Include="..\server\VoxelDataUtils.cs" Link="VoxelDataUtils.cs" />

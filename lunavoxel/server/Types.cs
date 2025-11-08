@@ -192,6 +192,38 @@ public static partial class Module
     }
 
 
+    /// <summary>
+    /// Represents a chunk-sized frame of voxel data with position and dimensions.
+    /// Similar to the frontend VoxelFrame, this allows efficient chunk-based selection queries.
+    /// </summary>
+    [Type]
+    public partial struct VoxelFrame
+    {
+        /// <summary>
+        /// Minimum position of this frame in world coordinates
+        /// </summary>
+        public Vector3 MinPos;
+
+        /// <summary>
+        /// Dimensions of this frame (width, height, depth)
+        /// </summary>
+        public Vector3 Dimensions;
+
+        /// <summary>
+        /// Compressed RLE then LZ4 voxel data for this frame.
+        /// Boolean-valued voxel data indicating which voxels are selected.
+        /// 0 = not selected, non-zero = selected
+        /// </summary>
+        public byte[] VoxelData;
+
+        public VoxelFrame(Vector3 minPos, Vector3 dimensions, byte[] voxelData)
+        {
+            MinPos = minPos;
+            Dimensions = dimensions;
+            VoxelData = voxelData;
+        }
+    }
+
     [Table(Name = "selections", Public = true)]
     [SpacetimeDB.Index.BTree(Columns = new[] { nameof(Identity), nameof(ProjectId) })]
     public partial class Selection
@@ -205,10 +237,13 @@ public static partial class Module
 
         public int Layer;
 
-        // Compressed RLE then LZ4
-        // Boolean-valued voxel data indicating which voxels are selected.
-        // 0 = not selected, non-zero = selected
-        public byte[] SelectionData;
+        /// <summary>
+        /// Array of VoxelFrames corresponding to chunks that contain selection data.
+        /// Each frame represents a chunk-sized region with its own position and voxel data.
+        /// This allows for efficient per-chunk selection queries without needing to
+        /// reslice from a globally-sized selection array.
+        /// </summary>
+        public VoxelFrame[] SelectionFrames = [];
     }
 
 
