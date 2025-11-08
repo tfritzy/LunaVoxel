@@ -32,23 +32,29 @@ export class MoveSelectionTool implements Tool {
       context.camera
     );
 
-    // Only call the reducer if the offset has changed
-    if (!offset.equals(this.lastOffset)) {
-      context.dbConn.reducers.moveSelection(
-        context.projectId,
-        offset
-      );
-      this.lastOffset.copy(offset);
-    }
+    this.lastOffset.copy(offset);
+    
+    context.projectManager.chunkManager.updateSelectionOffset({
+      x: Math.round(offset.x),
+      y: Math.round(offset.y),
+      z: Math.round(offset.z),
+    });
   }
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
-    // Commit the selection move to convert offsets to actual positions
+    context.projectManager.chunkManager.clearSelectionOffset();
+    
     if (this.lastOffset.length() > 0.1) {
-      context.dbConn.reducers.commitSelectionMove(context.projectId);
+      context.dbConn.reducers.commitSelectionMove(
+        context.projectId,
+        {
+          x: Math.round(this.lastOffset.x),
+          y: Math.round(this.lastOffset.y),
+          z: Math.round(this.lastOffset.z),
+        }
+      );
     }
 
-    // Reset state
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
   }
