@@ -100,11 +100,15 @@ public static partial class Module
 
         Log.Info($"Flood fill complete. Selected {visited.Count} voxels");
 
+        // Convert the global selection data into chunk-based VoxelFrames
+        var selectionFrames = SelectionHelper.ConvertGlobalArrayToFrames(selectionData, layer.xDim, layer.yDim, layer.zDim);
+        Log.Info($"Created {selectionFrames.Length} selection frames from {visited.Count} selected voxels");
+
         var existingSelection = ctx.Db.selections.Identity_ProjectId.Filter((ctx.Sender, projectId)).FirstOrDefault();
         
         if (existingSelection != null)
         {
-            existingSelection.SelectionData = VoxelCompression.Compress(selectionData);
+            existingSelection.SelectionFrames = selectionFrames;
             existingSelection.Layer = layerIndex;
             ctx.Db.selections.Id.Update(existingSelection);
             Log.Info("Updated existing selection");
@@ -117,7 +121,7 @@ public static partial class Module
                 Identity = ctx.Sender,
                 ProjectId = projectId,
                 Layer = layerIndex,
-                SelectionData = VoxelCompression.Compress(selectionData)
+                SelectionFrames = selectionFrames
             };
             ctx.Db.selections.Insert(newSelection);
             Log.Info("Created new selection");

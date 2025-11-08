@@ -13,7 +13,21 @@ public static partial class Module
             return;
         }
 
-        var selectionData = VoxelCompression.Decompress(selection.SelectionData);
+        // Get the layer to know dimensions
+        var layer = ctx.Db.layer.project_index.Filter((projectId, selection.Layer)).FirstOrDefault();
+        if (layer == null)
+        {
+            return;
+        }
+
+        // Convert frames to global array for processing
+        var selectionData = SelectionHelper.ConvertFramesToGlobalArray(
+            selection.SelectionFrames, 
+            layer.xDim, 
+            layer.yDim, 
+            layer.zDim
+        );
+        
         var tempData = new byte[selectionData.Length];
 
         for (int i = 0; i < selectionData.Length; i++)
@@ -28,7 +42,13 @@ public static partial class Module
             }
         }
 
-        selection.SelectionData = VoxelCompression.Compress(tempData);
+        // Convert back to chunk-based frames
+        selection.SelectionFrames = SelectionHelper.ConvertGlobalArrayToFrames(
+            tempData, 
+            layer.xDim, 
+            layer.yDim, 
+            layer.zDim
+        );
         ctx.Db.selections.Id.Update(selection);
     }
 }
