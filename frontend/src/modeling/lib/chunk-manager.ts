@@ -16,10 +16,6 @@ import { VoxelFrame } from "./voxel-frame";
 import { Chunk, CHUNK_SIZE } from "./chunk";
 import { QueryRunner, TableHandle } from "@/lib/queryRunner";
 
-export type DecompressedSelection = Omit<Selection, "selectionData"> & {
-  selectionData: Uint8Array;
-};
-
 export class ChunkManager {
   private scene: THREE.Scene;
   private dimensions: Vector3;
@@ -29,7 +25,7 @@ export class ChunkManager {
   private layerVisibilityMap: Map<number, boolean> = new Map();
   private layersQueryRunner: QueryRunner<Layer> | null = null;
   private chunks: Map<string, Chunk> = new Map();
-  private selections: DecompressedSelection[] = [];
+  private selections: Selection[] = [];
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
@@ -149,14 +145,24 @@ export class ChunkManager {
     ).filter((s) => s.projectId === this.projectId);
 
     this.selections = rawSelections.map((selection) => {
-      const existingSelection = this.selections.find((s) => s.id === selection.id);
-      const buffer = existingSelection?.selectionData || new Uint8Array(0);
       return {
         ...selection,
-        selectionData: decompressVoxelDataInto(selection.selectionData, buffer),
+        selectionData: selection.selectionData,
       };
     });
+    
+    this.applySelectionsToChunks();
   };
+
+  private applySelectionsToChunks(): void {
+    for (const selection of this.selections) {
+      const decompressedData = decompressVoxelDataInto(selection.selectionData, new Uint8Array(0));
+      
+      for (const [key, chunk] of this.chunks.entries()) {
+        chunk.setSelectionData(decompressedData);
+      }
+    }
+  }
 
   private onChunkInsert = (ctx: EventContext, newChunk: DbChunk) => {
     if (newChunk.projectId !== this.projectId) return;
@@ -211,14 +217,8 @@ export class ChunkManager {
     if (newSelection.projectId !== this.projectId) return;
     if (this.selections.some((s) => s.id === newSelection.id)) return;
 
-    const buffer = new Uint8Array(0);
-    const decompressedSelection = {
-      ...newSelection,
-      selectionData: decompressVoxelDataInto(newSelection.selectionData, buffer),
-    };
-    this.selections = [...this.selections, decompressedSelection];
-
-    // TODO apply selection to relevant chunk selection frames and update those that change.
+    this.selections = [...this.selections, newSelection];
+    this.applySelectionsToChunks();
   };
 
   private onSelectionUpdate = (
@@ -228,17 +228,10 @@ export class ChunkManager {
   ) => {
     if (newSelection.projectId !== this.projectId) return;
 
-    const existingSelection = this.selections.find((s) => s.id === newSelection.id);
-    const buffer = existingSelection?.selectionData || new Uint8Array(0);
-    const decompressedSelection = {
-      ...newSelection,
-      selectionData: decompressVoxelDataInto(newSelection.selectionData, buffer),
-    };
     this.selections = this.selections.map((s) =>
-      s.id === newSelection.id ? decompressedSelection : s
+      s.id === newSelection.id ? newSelection : s
     );
-
-    // TODO apply selection to relevant chunk selection frames and update those that change.
+    this.applySelectionsToChunks();
   };
 
   private onSelectionDelete = (
@@ -249,7 +242,10 @@ export class ChunkManager {
     this.selections = this.selections.filter(
       (s) => s.id !== deletedSelection.id
     );
-    // TODO apply selection to relevant chunk selection frames and update those that change.
+    
+    for (const chunk of this.chunks.values()) {
+      chunk.setSelectionData(null);
+    }
   };
 
   public getLayer(layerIndex: number): Layer | undefined {

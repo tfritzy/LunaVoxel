@@ -37,7 +37,7 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionFrame: VoxelFrame;
+  private selectionData: Uint8Array | null = null;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -72,7 +72,6 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
-    this.selectionFrame = new VoxelFrame(size);
     this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
@@ -239,6 +238,10 @@ export class Chunk {
     this.update();
   }
 
+  public setSelectionData(selectionData: Uint8Array | null): void {
+    this.selectionData = selectionData;
+  }
+
   private clearBlocks(blocks: Uint8Array) {
     blocks.fill(0);
   }
@@ -303,35 +306,6 @@ export class Chunk {
         const previewBlockValue = this.previewFrame.get(x, y, z);
         if (previewBlockValue !== 0 && !isBlockPresent(blocks[voxelIndex])) {
           this.previewFrame.set(x, y, z, 0);
-        }
-      }
-    }
-  }
-
-  private updateSelectionState(
-    selections: Array<{ selectionData: Uint8Array }>,
-    blocks: Uint8Array
-  ): void {
-    this.selectionFrame.clear();
-
-    for (let i = 0; i < selections.length; i++) {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        if (selections[i].selectionData[voxelIndex] != 0) {
-          const newVoxelPos = selections[i].selectionData[voxelIndex] - 1;
-
-          const blockValue = blocks[voxelIndex];
-
-          const x = Math.floor(newVoxelPos / (this.size.y * this.size.z));
-          const y = Math.floor(
-            (newVoxelPos % (this.size.y * this.size.z)) / this.size.z
-          );
-          const z = newVoxelPos % this.size.z;
-
-          this.selectionFrame.set(x, y, z, blockValue || 1);
-
-          if (newVoxelPos != voxelIndex) {
-            blocks[voxelIndex] = 0;
-          }
         }
       }
     }
@@ -440,7 +414,6 @@ export class Chunk {
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
       this.previewFrame,
-      this.selectionFrame,
       buildMode.tag !== "Erase"
     );
 
