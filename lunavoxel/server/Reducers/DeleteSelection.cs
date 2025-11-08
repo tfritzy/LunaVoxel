@@ -45,8 +45,7 @@ public static partial class Module
                         if (chunk != null)
                         {
                             var voxels = VoxelCompression.Decompress(chunk.Voxels);
-                            var localPos = new Vector3(x - chunkMinPos.X, y - chunkMinPos.Y, z - chunkMinPos.Z);
-                            var localIndex = CalculateVoxelIndex(localPos, chunk.SizeY, chunk.SizeZ);
+                            var localIndex = CalculateVoxelIndex(x - chunkMinPos.X, y - chunkMinPos.Y, z - chunkMinPos.Z, chunk.SizeY, chunk.SizeZ);
                             voxels[localIndex] = 0;
                             chunk.Voxels = VoxelCompression.Compress(voxels);
                             ctx.Db.chunk.Id.Update(chunk);

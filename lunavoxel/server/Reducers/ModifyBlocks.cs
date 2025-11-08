@@ -1,41 +1,42 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using SpacetimeDB;
 
 public static partial class Module
 {
-    static int Clamp(int value, int max) =>
-        Math.Max(0, Math.Min(value, max - 1));
-
-
     [Reducer]
-    public static void ModifyBlockRect(
+    public static void ModifyBlocks(
         ReducerContext ctx,
         string projectId,
         BlockModificationMode mode,
-        byte type,
-        Vector3 start,
-        Vector3 end,
-        byte rotation,
+        Vector3 minPos,
+        Vector3 maxPos,
+        byte[] compressedVoxelData,
         int layerIndex)
     {
         var layer = ctx.Db.layer.project_index.Filter((projectId, layerIndex)).FirstOrDefault()
             ?? throw new ArgumentException("No layer for this project");
 
-        int sx = Clamp(start.X, layer.xDim);
-        int sy = Clamp(start.Y, layer.yDim);
-        int sz = Clamp(start.Z, layer.zDim);
+        int minX = Math.Max(0, Math.Min(minPos.X, maxPos.X));
+        int minY = Math.Max(0, Math.Min(minPos.Y, maxPos.Y));
+        int minZ = Math.Max(0, Math.Min(minPos.Z, maxPos.Z));
 
-        int ex = Clamp(end.X, layer.xDim);
-        int ey = Clamp(end.Y, layer.yDim);
-        int ez = Clamp(end.Z, layer.zDim);
+        int maxX = Math.Min(layer.xDim - 1, Math.Max(minPos.X, maxPos.X));
+        int maxY = Math.Min(layer.yDim - 1, Math.Max(minPos.Y, maxPos.Y));
+        int maxZ = Math.Min(layer.zDim - 1, Math.Max(minPos.Z, maxPos.Z));
 
-        int minX = Math.Min(sx, ex);
-        int maxX = Math.Max(sx, ex);
-        int minY = Math.Min(sy, ey);
-        int maxY = Math.Max(sy, ey);
-        int minZ = Math.Min(sz, ez);
-        int maxZ = Math.Max(sz, ez);
+        int regionWidth = maxX - minX + 1;
+        int regionHeight = maxY - minY + 1;
+        int regionDepth = maxZ - minZ + 1;
+        int expectedVoxelCount = regionWidth * regionHeight * regionDepth;
+
+        var voxelData = VoxelCompression.Decompress(compressedVoxelData);
+
+        if (voxelData.Length != expectedVoxelCount)
+        {
+            throw new ArgumentException(
+                $"Voxel data length ({voxelData.Length}) does not match region size ({expectedVoxelCount})");
+        }
 
         int chunkMinX = (minX / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
         int chunkMaxX = (maxX / MAX_CHUNK_SIZE) * MAX_CHUNK_SIZE;
@@ -52,7 +53,7 @@ public static partial class Module
                 {
                     var chunkPos = new Vector3(chunkX, chunkY, chunkZ);
                     var chunk = GetOrCreateChunk(ctx, layer.Id, chunkPos, layer);
-                    var voxels = VoxelCompression.Decompress(chunk.Voxels);
+                    var chunkVoxels = VoxelCompression.Decompress(chunk.Voxels);
                     bool chunkModified = false;
 
                     int localMinX = Math.Max(0, minX - chunkX);
@@ -68,8 +69,24 @@ public static partial class Module
                         {
                             for (int z = localMinZ; z <= localMaxZ; z++)
                             {
-                                var index = CalculateVoxelIndex(x, y, z, chunk.SizeY, chunk.SizeZ);
-                                
+                                int worldX = chunkX + x;
+                                int worldY = chunkY + y;
+                                int worldZ = chunkZ + z;
+
+                                int regionX = worldX - minX;
+                                int regionY = worldY - minY;
+                                int regionZ = worldZ - minZ;
+                                int voxelDataIndex = regionX * regionHeight * regionDepth + regionY * regionDepth + regionZ;
+
+                                byte newValue = voxelData[voxelDataIndex];
+
+                                if (newValue == 0)
+                                {
+                                    continue;
+                                }
+
+                                var chunkIndex = CalculateVoxelIndex(x, y, z, chunk.SizeY, chunk.SizeZ);
+
                                 byte valueToSet;
                                 if (mode == BlockModificationMode.Erase)
                                 {
@@ -77,18 +94,18 @@ public static partial class Module
                                 }
                                 else if (mode == BlockModificationMode.Paint)
                                 {
-                                    if (voxels[index] == 0)
+                                    if (chunkVoxels[chunkIndex] == 0)
                                     {
-                                        continue; // Skip empty voxels in paint mode
+                                        continue;
                                     }
-                                    valueToSet = type;
+                                    valueToSet = newValue;
                                 }
-                                else // Attach mode
+                                else
                                 {
-                                    valueToSet = type;
+                                    valueToSet = newValue;
                                 }
 
-                                voxels[index] = valueToSet;
+                                chunkVoxels[chunkIndex] = valueToSet;
                                 chunkModified = true;
                             }
                         }
@@ -96,18 +113,8 @@ public static partial class Module
 
                     if (chunkModified)
                     {
-                        Log.Info("Updating chunk because there were modifications");
-                        chunk.Voxels = VoxelCompression.Compress(voxels);
+                        chunk.Voxels = VoxelCompression.Compress(chunkVoxels);
                         ctx.Db.chunk.Id.Update(chunk);
-
-                        if (mode == BlockModificationMode.Erase)
-                        {
-                            // TODO Find a way to clean up empty chunks
-                        }
-                    }
-                    else
-                    {
-                        Log.Info("no modifications so no need to update chunk");
                     }
                 }
             }
