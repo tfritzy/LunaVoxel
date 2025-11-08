@@ -68,7 +68,7 @@ public static partial class Module
                         {
                             for (int z = localMinZ; z <= localMaxZ; z++)
                             {
-                                var index = CalculateVoxelIndex(new Vector3(x, y, z), chunk.SizeY, chunk.SizeZ);
+                                var index = CalculateVoxelIndex(x, y, z, chunk.SizeY, chunk.SizeZ);
                                 
                                 byte valueToSet;
                                 if (mode == BlockModificationMode.Erase)

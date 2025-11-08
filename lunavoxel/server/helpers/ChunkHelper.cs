@@ -21,9 +21,9 @@ public static partial class Module
     /// <summary>
     /// Calculate the voxel index within a chunk
     /// </summary>
-    public static int CalculateVoxelIndex(Vector3 localPos, int sizeY, int sizeZ)
+    public static int CalculateVoxelIndex(int x, int y, int z, int sizeY, int sizeZ)
     {
-        return localPos.X * sizeY * sizeZ + localPos.Y * sizeZ + localPos.Z;
+        return x * sizeY * sizeZ + y * sizeZ + z;
     }
 
     /// <summary>
