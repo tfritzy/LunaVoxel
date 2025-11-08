@@ -30,7 +30,6 @@
     <Compile Include="..\server\Types.cs" Link="Types.cs" />
     <Compile Include="..\server\helpers\BlockModificationHelper.cs" Link="BlockModificationHelper.cs" />
     <Compile Include="..\server\helpers\ChunkHelper.cs" Link="ChunkHelper.cs" />
-    <Compile Include="..\server\helpers\SelectionHelper.cs" Link="SelectionHelper.cs" />
   </ItemGroup>
 
 </Project>

@@ -101,7 +101,7 @@ public static partial class Module
         Log.Info($"Flood fill complete. Selected {visited.Count} voxels");
 
         // Convert the global selection data into chunk-based VoxelFrames
-        var selectionFrames = SelectionHelper.ConvertGlobalArrayToFrames(selectionData, layer.xDim, layer.yDim, layer.zDim);
+        var selectionFrames = ConvertGlobalArrayToFrames(selectionData, layer.xDim, layer.yDim, layer.zDim);
         Log.Info($"Created {selectionFrames.Length} selection frames from {visited.Count} selected voxels");
 
         var existingSelection = ctx.Db.selections.Identity_ProjectId.Filter((ctx.Sender, projectId)).FirstOrDefault();
@@ -147,5 +147,73 @@ public static partial class Module
         );
 
         return chunkData.voxels[localIndex];
+    }
+
+    /// <summary>
+    /// Converts a global selection array into chunk-based VoxelFrames.
+    /// Only creates frames for chunks that have non-zero selection data.
+    /// </summary>
+    private static VoxelFrame[] ConvertGlobalArrayToFrames(byte[] globalSelectionData, int xDim, int yDim, int zDim)
+    {
+        var frames = new List<VoxelFrame>();
+        var processedChunks = new HashSet<string>();
+
+        // Iterate through all positions to find selected voxels
+        for (int globalIndex = 0; globalIndex < globalSelectionData.Length; globalIndex++)
+        {
+            if (globalSelectionData[globalIndex] == 0) continue;
+
+            // Convert global index to position
+            var x = globalIndex / (yDim * zDim);
+            var y = (globalIndex % (yDim * zDim)) / zDim;
+            var z = globalIndex % zDim;
+            var position = new Vector3(x, y, z);
+
+            // Calculate which chunk this belongs to
+            var chunkMinPos = CalculateChunkMinPosition(position);
+            var chunkKey = $"{chunkMinPos.X},{chunkMinPos.Y},{chunkMinPos.Z}";
+
+            // Skip if we already processed this chunk
+            if (processedChunks.Contains(chunkKey)) continue;
+            processedChunks.Add(chunkKey);
+
+            // Calculate chunk dimensions (may be smaller at edges)
+            var chunkDimensions = new Vector3(
+                Math.Min(MAX_CHUNK_SIZE, xDim - chunkMinPos.X),
+                Math.Min(MAX_CHUNK_SIZE, yDim - chunkMinPos.Y),
+                Math.Min(MAX_CHUNK_SIZE, zDim - chunkMinPos.Z)
+            );
+
+            // Extract selection data for this chunk
+            var chunkData = new byte[chunkDimensions.X * chunkDimensions.Y * chunkDimensions.Z];
+            for (int cx = 0; cx < chunkDimensions.X; cx++)
+            {
+                for (int cy = 0; cy < chunkDimensions.Y; cy++)
+                {
+                    for (int cz = 0; cz < chunkDimensions.Z; cz++)
+                    {
+                        var worldX = chunkMinPos.X + cx;
+                        var worldY = chunkMinPos.Y + cy;
+                        var worldZ = chunkMinPos.Z + cz;
+                        var worldIndex = CalculateVoxelIndex(worldX, worldY, worldZ, yDim, zDim);
+                        var chunkIndex = CalculateVoxelIndex(cx, cy, cz, chunkDimensions.Y, chunkDimensions.Z);
+                        
+                        if (worldIndex < globalSelectionData.Length)
+                        {
+                            chunkData[chunkIndex] = globalSelectionData[worldIndex];
+                        }
+                    }
+                }
+            }
+
+            // Only add frame if it has non-zero data
+            if (chunkData.Any(b => b != 0))
+            {
+                var compressedData = VoxelCompression.Compress(chunkData);
+                frames.Add(new VoxelFrame(chunkMinPos, chunkDimensions, compressedData));
+            }
+        }
+
+        return frames.ToArray();
     }
 }
