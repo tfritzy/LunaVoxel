@@ -214,10 +214,8 @@ export class ChunkManager {
   };
 
   private applySelectionToChunks(selection: Selection): void {
-    // Clear all selection frames first
-    for (const chunk of this.chunks.values()) {
-      chunk.setSelectionFrame(null);
-    }
+    // Track which chunks have selection data
+    const chunksWithSelection = new Set<string>();
     
     // Apply each VoxelFrame to its corresponding chunk
     for (const frame of selection.selectionFrames) {
@@ -225,33 +223,21 @@ export class ChunkManager {
       const chunk = this.chunks.get(chunkKey);
       
       if (chunk) {
-        // Decompress the voxel data
+        // Decompress the voxel data directly into a reusable buffer
         const decompressedData = decompressVoxelDataInto(frame.voxelData, new Uint8Array(0));
         
-        // Create a VoxelFrame with the decompressed data
-        const voxelFrame = new VoxelFrame(frame.dimensions, frame.minPos);
-        
-        // Populate the voxel frame with decompressed data
-        const sizeX = frame.dimensions.x;
-        const sizeY = frame.dimensions.y;
-        const sizeZ = frame.dimensions.z;
-        
-        for (let x = 0; x < sizeX; x++) {
-          for (let y = 0; y < sizeY; y++) {
-            for (let z = 0; z < sizeZ; z++) {
-              const index = x * sizeY * sizeZ + y * sizeZ + z;
-              const value = decompressedData[index];
-              if (value !== 0) {
-                const worldX = frame.minPos.x + x;
-                const worldY = frame.minPos.y + y;
-                const worldZ = frame.minPos.z + z;
-                voxelFrame.set(worldX, worldY, worldZ, value);
-              }
-            }
-          }
-        }
+        // Create a VoxelFrame directly from the 1D array - no remapping needed
+        const voxelFrame = VoxelFrame.fromArray(decompressedData, frame.dimensions, frame.minPos);
         
         chunk.setSelectionFrame(voxelFrame);
+        chunksWithSelection.add(chunkKey);
+      }
+    }
+    
+    // Clear selection frames for chunks that don't have selection data
+    for (const [chunkKey, chunk] of this.chunks.entries()) {
+      if (!chunksWithSelection.has(chunkKey)) {
+        chunk.setSelectionFrame(null);
       }
     }
   }
