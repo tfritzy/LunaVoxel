@@ -21,6 +21,11 @@ import { layers } from "./layers";
 
 export const CHUNK_SIZE = 32;
 
+export type SelectionData = {
+  layer: number;
+  voxelFrame: DbVoxelFrame;
+};
+
 type MeshType = "main" | "preview";
 
 interface MeshData {

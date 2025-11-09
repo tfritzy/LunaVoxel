@@ -215,19 +215,15 @@ export class ChunkManager {
   };
 
   private applySelectionToChunks(selection: Selection): void {
-    // Get the identity ID as a string key
     const identityId = selection.identity.toHexString();
     
-    // Apply each VoxelFrame to its corresponding chunk
     for (const frame of selection.selectionFrames) {
       const chunkKey = this.getChunkKey(frame.minPos);
       const chunk = this.chunks.get(chunkKey);
       
       if (chunk) {
-        // Decompress the voxel data in place
         frame.voxelData = decompressVoxelDataInto(frame.voxelData, new Uint8Array(0));
         
-        // Pass the backend frame directly with layer info - no cloning
         chunk.setSelectionFrame(identityId, {
           layer: selection.layer,
           voxelFrame: frame
