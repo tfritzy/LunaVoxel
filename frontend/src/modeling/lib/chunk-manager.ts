@@ -214,26 +214,45 @@ export class ChunkManager {
   };
 
   private applySelectionToChunks(selection: Selection): void {
-    // When the backend bindings are updated, selection will have SelectionFrames: VoxelFrame[]
-    // For now, handle the current selectionData: Uint8Array format
-    // TODO: Update this once bindings are regenerated with SelectionFrames
-    
-    // Future implementation (when bindings are updated):
-    // for (const frame of selection.SelectionFrames) {
-    //   const chunkKey = this.getChunkKey(frame.MinPos);
-    //   const chunk = this.chunks.get(chunkKey);
-    //   if (chunk) {
-    //     const decompressedData = decompressVoxelDataInto(frame.VoxelData, new Uint8Array(0));
-    //     const voxelFrame = new VoxelFrame(frame.Dimensions, frame.MinPos);
-    //     // Populate voxelFrame with decompressedData
-    //     chunk.setSelectionFrame(voxelFrame);
-    //   }
-    // }
-    
-    // Current temporary implementation - just clear all selection frames
-    // This will be replaced when bindings are updated
+    // Clear all selection frames first
     for (const chunk of this.chunks.values()) {
       chunk.setSelectionFrame(null);
+    }
+    
+    // Apply each VoxelFrame to its corresponding chunk
+    for (const frame of selection.selectionFrames) {
+      const chunkKey = this.getChunkKey(frame.minPos);
+      const chunk = this.chunks.get(chunkKey);
+      
+      if (chunk) {
+        // Decompress the voxel data
+        const decompressedData = decompressVoxelDataInto(frame.voxelData, new Uint8Array(0));
+        
+        // Create a VoxelFrame with the decompressed data
+        const voxelFrame = new VoxelFrame(frame.dimensions, frame.minPos);
+        
+        // Populate the voxel frame with decompressed data
+        const sizeX = frame.dimensions.x;
+        const sizeY = frame.dimensions.y;
+        const sizeZ = frame.dimensions.z;
+        
+        for (let x = 0; x < sizeX; x++) {
+          for (let y = 0; y < sizeY; y++) {
+            for (let z = 0; z < sizeZ; z++) {
+              const index = x * sizeY * sizeZ + y * sizeZ + z;
+              const value = decompressedData[index];
+              if (value !== 0) {
+                const worldX = frame.minPos.x + x;
+                const worldY = frame.minPos.y + y;
+                const worldZ = frame.minPos.z + z;
+                voxelFrame.set(worldX, worldY, worldZ, value);
+              }
+            }
+          }
+        }
+        
+        chunk.setSelectionFrame(voxelFrame);
+      }
     }
   }
 

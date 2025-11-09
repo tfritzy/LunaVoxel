@@ -121,6 +121,8 @@ import { Vector3 } from "./vector_3_type.ts";
 export { Vector3 };
 import { Vector3Float } from "./vector_3_float_type.ts";
 export { Vector3Float };
+import { VoxelFrame } from "./voxel_frame_type.ts";
+export { VoxelFrame };
 
 const REMOTE_MODULE = {
   tables: {
