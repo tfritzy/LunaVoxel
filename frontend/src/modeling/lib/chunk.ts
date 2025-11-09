@@ -15,6 +15,7 @@ import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
+import { FlatVoxelFrame } from "./flat-voxel-frame";
 import { layers } from "./layers";
 
 export const CHUNK_SIZE = 32;
@@ -43,7 +44,8 @@ export class Chunk {
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
-  private mergedSelectionFrame: VoxelFrame;
+  private selectionsByLayer: Map<number, SelectionData[]> = new Map();
+  private mergedSelectionFrame: FlatVoxelFrame;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -78,7 +80,7 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
-    this.mergedSelectionFrame = new VoxelFrame(size);
+    this.mergedSelectionFrame = new FlatVoxelFrame(size);
     this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
@@ -246,15 +248,39 @@ export class Chunk {
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
+    // Remove old selection from selectionsByLayer if it exists
+    const oldSelection = this.selectionFrames.get(identityId);
+    if (oldSelection) {
+      const layerSelections = this.selectionsByLayer.get(oldSelection.layer);
+      if (layerSelections) {
+        const index = layerSelections.findIndex(s => this.selectionFrames.get(identityId) === s);
+        if (index !== -1) {
+          layerSelections.splice(index, 1);
+        }
+        if (layerSelections.length === 0) {
+          this.selectionsByLayer.delete(oldSelection.layer);
+        }
+      }
+    }
+
     if (selectionData === null) {
       this.selectionFrames.delete(identityId);
     } else {
       this.selectionFrames.set(identityId, selectionData);
+      
+      // Add to selectionsByLayer
+      let layerSelections = this.selectionsByLayer.get(selectionData.layer);
+      if (!layerSelections) {
+        layerSelections = [];
+        this.selectionsByLayer.set(selectionData.layer, layerSelections);
+      }
+      layerSelections.push(selectionData);
     }
   }
 
   public clearAllSelectionFrames(): void {
     this.selectionFrames.clear();
+    this.selectionsByLayer.clear();
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -276,26 +302,21 @@ export class Chunk {
     layerIndex: number,
     blocks: Uint8Array
   ): void {
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-    const sizeYZ = sizeY * sizeZ;
+    // Get selections for this layer using the layer-indexed map
+    const layerSelections = this.selectionsByLayer.get(layerIndex);
+    if (!layerSelections) return;
 
-    // Iterate through all selection frames to find ones for this layer
-    for (const selectionData of this.selectionFrames.values()) {
-      if (selectionData.layer !== layerIndex) continue;
-
+    // Iterate through selections for this specific layer
+    for (const selectionData of layerSelections) {
       const selectionVoxels = selectionData.voxelFrame.voxelData;
       
-      // Apply selection voxels to the merged selection frame
+      // Apply selection voxels to the merged selection frame using flat data
+      const mergedData = this.mergedSelectionFrame.getData();
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
         if (isBlockPresent(selectionVoxels[i])) {
-          const x = Math.floor(i / sizeYZ);
-          const y = Math.floor((i % sizeYZ) / sizeZ);
-          const z = i % sizeZ;
-
           // Only set selection if there's no actual voxel at this position
           if (!isBlockPresent(blocks[i])) {
-            this.mergedSelectionFrame.set(x, y, z, selectionVoxels[i]);
+            mergedData[i] = selectionVoxels[i];
           }
         }
       }
@@ -303,19 +324,11 @@ export class Chunk {
   }
 
   private removeSelectionsBuriedByBlocks(blocks: Uint8Array): void {
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-    const sizeYZ = sizeY * sizeZ;
-
-    // Clear selections where there are actual voxels
+    // Clear selections where there are actual voxels using flat data
+    const mergedData = this.mergedSelectionFrame.getData();
     for (let i = 0; i < blocks.length; i++) {
       if (isBlockPresent(blocks[i])) {
-        const x = Math.floor(i / sizeYZ);
-        const y = Math.floor((i % sizeYZ) / sizeZ);
-        const z = i % sizeZ;
-        
-        // Clear selection at this position since it's buried by a voxel
-        this.mergedSelectionFrame.set(x, y, z, 0);
+        mergedData[i] = 0;
       }
     }
   }

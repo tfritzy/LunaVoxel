@@ -8,6 +8,7 @@ import {
 } from "./ambient-occlusion";
 import { getBlockType, isBlockPresent } from "./voxel-data-utils";
 import { VoxelFrame } from "./voxel-frame";
+import { FlatVoxelFrame } from "./flat-voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
@@ -55,7 +56,7 @@ export class ExteriorFacesFinder {
     meshArrays: MeshArrays,
     previewMeshArrays: MeshArrays,
     previewFrame: VoxelFrame,
-    selectionFrame: VoxelFrame,
+    selectionFrame: FlatVoxelFrame,
     previewOccludes: boolean
   ): void {
     meshArrays.reset();
