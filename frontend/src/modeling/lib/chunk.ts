@@ -38,7 +38,7 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionFrame: DbVoxelFrame | null = null;
+  private selectionFrames: Map<string, DbVoxelFrame> = new Map();
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -239,8 +239,16 @@ export class Chunk {
     this.update();
   }
 
-  public setSelectionFrame(selectionFrame: DbVoxelFrame | null): void {
-    this.selectionFrame = selectionFrame;
+  public setSelectionFrame(selectionId: string, selectionFrame: DbVoxelFrame | null): void {
+    if (selectionFrame === null) {
+      this.selectionFrames.delete(selectionId);
+    } else {
+      this.selectionFrames.set(selectionId, selectionFrame);
+    }
+  }
+
+  public clearAllSelectionFrames(): void {
+    this.selectionFrames.clear();
   }
 
   private clearBlocks(blocks: Uint8Array) {
