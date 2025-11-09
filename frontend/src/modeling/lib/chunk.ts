@@ -2,10 +2,8 @@ import * as THREE from "three";
 import {
   Vector3,
   Chunk as DbChunk,
-  Layer,
   BlockModificationMode,
   VoxelFrame as DbVoxelFrame,
-  Identity,
 } from "@/module_bindings";
 import {
   isBlockPresent,
@@ -17,6 +15,7 @@ import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
+import { FlatVoxelFrame } from "./flat-voxel-frame";
 import { layers } from "./layers";
 
 export const CHUNK_SIZE = 32;
@@ -45,6 +44,8 @@ export class Chunk {
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
+  private selectionsByLayer: Map<number, SelectionData[]> = new Map();
+  private mergedSelectionFrame: FlatVoxelFrame;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -79,6 +80,7 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
+    this.mergedSelectionFrame = new FlatVoxelFrame(size);
     this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
@@ -246,15 +248,39 @@ export class Chunk {
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
+    // Remove old selection from selectionsByLayer if it exists
+    const oldSelection = this.selectionFrames.get(identityId);
+    if (oldSelection) {
+      const layerSelections = this.selectionsByLayer.get(oldSelection.layer);
+      if (layerSelections) {
+        const index = layerSelections.findIndex(s => this.selectionFrames.get(identityId) === s);
+        if (index !== -1) {
+          layerSelections.splice(index, 1);
+        }
+        if (layerSelections.length === 0) {
+          this.selectionsByLayer.delete(oldSelection.layer);
+        }
+      }
+    }
+
     if (selectionData === null) {
       this.selectionFrames.delete(identityId);
     } else {
       this.selectionFrames.set(identityId, selectionData);
+      
+      // Add to selectionsByLayer
+      let layerSelections = this.selectionsByLayer.get(selectionData.layer);
+      if (!layerSelections) {
+        layerSelections = [];
+        this.selectionsByLayer.set(selectionData.layer, layerSelections);
+      }
+      layerSelections.push(selectionData);
     }
   }
 
   public clearAllSelectionFrames(): void {
     this.selectionFrames.clear();
+    this.selectionsByLayer.clear();
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -266,8 +292,26 @@ export class Chunk {
     blocks: Uint8Array
   ): void {
     for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (isBlockPresent(layerChunk.voxels[i])) {
+      if (layerChunk.voxels[i] > 0) {
         blocks[i] = layerChunk.voxels[i];
+        this.mergedSelectionFrame.setByIndex(i, 0);
+      }
+    }
+  }
+
+  private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
+    const layerSelections = this.selectionsByLayer.get(layerIndex);
+    if (!layerSelections) return;
+
+    for (const selectionData of layerSelections) {
+      const selectionVoxels = selectionData.voxelFrame.voxelData;
+      
+      for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
+        if (selectionVoxels[i] > 0) {
+          if (blocks[i] === 0) {
+            this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
+          }
+        }
       }
     }
   }
@@ -429,6 +473,7 @@ export class Chunk {
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
       this.previewFrame,
+      this.mergedSelectionFrame,
       buildMode.tag !== "Erase"
     );
 
@@ -461,14 +506,18 @@ export class Chunk {
   update = () => {
     try {
       this.clearBlocks(this.blocksToRender);
+      this.mergedSelectionFrame.clear();
 
       for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
         const chunk = this.layerChunks[layerIndex];
-        if (!chunk) continue;
-
+        
         if (!this.getLayerVisible(layerIndex)) continue;
 
-        this.addLayerChunkToBlocks(chunk, this.blocksToRender);
+        if (chunk) {
+          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
+        }
+        
+        this.applySelectionForLayer(layerIndex, this.blocksToRender);
       }
 
       this.updatePreviewState(this.blocksToRender);
