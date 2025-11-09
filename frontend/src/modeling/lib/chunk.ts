@@ -4,6 +4,7 @@ import {
   Chunk as DbChunk,
   Layer,
   BlockModificationMode,
+  VoxelFrame as DbVoxelFrame,
 } from "@/module_bindings";
 import {
   isBlockPresent,
@@ -37,7 +38,7 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionFrame: VoxelFrame | null = null;
+  private selectionFrame: DbVoxelFrame | null = null;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -238,7 +239,7 @@ export class Chunk {
     this.update();
   }
 
-  public setSelectionFrame(selectionFrame: VoxelFrame | null): void {
+  public setSelectionFrame(selectionFrame: DbVoxelFrame | null): void {
     this.selectionFrame = selectionFrame;
   }
 

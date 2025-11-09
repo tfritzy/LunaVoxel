@@ -21,38 +21,6 @@ export class VoxelFrame {
   }
 
   /**
-   * Create a VoxelFrame from a 1D array
-   * @param data 1D array of voxel data
-   * @param dimensions Dimensions of the frame
-   * @param minPos Minimum position in world coordinates
-   */
-  public static fromArray(data: Uint8Array, dimensions: Vector3, minPos: Vector3): VoxelFrame {
-    const frame = new VoxelFrame(dimensions, minPos);
-    
-    // Convert 1D array to 3D structure
-    // Assuming data is in [x][y][z] order: index = x * sizeY * sizeZ + y * sizeZ + z
-    const sizeY = dimensions.y;
-    const sizeZ = dimensions.z;
-    
-    let hasData = false;
-    for (let x = 0; x < dimensions.x; x++) {
-      for (let y = 0; y < dimensions.y; y++) {
-        for (let z = 0; z < dimensions.z; z++) {
-          const index = x * sizeY * sizeZ + y * sizeZ + z;
-          const value = data[index];
-          if (value !== 0) {
-            frame.data[x][y][z] = value;
-            hasData = true;
-          }
-        }
-      }
-    }
-    
-    frame.empty = !hasData;
-    return frame;
-  }
-
-  /**
    * Check if the frame is empty (no voxels set)
    */
   public isEmpty(): boolean {

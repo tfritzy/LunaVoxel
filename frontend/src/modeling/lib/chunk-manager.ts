@@ -223,13 +223,15 @@ export class ChunkManager {
       const chunk = this.chunks.get(chunkKey);
       
       if (chunk) {
-        // Decompress the voxel data directly into a reusable buffer
+        // Decompress the voxel data and pass the backend frame directly
         const decompressedData = decompressVoxelDataInto(frame.voxelData, new Uint8Array(0));
         
-        // Create a VoxelFrame directly from the 1D array - no remapping needed
-        const voxelFrame = VoxelFrame.fromArray(decompressedData, frame.dimensions, frame.minPos);
-        
-        chunk.setSelectionFrame(voxelFrame);
+        // Pass the backend frame with decompressed data
+        chunk.setSelectionFrame({
+          minPos: frame.minPos,
+          dimensions: frame.dimensions,
+          voxelData: decompressedData
+        });
         chunksWithSelection.add(chunkKey);
       }
     }
