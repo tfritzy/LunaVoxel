@@ -295,7 +295,7 @@ export class Chunk {
       if (layerChunk.voxels[i] > 0) {
         blocks[i] = layerChunk.voxels[i];
         // When setting a real voxel, clear any selection at this position
-        // since the voxel buries the selection
+        // This buries selections from LOWER layers (not the current layer)
         this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
@@ -313,7 +313,8 @@ export class Chunk {
       // Apply selection voxels to the merged selection frame using index-based interface
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
         if (selectionVoxels[i] > 0) {
-          // Only set selection if there's no actual voxel at this position
+          // Only set selection if there's no actual voxel at this position in blocksToRender
+          // Note: blocksToRender contains voxels from all layers processed so far
           if (blocks[i] === 0) {
             this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
           }
@@ -519,14 +520,15 @@ export class Chunk {
         
         if (!this.getLayerVisible(layerIndex)) continue;
 
-        // Apply selection data for this layer first
-        this.applySelectionForLayer(layerIndex, this.blocksToRender);
-        
-        // Then apply the voxel data (if chunk exists)
-        // This will automatically clear selections at positions where voxels are set
+        // First apply the voxel data for this layer (if chunk exists)
+        // This will bury selections from lower layers at positions where voxels are set
         if (chunk) {
           this.addLayerChunkToBlocks(chunk, this.blocksToRender);
         }
+        
+        // Then apply selection data for this layer
+        // Selections will only be set where there are no voxels in blocksToRender
+        this.applySelectionForLayer(layerIndex, this.blocksToRender);
       }
 
       this.updatePreviewState(this.blocksToRender);
