@@ -5,6 +5,7 @@ import {
   Layer,
   BlockModificationMode,
   VoxelFrame as DbVoxelFrame,
+  Identity,
 } from "@/module_bindings";
 import {
   isBlockPresent,
@@ -38,7 +39,7 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionFrames: Map<string, DbVoxelFrame> = new Map();
+  private selectionFrames: Map<string, SelectionData> = new Map();
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -239,11 +240,11 @@ export class Chunk {
     this.update();
   }
 
-  public setSelectionFrame(selectionId: string, selectionFrame: DbVoxelFrame | null): void {
-    if (selectionFrame === null) {
-      this.selectionFrames.delete(selectionId);
+  public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
+    if (selectionData === null) {
+      this.selectionFrames.delete(identityId);
     } else {
-      this.selectionFrames.set(selectionId, selectionFrame);
+      this.selectionFrames.set(identityId, selectionData);
     }
   }
 

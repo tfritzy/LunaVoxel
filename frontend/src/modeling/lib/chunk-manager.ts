@@ -208,12 +208,16 @@ export class ChunkManager {
   ) => {
     if (deletedSelection.projectId !== this.projectId) return;
     
+    const identityId = deletedSelection.identity.toHexString();
     for (const chunk of this.chunks.values()) {
-      chunk.setSelectionFrame(deletedSelection.id, null);
+      chunk.setSelectionFrame(identityId, null);
     }
   };
 
   private applySelectionToChunks(selection: Selection): void {
+    // Get the identity ID as a string key
+    const identityId = selection.identity.toHexString();
+    
     // Apply each VoxelFrame to its corresponding chunk
     for (const frame of selection.selectionFrames) {
       const chunkKey = this.getChunkKey(frame.minPos);
@@ -223,8 +227,11 @@ export class ChunkManager {
         // Decompress the voxel data in place
         frame.voxelData = decompressVoxelDataInto(frame.voxelData, new Uint8Array(0));
         
-        // Pass the backend frame directly - no cloning
-        chunk.setSelectionFrame(selection.id, frame);
+        // Pass the backend frame directly with layer info - no cloning
+        chunk.setSelectionFrame(identityId, {
+          layer: selection.layer,
+          voxelFrame: frame
+        });
       }
     }
   }
