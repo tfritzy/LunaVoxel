@@ -43,7 +43,8 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionsByLayerAndIdentity: Map<number, Map<string, SelectionData>> = new Map();
+  private selectionFrames: Map<string, SelectionData> = new Map();
+  private selectionsByLayer: Map<number, SelectionData[]> = new Map();
   private mergedSelectionFrame: FlatVoxelFrame;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
@@ -247,41 +248,39 @@ export class Chunk {
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
+    // Remove old selection from selectionsByLayer if it exists
+    const oldSelection = this.selectionFrames.get(identityId);
+    if (oldSelection) {
+      const layerSelections = this.selectionsByLayer.get(oldSelection.layer);
+      if (layerSelections) {
+        const index = layerSelections.findIndex(s => this.selectionFrames.get(identityId) === s);
+        if (index !== -1) {
+          layerSelections.splice(index, 1);
+        }
+        if (layerSelections.length === 0) {
+          this.selectionsByLayer.delete(oldSelection.layer);
+        }
+      }
+    }
+
     if (selectionData === null) {
-      // Remove selection - need to find which layer it's in
-      for (const [layer, identityMap] of this.selectionsByLayerAndIdentity) {
-        if (identityMap.has(identityId)) {
-          identityMap.delete(identityId);
-          if (identityMap.size === 0) {
-            this.selectionsByLayerAndIdentity.delete(layer);
-          }
-          break;
-        }
-      }
+      this.selectionFrames.delete(identityId);
     } else {
-      // First, remove from old layer if it exists
-      for (const [layer, identityMap] of this.selectionsByLayerAndIdentity) {
-        if (identityMap.has(identityId)) {
-          identityMap.delete(identityId);
-          if (identityMap.size === 0) {
-            this.selectionsByLayerAndIdentity.delete(layer);
-          }
-          break;
-        }
-      }
+      this.selectionFrames.set(identityId, selectionData);
       
-      // Add to new layer
-      let layerMap = this.selectionsByLayerAndIdentity.get(selectionData.layer);
-      if (!layerMap) {
-        layerMap = new Map();
-        this.selectionsByLayerAndIdentity.set(selectionData.layer, layerMap);
+      // Add to selectionsByLayer
+      let layerSelections = this.selectionsByLayer.get(selectionData.layer);
+      if (!layerSelections) {
+        layerSelections = [];
+        this.selectionsByLayer.set(selectionData.layer, layerSelections);
       }
-      layerMap.set(identityId, selectionData);
+      layerSelections.push(selectionData);
     }
   }
 
   public clearAllSelectionFrames(): void {
-    this.selectionsByLayerAndIdentity.clear();
+    this.selectionFrames.clear();
+    this.selectionsByLayer.clear();
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -295,27 +294,20 @@ export class Chunk {
     for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
       if (layerChunk.voxels[i] > 0) {
         blocks[i] = layerChunk.voxels[i];
-        // When setting a real voxel, clear any selection at this position
-        // This buries selections from LOWER layers (not the current layer)
         this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
   }
 
   private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
-    // Get selections for this layer using the nested map structure
-    const layerIdentityMap = this.selectionsByLayerAndIdentity.get(layerIndex);
-    if (!layerIdentityMap) return;
+    const layerSelections = this.selectionsByLayer.get(layerIndex);
+    if (!layerSelections) return;
 
-    // Iterate through all selections for this specific layer
-    for (const selectionData of layerIdentityMap.values()) {
+    for (const selectionData of layerSelections) {
       const selectionVoxels = selectionData.voxelFrame.voxelData;
       
-      // Apply selection voxels to the merged selection frame using index-based interface
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
         if (selectionVoxels[i] > 0) {
-          // Only set selection if there's no actual voxel at this position in blocksToRender
-          // Note: blocksToRender contains voxels from all layers processed so far
           if (blocks[i] === 0) {
             this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
           }
@@ -521,14 +513,10 @@ export class Chunk {
         
         if (!this.getLayerVisible(layerIndex)) continue;
 
-        // First apply the voxel data for this layer (if chunk exists)
-        // This will bury selections from lower layers at positions where voxels are set
         if (chunk) {
           this.addLayerChunkToBlocks(chunk, this.blocksToRender);
         }
         
-        // Then apply selection data for this layer
-        // Selections will only be set where there are no voxels in blocksToRender
         this.applySelectionForLayer(layerIndex, this.blocksToRender);
       }
 
