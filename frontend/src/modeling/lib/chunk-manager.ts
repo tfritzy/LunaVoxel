@@ -25,7 +25,6 @@ export class ChunkManager {
   private layerVisibilityMap: Map<number, boolean> = new Map();
   private layersQueryRunner: QueryRunner<Layer> | null = null;
   private chunks: Map<string, Chunk> = new Map();
-  private selections: Selection[] = [];
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
@@ -53,7 +52,6 @@ export class ChunkManager {
 
     this.initializeLayersQueryRunner();
     this.refreshChunks();
-    this.refreshSelections();
   }
 
   private initializeLayersQueryRunner(): void {
@@ -139,31 +137,6 @@ export class ChunkManager {
     }
   };
 
-  private refreshSelections = () => {
-    const rawSelections = (
-      this.dbConn.db.selections.tableCache.iter() as Selection[]
-    ).filter((s) => s.projectId === this.projectId);
-
-    this.selections = rawSelections.map((selection) => {
-      return {
-        ...selection,
-        selectionData: selection.selectionData,
-      };
-    });
-    
-    this.applySelectionsToChunks();
-  };
-
-  private applySelectionsToChunks(): void {
-    for (const selection of this.selections) {
-      const decompressedData = decompressVoxelDataInto(selection.selectionData, new Uint8Array(0));
-      
-      for (const [key, chunk] of this.chunks.entries()) {
-        chunk.setSelectionData(decompressedData);
-      }
-    }
-  }
-
   private onChunkInsert = (ctx: EventContext, newChunk: DbChunk) => {
     if (newChunk.projectId !== this.projectId) return;
     
@@ -215,10 +188,8 @@ export class ChunkManager {
 
   private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
     if (newSelection.projectId !== this.projectId) return;
-    if (this.selections.some((s) => s.id === newSelection.id)) return;
-
-    this.selections = [...this.selections, newSelection];
-    this.applySelectionsToChunks();
+    
+    this.applySelectionToChunks(newSelection);
   };
 
   private onSelectionUpdate = (
@@ -227,11 +198,8 @@ export class ChunkManager {
     newSelection: Selection
   ) => {
     if (newSelection.projectId !== this.projectId) return;
-
-    this.selections = this.selections.map((s) =>
-      s.id === newSelection.id ? newSelection : s
-    );
-    this.applySelectionsToChunks();
+    
+    this.applySelectionToChunks(newSelection);
   };
 
   private onSelectionDelete = (
@@ -239,14 +207,35 @@ export class ChunkManager {
     deletedSelection: Selection
   ) => {
     if (deletedSelection.projectId !== this.projectId) return;
-    this.selections = this.selections.filter(
-      (s) => s.id !== deletedSelection.id
-    );
     
     for (const chunk of this.chunks.values()) {
-      chunk.setSelectionData(null);
+      chunk.setSelectionFrame(null);
     }
   };
+
+  private applySelectionToChunks(selection: Selection): void {
+    // When the backend bindings are updated, selection will have SelectionFrames: VoxelFrame[]
+    // For now, handle the current selectionData: Uint8Array format
+    // TODO: Update this once bindings are regenerated with SelectionFrames
+    
+    // Future implementation (when bindings are updated):
+    // for (const frame of selection.SelectionFrames) {
+    //   const chunkKey = this.getChunkKey(frame.MinPos);
+    //   const chunk = this.chunks.get(chunkKey);
+    //   if (chunk) {
+    //     const decompressedData = decompressVoxelDataInto(frame.VoxelData, new Uint8Array(0));
+    //     const voxelFrame = new VoxelFrame(frame.Dimensions, frame.MinPos);
+    //     // Populate voxelFrame with decompressedData
+    //     chunk.setSelectionFrame(voxelFrame);
+    //   }
+    // }
+    
+    // Current temporary implementation - just clear all selection frames
+    // This will be replaced when bindings are updated
+    for (const chunk of this.chunks.values()) {
+      chunk.setSelectionFrame(null);
+    }
+  }
 
   public getLayer(layerIndex: number): Layer | undefined {
     return this.layers.find((l) => l.index === layerIndex);

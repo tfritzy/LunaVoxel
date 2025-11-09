@@ -37,7 +37,7 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionData: Uint8Array | null = null;
+  private selectionFrame: VoxelFrame | null = null;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -238,8 +238,8 @@ export class Chunk {
     this.update();
   }
 
-  public setSelectionData(selectionData: Uint8Array | null): void {
-    this.selectionData = selectionData;
+  public setSelectionFrame(selectionFrame: VoxelFrame | null): void {
+    this.selectionFrame = selectionFrame;
   }
 
   private clearBlocks(blocks: Uint8Array) {
