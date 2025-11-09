@@ -27,48 +27,44 @@ import {
   type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
   type TableHandle as __TableHandle,
 } from "spacetimedb";
-import { VoxelFrame } from "./voxel_frame_type";
+import { Vector3 } from "./vector_3_type";
 
-export type Selection = {
-  id: string,
-  identity: __Identity,
-  projectId: string,
-  layer: number,
-  selectionFrames: VoxelFrame[],
+export type VoxelFrame = {
+  minPos: Vector3,
+  dimensions: Vector3,
+  voxelData: Uint8Array,
 };
-let _cached_Selection_type_value: __AlgebraicTypeType | null = null;
+let _cached_VoxelFrame_type_value: __AlgebraicTypeType | null = null;
 
 /**
  * An object for generated helper functions.
  */
-export const Selection = {
+export const VoxelFrame = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   getTypeScriptAlgebraicType(): __AlgebraicTypeType {
-    if (_cached_Selection_type_value) return _cached_Selection_type_value;
-    _cached_Selection_type_value = __AlgebraicTypeValue.Product({ elements: [] });
-    _cached_Selection_type_value.value.elements.push(
-      { name: "id", algebraicType: __AlgebraicTypeValue.String },
-      { name: "identity", algebraicType: __AlgebraicTypeValue.createIdentityType() },
-      { name: "projectId", algebraicType: __AlgebraicTypeValue.String },
-      { name: "layer", algebraicType: __AlgebraicTypeValue.I32 },
-      { name: "selectionFrames", algebraicType: __AlgebraicTypeValue.Array(VoxelFrame.getTypeScriptAlgebraicType()) },
+    if (_cached_VoxelFrame_type_value) return _cached_VoxelFrame_type_value;
+    _cached_VoxelFrame_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_VoxelFrame_type_value.value.elements.push(
+      { name: "minPos", algebraicType: Vector3.getTypeScriptAlgebraicType() },
+      { name: "dimensions", algebraicType: Vector3.getTypeScriptAlgebraicType() },
+      { name: "voxelData", algebraicType: __AlgebraicTypeValue.Array(__AlgebraicTypeValue.U8) },
     );
-    return _cached_Selection_type_value;
+    return _cached_VoxelFrame_type_value;
   },
 
-  serialize(writer: __BinaryWriter, value: Selection): void {
-    __AlgebraicTypeValue.serializeValue(writer, Selection.getTypeScriptAlgebraicType(), value);
+  serialize(writer: __BinaryWriter, value: VoxelFrame): void {
+    __AlgebraicTypeValue.serializeValue(writer, VoxelFrame.getTypeScriptAlgebraicType(), value);
   },
 
-  deserialize(reader: __BinaryReader): Selection {
-    return __AlgebraicTypeValue.deserializeValue(reader, Selection.getTypeScriptAlgebraicType());
+  deserialize(reader: __BinaryReader): VoxelFrame {
+    return __AlgebraicTypeValue.deserializeValue(reader, VoxelFrame.getTypeScriptAlgebraicType());
   },
 
 }
 
-export default Selection;
+export default VoxelFrame;
 
 

@@ -203,20 +203,20 @@ describe("Tool Interface", () => {
       expect(gridPos.z).toBe(3);
     });
 
-    it("should call moveSelection reducer on drag with movement", () => {
-      let moveSelectionCalled = false;
+    it("should call commitSelectionMove reducer on mouse up with movement", () => {
+      let commitSelectionMoveCalled = false;
       let passedOffset: Vector3 | null = null;
       
       mockContext.dbConn = {
         reducers: {
-          moveSelection: (_projectId: string, offset: Vector3) => {
-            moveSelectionCalled = true;
+          commitSelectionMove: (_projectId: string, offset: Vector3) => {
+            commitSelectionMoveCalled = true;
             passedOffset = offset;
           },
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
+      // Simulate drag with movement
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
         currentGridPosition: new THREE.Vector3(4, 2, 3),
@@ -224,20 +224,31 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0)
       });
 
-      expect(moveSelectionCalled).toBe(true);
+      // Should not be called during drag
+      expect(commitSelectionMoveCalled).toBe(false);
+
+      // Call mouse up
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(4, 2, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0)
+      });
+
+      // Should be called on mouse up
+      expect(commitSelectionMoveCalled).toBe(true);
       expect(passedOffset).not.toBeNull();
     });
 
-    it("should not call moveSelection reducer on drag without mouse movement", () => {
-      let moveSelectionCalled = false;
+    it("should not call commitSelectionMove reducer on mouse up without mouse movement", () => {
+      let commitSelectionMoveCalled = false;
       
       mockContext.dbConn = {
         reducers: {
-          moveSelection: () => {
-            moveSelectionCalled = true;
+          commitSelectionMove: () => {
+            commitSelectionMoveCalled = true;
           },
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
       tool.onDrag(mockContext, {
@@ -247,7 +258,14 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0, 0)
       });
 
-      expect(moveSelectionCalled).toBe(false);
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(1, 2, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0)
+      });
+
+      expect(commitSelectionMoveCalled).toBe(false);
     });
   });
 });

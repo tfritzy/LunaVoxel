@@ -33,17 +33,9 @@ export class MoveSelectionTool implements Tool {
     );
 
     this.lastOffset.copy(offset);
-    
-    context.projectManager.chunkManager.updateSelectionOffset({
-      x: Math.round(offset.x),
-      y: Math.round(offset.y),
-      z: Math.round(offset.z),
-    });
   }
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
-    context.projectManager.chunkManager.clearSelectionOffset();
-    
     if (this.lastOffset.length() > 0.1) {
       context.dbConn.reducers.commitSelectionMove(
         context.projectId,
