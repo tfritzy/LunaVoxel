@@ -22,7 +22,8 @@ export const CHUNK_SIZE = 32;
 
 export type SelectionData = {
   layer: number;
-  voxelFrame: DbVoxelFrame;
+  frame: DbVoxelFrame;
+  offset: Vector3;
 };
 
 type MeshType = "main" | "preview";
@@ -44,7 +45,6 @@ export class Chunk {
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
-  private selectionsByLayer: Map<number, SelectionData[]> = new Map();
   private mergedSelectionFrame: FlatVoxelFrame;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
@@ -248,39 +248,15 @@ export class Chunk {
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
-    // Remove old selection from selectionsByLayer if it exists
-    const oldSelection = this.selectionFrames.get(identityId);
-    if (oldSelection) {
-      const layerSelections = this.selectionsByLayer.get(oldSelection.layer);
-      if (layerSelections) {
-        const index = layerSelections.findIndex(s => this.selectionFrames.get(identityId) === s);
-        if (index !== -1) {
-          layerSelections.splice(index, 1);
-        }
-        if (layerSelections.length === 0) {
-          this.selectionsByLayer.delete(oldSelection.layer);
-        }
-      }
-    }
-
     if (selectionData === null) {
       this.selectionFrames.delete(identityId);
     } else {
       this.selectionFrames.set(identityId, selectionData);
-      
-      // Add to selectionsByLayer
-      let layerSelections = this.selectionsByLayer.get(selectionData.layer);
-      if (!layerSelections) {
-        layerSelections = [];
-        this.selectionsByLayer.set(selectionData.layer, layerSelections);
-      }
-      layerSelections.push(selectionData);
     }
   }
 
   public clearAllSelectionFrames(): void {
     this.selectionFrames.clear();
-    this.selectionsByLayer.clear();
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -300,11 +276,10 @@ export class Chunk {
   }
 
   private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
-    const layerSelections = this.selectionsByLayer.get(layerIndex);
-    if (!layerSelections) return;
-
-    for (const selectionData of layerSelections) {
-      const selectionVoxels = selectionData.voxelFrame.voxelData;
+    for (const selectionData of this.selectionFrames.values()) {
+      if (selectionData.layer !== layerIndex) continue;
+      
+      const selectionVoxels = selectionData.frame.voxelData;
       
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
         if (selectionVoxels[i] > 0) {

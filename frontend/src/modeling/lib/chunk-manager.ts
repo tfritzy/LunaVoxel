@@ -226,7 +226,8 @@ export class ChunkManager {
         
         chunk.setSelectionFrame(identityId, {
           layer: selection.layer,
-          voxelFrame: frame
+          frame: frame,
+          offset: { x: 0, y: 0, z: 0 }
         });
       }
     }
