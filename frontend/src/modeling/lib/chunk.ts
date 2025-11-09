@@ -2,10 +2,8 @@ import * as THREE from "three";
 import {
   Vector3,
   Chunk as DbChunk,
-  Layer,
   BlockModificationMode,
   VoxelFrame as DbVoxelFrame,
-  Identity,
 } from "@/module_bindings";
 import {
   isBlockPresent,
@@ -45,6 +43,7 @@ export class Chunk {
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
+  private mergedSelectionFrame: VoxelFrame;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
@@ -79,6 +78,7 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
+    this.mergedSelectionFrame = new VoxelFrame(size);
     this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
@@ -272,6 +272,54 @@ export class Chunk {
     }
   }
 
+  private applySelectionForLayer(
+    layerIndex: number,
+    blocks: Uint8Array
+  ): void {
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+    const sizeYZ = sizeY * sizeZ;
+
+    // Iterate through all selection frames to find ones for this layer
+    for (const selectionData of this.selectionFrames.values()) {
+      if (selectionData.layer !== layerIndex) continue;
+
+      const selectionVoxels = selectionData.voxelFrame.voxelData;
+      
+      // Apply selection voxels to the merged selection frame
+      for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
+        if (isBlockPresent(selectionVoxels[i])) {
+          const x = Math.floor(i / sizeYZ);
+          const y = Math.floor((i % sizeYZ) / sizeZ);
+          const z = i % sizeZ;
+
+          // Only set selection if there's no actual voxel at this position
+          if (!isBlockPresent(blocks[i])) {
+            this.mergedSelectionFrame.set(x, y, z, selectionVoxels[i]);
+          }
+        }
+      }
+    }
+  }
+
+  private removeSelectionsBuriedByBlocks(blocks: Uint8Array): void {
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+    const sizeYZ = sizeY * sizeZ;
+
+    // Clear selections where there are actual voxels
+    for (let i = 0; i < blocks.length; i++) {
+      if (isBlockPresent(blocks[i])) {
+        const x = Math.floor(i / sizeYZ);
+        const y = Math.floor((i % sizeYZ) / sizeZ);
+        const z = i % sizeZ;
+        
+        // Clear selection at this position since it's buried by a voxel
+        this.mergedSelectionFrame.set(x, y, z, 0);
+      }
+    }
+  }
+
   private updatePreviewState(blocks: Uint8Array): void {
     if (this.previewFrame.isEmpty()) return;
 
@@ -429,6 +477,7 @@ export class Chunk {
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
       this.previewFrame,
+      this.mergedSelectionFrame,
       buildMode.tag !== "Erase"
     );
 
@@ -461,14 +510,23 @@ export class Chunk {
   update = () => {
     try {
       this.clearBlocks(this.blocksToRender);
+      this.mergedSelectionFrame.clear();
 
       for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
         const chunk = this.layerChunks[layerIndex];
-        if (!chunk) continue;
-
+        
         if (!this.getLayerVisible(layerIndex)) continue;
 
-        this.addLayerChunkToBlocks(chunk, this.blocksToRender);
+        // Apply selection data for this layer first
+        this.applySelectionForLayer(layerIndex, this.blocksToRender);
+        
+        // Then apply the voxel data (if chunk exists) which will bury selections
+        if (chunk) {
+          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
+          
+          // Remove any selections that are now buried by the voxels we just added
+          this.removeSelectionsBuriedByBlocks(this.blocksToRender);
+        }
       }
 
       this.updatePreviewState(this.blocksToRender);
