@@ -36,16 +36,17 @@ describe("Chunk selection rendering", () => {
   it("should handle setting and clearing selection frames", () => {
     const selectionData = {
       layer: 0,
-      voxelFrame: {
+      frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },
         voxelData: new Uint8Array(64), // 4x4x4 = 64 voxels
       },
+      offset: { x: 0, y: 0, z: 0 },
     };
 
     // Set a few voxels in the selection
-    selectionData.voxelFrame.voxelData[0] = 1; // x=0, y=0, z=0
-    selectionData.voxelFrame.voxelData[1] = 1; // x=0, y=0, z=1
+    selectionData.frame.voxelData[0] = 1; // x=0, y=0, z=0
+    selectionData.frame.voxelData[1] = 1; // x=0, y=0, z=1
 
     chunk.setSelectionFrame("user1", selectionData);
     chunk.setSelectionFrame("user1", null);
@@ -57,23 +58,25 @@ describe("Chunk selection rendering", () => {
   it("should handle multiple selection frames from different users", () => {
     const selectionData1 = {
       layer: 0,
-      voxelFrame: {
+      frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },
         voxelData: new Uint8Array(64),
       },
+      offset: { x: 0, y: 0, z: 0 },
     };
-    selectionData1.voxelFrame.voxelData[0] = 1;
+    selectionData1.frame.voxelData[0] = 1;
 
     const selectionData2 = {
       layer: 1,
-      voxelFrame: {
+      frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },
         voxelData: new Uint8Array(64),
       },
+      offset: { x: 0, y: 0, z: 0 },
     };
-    selectionData2.voxelFrame.voxelData[5] = 1;
+    selectionData2.frame.voxelData[5] = 1;
 
     chunk.setSelectionFrame("user1", selectionData1);
     chunk.setSelectionFrame("user2", selectionData2);
