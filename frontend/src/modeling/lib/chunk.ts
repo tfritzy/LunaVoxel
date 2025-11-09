@@ -292,16 +292,16 @@ export class Chunk {
     blocks: Uint8Array
   ): void {
     for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (isBlockPresent(layerChunk.voxels[i])) {
+      if (layerChunk.voxels[i] > 0) {
         blocks[i] = layerChunk.voxels[i];
+        // When setting a real voxel, clear any selection at this position
+        // since the voxel buries the selection
+        this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
   }
 
-  private applySelectionForLayer(
-    layerIndex: number,
-    blocks: Uint8Array
-  ): void {
+  private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
     // Get selections for this layer using the layer-indexed map
     const layerSelections = this.selectionsByLayer.get(layerIndex);
     if (!layerSelections) return;
@@ -310,25 +310,14 @@ export class Chunk {
     for (const selectionData of layerSelections) {
       const selectionVoxels = selectionData.voxelFrame.voxelData;
       
-      // Apply selection voxels to the merged selection frame using flat data
-      const mergedData = this.mergedSelectionFrame.getData();
+      // Apply selection voxels to the merged selection frame using index-based interface
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
-        if (isBlockPresent(selectionVoxels[i])) {
+        if (selectionVoxels[i] > 0) {
           // Only set selection if there's no actual voxel at this position
-          if (!isBlockPresent(blocks[i])) {
-            mergedData[i] = selectionVoxels[i];
+          if (blocks[i] === 0) {
+            this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
           }
         }
-      }
-    }
-  }
-
-  private removeSelectionsBuriedByBlocks(blocks: Uint8Array): void {
-    // Clear selections where there are actual voxels using flat data
-    const mergedData = this.mergedSelectionFrame.getData();
-    for (let i = 0; i < blocks.length; i++) {
-      if (isBlockPresent(blocks[i])) {
-        mergedData[i] = 0;
       }
     }
   }
@@ -533,12 +522,10 @@ export class Chunk {
         // Apply selection data for this layer first
         this.applySelectionForLayer(layerIndex, this.blocksToRender);
         
-        // Then apply the voxel data (if chunk exists) which will bury selections
+        // Then apply the voxel data (if chunk exists)
+        // This will automatically clear selections at positions where voxels are set
         if (chunk) {
           this.addLayerChunkToBlocks(chunk, this.blocksToRender);
-          
-          // Remove any selections that are now buried by the voxels we just added
-          this.removeSelectionsBuriedByBlocks(this.blocksToRender);
         }
       }
 

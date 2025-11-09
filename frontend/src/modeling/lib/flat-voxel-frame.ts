@@ -10,11 +10,23 @@ export class FlatVoxelFrame {
   private data: Uint8Array; // Flat 1D array: index = x * sizeY * sizeZ + y * sizeZ + z
   private empty: boolean = true;
 
-  constructor(dimensions: Vector3, minPos?: Vector3) {
+  constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
     this.dimensions = { ...dimensions };
     this.minPos = minPos ? { ...minPos } : { x: 0, y: 0, z: 0 };
     const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
-    this.data = new Uint8Array(totalVoxels);
+    
+    if (data) {
+      this.data = data;
+      // Check if data is non-empty
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] !== 0) {
+          this.empty = false;
+          break;
+        }
+      }
+    } else {
+      this.data = new Uint8Array(totalVoxels);
+    }
   }
 
   /**
@@ -85,6 +97,37 @@ export class FlatVoxelFrame {
     if (blockIndex !== 0) {
       this.empty = false;
     }
+  }
+
+  /**
+   * Get a voxel value by flat array index
+   * @param index The flat array index
+   */
+  public getByIndex(index: number): number {
+    if (this.empty || index < 0 || index >= this.data.length) return 0;
+    return this.data[index];
+  }
+
+  /**
+   * Set a voxel value by flat array index
+   * @param index The flat array index
+   * @param blockIndex The block value to set
+   */
+  public setByIndex(index: number, blockIndex: number): void {
+    if (index < 0 || index >= this.data.length) return;
+    this.data[index] = blockIndex;
+    if (blockIndex !== 0) {
+      this.empty = false;
+    }
+  }
+
+  /**
+   * Check if a voxel at the given index is set (non-zero)
+   * @param index The flat array index
+   */
+  public isSetByIndex(index: number): boolean {
+    if (this.empty || index < 0 || index >= this.data.length) return false;
+    return this.data[index] !== 0;
   }
 
   /**
