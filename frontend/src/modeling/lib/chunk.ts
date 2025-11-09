@@ -43,8 +43,7 @@ export class Chunk {
   private layerChunks: (DecompressedChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
-  private selectionFrames: Map<string, SelectionData> = new Map();
-  private selectionsByLayer: Map<number, SelectionData[]> = new Map();
+  private selectionsByLayerAndIdentity: Map<number, Map<string, SelectionData>> = new Map();
   private mergedSelectionFrame: FlatVoxelFrame;
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
@@ -248,39 +247,41 @@ export class Chunk {
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
-    // Remove old selection from selectionsByLayer if it exists
-    const oldSelection = this.selectionFrames.get(identityId);
-    if (oldSelection) {
-      const layerSelections = this.selectionsByLayer.get(oldSelection.layer);
-      if (layerSelections) {
-        const index = layerSelections.findIndex(s => this.selectionFrames.get(identityId) === s);
-        if (index !== -1) {
-          layerSelections.splice(index, 1);
-        }
-        if (layerSelections.length === 0) {
-          this.selectionsByLayer.delete(oldSelection.layer);
-        }
-      }
-    }
-
     if (selectionData === null) {
-      this.selectionFrames.delete(identityId);
-    } else {
-      this.selectionFrames.set(identityId, selectionData);
-      
-      // Add to selectionsByLayer
-      let layerSelections = this.selectionsByLayer.get(selectionData.layer);
-      if (!layerSelections) {
-        layerSelections = [];
-        this.selectionsByLayer.set(selectionData.layer, layerSelections);
+      // Remove selection - need to find which layer it's in
+      for (const [layer, identityMap] of this.selectionsByLayerAndIdentity) {
+        if (identityMap.has(identityId)) {
+          identityMap.delete(identityId);
+          if (identityMap.size === 0) {
+            this.selectionsByLayerAndIdentity.delete(layer);
+          }
+          break;
+        }
       }
-      layerSelections.push(selectionData);
+    } else {
+      // First, remove from old layer if it exists
+      for (const [layer, identityMap] of this.selectionsByLayerAndIdentity) {
+        if (identityMap.has(identityId)) {
+          identityMap.delete(identityId);
+          if (identityMap.size === 0) {
+            this.selectionsByLayerAndIdentity.delete(layer);
+          }
+          break;
+        }
+      }
+      
+      // Add to new layer
+      let layerMap = this.selectionsByLayerAndIdentity.get(selectionData.layer);
+      if (!layerMap) {
+        layerMap = new Map();
+        this.selectionsByLayerAndIdentity.set(selectionData.layer, layerMap);
+      }
+      layerMap.set(identityId, selectionData);
     }
   }
 
   public clearAllSelectionFrames(): void {
-    this.selectionFrames.clear();
-    this.selectionsByLayer.clear();
+    this.selectionsByLayerAndIdentity.clear();
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -302,12 +303,12 @@ export class Chunk {
   }
 
   private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
-    // Get selections for this layer using the layer-indexed map
-    const layerSelections = this.selectionsByLayer.get(layerIndex);
-    if (!layerSelections) return;
+    // Get selections for this layer using the nested map structure
+    const layerIdentityMap = this.selectionsByLayerAndIdentity.get(layerIndex);
+    if (!layerIdentityMap) return;
 
-    // Iterate through selections for this specific layer
-    for (const selectionData of layerSelections) {
+    // Iterate through all selections for this specific layer
+    for (const selectionData of layerIdentityMap.values()) {
       const selectionVoxels = selectionData.voxelFrame.voxelData;
       
       // Apply selection voxels to the merged selection frame using index-based interface
