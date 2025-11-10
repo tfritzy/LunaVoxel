@@ -28,6 +28,7 @@ function spaFallbackPlugin() {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), spaFallbackPlugin()],
+  base: "/LunaVoxel/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
