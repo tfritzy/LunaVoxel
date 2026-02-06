@@ -6,7 +6,7 @@ import {
 } from "../ambient-occlusion";
 import { VoxelFrame } from "../voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
-import type { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state";
 
 /**
  * Helper function to unpack occlusion mask

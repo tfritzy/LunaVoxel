@@ -1,16 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "lucide-react";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { DbConnection, EventContext, UserProject } from "@/module_bindings";
-import { InviteForm } from "./InviteForm";
-import { GeneralAccessRow } from "./GeneralAccessRow";
-import { PersonRow } from "./PersonRow";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
-import { useQueryRunner } from "@/lib/useQueryRunner";
-import { useCurrentProject } from "@/lib/useCurrentProject";
+import { useProject } from "@/state";
 
 interface ShareModalProps {
   projectId: string;
@@ -20,17 +14,10 @@ interface ShareModalProps {
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
   const projectId = useParams().projectId || "";
-  const { connection } = useDatabase();
   const [showTopBorder, setShowTopBorder] = useState(false);
   const [showBottomBorder, setShowBottomBorder] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const project = useCurrentProject(connection, projectId);
-  const getTable = useCallback((db: DbConnection) => db.db.userProjects, []);
-  const filter = useCallback(
-    (data: UserProject) => data.accessType.tag !== "Inherited",
-    []
-  );
-  const { data: userProjects } = useQueryRunner(connection, getTable, filter);
+  const project = useProject(projectId);
 
   const handleCopyLink = () => {
     const shareUrl = `${window.location.origin}/project/${projectId}`;
@@ -62,18 +49,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
     return () => {
       element.removeEventListener("scroll", handleScroll);
     };
-  }, [userProjects]);
+  }, []);
 
   if (!project) return null;
 
   const modalContent = (
     <div className="px-6 py-4">
       <div className="flex flex-row space-x-2 justify-between mb-4">
-        <InviteForm connection={connection!} projectId={projectId} />
+        <p className="text-muted-foreground">
+          Sharing is currently disabled in client-side mode.
+        </p>
       </div>
-      <h3 className="text-sm font-medium text-card-foreground my-4">
-        People with access
-      </h3>
       <div className="relative">
         {showTopBorder && (
           <div className="absolute top-0 left-0 right-0 h-px bg-border z-10" />
@@ -84,25 +70,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
           onScroll={handleScroll}
         >
           <div className="space-y-1 pr-6 pl-2">
-            {userProjects.map((userProject) => (
-              <PersonRow
-                key={userProject.email?.toString()}
-                userProject={userProject}
-                isCurrentUser={userProject.user.isEqual(connection!.identity!)}
-                isOwner={project.owner.isEqual(userProject.user)}
-              />
-            ))}
+            <p className="text-sm text-muted-foreground">
+              This project is stored locally in your browser.
+            </p>
           </div>
         </div>
         {showBottomBorder && (
           <div className="absolute bottom-0 left-0 right-0 h-px bg-border z-10" />
         )}
-      </div>
-      <div className="my-4">
-        <h3 className="text-sm font-medium text-card-foreground mb-3">
-          General access
-        </h3>
-        <GeneralAccessRow project={project} />
       </div>
     </div>
   );

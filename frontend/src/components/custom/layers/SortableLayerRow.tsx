@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { LayerRow } from "./LayerRow";
-import { Layer } from "@/module_bindings";
+import type { Layer } from "@/state";
 
 interface SortableLayerRowProps {
   layer: Layer;

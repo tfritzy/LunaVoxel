@@ -1,38 +1,16 @@
-import { useRef, useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/firebase/AuthContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { createProject } from "@/lib/createProject";
-import { ProjectLayout } from "@/components/custom/ProjectLayout";
-import { Project, BlockModificationMode } from "@/module_bindings";
-import type { ToolType } from "@/modeling/lib/tool-type";
-import { VoxelEngine } from "@/modeling/voxel-engine";
-import { ExportType } from "@/modeling/export/model-exporter";
-import { useAtlas } from "@/lib/useAtlas";
 import { SignInModal } from "@/components/custom/SignInModal";
-import { Timestamp } from "spacetimedb";
 
 export const SignInPage = () => {
   const {
     signInWithGoogle,
     signInWithGithub,
     signInWithMicrosoft,
-    error,
-    clearError,
   } = useAuth();
-  const { connection } = useDatabase();
   const navigate = useNavigate();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<VoxelEngine | null>(null);
-  const [selectedBlock, setSelectedBlock] = useState<number>(1);
-  const [currentTool, setCurrentTool] = useState<ToolType>(
-    "Rect",
-  );
-  const [currentMode, setCurrentMode] = useState<BlockModificationMode>({
-    tag: "Attach",
-  });
-  const atlasData = useAtlas();
-  const isInitializedRef = useRef<boolean>(false);
 
   const handleProviderSignIn = useCallback(
     async (provider: "google" | "github" | "microsoft" | "apple") => {
@@ -50,132 +28,27 @@ export const SignInPage = () => {
             break;
         }
 
-        if (user && connection) {
-          await createProject(connection, navigate);
+        if (user) {
+          await createProject(navigate);
         }
       } catch (error) {
         console.error(`Error signing in with ${provider}:`, error);
       }
     },
-    [
-      signInWithGoogle,
-      signInWithGithub,
-      signInWithMicrosoft,
-      connection,
-      navigate,
-    ]
+    [signInWithGoogle, signInWithGithub, signInWithMicrosoft, navigate]
   );
 
-  const demoProject: Project = {
-    id: "demo",
-    name: "Demo Project",
-    dimensions: { x: 32, y: 32, z: 32 },
-    created: Timestamp.fromDate(new Date()),
-    updated: Timestamp.fromDate(new Date()),
-    owner: connection?.identity || ({} as any),
-    publicAccess: { tag: "None" } as any,
-  };
-
-  const containerCallbackRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      containerRef.current = node;
-
-      if (!node || !connection || !atlasData || isInitializedRef.current)
-        return;
-
-      isInitializedRef.current = true;
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (!node.isConnected || engineRef.current) return;
-
-          engineRef.current = new VoxelEngine({
-            container: node,
-            connection,
-            project: demoProject,
-          });
-        });
-      });
-    },
-    [connection, atlasData, selectedBlock, currentTool, demoProject]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (engineRef.current) {
-        engineRef.current.dispose();
-        engineRef.current = null;
-        isInitializedRef.current = false;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!engineRef.current || !containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (engineRef.current) {
-        engineRef.current.handleContainerResize();
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-
-  const handleExport = useCallback((type: ExportType) => {
-
-  }, []);
-
-  const handleUndo = useCallback(() => {
-
-  }, []);
-
-  const handleRedo = useCallback(() => {
-
-  }, []);
-
-  const handleToolChange = useCallback((tool: ToolType) => {
-    setCurrentTool(tool);
-  }, []);
-
-  const handleModeChange = useCallback((mode: BlockModificationMode) => {
-    setCurrentMode(mode);
-  }, []);
-
-  const handleLayerSelect = useCallback((layerIndex: number) => {
-    engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
-  }, []);
+  const handleSignIn = useCallback(async () => {
+    await createProject(navigate);
+  }, [navigate]);
 
   return (
-    <ProjectLayout
-      projectId="demo"
-      selectedBlock={selectedBlock}
-      setSelectedBlock={setSelectedBlock}
-      currentTool={currentTool}
-      currentMode={currentMode}
-      onToolChange={handleToolChange}
-      onModeChange={handleModeChange}
-      onExport={handleExport}
-      onSelectLayer={handleLayerSelect}
-      onUndo={handleUndo}
-      onRedo={handleRedo}
-      atlasData={atlasData}
-      accessLevel={{ tag: "Read" }}
-    >
-      <div className="w-full h-full bg-background relative">
-        <div ref={containerCallbackRef} className="w-full h-full" />
-
-        <SignInModal
-          title="Welcome to LunaVoxel"
-          subheader="You must be signed in to create or edit projects"
-          onSignIn={() => createProject(connection, navigate)}
-        />
-      </div>
-    </ProjectLayout>
+    <div className="w-full h-screen bg-background flex items-center justify-center">
+      <SignInModal
+        title="Welcome to LunaVoxel"
+        subheader="Sign in to create and edit projects"
+        onSignIn={handleSignIn}
+      />
+    </div>
   );
 };

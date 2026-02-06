@@ -3,7 +3,7 @@ import { Eye, Users } from "lucide-react";
 import { ShareModal } from "./ShareModal";
 import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
-import { AccessType } from "@/module_bindings";
+import type { AccessType } from "@/state";
 
 export function ShareButton({
   accessLevel,

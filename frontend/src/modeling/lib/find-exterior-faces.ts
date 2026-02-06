@@ -1,4 +1,4 @@
-import { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";

@@ -1,9 +1,8 @@
 import { SortableLayerRow } from "./SortableLayerRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { DbConnection, Layer } from "@/module_bindings";
+import { useLayers, reducers, type Layer } from "@/state";
 import {
   DndContext,
   closestCenter,
@@ -23,7 +22,6 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
-import { useQueryRunner } from "@/lib/useQueryRunner";
 
 interface LayersSectionProps {
   onSelectLayer?: (layerIndex: number) => void;
@@ -34,17 +32,19 @@ export const LayersSection = ({
   onSelectLayer,
   projectId,
 }: LayersSectionProps) => {
-  const { connection } = useDatabase();
   const [selectedLayer, setSelectedLayer] = useState<number>(0);
-
-  const getTable = useCallback((db: DbConnection) => db.db.layer, []);
-  const { data: layers, setDataOptimistically } = useQueryRunner<Layer>(
-    connection,
-    getTable
-  );
+  const layers = useLayers(projectId);
+  const [optimisticLayers, setOptimisticLayers] = useState<Layer[] | null>(null);
 
   const sortedLayers = useMemo(() => {
-    return layers ? [...layers].sort((a, b) => b.index - a.index) : [];
+    const layersToUse = optimisticLayers ?? layers;
+    return layersToUse ? [...layersToUse].sort((a, b) => b.index - a.index) : [];
+  }, [layers, optimisticLayers]);
+
+  useEffect(() => {
+    if (optimisticLayers) {
+      setOptimisticLayers(null);
+    }
   }, [layers]);
 
   useEffect(() => {
@@ -59,31 +59,31 @@ export const LayersSection = ({
   );
 
   const addLayer = React.useCallback(() => {
-    connection?.reducers.addLayer(projectId);
-  }, [connection?.reducers, projectId]);
+    reducers.addLayer(projectId);
+  }, [projectId]);
 
   const onDelete = React.useCallback(
     (layer: Layer) => {
-      connection?.reducers.deleteLayer(layer.id);
+      reducers.deleteLayer(layer.id);
       if (selectedLayer >= sortedLayers.length - 1) {
         setSelectedLayer(selectedLayer - 1);
       }
     },
-    [connection?.reducers, sortedLayers, selectedLayer]
+    [sortedLayers, selectedLayer]
   );
 
   const toggleVisibility = React.useCallback(
     (layer: Layer) => {
-      connection?.reducers.toggleLayerVisibility(layer.id);
+      reducers.toggleLayerVisibility(layer.id);
     },
-    [connection?.reducers]
+    []
   );
 
   const toggleLocked = React.useCallback(
     (layer: Layer) => {
-      connection?.reducers.toggleLayerLock(layer.id);
+      reducers.toggleLayerLock(layer.id);
     },
-    [connection?.reducers]
+    []
   );
 
   const handleDragEnd = React.useCallback(
@@ -102,22 +102,20 @@ export const LayersSection = ({
         if (oldIndex !== -1 && newIndex !== -1) {
           let newLayers = arrayMove(currentLayers, oldIndex, newIndex);
           newLayers = newLayers.map((l, i) => ({ ...l, index: i }));
-          setDataOptimistically(newLayers);
+          setOptimisticLayers(newLayers);
           const newSelectedIndex = newLayers.findIndex(
             (l) => l.id === selectedId
           );
           setSelectedLayer(newSelectedIndex);
 
           const newOrder = newLayers.map((layer) => layer.id);
-          connection?.reducers.reorderLayers(projectId, newOrder);
+          reducers.reorderLayers(projectId, newOrder);
         }
       }
     },
     [
-      connection?.reducers,
       projectId,
       selectedLayer,
-      setDataOptimistically,
       sortedLayers,
     ]
   );

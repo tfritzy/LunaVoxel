@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
-import { BlockModificationMode } from "@/module_bindings";
+import type { BlockModificationMode } from "@/state";
 
 export class BlockPickerTool implements Tool {
   getType(): ToolType {

@@ -1,9 +1,4 @@
 import * as THREE from "three";
-import {
-  DbConnection,
-  Project,
-  BlockModificationMode,
-} from "../../module_bindings";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
@@ -11,12 +6,13 @@ import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
+import { reducers, type Project, type BlockModificationMode } from "@/state";
 
 export class ProjectManager {
   public builder;
   public chunkManager;
   private cursorManager: CursorManager;
-  private dbConn: DbConnection;
+  private projectId: string;
   private project: Project;
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
@@ -24,27 +20,25 @@ export class ProjectManager {
 
   constructor(
     scene: THREE.Scene,
-    dbConn: DbConnection,
+    projectId: string,
     project: Project,
     camera: THREE.Camera,
     container: HTMLElement
   ) {
-    this.dbConn = dbConn;
+    this.projectId = projectId;
     this.project = project;
     this.chunkManager = new ChunkManager(
       scene,
       project.dimensions,
-      dbConn,
-      project.id,
+      projectId,
       () => this.builder.getMode()
     );
-    this.cursorManager = new CursorManager(scene, project.id, dbConn);
-    this.editHistory = new EditHistory(dbConn, project.id);
+    this.cursorManager = new CursorManager(scene, projectId);
+    this.editHistory = new EditHistory(projectId);
     this.keydownHandler = this.setupKeyboardEvents();
 
     this.builder = new Builder(
-      this.dbConn,
-      this.project.id,
+      this.projectId,
       project.dimensions,
       camera,
       scene,
@@ -99,8 +93,8 @@ export class ProjectManager {
     beforeDiff: Uint8Array,
     afterDiff: Uint8Array
   ) => {
-    this.dbConn.reducers.undoEdit(
-      this.project.id,
+    reducers.undoEdit(
+      this.projectId,
       beforeDiff,
       afterDiff,
       layer

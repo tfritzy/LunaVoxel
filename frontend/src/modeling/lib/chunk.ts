@@ -1,11 +1,5 @@
 import * as THREE from "three";
 import {
-  Vector3,
-  Chunk as DbChunk,
-  BlockModificationMode,
-  VoxelFrame as DbVoxelFrame,
-} from "@/module_bindings";
-import {
   isBlockPresent,
   decompressVoxelDataInto,
   decompressVoxelData,
@@ -17,6 +11,12 @@ import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
 import { layers } from "./layers";
+import type {
+  Vector3,
+  Chunk as DbChunk,
+  VoxelFrameData as DbVoxelFrame,
+  BlockModificationMode,
+} from "@/state";
 
 export const CHUNK_SIZE = 32;
 

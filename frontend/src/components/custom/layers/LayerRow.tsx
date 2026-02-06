@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Layer } from "@/module_bindings";
+import type { Layer } from "@/state";
 import {
   Eye,
   EyeOff,

@@ -1,15 +1,14 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useProjects } from "@/contexts/ProjectsContext";
+import { useUserProjects } from "@/state";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
-  const { userProjects } = useProjects();
+  const { userProjects } = useUserProjects();
 
-  // Navigate to most recent project if available
   useEffect(() => {
-    const sortedProjects = userProjects.sort((a, b) => {
-      return b.updated.toDate().getTime() - a.updated.toDate().getTime();
+    const sortedProjects = [...userProjects].sort((a, b) => {
+      return b.updated - a.updated;
     });
 
     if (sortedProjects.length > 0) {

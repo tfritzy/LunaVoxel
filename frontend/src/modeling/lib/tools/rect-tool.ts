@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import type { BlockModificationMode } from "../../../module_bindings";
 import type { ToolType } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
+import type { BlockModificationMode } from "@/state";
 
 export class RectTool implements Tool {
   getType(): ToolType {
@@ -65,7 +65,7 @@ export class RectTool implements Tool {
       0
     );
 
-    context.dbConn.reducers.modifyBlockRect(
+    context.reducers.modifyBlockRect(
       context.projectId,
       context.mode,
       context.selectedBlock,

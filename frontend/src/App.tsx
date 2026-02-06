@@ -1,111 +1,68 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { DbConnection, ErrorContext } from "./module_bindings";
 import { AuthProvider, useAuth } from "./firebase/AuthContext";
-import { DatabaseProvider } from "./contexts/DatabaseContext";
 import { Layout } from "./components/custom/Layout";
 import { CreateNewPage } from "./components/custom/CreateNewPage";
 import { ProjectViewPage } from "./pages/ProjectViewPage";
 import { SignInPage } from "./pages/SignInPage";
 import { Toaster } from "sonner";
 import { ProjectsPage } from "./pages/ProjectsPage";
-import { Identity } from "spacetimedb";
-
-const getSpacetimeConfig = () => {
-  const isDev = import.meta.env.DEV || window.location.hostname === "localhost";
-
-  return {
-    uri: isDev ? "ws://localhost:3000" : "wss://maincloud.spacetimedb.com",
-  };
-};
+import { globalStore } from "./state";
 
 function AppContent() {
-  const [conn, setConn] = useState<DbConnection | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const { currentUser } = useAuth();
-
-  const handleConnect = useCallback(
-    async (connection: DbConnection, identity: Identity, token: string) => {
-      setConn(connection);
-      setIsConnecting(false);
-
-      if (currentUser && !currentUser.isAnonymous) {
-        localStorage.setItem("auth_token", token);
-      }
-    },
-    [currentUser]
-  );
-
-  const handleDisconnect = useCallback(() => {
-    console.log("Disconnected from SpacetimeDB");
-    setConn(null);
-    setIsConnecting(false);
-  }, []);
-
-  const handleConnectError = useCallback((_ctx: ErrorContext, err: Error) => {
-    console.log("Error connecting to SpacetimeDB:", err);
-    setConn(null);
-    setIsConnecting(false);
-  }, []);
+  const { currentUser, loading: authLoading } = useAuth();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!currentUser) {
-      return;
+    if (authLoading) return;
+
+    if (currentUser) {
+      globalStore.setCurrentUserId(currentUser.uid);
+    } else {
+      globalStore.setCurrentUserId(null);
     }
 
-    const connectToSpaceTime = async () => {
-      try {
-        setIsConnecting(true);
-        setConn(null);
-
-        const idToken = await currentUser.getIdToken();
-        const config = getSpacetimeConfig();
-
-        DbConnection.builder()
-          .withUri(config.uri)
-          .withModuleName("lunavoxel-db")
-          .withToken(idToken || "")
-          .onConnect(handleConnect)
-          .onDisconnect(handleDisconnect)
-          .onConnectError(handleConnectError)
-          .build();
-      } catch (err) {
-        console.error("Error initializing connection:", err);
-        setIsConnecting(false);
-      }
-    };
-
-    connectToSpaceTime();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+    setIsReady(true);
+  }, [currentUser, authLoading]);
 
   const isAnonymous = currentUser?.isAnonymous === true;
 
-  if (isAnonymous) {
+  if (!isReady || authLoading) {
     return (
-      <DatabaseProvider connection={conn}>
-        <Routes>
-          <Route path="/project/:projectId" element={<ProjectViewPage />} />
-          <Route path="*" element={<SignInPage />} />
-        </Routes>
-      </DatabaseProvider>
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
     );
   }
 
-  if (!conn || isConnecting) return null;
+  if (isAnonymous) {
+    return (
+      <Routes>
+        <Route path="/project/:projectId" element={<ProjectViewPage />} />
+        <Route path="*" element={<SignInPage />} />
+      </Routes>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <Routes>
+        <Route path="*" element={<SignInPage />} />
+      </Routes>
+    );
+  }
 
   return (
-    <DatabaseProvider connection={conn}>
-      <Layout>
-        <Routes>
-          <Route path="/project" element={<ProjectsPage />} />
-          <Route path="/create" element={<CreateNewPage />} />
-          <Route path="/project/:projectId" element={<ProjectViewPage />} />
-          <Route path="*" element={<Navigate to="/project" replace />} />
-        </Routes>
-      </Layout>
-      <Toaster />
-    </DatabaseProvider>
+    <Layout>
+      <Routes>
+        <Route path="/project" element={<ProjectsPage />} />
+        <Route path="/create" element={<CreateNewPage />} />
+        <Route path="/project/:projectId" element={<ProjectViewPage />} />
+        <Route path="*" element={<Navigate to="/project" replace />} />
+      </Routes>
+    </Layout>
   );
 }
 
@@ -114,6 +71,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <AppContent />
+        <Toaster />
       </BrowserRouter>
     </AuthProvider>
   );

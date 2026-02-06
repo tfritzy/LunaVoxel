@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Eraser, Paintbrush, PlusSquare, Pipette, Wand2, Move } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
-import type { BlockModificationMode } from "@/module_bindings";
+import type { BlockModificationMode } from "@/state";
 
 interface FloatingToolbarProps {
   currentTool: ToolType;

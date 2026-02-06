@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import type { BlockModificationMode } from "@/module_bindings";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
+import type { BlockModificationMode } from "@/state";
 
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
@@ -37,7 +37,7 @@ export class MoveSelectionTool implements Tool {
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     if (this.lastOffset.length() > 0.1) {
-      context.dbConn.reducers.commitSelectionMove(
+      context.reducers.commitSelectionMove(
         context.projectId,
         {
           x: Math.round(this.lastOffset.x),

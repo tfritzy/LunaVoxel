@@ -1,4 +1,4 @@
-import { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state";
 
 /**
  * A flat VoxelFrame that uses a 1D Uint8Array for voxel data storage.

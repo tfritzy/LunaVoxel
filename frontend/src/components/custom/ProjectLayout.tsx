@@ -1,7 +1,7 @@
 import { ProjectHeader } from "./ProjectHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
-import { AccessType, BlockModificationMode } from "@/module_bindings";
+import type { AccessType, BlockModificationMode } from "@/state";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";

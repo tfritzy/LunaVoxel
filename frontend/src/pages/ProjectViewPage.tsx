@@ -1,34 +1,30 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
-import { useCurrentProject } from "@/lib/useCurrentProject";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
 import { useAtlas } from "@/lib/useAtlas";
 import { useAuth } from "@/firebase/AuthContext";
 import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
-import { useProjectAccess } from "@/lib/useProjectAccess";
 import type { ToolType } from "@/modeling/lib/tool-type";
-import type { BlockModificationMode } from "@/module_bindings";
+import { useProject, useProjectAccess, useReducers, type BlockModificationMode, reducers } from "@/state";
 
 export const ProjectViewPage = () => {
   const projectId = useParams<{ projectId: string }>().projectId || "";
-  const { connection } = useDatabase();
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
-  const project = useCurrentProject(connection, projectId);
+  const project = useProject(projectId);
   const [loading, setLoading] = useState<boolean>(true);
   const atlasData = useAtlas();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const { accessLevel } = useProjectAccess(connection, projectId);
+  const { accessLevel } = useProjectAccess(projectId);
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
@@ -66,31 +62,17 @@ export const ProjectViewPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    if (!connection) return;
-
-    connection.reducers.pokeProject(projectId);
-    const subscription = connection
-      .subscriptionBuilder()
-      .onApplied(() => {
-        setLoading(false);
-      })
-      .onError((error) => {
-        console.error("subscription error:", error);
-      })
-      .subscribe([
-        `SELECT * FROM projects`,
-        `SELECT * FROM project_blocks WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM layer WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM player_cursor WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM selections WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM chunk WHERE ProjectId='${projectId}'`,
-        `SELECT * FROM user_projects`,
-      ]);
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [connection, projectId]);
+    
+    if (!project && projectId) {
+      reducers.createProject(projectId, "New Project", 64, 64, 64);
+    }
+    
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [projectId, project]);
 
   useEffect(() => {
     engineRef.current?.projectManager?.builder?.setSelectedBlock(
@@ -111,7 +93,6 @@ export const ProjectViewPage = () => {
 
       if (
         !node ||
-        !connection ||
         !project ||
         !projectId ||
         !atlasData ||
@@ -127,8 +108,8 @@ export const ProjectViewPage = () => {
         const savedCameraState = CameraStatePersistence.load(projectId);
         engineRef.current = new VoxelEngine({
           container: node,
-          connection,
           project,
+          projectId,
           initialCameraState: savedCameraState || undefined,
         });
 
@@ -140,7 +121,7 @@ export const ProjectViewPage = () => {
         engineRef.current.projectManager.setAtlasData(atlasData);
       });
     },
-    [connection, project, projectId, atlasData, selectedBlock, currentTool]
+    [project, projectId, atlasData, selectedBlock, currentTool]
   );
 
   useEffect(() => {
@@ -186,8 +167,8 @@ export const ProjectViewPage = () => {
   }, []);
 
   const createNewProject = useCallback(() => {
-    createProject(connection, navigate);
-  }, []);
+    createProject(navigate);
+  }, [navigate]);
 
   if (loading) {
     return (

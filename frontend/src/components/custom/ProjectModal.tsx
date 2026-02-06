@@ -3,467 +3,101 @@ import { useNavigate } from "react-router-dom";
 import { Modal } from "../ui/modal";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
-import { useProjects } from "@/contexts/ProjectsContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
+import { useUserProjects, type Project } from "@/state";
 import { createProject } from "@/lib/createProject";
-import { Project } from "@/module_bindings";
-import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
-import {
-  Search,
-  Plus,
-  FolderOpen,
-  Clock,
-  Users,
-  ArrowRight,
-  Grid3X3,
-  List,
-  Layers,
-} from "lucide-react";
+import { Plus, Search, FolderOpen } from "lucide-react";
 
 interface ProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type ViewMode = "all" | "recent" | "shared";
-type LayoutMode = "grid" | "list";
-
-const getRelativeTime = (timestamp: Timestamp): string => {
-  const date = timestamp.toDate();
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffSecs < 60) return `${diffSecs}s ago`;
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-};
-
-const getTimeCategory = (timestamp: Timestamp): string => {
-  const date = timestamp.toDate();
-  const now = new Date();
-
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const projectDate = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate()
-  );
-  const daysDiff = Math.floor(
-    (today.getTime() - projectDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  if (daysDiff === 0) return "Today";
-  if (daysDiff === 1) return "Yesterday";
-  if (daysDiff < 7) return "Last week";
-  if (daysDiff < 30) return "Last month";
-  if (daysDiff < 365) return "Earlier this year";
-  return "Older";
-};
-
-const groupProjectsByTime = (projects: Project[]): Map<string, Project[]> => {
-  const groups = new Map<string, Project[]>();
-  const categoryOrder = [
-    "Today",
-    "Yesterday",
-    "Last week",
-    "Last month",
-    "Earlier this year",
-    "Older",
-  ];
-
-  categoryOrder.forEach((category) => groups.set(category, []));
-
-  projects.forEach((project) => {
-    const category = getTimeCategory(project.updated);
-    const group = groups.get(category);
-    if (group) {
-      group.push(project);
-    }
-  });
-
-  const result = new Map<string, Project[]>();
-  categoryOrder.forEach((category) => {
-    const group = groups.get(category);
-    if (group && group.length > 0) {
-      result.set(category, group);
-    }
-  });
-
-  return result;
-};
-
-const getProjectPreview = (project: Project): string => {
-  return project.name
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+const formatTimestamp = (ts: number): string => {
+  const elapsed = Date.now() - ts;
+  const mins = Math.floor(elapsed / 60000);
+  const hrs = Math.floor(elapsed / 3600000);
+  const days = Math.floor(elapsed / 86400000);
+  
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${days}d ago`;
 };
 
 export const ProjectModal = ({ isOpen, onClose }: ProjectModalProps) => {
-  const navigate = useNavigate();
-  const { userProjects, sharedProjects } = useProjects();
-  const { connection } = useDatabase();
+  const nav = useNavigate();
+  const { userProjects, sharedProjects } = useUserProjects();
+  const [filter, setFilter] = useState("");
+  const [creating, setCreating] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("recent");
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("grid");
-  const [isCreating, setIsCreating] = useState(false);
+  const combined = [...userProjects, ...sharedProjects];
+  const sorted = combined.sort((a, b) => b.updated - a.updated);
+  
+  const visible = filter.trim() 
+    ? sorted.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()))
+    : sorted;
 
-  const allProjects = [...userProjects, ...sharedProjects];
-  const recentProjects = allProjects
-    .sort((a, b) => b.updated.toDate().getTime() - a.updated.toDate().getTime())
-    .slice(0, 6);
-
-  const getFilteredProjects = (): Project[] => {
-    let projects: Project[] = [];
-
-    switch (viewMode) {
-      case "recent":
-        projects = recentProjects;
-        break;
-      case "shared":
-        projects = sharedProjects;
-        break;
-      default:
-        projects = allProjects;
-    }
-
-    if (searchTerm.trim()) {
-      projects = projects.filter((project) =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    return projects.sort(
-      (a, b) => b.updated.toDate().getTime() - a.updated.toDate().getTime()
-    );
-  };
-
-  const filteredProjects = getFilteredProjects();
-  const groupedProjects =
-    viewMode === "all" ? null : groupProjectsByTime(filteredProjects);
-
-  const handleProjectClick = (projectId: string) => {
-    navigate(`/project/${projectId}`);
+  const openProject = (id: string) => {
+    nav(`/project/${id}`);
     onClose();
   };
 
-  const handleCreateProject = async () => {
-    if (isCreating) return;
-
-    setIsCreating(true);
+  const newProject = async () => {
+    if (creating) return;
+    setCreating(true);
     try {
-      await createProject(connection, navigate);
+      await createProject(nav);
       onClose();
-    } catch (error) {
-      console.error("Error creating project:", error);
     } finally {
-      setIsCreating(false);
+      setCreating(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen) {
-      setSearchTerm("");
-    }
+    if (isOpen) setFilter("");
   }, [isOpen]);
 
-  const ProjectCard = ({
-    project,
-    isShared,
-  }: {
-    project: Project;
-    isShared: boolean;
-  }) => {
-    const preview = getProjectPreview(project);
-
-    return (
-      <div
-        onClick={() => handleProjectClick(project.id)}
-        className="group relative bg-card border border-border rounded-xl p-6 hover:border-primary/30 hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-
-        <div className="relative">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center text-sm font-semibold text-primary border border-primary/20">
-                {preview}
-              </div>
-              {isShared && (
-                <Badge variant="secondary" className="text-xs">
-                  <Users className="w-3 h-3 mr-1" />
-                  Shared
-                </Badge>
-              )}
-            </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" />
-          </div>
-
-          <h3 className="font-semibold text-foreground mb-2 truncate group-hover:text-primary transition-colors">
-            {project.name}
-          </h3>
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3" />
-            <span>{getRelativeTime(project.updated)}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const ProjectListItem = ({
-    project,
-    isShared,
-  }: {
-    project: Project;
-    isShared: boolean;
-  }) => {
-    const preview = getProjectPreview(project);
-
-    return (
-      <div
-        onClick={() => handleProjectClick(project.id)}
-        className="group flex items-center gap-4 p-4 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors border border-transparent hover:border-border"
-      >
-        <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center text-sm font-medium text-primary border border-primary/20">
-          {preview}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-medium text-foreground truncate group-hover:text-primary transition-colors">
-              {project.name}
-            </h3>
-            {isShared && (
-              <Badge variant="secondary" className="text-xs">
-                <Users className="w-3 h-3 mr-1" />
-                Shared
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3" />
-            <span>{getRelativeTime(project.updated)}</span>
-          </div>
-        </div>
-
-        <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
-    );
-  };
-
-  const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-6">
-        <FolderOpen className="w-8 h-8 text-muted-foreground" />
-      </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">
-        {searchTerm
-          ? "No projects found"
-          : viewMode === "shared"
-          ? "No shared projects"
-          : viewMode === "recent"
-          ? "No recent projects"
-          : "No projects yet"}
-      </h3>
-      <p className="text-muted-foreground mb-6 max-w-sm">
-        {searchTerm
-          ? `No projects match "${searchTerm}". Try a different search term.`
-          : viewMode === "shared"
-          ? "No one has shared any projects with you yet."
-          : "Create your first project to get started with LunaVoxel."}
-      </p>
-      {!searchTerm && viewMode !== "shared" && (
-        <Button onClick={handleCreateProject} disabled={isCreating}>
-          <Plus className="w-4 h-4 mr-2" />
-          {isCreating ? "Creating..." : "Create New Project"}
-        </Button>
-      )}
+  const ProjectItem = ({ proj }: { proj: Project }) => (
+    <div
+      onClick={() => openProject(proj.id)}
+      className="p-4 rounded-lg border border-border hover:border-primary/40 hover:bg-accent/30 cursor-pointer transition-all"
+    >
+      <div className="font-medium truncate mb-1">{proj.name}</div>
+      <div className="text-xs text-muted-foreground">{formatTimestamp(proj.updated)}</div>
     </div>
   );
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Open project"
-      size="5xl"
-      footer={
-        <div className="flex items-center w-full justify-between text-sm text-muted-foreground">
-          <span>
-            {filteredProjects.length} project
-            {filteredProjects.length !== 1 ? "s" : ""}
-          </span>
-          <span>Press ↵ to open first project</span>
-        </div>
-      }
-    >
-      <div className="min-h-[70vh] max-h-[85vh] flex px-6 py-2">
-        <div className="flex flex-col gap-2 pr-6 border-r border-border min-w-[180px]">
-          <Button
-            onClick={handleCreateProject}
-            disabled={isCreating}
-            className="w-full justify-start gap-2 mb-4"
-            variant="outline"
-          >
-            <Plus className="w-4 h-4" />
-            {isCreating ? "Creating..." : "New Project"}
+    <Modal isOpen={isOpen} onClose={onClose} title="Open project" size="3xl">
+      <div className="p-6 min-h-[400px]">
+        <div className="flex gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button onClick={newProject} disabled={creating}>
+            <Plus className="w-4 h-4 mr-2" />
+            {creating ? "Creating..." : "New"}
           </Button>
-
-          {(["recent", "all", "shared"] as ViewMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-left relative ${
-                viewMode === mode
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              {mode === "recent" && <Clock className="w-4 h-4" />}
-              {mode === "all" && <Layers className="w-4 h-4" />}
-              {mode === "shared" && <Users className="w-4 h-4" />}
-              {mode === "all" ? "All" : mode === "recent" ? "Recent" : "Shared"}
-              {viewMode === mode && (
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
-              )}
-            </button>
-          ))}
         </div>
 
-        <div className="flex-1 flex flex-col pl-6 min-w-0">
-          <div className="flex items-center gap-4 w-full justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="flex bg-muted rounded-lg p-1">
-                  <button
-                    onClick={() => setLayoutMode("grid")}
-                    className={`p-2 rounded-md transition-colors ${
-                      layoutMode === "grid"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setLayoutMode("list")}
-                    className={`p-2 rounded-md transition-colors ${
-                      layoutMode === "list"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+        {visible.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <FolderOpen className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {filter ? "No matching projects" : "No projects yet"}
+            </p>
           </div>
-
-          <div className="flex-1 min-h-0">
-            {filteredProjects.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="h-full overflow-y-auto">
-                {groupedProjects ? (
-                  layoutMode === "grid" ? (
-                    <div className="space-y-8">
-                      {Array.from(groupedProjects.entries()).map(
-                        ([category, projects]) => (
-                          <div key={category}>
-                            <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
-                              {category}
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {projects.map((project) => (
-                                <ProjectCard
-                                  key={project.id}
-                                  project={project}
-                                  isShared={sharedProjects.some(
-                                    (p) => p.id === project.id
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-8">
-                      {Array.from(groupedProjects.entries()).map(
-                        ([category, projects]) => (
-                          <div key={category}>
-                            <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
-                              {category}
-                            </h2>
-                            <div className="space-y-2">
-                              {projects.map((project) => (
-                                <ProjectListItem
-                                  key={project.id}
-                                  project={project}
-                                  isShared={sharedProjects.some(
-                                    (p) => p.id === project.id
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )
-                ) : layoutMode === "grid" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredProjects.map((project) => (
-                      <ProjectCard
-                        key={project.id}
-                        project={project}
-                        isShared={sharedProjects.some(
-                          (p) => p.id === project.id
-                        )}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {filteredProjects.map((project) => (
-                      <ProjectListItem
-                        key={project.id}
-                        project={project}
-                        isShared={sharedProjects.some(
-                          (p) => p.id === project.id
-                        )}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {visible.map((p) => <ProjectItem key={p.id} proj={p} />)}
           </div>
-        </div>
+        )}
       </div>
     </Modal>
   );

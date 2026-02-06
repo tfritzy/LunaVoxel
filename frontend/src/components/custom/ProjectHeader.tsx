@@ -6,13 +6,12 @@ import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
 import { Logo } from "./Logo";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { useState, useCallback } from "react";
 import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
 import { UserDropdown } from "./Share/UserDropdown";
 import { ExportType } from "@/modeling/export/model-exporter";
-import { AccessType } from "@/module_bindings";
+import type { AccessType } from "@/state";
 import { ProjectModal } from "./ProjectModal";
 
 interface ProjectHeaderProps {
@@ -31,7 +30,6 @@ export function ProjectHeader({
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { connection } = useDatabase();
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
 
   const handleSignIn = useCallback(() => {
@@ -45,15 +43,15 @@ export function ProjectHeader({
     } catch (error) {
       console.error("Error signing out:", error);
     }
-  }, [signOut, navigate]);
+  }, [signOut]);
 
   const handleNewProject = useCallback(async () => {
     try {
-      await createProject(connection, navigate);
+      await createProject(navigate);
     } catch (error) {
       console.error("Error creating project:", error);
     }
-  }, [connection, navigate]);
+  }, [navigate]);
 
   const handleOpenProject = useCallback(() => {
     setOpenProjectOpen(true);
@@ -84,11 +82,6 @@ export function ProjectHeader({
                 )}
               </div>
             </div>
-          </div>
-          <div>
-            <div>{currentUser?.uid}</div>
-            <div>{connection?.identity?.toHexString()}</div>
-            <div>anon? {currentUser?.isAnonymous ? "ya" :"no"}</div>
           </div>
         
           <div className="flex items-center space-x-4">

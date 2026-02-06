@@ -20,7 +20,7 @@ export class MagicSelectTool implements Tool {
   onDrag(_context: ToolContext, _event: ToolDragEvent): void {}
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    context.dbConn.reducers.magicSelect(
+    context.reducers.magicSelect(
       context.projectId,
       context.selectedLayer,
       event.currentGridPosition

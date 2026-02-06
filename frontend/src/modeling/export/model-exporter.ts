@@ -1,5 +1,5 @@
-import { Chunk } from "../lib/chunk";
-import { Project } from "../../module_bindings";
+import { ChunkManager } from "../lib/chunk-manager";
+import type { Project } from "@/state";
 import { MeshConsolidator } from "./mesh-consolidator";
 import { OBJExporter } from "./obj-exporter";
 import { GLTFExporter } from "./gltf-exporter";
@@ -15,12 +15,12 @@ import { AtlasData } from "@/lib/useAtlas";
 export type ExportType = "GLTF" | "OBJ" | "STL";
 
 export class ModelExporter {
-  private chunkManager: Chunk;
+  private chunkManager: ChunkManager;
   private project: Project;
   private atlasData: AtlasData | null;
 
   constructor(
-    chunkManager: Chunk,
+    chunkManager: ChunkManager,
     project: Project,
     atlasData: AtlasData | null
   ) {

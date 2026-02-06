@@ -1,16 +1,14 @@
 import {
-  DbConnection,
-  UserProject,
-  Project,
-  AccessType,
-} from "@/module_bindings";
-import { QueryRunner } from "./queryRunner";
+  globalStore,
+  type UserProject,
+  type Project,
+  type AccessType,
+} from "@/state";
 
 export class ProjectAccessManager {
   private userProject?: UserProject;
   private project?: Project;
-  private userQueryRunner?: QueryRunner<UserProject>;
-  private projectQueryRunner?: QueryRunner<Project>;
+  private unsubscribe?: () => void;
   public hasWriteAccess: boolean = false;
   public accessLevel: AccessType | null = null;
   public isReadOnly: boolean = true;
@@ -21,7 +19,6 @@ export class ProjectAccessManager {
   ) => void;
 
   constructor(
-    private connection: DbConnection,
     private projectId: string,
     private userId?: string,
     onAccessChange?: (
@@ -35,30 +32,23 @@ export class ProjectAccessManager {
   }
 
   private initializeQueryRunners() {
+    this.unsubscribe = globalStore.subscribe((state) => {
+      if (this.userId) {
+        const userProjectKey = `${this.projectId}:${this.userId}`;
+        this.userProject = state.userProjects.get(userProjectKey);
+      }
+      
+      this.project = state.projects.get(this.projectId);
+      this.updateAccess();
+    });
+    
+    const state = globalStore.getState();
     if (this.userId) {
-      this.userQueryRunner = new QueryRunner<UserProject>(
-        this.connection.db.userProjects,
-        (data) => {
-          this.userProject = data.find(
-            (up) =>
-              up.user.toHexString() === this.userId &&
-              up.projectId === this.projectId
-          );
-          this.updateAccess();
-        },
-        (p) =>
-          p.user.toHexString() === this.userId && p.projectId === this.projectId
-      );
+      const userProjectKey = `${this.projectId}:${this.userId}`;
+      this.userProject = state.userProjects.get(userProjectKey);
     }
-
-    this.projectQueryRunner = new QueryRunner<Project>(
-      this.connection.db.projects,
-      (data) => {
-        this.project = data.find((p) => p.id === this.projectId);
-        this.updateAccess();
-      },
-      (p) => p.id === this.projectId
-    );
+    this.project = state.projects.get(this.projectId);
+    this.updateAccess();
   }
 
   private updateAccess() {
@@ -98,7 +88,11 @@ export class ProjectAccessManager {
         this.isReadOnly = true;
       }
     } else if (this.project) {
-      if (this.project.publicAccess.tag === "ReadWrite") {
+      if (this.project.ownerId === this.userId) {
+        this.hasWriteAccess = true;
+        this.accessLevel = { tag: "ReadWrite" };
+        this.isReadOnly = false;
+      } else if (this.project.publicAccess.tag === "ReadWrite") {
         this.hasWriteAccess = true;
         this.accessLevel = this.project.publicAccess;
         this.isReadOnly = false;
@@ -112,9 +106,9 @@ export class ProjectAccessManager {
         this.isReadOnly = true;
       }
     } else {
-      this.hasWriteAccess = false;
-      this.accessLevel = null;
-      this.isReadOnly = true;
+      this.hasWriteAccess = true;
+      this.accessLevel = { tag: "ReadWrite" };
+      this.isReadOnly = false;
     }
 
     if (

@@ -1,8 +1,5 @@
-import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { DbConnection, ProjectBlocks } from "@/module_bindings";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useQueryRunner } from "./useQueryRunner";
 
 export interface AtlasData {
   blockAtlasMappings: number[][];
@@ -10,17 +7,37 @@ export interface AtlasData {
   colors: number[];
 }
 
+const DEFAULT_COLORS = [
+  0x8B4513, // brown
+  0x228B22, // forest green
+  0x808080, // gray
+  0x87CEEB, // sky blue
+  0xFFFF00, // yellow
+  0xFF0000, // red
+  0x800080, // purple
+  0xFFA500, // orange
+  0x00FFFF, // cyan
+  0xFF69B4, // pink
+];
+
+const DEFAULT_BLOCK_MAPPINGS = [
+  [0, 0, 0, 0, 0, 0],
+  [1, 1, 1, 1, 1, 1],
+  [2, 2, 2, 2, 2, 2],
+  [3, 3, 3, 3, 3, 3],
+  [4, 4, 4, 4, 4, 4],
+  [5, 5, 5, 5, 5, 5],
+  [6, 6, 6, 6, 6, 6],
+  [7, 7, 7, 7, 7, 7],
+  [8, 8, 8, 8, 8, 8],
+  [9, 9, 9, 9, 9, 9],
+];
+
 export const useAtlas = (): AtlasData => {
-  const { connection } = useDatabase();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const textureRef = useRef<THREE.Texture | null>(null);
-
-  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
-  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
-    connection,
-    getTable
-  );
+  const [, forceUpdate] = useState(0);
 
   const atlasData = useMemo(() => {
     if (textureRef.current) {
@@ -28,27 +45,8 @@ export const useAtlas = (): AtlasData => {
       textureRef.current = null;
     }
 
-    if (!allBlocks || allBlocks.length === 0) {
-      return { blockAtlasMappings: [], colors: [], texture: null };
-    }
-
-    const blocks = allBlocks[0];
-    const colors: number[] = [];
-    const colorMap = new Map<number, number>();
-    const blockAtlasMappings: number[][] = [];
-
-    for (let i = 0; i < blocks.faceColors.length; i++) {
-      const blockAtlasIndexes: number[] = [];
-      for (let j = 0; j < blocks.faceColors[i].length; j++) {
-        const color = blocks.faceColors[i][j];
-        if (!colorMap.has(color)) {
-          colorMap.set(color, colors.length);
-          colors.push(color);
-        }
-        blockAtlasIndexes.push(colorMap.get(color)!);
-      }
-      blockAtlasMappings.push(blockAtlasIndexes);
-    }
+    const colors = DEFAULT_COLORS;
+    const blockAtlasMappings = DEFAULT_BLOCK_MAPPINGS;
 
     if (!colors.length) {
       return { blockAtlasMappings, colors, texture: null };
@@ -92,9 +90,10 @@ export const useAtlas = (): AtlasData => {
     textureRef.current = texture;
 
     return { blockAtlasMappings, colors, texture };
-  }, [allBlocks]);
+  }, []);
 
   useEffect(() => {
+    forceUpdate(1);
     return () => {
       if (textureRef.current) {
         textureRef.current.dispose();

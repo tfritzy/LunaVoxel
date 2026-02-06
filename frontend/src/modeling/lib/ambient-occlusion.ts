@@ -1,5 +1,5 @@
 import { VoxelFrame } from "./voxel-frame";
-import { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state";
 
 /**
  * Defines the final AO value based on the number of occluders.

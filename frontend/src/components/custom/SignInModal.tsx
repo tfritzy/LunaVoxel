@@ -1,8 +1,5 @@
 import { useCallback } from "react";
 import { useAuth } from "@/firebase/AuthContext";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { createProject } from "@/lib/createProject";
-import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 
 export const SignInModal = ({
@@ -21,8 +18,6 @@ export const SignInModal = ({
     error,
     clearError,
   } = useAuth();
-  const { connection } = useDatabase();
-  const navigate = useNavigate();
 
   const handleProviderSignIn = useCallback(
     async (provider: "google" | "github" | "microsoft" | "apple") => {
@@ -40,20 +35,14 @@ export const SignInModal = ({
             break;
         }
 
-        if (user && connection) {
+        if (user) {
           onSignIn();
         }
       } catch (error) {
         console.error(`Error signing in with ${provider}:`, error);
       }
     },
-    [
-      signInWithGoogle,
-      signInWithGithub,
-      signInWithMicrosoft,
-      connection,
-      navigate,
-    ]
+    [signInWithGoogle, signInWithGithub, signInWithMicrosoft, onSignIn]
   );
 
   return (

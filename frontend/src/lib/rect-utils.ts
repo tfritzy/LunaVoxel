@@ -1,4 +1,4 @@
-import { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state";
 
 export interface RectBounds {
   minX: number;

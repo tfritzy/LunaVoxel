@@ -1,75 +1,125 @@
 import * as THREE from "three";
 import {
-  Vector3,
-  DbConnection,
-  EventContext,
-  Layer,
-  Chunk as DbChunk,
-  Selection,
-  BlockModificationMode,
-} from "@/module_bindings";
-import {
   decompressVoxelDataInto,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
 import { Chunk, CHUNK_SIZE } from "./chunk";
-import { QueryRunner, TableHandle } from "@/lib/queryRunner";
+import {
+  globalStore,
+  type Vector3,
+  type Layer,
+  type Chunk as DbChunk,
+  type Selection,
+  type BlockModificationMode,
+} from "@/state";
 
 export class ChunkManager {
   private scene: THREE.Scene;
   private dimensions: Vector3;
-  private dbConn: DbConnection;
   private projectId: string;
   private layers: Layer[] = [];
   private layerVisibilityMap: Map<number, boolean> = new Map();
-  private layersQueryRunner: QueryRunner<Layer> | null = null;
+  private unsubscribe: (() => void) | null = null;
   private chunks: Map<string, Chunk> = new Map();
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
+  private lastProcessedChunks: Map<string, DbChunk> = new Map();
+  private lastProcessedLayers: Map<string, Layer> = new Map();
+  private lastProcessedSelections: Map<string, Selection> = new Map();
 
   constructor(
     scene: THREE.Scene,
     dimensions: Vector3,
-    dbConn: DbConnection,
     projectId: string,
     getMode: () => BlockModificationMode
   ) {
     this.scene = scene;
     this.dimensions = dimensions;
-    this.dbConn = dbConn;
     this.projectId = projectId;
     this.getMode = getMode;
 
-    this.dbConn.db.chunk.onInsert(this.onChunkInsert);
-    this.dbConn.db.chunk.onUpdate(this.onChunkUpdate);
-    this.dbConn.db.chunk.onDelete(this.onChunkDelete);
-
-    this.dbConn.db.selections.onInsert(this.onSelectionInsert);
-    this.dbConn.db.selections.onUpdate(this.onSelectionUpdate);
-    this.dbConn.db.selections.onDelete(this.onSelectionDelete);
-
-    this.initializeLayersQueryRunner();
+    this.subscribeToState();
     this.refreshChunks();
   }
 
-  private initializeLayersQueryRunner(): void {
-    const getTable = (db: DbConnection): TableHandle<Layer> => db.db.layer;
-    const filter = (layer: Layer) => layer.projectId === this.projectId;
-    
-    this.layersQueryRunner = new QueryRunner<Layer>(
-      getTable(this.dbConn),
-      (layers) => {
-        this.layers = layers.sort((a, b) => a.index - b.index);
+  private subscribeToState(): void {
+    this.unsubscribe = globalStore.subscribe((state) => {
+      const projectLayers = Array.from(state.layers.values())
+        .filter(l => l.projectId === this.projectId);
+      
+      let layersChanged = projectLayers.length !== this.lastProcessedLayers.size;
+      if (!layersChanged) {
+        for (const layer of projectLayers) {
+          const prev = this.lastProcessedLayers.get(layer.id);
+          if (!prev || prev !== layer) {
+            layersChanged = true;
+            break;
+          }
+        }
+      }
+      
+      if (layersChanged) {
+        this.layers = projectLayers.sort((a, b) => a.index - b.index);
         this.layerVisibilityMap.clear();
         for (const layer of this.layers) {
           this.layerVisibilityMap.set(layer.index, layer.visible);
         }
+        this.lastProcessedLayers.clear();
+        for (const layer of projectLayers) {
+          this.lastProcessedLayers.set(layer.id, layer);
+        }
         this.updateAllChunks();
-      },
-      filter
-    );
+      }
+      
+      const projectChunks = Array.from(state.chunks.values())
+        .filter(c => c.projectId === this.projectId);
+      
+      for (const dbChunk of projectChunks) {
+        const prev = this.lastProcessedChunks.get(dbChunk.id);
+        if (!prev) {
+          this.onChunkInsert(dbChunk);
+        } else if (prev !== dbChunk) {
+          this.onChunkUpdate(prev, dbChunk);
+        }
+      }
+      
+      for (const [id, prev] of this.lastProcessedChunks) {
+        if (!state.chunks.has(id)) {
+          this.onChunkDelete(prev);
+        }
+      }
+      
+      this.lastProcessedChunks.clear();
+      for (const chunk of projectChunks) {
+        this.lastProcessedChunks.set(chunk.id, chunk);
+      }
+      
+      const projectSelections = Array.from(state.selections.values())
+        .filter(s => s.projectId === this.projectId);
+      
+      for (const selection of projectSelections) {
+        const prev = this.lastProcessedSelections.get(selection.id);
+        if (!prev) {
+          this.onSelectionInsert(selection);
+        } else if (prev !== selection) {
+          this.onSelectionUpdate(prev, selection);
+        }
+      }
+      
+      for (const [id, prev] of this.lastProcessedSelections) {
+        const found = projectSelections.find(s => s.id === id);
+        if (!found) {
+          this.onSelectionDelete(prev);
+        }
+      }
+      
+      this.lastProcessedSelections.clear();
+      for (const selection of projectSelections) {
+        this.lastProcessedSelections.set(selection.id, selection);
+      }
+    });
   }
 
   private getChunkKey(minPos: Vector3): string {
@@ -120,7 +170,8 @@ export class ChunkManager {
   }
 
   private refreshChunks = () => {
-    const rawChunks = this.dbConn.db.chunk.tableCache.iter() as DbChunk[];
+    const state = globalStore.getState();
+    const rawChunks = Array.from(state.chunks.values());
     
     for (const dbChunk of rawChunks) {
       if (dbChunk.projectId !== this.projectId) continue;
@@ -137,7 +188,7 @@ export class ChunkManager {
     }
   };
 
-  private onChunkInsert = (ctx: EventContext, newChunk: DbChunk) => {
+  private onChunkInsert = (newChunk: DbChunk) => {
     if (newChunk.projectId !== this.projectId) return;
     
     const layer = this.layers.find(l => l.id === newChunk.layerId);
@@ -151,7 +202,7 @@ export class ChunkManager {
     chunk.setLayerChunk(layer.index, newChunk);
   };
 
-  private onChunkUpdate = (ctx: EventContext, oldChunk: DbChunk, newChunk: DbChunk) => {
+  private onChunkUpdate = (oldChunk: DbChunk, newChunk: DbChunk) => {
     if (newChunk.projectId !== this.projectId) return;
 
     const layer = this.layers.find(l => l.id === newChunk.layerId);
@@ -164,7 +215,7 @@ export class ChunkManager {
     chunk.setLayerChunk(layer.index, newChunk);    
   }
 
-  private onChunkDelete = (ctx: EventContext, deletedChunk: DbChunk) => {
+  private onChunkDelete = (deletedChunk: DbChunk) => {
     if (deletedChunk.projectId !== this.projectId) return;
     
     const layer = this.layers.find(l => l.id === deletedChunk.layerId);
@@ -186,14 +237,13 @@ export class ChunkManager {
     }
   };
 
-  private onSelectionInsert = (ctx: EventContext, newSelection: Selection) => {
+  private onSelectionInsert = (newSelection: Selection) => {
     if (newSelection.projectId !== this.projectId) return;
     
     this.applySelectionToChunks(newSelection);
   };
 
   private onSelectionUpdate = (
-    ctx: EventContext,
     oldSelection: Selection,
     newSelection: Selection
   ) => {
@@ -203,19 +253,18 @@ export class ChunkManager {
   };
 
   private onSelectionDelete = (
-    ctx: EventContext,
     deletedSelection: Selection
   ) => {
     if (deletedSelection.projectId !== this.projectId) return;
     
-    const identityId = deletedSelection.identity.toHexString();
+    const identityId = deletedSelection.identityId;
     for (const chunk of this.chunks.values()) {
       chunk.setSelectionFrame(identityId, null);
     }
   };
 
   private applySelectionToChunks(selection: Selection): void {
-    const identityId = selection.identity.toHexString();
+    const identityId = selection.identityId;
     
     for (const frame of selection.selectionFrames) {
       const chunkKey = this.getChunkKey(frame.minPos);
@@ -358,14 +407,10 @@ export class ChunkManager {
   }
 
   dispose = () => {
-    this.dbConn.db.chunk.removeOnInsert(this.onChunkInsert);
-    this.dbConn.db.chunk.removeOnDelete(this.onChunkDelete);
-    this.dbConn.db.selections.removeOnInsert(this.onSelectionInsert);
-    this.dbConn.db.selections.removeOnUpdate(this.onSelectionUpdate);
-    this.dbConn.db.selections.removeOnDelete(this.onSelectionDelete);
-
-    this.layersQueryRunner?.dispose();
-    this.layersQueryRunner = null;
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
 
     for (const chunk of this.chunks.values()) {
       chunk.dispose();
@@ -373,4 +418,22 @@ export class ChunkManager {
     this.chunks.clear();
     this.chunksWithPreview.clear();
   };
+
+  public getChunkDimensions(): { x: number; y: number; z: number } {
+    return {
+      x: Math.ceil(this.dimensions.x / CHUNK_SIZE),
+      y: Math.ceil(this.dimensions.y / CHUNK_SIZE),
+      z: Math.ceil(this.dimensions.z / CHUNK_SIZE),
+    };
+  }
+
+  public getMesh(): THREE.Mesh | null {
+    const firstChunk = this.chunks.values().next().value;
+    if (!firstChunk) return null;
+    return firstChunk.getMesh();
+  }
+
+  public getAllChunks(): Chunk[] {
+    return Array.from(this.chunks.values());
+  }
 }

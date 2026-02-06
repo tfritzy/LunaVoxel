@@ -1,15 +1,14 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useCurrentProject } from "@/lib/useCurrentProject";
+import { useProject, reducers, useCurrentUserId } from "@/state";
 
 export function ProjectNameInput() {
   const projectId = useParams<{ projectId: string }>().projectId || "";
-  const { connection } = useDatabase();
   const [localName, setLocalName] = useState("");
   const debounceRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const project = useCurrentProject(connection, projectId);
+  const project = useProject(projectId);
+  const currentUserId = useCurrentUserId();
 
   useEffect(() => {
     if (!project || localName === project.name) return;
@@ -20,16 +19,16 @@ export function ProjectNameInput() {
 
     debounceRef.current = setTimeout(() => {
       if (localName.trim() && localName !== project.name) {
-        connection?.reducers.updateProjectName(projectId!, localName.trim());
+        reducers.updateProjectName(projectId!, localName.trim());
       }
-    }, 500);
+    }, 500) as unknown as number;
 
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [localName, project, projectId, connection]);
+  }, [localName, project, projectId]);
 
   const handleFocus = useCallback(() => {
     if (inputRef.current) {
@@ -63,6 +62,8 @@ export function ProjectNameInput() {
     []
   );
 
+  const isOwner = project && currentUserId && project.ownerId === currentUserId;
+
   return (
     <input
       ref={inputRef}
@@ -72,11 +73,7 @@ export function ProjectNameInput() {
       onKeyDown={handleKeyDown}
       className="bg-transparent border-none outline-none text-lg placeholder-foreground-muted font-medium px-3 rounded focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all"
       placeholder="Untitled Project"
-      disabled={
-        !project ||
-        !connection?.identity ||
-        !project.owner.isEqual(connection.identity)
-      }
+      disabled={!project || !isOwner}
     />
   );
 }
