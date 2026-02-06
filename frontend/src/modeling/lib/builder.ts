@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { layers } from "./layers";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
@@ -12,9 +11,7 @@ import type { Tool } from "./tool-interface";
 import { reducers, globalStore, type Vector3, type BlockModificationMode } from "@/state";
 
 export const Builder = class {
-  private accessManager: ProjectAccessManager;
   private previewFrame: VoxelFrame;
-  private projectId: string;
   private dimensions: Vector3;
   private projectManager: ProjectManager;
   private selectedBlock: number = 1;
@@ -30,7 +27,6 @@ export const Builder = class {
   private currentTool: Tool;
   private currentMode: BlockModificationMode = { tag: "Attach" };
   private toolContext: {
-    projectId: string;
     dimensions: Vector3;
     projectManager: ProjectManager;
     previewFrame: VoxelFrame;
@@ -59,14 +55,12 @@ export const Builder = class {
   private lastSentCursorNormal: THREE.Vector3 | null = null;
 
   constructor(
-    projectId: string,
     dimensions: Vector3,
     camera: THREE.Camera,
     scene: THREE.Scene,
     domElement: HTMLElement,
     projectManager: ProjectManager
   ) {
-    this.projectId = projectId;
     this.dimensions = dimensions;
     this.camera = camera;
     this.scene = scene;
@@ -83,7 +77,6 @@ export const Builder = class {
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
-      projectId: this.projectId,
       dimensions: this.dimensions,
       projectManager: this.projectManager,
       previewFrame: this.previewFrame,
@@ -101,12 +94,6 @@ export const Builder = class {
     this.boundContextMenu = this.onContextMenu.bind(this);
 
     this.addEventListeners();
-
-    const state = globalStore.getState();
-    this.accessManager = new ProjectAccessManager(
-      projectId,
-      state.currentUserId || undefined
-    );
   }
 
   cancelCurrentOperation(): void {
@@ -195,17 +182,13 @@ export const Builder = class {
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-    if (gridPos && this.accessManager.hasWriteAccess) {
+    if (gridPos) {
       this.handleMouseDrag(gridPos);
     }
   }
 
   private onMouseClick(event: MouseEvent): void {
     if (event.button !== 0) {
-      return;
-    }
-
-    if (!this.accessManager.hasWriteAccess) {
       return;
     }
 
@@ -220,10 +203,6 @@ export const Builder = class {
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
-      if (!this.accessManager.hasWriteAccess) {
-        return;
-      }
-
       this.isMouseDown = true;
       this.startMousePos = this.mouse.clone();
 
@@ -325,8 +304,6 @@ export const Builder = class {
   }
 
   private handleMouseDrag(gridPos: THREE.Vector3): void {
-    if (!this.accessManager.hasWriteAccess) return;
-
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
       this.startMousePos = this.mouse.clone();
@@ -355,8 +332,6 @@ export const Builder = class {
   }
 
   private handleMouseUp(position: THREE.Vector3): void {
-    if (!this.accessManager.hasWriteAccess) return;
-
     const endPos = position;
     const startPos = this.startPosition || position;
     const startMousePos = this.startMousePos || this.mouse.clone();

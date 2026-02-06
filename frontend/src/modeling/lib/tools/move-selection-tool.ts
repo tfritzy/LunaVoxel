@@ -38,7 +38,6 @@ export class MoveSelectionTool implements Tool {
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     if (this.lastOffset.length() > 0.1) {
       context.reducers.commitSelectionMove(
-        context.projectId,
         {
           x: Math.round(this.lastOffset.x),
           y: Math.round(this.lastOffset.y),

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { globalStore, type GlobalState } from "./store";
-import type { Project, Layer, Chunk, Selection, AccessType } from "./types";
+import type { Layer, Chunk, Selection, Vector3 } from "./types";
 import { reducers } from "./reducers";
 
 export function useGlobalState(): GlobalState {
@@ -24,66 +24,33 @@ export function useCurrentUserId(): string | null {
   return state.currentUserId;
 }
 
-export function useProject(projectId: string): Project | undefined {
+export function useDimensions(): Vector3 {
   const state = useGlobalState();
-  return state.projects.get(projectId);
+  return state.dimensions;
 }
 
-export function useProjects(): Project[] {
-  const state = useGlobalState();
-  return useMemo(() => Array.from(state.projects.values()), [state.projects]);
-}
-
-export function useUserProjects(): { userProjects: Project[]; sharedProjects: Project[] } {
-  const state = useGlobalState();
-  
-  return useMemo(() => {
-    const userId = state.currentUserId;
-    if (!userId) {
-      return { userProjects: [], sharedProjects: [] };
-    }
-
-    const userProjects: Project[] = [];
-    const sharedProjects: Project[] = [];
-
-    for (const project of state.projects.values()) {
-      if (project.ownerId === userId) {
-        userProjects.push(project);
-      } else {
-        sharedProjects.push(project);
-      }
-    }
-
-    return { userProjects, sharedProjects };
-  }, [state.projects, state.currentUserId]);
-}
-
-export function useLayers(projectId: string): Layer[] {
+export function useLayers(): Layer[] {
   const state = useGlobalState();
   
   return useMemo(() => {
     const layers: Layer[] = [];
     for (const layer of state.layers.values()) {
-      if (layer.projectId === projectId) {
-        layers.push(layer);
-      }
+      layers.push(layer);
     }
     return layers.sort((a, b) => a.index - b.index);
-  }, [state.layers, projectId]);
+  }, [state.layers]);
 }
 
-export function useChunks(projectId: string): Chunk[] {
+export function useChunks(): Chunk[] {
   const state = useGlobalState();
   
   return useMemo(() => {
     const chunks: Chunk[] = [];
     for (const chunk of state.chunks.values()) {
-      if (chunk.projectId === projectId) {
-        chunks.push(chunk);
-      }
+      chunks.push(chunk);
     }
     return chunks;
-  }, [state.chunks, projectId]);
+  }, [state.chunks]);
 }
 
 export function useLayerChunks(layerId: string): Chunk[] {
@@ -100,7 +67,7 @@ export function useLayerChunks(layerId: string): Chunk[] {
   }, [state.chunks, layerId]);
 }
 
-export function useSelection(projectId: string): Selection | undefined {
+export function useSelection(): Selection | undefined {
   const state = useGlobalState();
   
   return useMemo(() => {
@@ -108,50 +75,12 @@ export function useSelection(projectId: string): Selection | undefined {
     if (!userId) return undefined;
     
     for (const selection of state.selections.values()) {
-      if (selection.projectId === projectId && selection.identityId === userId) {
+      if (selection.identityId === userId) {
         return selection;
       }
     }
     return undefined;
-  }, [state.selections, projectId, state.currentUserId]);
-}
-
-export function useProjectAccess(projectId: string): { hasWriteAccess: boolean; accessLevel: AccessType | null } {
-  const state = useGlobalState();
-  
-  return useMemo(() => {
-    const userId = state.currentUserId;
-    const project = state.projects.get(projectId);
-    
-    if (!project) {
-      return { hasWriteAccess: false, accessLevel: null };
-    }
-    
-    const userProjectKey = `${projectId}:${userId}`;
-    const userProject = state.userProjects.get(userProjectKey);
-    
-    if (userProject) {
-      if (userProject.accessType.tag === "ReadWrite") {
-        return { hasWriteAccess: true, accessLevel: userProject.accessType };
-      } else if (userProject.accessType.tag === "Read") {
-        return { hasWriteAccess: false, accessLevel: userProject.accessType };
-      } else if (userProject.accessType.tag === "Inherited") {
-        return { 
-          hasWriteAccess: project.publicAccess.tag === "ReadWrite", 
-          accessLevel: project.publicAccess 
-        };
-      }
-    }
-    
-    if (project.ownerId === userId) {
-      return { hasWriteAccess: true, accessLevel: { tag: "ReadWrite" as const } };
-    }
-    
-    return { 
-      hasWriteAccess: project.publicAccess.tag === "ReadWrite", 
-      accessLevel: project.publicAccess 
-    };
-  }, [state.projects, state.userProjects, projectId, state.currentUserId]);
+  }, [state.selections, state.currentUserId]);
 }
 
 export interface ChunkEventHandlers {
@@ -160,7 +89,7 @@ export interface ChunkEventHandlers {
   onDelete: (callback: (chunk: Chunk) => void) => () => void;
 }
 
-export function useChunkEvents(projectId: string): ChunkEventHandlers {
+export function useChunkEvents(): ChunkEventHandlers {
   const [prevChunks, setPrevChunks] = useState<Map<string, Chunk>>(new Map());
   const [insertCallbacks] = useState<Set<(chunk: Chunk) => void>>(new Set());
   const [updateCallbacks] = useState<Set<(oldChunk: Chunk, newChunk: Chunk) => void>>(new Set());
@@ -170,9 +99,7 @@ export function useChunkEvents(projectId: string): ChunkEventHandlers {
     const unsubscribe = globalStore.subscribe((state) => {
       const currentChunks = new Map<string, Chunk>();
       for (const chunk of state.chunks.values()) {
-        if (chunk.projectId === projectId) {
-          currentChunks.set(chunk.id, chunk);
-        }
+        currentChunks.set(chunk.id, chunk);
       }
 
       for (const [id, chunk] of currentChunks) {
@@ -194,7 +121,7 @@ export function useChunkEvents(projectId: string): ChunkEventHandlers {
     });
 
     return unsubscribe;
-  }, [projectId, prevChunks, insertCallbacks, updateCallbacks, deleteCallbacks]);
+  }, [prevChunks, insertCallbacks, updateCallbacks, deleteCallbacks]);
 
   const onInsert = useCallback((callback: (chunk: Chunk) => void) => {
     insertCallbacks.add(callback);
@@ -220,7 +147,7 @@ export interface LayerEventHandlers {
   onDelete: (callback: (layer: Layer) => void) => () => void;
 }
 
-export function useLayerEvents(projectId: string): LayerEventHandlers {
+export function useLayerEvents(): LayerEventHandlers {
   const [prevLayers, setPrevLayers] = useState<Map<string, Layer>>(new Map());
   const [insertCallbacks] = useState<Set<(layer: Layer) => void>>(new Set());
   const [updateCallbacks] = useState<Set<(oldLayer: Layer, newLayer: Layer) => void>>(new Set());
@@ -230,9 +157,7 @@ export function useLayerEvents(projectId: string): LayerEventHandlers {
     const unsubscribe = globalStore.subscribe((state) => {
       const currentLayers = new Map<string, Layer>();
       for (const layer of state.layers.values()) {
-        if (layer.projectId === projectId) {
-          currentLayers.set(layer.id, layer);
-        }
+        currentLayers.set(layer.id, layer);
       }
 
       for (const [id, layer] of currentLayers) {
@@ -254,7 +179,7 @@ export function useLayerEvents(projectId: string): LayerEventHandlers {
     });
 
     return unsubscribe;
-  }, [projectId, prevLayers, insertCallbacks, updateCallbacks, deleteCallbacks]);
+  }, [prevLayers, insertCallbacks, updateCallbacks, deleteCallbacks]);
 
   const onInsert = useCallback((callback: (layer: Layer) => void) => {
     insertCallbacks.add(callback);
@@ -280,7 +205,7 @@ export interface SelectionEventHandlers {
   onDelete: (callback: (selection: Selection) => void) => () => void;
 }
 
-export function useSelectionEvents(projectId: string): SelectionEventHandlers {
+export function useSelectionEvents(): SelectionEventHandlers {
   const [prevSelections, setPrevSelections] = useState<Map<string, Selection>>(new Map());
   const [insertCallbacks] = useState<Set<(selection: Selection) => void>>(new Set());
   const [updateCallbacks] = useState<Set<(oldSelection: Selection, newSelection: Selection) => void>>(new Set());
@@ -290,9 +215,7 @@ export function useSelectionEvents(projectId: string): SelectionEventHandlers {
     const unsubscribe = globalStore.subscribe((state) => {
       const currentSelections = new Map<string, Selection>();
       for (const selection of state.selections.values()) {
-        if (selection.projectId === projectId) {
-          currentSelections.set(selection.id, selection);
-        }
+        currentSelections.set(selection.id, selection);
       }
 
       for (const [id, selection] of currentSelections) {
@@ -314,7 +237,7 @@ export function useSelectionEvents(projectId: string): SelectionEventHandlers {
     });
 
     return unsubscribe;
-  }, [projectId, prevSelections, insertCallbacks, updateCallbacks, deleteCallbacks]);
+  }, [prevSelections, insertCallbacks, updateCallbacks, deleteCallbacks]);
 
   const onInsert = useCallback((callback: (selection: Selection) => void) => {
     insertCallbacks.add(callback);

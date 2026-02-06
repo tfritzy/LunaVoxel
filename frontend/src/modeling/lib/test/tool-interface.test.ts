@@ -23,7 +23,6 @@ describe("Tool Interface", () => {
     camera.updateMatrixWorld();
 
     mockContext = {
-      projectId: "test-project",
       dimensions,
       projectManager: {
         onPreviewUpdate: () => {},

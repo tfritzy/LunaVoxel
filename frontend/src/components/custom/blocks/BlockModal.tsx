@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { useParams } from "react-router-dom";
 import { HexColorPicker } from "react-colorful";
 import "@/components/custom/color-picker.css";
 import { Block3DPreview } from "./Block3dPreview";
@@ -93,7 +92,6 @@ export const BlockModal = ({
   blockIndex,
   atlasData,
 }: BlockModalProps) => {
-  const projectId = useParams().projectId || "";
   const isCreating = blockIndex === "new";
 
   const initialColor = "#ffffff";
@@ -153,9 +151,9 @@ export const BlockModal = ({
     const nums = faceColors.map(hex => parseInt(hex.replace("#", ""), 16));
 
     if (isCreating) {
-      reducers.addBlock(projectId, nums);
+      reducers.addBlock(nums);
     } else {
-      reducers.updateBlock(projectId, (blockIndex as number) - 1, nums);
+      reducers.updateBlock((blockIndex as number) - 1, nums);
     }
     setPending(false);
     onClose();

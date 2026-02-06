@@ -25,15 +25,13 @@ import {
 
 interface LayersSectionProps {
   onSelectLayer?: (layerIndex: number) => void;
-  projectId: string;
 }
 
 export const LayersSection = ({
   onSelectLayer,
-  projectId,
 }: LayersSectionProps) => {
   const [selectedLayer, setSelectedLayer] = useState<number>(0);
-  const layers = useLayers(projectId);
+  const layers = useLayers();
   const [optimisticLayers, setOptimisticLayers] = useState<Layer[] | null>(null);
 
   const sortedLayers = useMemo(() => {
@@ -59,8 +57,8 @@ export const LayersSection = ({
   );
 
   const addLayer = React.useCallback(() => {
-    reducers.addLayer(projectId);
-  }, [projectId]);
+    reducers.addLayer();
+  }, []);
 
   const onDelete = React.useCallback(
     (layer: Layer) => {
@@ -109,12 +107,11 @@ export const LayersSection = ({
           setSelectedLayer(newSelectedIndex);
 
           const newOrder = newLayers.map((layer) => layer.id);
-          reducers.reorderLayers(projectId, newOrder);
+          reducers.reorderLayers(newOrder);
         }
       }
     },
     [
-      projectId,
       selectedLayer,
       sortedLayers,
     ]

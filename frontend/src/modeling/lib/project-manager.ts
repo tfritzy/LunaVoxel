@@ -6,40 +6,35 @@ import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
-import { reducers, type Project, type BlockModificationMode } from "@/state";
+import { reducers, type Vector3, type BlockModificationMode } from "@/state";
 
 export class ProjectManager {
   public builder;
   public chunkManager;
   private cursorManager: CursorManager;
-  private projectId: string;
-  private project: Project;
+  private dimensions: Vector3;
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
 
   constructor(
     scene: THREE.Scene,
-    projectId: string,
-    project: Project,
+    dimensions: Vector3,
     camera: THREE.Camera,
     container: HTMLElement
   ) {
-    this.projectId = projectId;
-    this.project = project;
+    this.dimensions = dimensions;
     this.chunkManager = new ChunkManager(
       scene,
-      project.dimensions,
-      projectId,
+      dimensions,
       () => this.builder.getMode()
     );
-    this.cursorManager = new CursorManager(scene, projectId);
-    this.editHistory = new EditHistory(projectId);
+    this.cursorManager = new CursorManager(scene);
+    this.editHistory = new EditHistory();
     this.keydownHandler = this.setupKeyboardEvents();
 
     this.builder = new Builder(
-      this.projectId,
-      project.dimensions,
+      dimensions,
       camera,
       scene,
       container,
@@ -82,7 +77,7 @@ export class ProjectManager {
   public export = (type: ExportType): void => {
     const exporter = new ModelExporter(
       this.chunkManager,
-      this.project,
+      this.dimensions,
       this.atlasData
     );
     exporter.export(type);
@@ -94,7 +89,6 @@ export class ProjectManager {
     afterDiff: Uint8Array
   ) => {
     reducers.undoEdit(
-      this.projectId,
       beforeDiff,
       afterDiff,
       layer

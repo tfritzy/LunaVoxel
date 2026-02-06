@@ -3,12 +3,11 @@ import { addGroundPlane } from "./lib/add-ground-plane";
 import { CameraController, CameraState } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
 import { ProjectManager } from "./lib/project-manager";
-import type { Project } from "@/state";
+import type { Vector3 } from "@/state";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
-  project: Project;
-  projectId: string;
+  dimensions: Vector3;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
   initialCameraState?: CameraState;
 }
@@ -21,13 +20,11 @@ export class VoxelEngine {
   private camera: THREE.PerspectiveCamera;
   private controls: CameraController;
   private animationFrameId: number | null = null;
-  private project: Project;
-  private projectId: string;
+  private dimensions: Vector3;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
-    this.project = options.project;
-    this.projectId = options.projectId;
+    this.dimensions = options.dimensions;
 
     this.renderer = this.setupRenderer(this.container);
     this.scene = new THREE.Scene();
@@ -38,9 +35,9 @@ export class VoxelEngine {
     this.controls = new CameraController(
       this.camera,
       new THREE.Vector3(
-        this.project.dimensions.x / 2,
+        this.dimensions.x / 2,
         0,
-        this.project.dimensions.z / 2
+        this.dimensions.z / 2
       ),
       this.renderer.domElement
     );
@@ -51,20 +48,18 @@ export class VoxelEngine {
 
     addGroundPlane(
       this.scene,
-      this.project.dimensions.x,
-      this.project.dimensions.y,
-      this.project.dimensions.z
+      this.dimensions.x,
+      this.dimensions.y,
+      this.dimensions.z
     );
     this.projectManager = new ProjectManager(
       this.scene,
-      this.projectId,
-      this.project,
+      this.dimensions,
       this.camera,
       this.container
     );
 
     window.addEventListener("resize", this.handleResize);
-    // this.setupPerformanceMonitoring();
     this.animate();
   }
 
@@ -99,14 +94,14 @@ export class VoxelEngine {
 
   private setupCamera(): THREE.PerspectiveCamera {
     const floorCenter = new THREE.Vector3(
-      this.project.dimensions.x / 2,
+      this.dimensions.x / 2,
       0,
-      this.project.dimensions.z / 2
+      this.dimensions.z / 2
     );
 
     const maxHorizontalDimension = Math.max(
-      this.project.dimensions.x,
-      this.project.dimensions.z
+      this.dimensions.x,
+      this.dimensions.z
     );
 
     const fov = 50;
@@ -139,75 +134,6 @@ export class VoxelEngine {
 
   public handleContainerResize(): void {
     this.handleResize();
-  }
-
-  private setupPerformanceMonitoring(): void {
-    const rendererStatsElement: HTMLDivElement = document.createElement("div");
-    rendererStatsElement.style.position = "fixed";
-    rendererStatsElement.style.right = "0";
-    rendererStatsElement.style.bottom = "0";
-    rendererStatsElement.style.padding = "10px";
-    rendererStatsElement.style.color = "white";
-    rendererStatsElement.style.fontFamily = "monospace";
-    rendererStatsElement.style.fontSize = "12px";
-    rendererStatsElement.style.zIndex = "100";
-    rendererStatsElement.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-    rendererStatsElement.style.borderRadius = "4px";
-    this.container.appendChild(rendererStatsElement);
-
-    let frameCount: number = 0;
-    let lastFpsTime: number = performance.now();
-    let fps: number = 0;
-    let frameTime: number = 0;
-    let lastFrameStart: number = 0;
-    let minFrameTime: number = Infinity;
-    let maxFrameTime: number = 0;
-    let avgFrameTime: number = 0;
-    const frameTimeHistory: number[] = [];
-    const HISTORY_SIZE: number = 60;
-
-    const updateStats = (): void => {
-      const now: number = performance.now();
-
-      if (lastFrameStart > 0) {
-        frameTime = now - lastFrameStart;
-
-        minFrameTime = Math.min(minFrameTime, frameTime);
-        maxFrameTime = Math.max(maxFrameTime, frameTime);
-
-        frameTimeHistory.push(frameTime);
-        if (frameTimeHistory.length > HISTORY_SIZE) {
-          frameTimeHistory.shift();
-        }
-      }
-      lastFrameStart = now;
-
-      frameCount++;
-      if (now - lastFpsTime >= 1000) {
-        fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
-        frameCount = 0;
-        lastFpsTime = now;
-
-        minFrameTime = Infinity;
-        maxFrameTime = 0;
-      }
-
-      const info = this.renderer.info;
-      rendererStatsElement.innerHTML = `
-      <div>Fps: ${fps}</div>
-      <div>Draw calls: ${info.render.calls}</div>
-      <div>Triangles: ${info.render.triangles.toLocaleString()}</div>
-      <div>Geometries: ${info.memory.geometries}</div>
-      <div>Textures: ${info.memory.textures}</div>
-      }
-    `;
-    };
-
-    const originalAnimate = this.animate;
-    this.animate = (currentTime: number = 0): void => {
-      originalAnimate.call(this, currentTime);
-      updateStats();
-    };
   }
 
   private handleResize = (): void => {

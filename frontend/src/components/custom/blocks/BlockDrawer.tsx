@@ -129,12 +129,10 @@ const HexagonGrid = memo(
 );
 
 export const BlockDrawer = ({
-  projectId,
   selectedBlock,
   setSelectedBlock,
   atlasData,
 }: {
-  projectId: string;
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
   atlasData: AtlasData;
@@ -216,7 +214,6 @@ export const BlockDrawer = ({
             onClose={() => setDeletingBlockIndex(null)}
             blockIndex={deletingBlockIndex}
             atlasData={atlasData}
-            projectId={projectId}
           />
         )}
       </div>

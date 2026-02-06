@@ -1,19 +1,17 @@
 import { globalStore } from "./store";
 import type {
-  Project,
   Layer,
   Chunk,
   Selection,
   BlockModificationMode,
   Vector3,
-  AccessType,
 } from "./types";
 import { generateId } from "@/lib/idGenerator";
 
 const CHUNK_SIZE = 32;
 
-function getChunkId(projectId: string, layerId: string, minX: number, minY: number, minZ: number): string {
-  return `${projectId}:${layerId}:${minX},${minY},${minZ}`;
+function getChunkId(layerId: string, minX: number, minY: number, minZ: number): string {
+  return `${layerId}:${minX},${minY},${minZ}`;
 }
 
 function getChunkMinPos(pos: number): number {
@@ -21,7 +19,6 @@ function getChunkMinPos(pos: number): number {
 }
 
 function getOrCreateChunk(
-  projectId: string,
   layerId: string,
   worldX: number,
   worldY: number,
@@ -31,7 +28,7 @@ function getOrCreateChunk(
   const minX = getChunkMinPos(worldX);
   const minY = getChunkMinPos(worldY);
   const minZ = getChunkMinPos(worldZ);
-  const chunkId = getChunkId(projectId, layerId, minX, minY, minZ);
+  const chunkId = getChunkId(layerId, minX, minY, minZ);
   
   const state = globalStore.getState();
   let chunk = state.chunks.get(chunkId);
@@ -43,7 +40,6 @@ function getOrCreateChunk(
     
     chunk = {
       id: chunkId,
-      projectId,
       layerId,
       minPosX: minX,
       minPosY: minY,
@@ -60,33 +56,17 @@ function getOrCreateChunk(
 }
 
 export const reducers = {
-  createProject(
+  initializeEditor(
     id: string,
-    name: string,
     xDim: number,
     yDim: number,
     zDim: number
   ) {
-    const state = globalStore.getState();
-    const userId = state.currentUserId;
-    if (!userId) return;
-
-    const now = Date.now();
-    const project: Project = {
-      id,
-      name,
-      dimensions: { x: xDim, y: yDim, z: zDim },
-      ownerId: userId,
-      updated: now,
-      created: now,
-      publicAccess: { tag: "ReadWrite" },
-    };
-    
-    globalStore.setProject(project);
+    const dimensions = { x: xDim, y: yDim, z: zDim };
+    globalStore.setDimensions(dimensions);
     
     const layer: Layer = {
       id: generateId("lyr"),
-      projectId: id,
       xDim,
       yDim,
       zDim,
@@ -101,41 +81,26 @@ export const reducers = {
     for (let x = 0; x < xDim; x += CHUNK_SIZE) {
       for (let y = 0; y < yDim; y += CHUNK_SIZE) {
         for (let z = 0; z < zDim; z += CHUNK_SIZE) {
-          getOrCreateChunk(id, layer.id, x, y, z, project.dimensions);
+          getOrCreateChunk(layer.id, x, y, z, dimensions);
         }
       }
     }
   },
 
-  updateProjectName(projectId: string, name: string) {
+  addLayer() {
     const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
-    
-    globalStore.setProject({
-      ...project,
-      name,
-      updated: Date.now(),
-    });
-  },
+    const dimensions = state.dimensions;
 
-  addLayer(projectId: string) {
-    const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
-
-    const existingLayers = Array.from(state.layers.values())
-      .filter(l => l.projectId === projectId);
+    const existingLayers = Array.from(state.layers.values());
     const maxIndex = existingLayers.length > 0 
       ? Math.max(...existingLayers.map(l => l.index))
       : -1;
 
     const layer: Layer = {
       id: generateId("lyr"),
-      projectId,
-      xDim: project.dimensions.x,
-      yDim: project.dimensions.y,
-      zDim: project.dimensions.z,
+      xDim: dimensions.x,
+      yDim: dimensions.y,
+      zDim: dimensions.z,
       index: maxIndex + 1,
       visible: true,
       locked: false,
@@ -144,10 +109,10 @@ export const reducers = {
     
     globalStore.setLayer(layer);
     
-    for (let x = 0; x < project.dimensions.x; x += CHUNK_SIZE) {
-      for (let y = 0; y < project.dimensions.y; y += CHUNK_SIZE) {
-        for (let z = 0; z < project.dimensions.z; z += CHUNK_SIZE) {
-          getOrCreateChunk(projectId, layer.id, x, y, z, project.dimensions);
+    for (let x = 0; x < dimensions.x; x += CHUNK_SIZE) {
+      for (let y = 0; y < dimensions.y; y += CHUNK_SIZE) {
+        for (let z = 0; z < dimensions.z; z += CHUNK_SIZE) {
+          getOrCreateChunk(layer.id, x, y, z, dimensions);
         }
       }
     }
@@ -158,9 +123,8 @@ export const reducers = {
     const layer = state.layers.get(layerId);
     if (!layer) return;
 
-    const projectLayers = Array.from(state.layers.values())
-      .filter(l => l.projectId === layer.projectId);
-    if (projectLayers.length <= 1) return;
+    const allLayers = Array.from(state.layers.values());
+    if (allLayers.length <= 1) return;
 
     for (const chunk of state.chunks.values()) {
       if (chunk.layerId === layerId) {
@@ -193,12 +157,12 @@ export const reducers = {
     });
   },
 
-  reorderLayers(projectId: string, newOrder: string[]) {
+  reorderLayers(newOrder: string[]) {
     const state = globalStore.getState();
     
     for (let i = 0; i < newOrder.length; i++) {
       const layer = state.layers.get(newOrder[i]);
-      if (layer && layer.projectId === projectId) {
+      if (layer) {
         globalStore.setLayer({
           ...layer,
           index: newOrder.length - 1 - i,
@@ -208,7 +172,6 @@ export const reducers = {
   },
 
   modifyBlockRect(
-    projectId: string,
     mode: BlockModificationMode,
     blockType: number,
     startPos: Vector3,
@@ -217,24 +180,23 @@ export const reducers = {
     layerIndex: number
   ) {
     const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
+    const dimensions = state.dimensions;
 
     const layer = Array.from(state.layers.values())
-      .find(l => l.projectId === projectId && l.index === layerIndex);
+      .find(l => l.index === layerIndex);
     if (!layer || layer.locked) return;
 
     const minX = Math.max(0, Math.min(Math.floor(startPos.x), Math.floor(endPos.x)));
-    const maxX = Math.min(project.dimensions.x - 1, Math.max(Math.floor(startPos.x), Math.floor(endPos.x)));
+    const maxX = Math.min(dimensions.x - 1, Math.max(Math.floor(startPos.x), Math.floor(endPos.x)));
     const minY = Math.max(0, Math.min(Math.floor(startPos.y), Math.floor(endPos.y)));
-    const maxY = Math.min(project.dimensions.y - 1, Math.max(Math.floor(startPos.y), Math.floor(endPos.y)));
+    const maxY = Math.min(dimensions.y - 1, Math.max(Math.floor(startPos.y), Math.floor(endPos.y)));
     const minZ = Math.max(0, Math.min(Math.floor(startPos.z), Math.floor(endPos.z)));
-    const maxZ = Math.min(project.dimensions.z - 1, Math.max(Math.floor(startPos.z), Math.floor(endPos.z)));
+    const maxZ = Math.min(dimensions.z - 1, Math.max(Math.floor(startPos.z), Math.floor(endPos.z)));
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
-          const chunk = getOrCreateChunk(projectId, layer.id, x, y, z, project.dimensions);
+          const chunk = getOrCreateChunk(layer.id, x, y, z, dimensions);
           const localX = x - chunk.minPosX;
           const localY = y - chunk.minPosY;
           const localZ = z - chunk.minPosZ;
@@ -265,36 +227,16 @@ export const reducers = {
     }
   },
 
-  addBlock(projectId: string, atlasFaceIndexes: number[]) {
-    const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
-    
-    globalStore.setProject({
-      ...project,
-      updated: Date.now(),
-    });
+  addBlock(_atlasFaceIndexes: number[]) {
   },
 
-  updateBlock(projectId: string, blockIndex: number, atlasFaceIndexes: number[]) {
-    const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
-    
-    globalStore.setProject({
-      ...project,
-      updated: Date.now(),
-    });
+  updateBlock(_blockIndex: number, _atlasFaceIndexes: number[]) {
   },
 
-  deleteBlock(projectId: string, blockIndex: number, replacementBlockIndex: number) {
+  deleteBlock(blockIndex: number, replacementBlockIndex: number) {
     const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
 
     for (const chunk of state.chunks.values()) {
-      if (chunk.projectId !== projectId) continue;
-      
       let modified = false;
       const newVoxels = new Uint8Array(chunk.voxels);
       
@@ -315,25 +257,17 @@ export const reducers = {
         });
       }
     }
-    
-    globalStore.setProject({
-      ...project,
-      updated: Date.now(),
-    });
   },
 
   undoEdit(
-    projectId: string,
     beforeDiff: Uint8Array,
     afterDiff: Uint8Array,
     layerIndex: number
   ) {
     const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
 
     const layer = Array.from(state.layers.values())
-      .find(l => l.projectId === projectId && l.index === layerIndex);
+      .find(l => l.index === layerIndex);
     if (!layer) return;
 
     for (const chunk of state.chunks.values()) {
@@ -359,7 +293,6 @@ export const reducers = {
   },
 
   magicSelect(
-    projectId: string,
     layerIndex: number,
     position: Vector3
   ) {
@@ -367,15 +300,12 @@ export const reducers = {
     const userId = state.currentUserId;
     if (!userId) return;
 
-    const project = state.projects.get(projectId);
-    if (!project) return;
-
     const layer = Array.from(state.layers.values())
-      .find(l => l.projectId === projectId && l.index === layerIndex);
+      .find(l => l.index === layerIndex);
     if (!layer) return;
 
     const existingSelection = Array.from(state.selections.values())
-      .find(s => s.projectId === projectId && s.identityId === userId);
+      .find(s => s.identityId === userId);
     if (existingSelection) {
       globalStore.deleteSelection(existingSelection.id);
     }
@@ -383,7 +313,6 @@ export const reducers = {
     const selection: Selection = {
       id: generateId("sel"),
       identityId: userId,
-      projectId,
       layer: layerIndex,
       selectionFrames: [],
     };
@@ -391,36 +320,16 @@ export const reducers = {
     globalStore.setSelection(selection);
   },
 
-  commitSelectionMove(projectId: string, offset: Vector3) {
+  commitSelectionMove(offset: Vector3) {
     const state = globalStore.getState();
     const userId = state.currentUserId;
     if (!userId) return;
 
     const selection = Array.from(state.selections.values())
-      .find(s => s.projectId === projectId && s.identityId === userId);
+      .find(s => s.identityId === userId);
     if (!selection) return;
 
     globalStore.deleteSelection(selection.id);
-  },
-
-  updateCursorPos(
-    projectId: string,
-    playerId: string,
-    position: Vector3,
-    normal: Vector3
-  ) {
-  },
-
-  changePublicAccessToProject(projectId: string, accessType: AccessType) {
-    const state = globalStore.getState();
-    const project = state.projects.get(projectId);
-    if (!project) return;
-    
-    globalStore.setProject({
-      ...project,
-      publicAccess: accessType,
-      updated: Date.now(),
-    });
   },
 };
 

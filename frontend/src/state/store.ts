@@ -1,22 +1,16 @@
 import type {
-  Project,
   Layer,
   Chunk,
   Selection,
-  PlayerCursor,
-  UserProject,
-  User,
+  Vector3,
 } from "./types";
 
 export interface GlobalState {
   currentUserId: string | null;
-  users: Map<string, User>;
-  projects: Map<string, Project>;
+  dimensions: Vector3;
   layers: Map<string, Layer>;
   chunks: Map<string, Chunk>;
   selections: Map<string, Selection>;
-  playerCursors: Map<string, PlayerCursor>;
-  userProjects: Map<string, UserProject>;
 }
 
 export type StateChangeListener = (state: GlobalState) => void;
@@ -28,13 +22,10 @@ class StateStore {
   constructor() {
     this.state = {
       currentUserId: null,
-      users: new Map(),
-      projects: new Map(),
+      dimensions: { x: 64, y: 64, z: 64 },
       layers: new Map(),
       chunks: new Map(),
       selections: new Map(),
-      playerCursors: new Map(),
-      userProjects: new Map(),
     };
   }
 
@@ -65,13 +56,8 @@ class StateStore {
     this.notifyListeners();
   }
 
-  setProject(project: Project) {
-    this.state.projects.set(project.id, project);
-    this.notifyListeners();
-  }
-
-  deleteProject(projectId: string) {
-    this.state.projects.delete(projectId);
+  setDimensions(dimensions: Vector3) {
+    this.state.dimensions = dimensions;
     this.notifyListeners();
   }
 
@@ -102,33 +88,6 @@ class StateStore {
 
   deleteSelection(selectionId: string) {
     this.state.selections.delete(selectionId);
-    this.notifyListeners();
-  }
-
-  setPlayerCursor(cursor: PlayerCursor) {
-    this.state.playerCursors.set(cursor.id, cursor);
-    this.notifyListeners();
-  }
-
-  deletePlayerCursor(cursorId: string) {
-    this.state.playerCursors.delete(cursorId);
-    this.notifyListeners();
-  }
-
-  setUserProject(userProject: UserProject) {
-    const key = `${userProject.projectId}:${userProject.userId}`;
-    this.state.userProjects.set(key, userProject);
-    this.notifyListeners();
-  }
-
-  deleteUserProject(projectId: string, userId: string) {
-    const key = `${projectId}:${userId}`;
-    this.state.userProjects.delete(key);
-    this.notifyListeners();
-  }
-
-  setUser(user: User) {
-    this.state.users.set(user.id, user);
     this.notifyListeners();
   }
 }

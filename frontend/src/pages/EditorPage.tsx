@@ -1,27 +1,24 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { VoxelEngine } from "../modeling/voxel-engine";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
-import { ProjectLayout } from "@/components/custom/ProjectLayout";
+import { EditorLayout } from "@/components/custom/EditorLayout";
 import { useAtlas } from "@/lib/useAtlas";
-import { createProject } from "@/lib/createProject";
 import type { ToolType } from "@/modeling/lib/tool-type";
-import { useProject, useProjectAccess, useReducers, type BlockModificationMode, reducers } from "@/state";
+import { useLayers, useChunks, type BlockModificationMode } from "@/state";
 
-export const ProjectViewPage = () => {
-  const projectId = useParams<{ projectId: string }>().projectId || "";
+const EDITOR_ID = "editor";
+
+export const EditorPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<VoxelEngine | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
-  const project = useProject(projectId);
-  const [loading, setLoading] = useState<boolean>(true);
+  const layers = useLayers();
+  const chunks = useChunks();
   const atlasData = useAtlas();
-  const navigate = useNavigate();
-  const { accessLevel } = useProjectAccess(projectId);
 
   const handleLayerSelect = useCallback((layerIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedLayer(layerIndex);
@@ -47,29 +44,13 @@ export const ProjectViewPage = () => {
 
   const disposeEngine = useCallback(() => {
     if (engineRef.current) {
-      if (projectId) {
-        const cameraState = engineRef.current.getCameraState();
-        CameraStatePersistence.save(projectId, cameraState);
-      }
+      const cameraState = engineRef.current.getCameraState();
+      CameraStatePersistence.save(EDITOR_ID, cameraState);
       engineRef.current.dispose();
       engineRef.current = null;
       isInitializedRef.current = false;
     }
-  }, [projectId]);
-
-  useEffect(() => {
-    setLoading(true);
-    
-    if (!project && projectId) {
-      reducers.createProject(projectId, "New Project", 64, 64, 64);
-    }
-    
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [projectId, project]);
+  }, []);
 
   useEffect(() => {
     engineRef.current?.projectManager?.builder?.setSelectedBlock(
@@ -82,7 +63,7 @@ export const ProjectViewPage = () => {
     return () => {
       disposeEngine();
     };
-  }, [projectId, disposeEngine]);
+  }, [disposeEngine]);
 
   const containerCallbackRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -90,8 +71,7 @@ export const ProjectViewPage = () => {
 
       if (
         !node ||
-        !project ||
-        !projectId ||
+        layers.length === 0 ||
         !atlasData ||
         isInitializedRef.current
       )
@@ -102,11 +82,12 @@ export const ProjectViewPage = () => {
       requestAnimationFrame(() => {
         if (!node.isConnected || engineRef.current) return;
 
-        const savedCameraState = CameraStatePersistence.load(projectId);
+        const savedCameraState = CameraStatePersistence.load(EDITOR_ID);
+        const firstLayer = layers[0];
+        
         engineRef.current = new VoxelEngine({
           container: node,
-          project,
-          projectId,
+          dimensions: { x: firstLayer.xDim, y: firstLayer.yDim, z: firstLayer.zDim },
           initialCameraState: savedCameraState || undefined,
         });
 
@@ -118,7 +99,7 @@ export const ProjectViewPage = () => {
         engineRef.current.projectManager.setAtlasData(atlasData);
       });
     },
-    [project, projectId, atlasData, selectedBlock, currentTool]
+    [layers, atlasData, selectedBlock, currentTool]
   );
 
   useEffect(() => {
@@ -163,11 +144,7 @@ export const ProjectViewPage = () => {
     setCurrentMode(mode);
   }, []);
 
-  const createNewProject = useCallback(() => {
-    createProject(navigate);
-  }, [navigate]);
-
-  if (loading) {
+  if (layers.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -177,38 +154,8 @@ export const ProjectViewPage = () => {
     );
   }
 
-  let modal = null;
-  if (!project) {
-    modal = (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="bg-background border border-border rounded-lg p-12 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">
-          <div className="space-y-6">
-            <div className="">
-              <h1 className="text-3xl font-bold text-foreground mb-3">
-                Project not found
-              </h1>
-              <div className="text-muted-foreground">
-                This project doesn't exist. Would you like to create a new one?
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={createNewProject}
-                className="flex flex-row cursor-pointer rounded items-center justify-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-              >
-                <span>Create New Project</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <ProjectLayout
-      projectId={projectId}
+    <EditorLayout
       selectedBlock={selectedBlock}
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
@@ -220,13 +167,11 @@ export const ProjectViewPage = () => {
       onUndo={handleUndo}
       onRedo={handleRedo}
       atlasData={atlasData}
-      accessLevel={accessLevel}
     >
-      {modal}
       <div
         ref={containerCallbackRef}
         className="w-full h-full bg-background"
       />
-    </ProjectLayout>
+    </EditorLayout>
   );
 };

@@ -17,7 +17,6 @@ import {
 export class ChunkManager {
   private scene: THREE.Scene;
   private dimensions: Vector3;
-  private projectId: string;
   private layers: Layer[] = [];
   private layerVisibilityMap: Map<number, boolean> = new Map();
   private unsubscribe: (() => void) | null = null;
@@ -32,12 +31,10 @@ export class ChunkManager {
   constructor(
     scene: THREE.Scene,
     dimensions: Vector3,
-    projectId: string,
     getMode: () => BlockModificationMode
   ) {
     this.scene = scene;
     this.dimensions = dimensions;
-    this.projectId = projectId;
     this.getMode = getMode;
 
     this.subscribeToState();
@@ -46,12 +43,11 @@ export class ChunkManager {
 
   private subscribeToState(): void {
     this.unsubscribe = globalStore.subscribe((state) => {
-      const projectLayers = Array.from(state.layers.values())
-        .filter(l => l.projectId === this.projectId);
+      const allLayers = Array.from(state.layers.values());
       
-      let layersChanged = projectLayers.length !== this.lastProcessedLayers.size;
+      let layersChanged = allLayers.length !== this.lastProcessedLayers.size;
       if (!layersChanged) {
-        for (const layer of projectLayers) {
+        for (const layer of allLayers) {
           const prev = this.lastProcessedLayers.get(layer.id);
           if (!prev || prev !== layer) {
             layersChanged = true;
@@ -61,22 +57,21 @@ export class ChunkManager {
       }
       
       if (layersChanged) {
-        this.layers = projectLayers.sort((a, b) => a.index - b.index);
+        this.layers = allLayers.sort((a, b) => a.index - b.index);
         this.layerVisibilityMap.clear();
         for (const layer of this.layers) {
           this.layerVisibilityMap.set(layer.index, layer.visible);
         }
         this.lastProcessedLayers.clear();
-        for (const layer of projectLayers) {
+        for (const layer of allLayers) {
           this.lastProcessedLayers.set(layer.id, layer);
         }
         this.updateAllChunks();
       }
       
-      const projectChunks = Array.from(state.chunks.values())
-        .filter(c => c.projectId === this.projectId);
+      const allChunks = Array.from(state.chunks.values());
       
-      for (const dbChunk of projectChunks) {
+      for (const dbChunk of allChunks) {
         const prev = this.lastProcessedChunks.get(dbChunk.id);
         if (!prev) {
           this.onChunkInsert(dbChunk);
@@ -92,14 +87,13 @@ export class ChunkManager {
       }
       
       this.lastProcessedChunks.clear();
-      for (const chunk of projectChunks) {
+      for (const chunk of allChunks) {
         this.lastProcessedChunks.set(chunk.id, chunk);
       }
       
-      const projectSelections = Array.from(state.selections.values())
-        .filter(s => s.projectId === this.projectId);
+      const allSelections = Array.from(state.selections.values());
       
-      for (const selection of projectSelections) {
+      for (const selection of allSelections) {
         const prev = this.lastProcessedSelections.get(selection.id);
         if (!prev) {
           this.onSelectionInsert(selection);
@@ -109,14 +103,14 @@ export class ChunkManager {
       }
       
       for (const [id, prev] of this.lastProcessedSelections) {
-        const found = projectSelections.find(s => s.id === id);
+        const found = allSelections.find(s => s.id === id);
         if (!found) {
           this.onSelectionDelete(prev);
         }
       }
       
       this.lastProcessedSelections.clear();
-      for (const selection of projectSelections) {
+      for (const selection of allSelections) {
         this.lastProcessedSelections.set(selection.id, selection);
       }
     });
@@ -174,8 +168,6 @@ export class ChunkManager {
     const rawChunks = Array.from(state.chunks.values());
     
     for (const dbChunk of rawChunks) {
-      if (dbChunk.projectId !== this.projectId) continue;
-      
       const layer = this.layers.find(l => l.id === dbChunk.layerId);
       if (!layer) continue;
       
@@ -189,8 +181,6 @@ export class ChunkManager {
   };
 
   private onChunkInsert = (newChunk: DbChunk) => {
-    if (newChunk.projectId !== this.projectId) return;
-    
     const layer = this.layers.find(l => l.id === newChunk.layerId);
     if (!layer) return;
     
@@ -203,8 +193,6 @@ export class ChunkManager {
   };
 
   private onChunkUpdate = (oldChunk: DbChunk, newChunk: DbChunk) => {
-    if (newChunk.projectId !== this.projectId) return;
-
     const layer = this.layers.find(l => l.id === newChunk.layerId);
     if (!layer) return;
     const chunk = this.getOrCreateChunk({
@@ -216,8 +204,6 @@ export class ChunkManager {
   }
 
   private onChunkDelete = (deletedChunk: DbChunk) => {
-    if (deletedChunk.projectId !== this.projectId) return;
-    
     const layer = this.layers.find(l => l.id === deletedChunk.layerId);
     if (!layer) return;
 
@@ -238,8 +224,6 @@ export class ChunkManager {
   };
 
   private onSelectionInsert = (newSelection: Selection) => {
-    if (newSelection.projectId !== this.projectId) return;
-    
     this.applySelectionToChunks(newSelection);
   };
 
@@ -247,16 +231,12 @@ export class ChunkManager {
     oldSelection: Selection,
     newSelection: Selection
   ) => {
-    if (newSelection.projectId !== this.projectId) return;
-    
     this.applySelectionToChunks(newSelection);
   };
 
   private onSelectionDelete = (
     deletedSelection: Selection
   ) => {
-    if (deletedSelection.projectId !== this.projectId) return;
-    
     const identityId = deletedSelection.identityId;
     for (const chunk of this.chunks.values()) {
       chunk.setSelectionFrame(identityId, null);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { AtlasData } from "@/lib/useAtlas";
@@ -10,14 +10,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { reducers, useLayers } from "@/state";
+import { reducers } from "@/state";
 
 interface DeleteBlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   blockIndex: number;
   atlasData: AtlasData;
-  projectId: string;
 }
 
 export const DeleteBlockModal = ({
@@ -25,10 +24,8 @@ export const DeleteBlockModal = ({
   onClose,
   blockIndex,
   atlasData,
-  projectId,
 }: DeleteBlockModalProps) => {
   const [submitPending, setSubmitPending] = useState(false);
-  const layers = useLayers(projectId);
   const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
 
   const calculateDefaultReplacement = (
@@ -50,19 +47,9 @@ export const DeleteBlockModal = ({
     );
   }, [isOpen]);
 
-  const blockCount = useMemo(() => {
-    // Note: With chunk-based storage, counting blocks would require
-    // iterating through all chunks across all layers. For now, we'll
-    // return 0 which means we can't show the exact count.
-    // A better approach would be to add a server-side query for this.
-    
-    return 0;
-  }, [blockIndex]);
-
   const handleDelete = () => {
     setSubmitPending(true);
     reducers.deleteBlock(
-      projectId,
       blockIndex,
       replacementBlockType
     );
@@ -100,94 +87,87 @@ export const DeleteBlockModal = ({
             undone.
           </p>
 
-          {blockCount > 0 ? (
-            <div className="space-y-3">
-              <p className="text-sm font-medium">
-                {blockCount} block{blockCount !== 1 ? "s" : ""} in the scene
-                will be replaced with:
-              </p>
+          <div className="space-y-3">
+            <p className="text-sm font-medium">
+              Existing blocks in the scene will be replaced with:
+            </p>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-16 px-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      {replacementBlockType === 0 ? (
-                        <>
-                          <div className="w-12 h-12 flex items-center justify-center bg-muted/50 rounded">
-                            <X className="w-6 h-6 text-muted-foreground" />
-                          </div>
-                          <span>Empty (remove)</span>
-                        </>
-                      ) : replacementBlockType > 0 && isReady ? (
-                        <>
-                          <div className="w-12 h-12 flex items-center justify-center rounded overflow-hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-16 px-4"
+                >
+                  <div className="flex items-center gap-3">
+                    {replacementBlockType === 0 ? (
+                      <>
+                        <div className="w-12 h-12 flex items-center justify-center bg-muted/50 rounded">
+                          <X className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <span>Empty (remove)</span>
+                      </>
+                    ) : replacementBlockType > 0 && isReady ? (
+                      <>
+                        <div className="w-12 h-12 flex items-center justify-center rounded overflow-hidden">
+                          <img
+                            src={getBlockTexture(replacementBlockType - 1) ?? undefined}
+                            alt=""
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <span>Block {replacementBlockType}</span>
+                      </>
+                    ) : (
+                      <div className="w-12 h-12 flex items-center justify-center bg-muted/50 rounded" />
+                    )}
+                  </div>
+                  <ChevronDown className="w-4 h-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-64 max-h-80 overflow-y-auto"
+              >
+                <DropdownMenuItem
+                  onClick={() => setReplacementBlockType(0)}
+                  className="h-12"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-10 h-10 flex items-center justify-center bg-muted/50 rounded">
+                      <X className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <span>Empty (remove)</span>
+                  </div>
+                </DropdownMenuItem>
+
+                {atlasData.blockAtlasMappings.map((_, index) => {
+                  const blockNum = index + 1;
+                  if (blockNum === blockIndex) return null;
+
+                  return (
+                    <DropdownMenuItem
+                      key={blockNum}
+                      onClick={() => setReplacementBlockType(blockNum)}
+                      className="h-12"
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="w-10 h-10 flex items-center justify-center rounded overflow-hidden">
+                          {isReady && (
                             <img
-                              src={getBlockTexture(replacementBlockType - 1) ?? undefined}
+                              src={getBlockTexture(index) ?? undefined}
                               alt=""
                               className="w-full h-full object-contain"
                             />
-                          </div>
-                          <span>Block {replacementBlockType}</span>
-                        </>
-                      ) : (
-                        <div className="w-12 h-12 flex items-center justify-center bg-muted/50 rounded" />
-                      )}
-                    </div>
-                    <ChevronDown className="w-4 h-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="w-64 max-h-80 overflow-y-auto"
-                >
-                  <DropdownMenuItem
-                    onClick={() => setReplacementBlockType(0)}
-                    className="h-12"
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 flex items-center justify-center bg-muted/50 rounded">
-                        <X className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <span>Empty (remove)</span>
-                    </div>
-                  </DropdownMenuItem>
-
-                  {atlasData.blockAtlasMappings.map((_, index) => {
-                    const blockNum = index + 1;
-                    if (blockNum === blockIndex) return null;
-
-                    return (
-                      <DropdownMenuItem
-                        key={blockNum}
-                        onClick={() => setReplacementBlockType(blockNum)}
-                        className="h-12"
-                      >
-                        <div className="flex items-center gap-3 w-full">
-                          <div className="w-10 h-10 flex items-center justify-center rounded overflow-hidden">
-                            {isReady && (
-                              <img
-                                src={getBlockTexture(index) ?? undefined}
-                                alt=""
-                                className="w-full h-full object-contain"
-                              />
-                            )}
-                          </div>
-                          <span>Block {blockNum}</span>
+                          )}
                         </div>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              This block is not currently used in the scene.
-            </p>
-          )}
+                        <span>Block {blockNum}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </Modal>

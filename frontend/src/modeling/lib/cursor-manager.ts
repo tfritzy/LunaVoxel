@@ -1,18 +1,18 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import { globalStore, type Vector3, type PlayerCursor } from "@/state";
+import { globalStore, type Vector3 } from "@/state";
 
 export const CURSOR_COLORS = [
-  new THREE.Color("#EE5A32"), // Vivid Orange
-  new THREE.Color("#3FA34D"), // Leaf Green
-  new THREE.Color("#3F6FE4"), // Azure Blue
-  new THREE.Color("#E2B534"), // Warm Gold
-  new THREE.Color("#15B2A7"), // Teal
-  new THREE.Color("#C545A7"), // Magenta
-  new THREE.Color("#9F5BFF"), // Violet
-  new THREE.Color("#FF6FAE"), // Pink
-  new THREE.Color("#5CC9FF"), // Sky Cyan
-  new THREE.Color("#7DDB4B"), // Lime
+  new THREE.Color("#EE5A32"),
+  new THREE.Color("#3FA34D"),
+  new THREE.Color("#3F6FE4"),
+  new THREE.Color("#E2B534"),
+  new THREE.Color("#15B2A7"),
+  new THREE.Color("#C545A7"),
+  new THREE.Color("#9F5BFF"),
+  new THREE.Color("#FF6FAE"),
+  new THREE.Color("#5CC9FF"),
+  new THREE.Color("#7DDB4B"),
 ];
 
 export class CursorManager {
@@ -20,13 +20,10 @@ export class CursorManager {
   private cursors: Map<string, THREE.Mesh> = new Map();
   private playerColors: Map<string, THREE.Color> = new Map();
   private colorIndex: number = 0;
-  private projectId: string;
   private localCursorMesh: THREE.Mesh | null = null;
-  private unsubscribe: (() => void) | null = null;
 
-  constructor(scene: THREE.Scene, projectId: string) {
+  constructor(scene: THREE.Scene) {
     this.scene = scene;
-    this.projectId = projectId;
   }
 
   updateLocalCursor(position: THREE.Vector3, normal: THREE.Vector3): void {
@@ -98,11 +95,6 @@ export class CursorManager {
   }
 
   dispose(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
-
     for (const [cursorId] of this.cursors) {
       this.removeCursor(cursorId);
     }

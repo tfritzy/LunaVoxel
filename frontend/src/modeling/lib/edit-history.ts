@@ -10,10 +10,8 @@ type HistoryEntry = {
 
 export class EditHistory {
   private entries: HistoryEntry[];
-  private projectId: string;
 
-  constructor(projectId: string) {
-    this.projectId = projectId;
+  constructor() {
     this.entries = [];
   }
 
@@ -44,7 +42,6 @@ export class EditHistory {
     head.isUndone = true;
 
     reducers.undoEdit(
-      this.projectId,
       compressVoxelData(head.beforeDiff),
       compressVoxelData(head.afterDiff),
       head.layer
@@ -59,7 +56,6 @@ export class EditHistory {
     firstUndone.isUndone = false;
 
     reducers.undoEdit(
-      this.projectId,
       compressVoxelData(firstUndone.afterDiff),
       compressVoxelData(firstUndone.beforeDiff),
       firstUndone.layer

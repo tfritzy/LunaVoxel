@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Layout } from "./components/custom/Layout";
-import { CreateNewPage } from "./components/custom/CreateNewPage";
-import { ProjectViewPage } from "./pages/ProjectViewPage";
+import { EditorPage } from "./pages/EditorPage";
 import { Toaster } from "sonner";
-import { ProjectsPage } from "./pages/ProjectsPage";
-import { globalStore } from "./state";
+import { globalStore, reducers } from "./state";
+
+const EDITOR_ID = "editor";
 
 function AppContent() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     globalStore.setCurrentUserId("local-user");
+    reducers.initializeEditor(EDITOR_ID, 64, 64, 64);
     setIsReady(true);
   }, []);
 
@@ -25,23 +24,14 @@ function AppContent() {
     );
   }
 
-  return (
-    <Layout>
-      <Routes>
-        <Route path="/project" element={<ProjectsPage />} />
-        <Route path="/create" element={<CreateNewPage />} />
-        <Route path="/project/:projectId" element={<ProjectViewPage />} />
-        <Route path="*" element={<Navigate to="/create" replace />} />
-      </Routes>
-    </Layout>
-  );
+  return <EditorPage />;
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <>
       <AppContent />
       <Toaster />
-    </BrowserRouter>
+    </>
   );
 }

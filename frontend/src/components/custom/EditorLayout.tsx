@@ -1,7 +1,7 @@
-import { ProjectHeader } from "./ProjectHeader";
+import { EditorHeader } from "./EditorHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
-import type { AccessType, BlockModificationMode } from "@/state";
+import type { BlockModificationMode } from "@/state";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
@@ -13,8 +13,7 @@ interface AtlasData {
   colors: number[];
 }
 
-interface ProjectLayoutProps {
-  projectId: string;
+interface EditorLayoutProps {
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
   currentTool: ToolType;
@@ -27,11 +26,9 @@ interface ProjectLayoutProps {
   onRedo: () => void;
   children: React.ReactNode;
   atlasData: AtlasData;
-  accessLevel: AccessType | null;
 }
 
-export const ProjectLayout = ({
-  projectId,
+export const EditorLayout = ({
   selectedBlock,
   setSelectedBlock,
   currentTool,
@@ -44,20 +41,17 @@ export const ProjectLayout = ({
   onRedo,
   children,
   atlasData,
-  accessLevel,
-}: ProjectLayoutProps) => {
+}: EditorLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
-      <ProjectHeader
+      <EditorHeader
         onExport={onExport}
         onUndo={onUndo}
         onRedo={onRedo}
-        accessLevel={accessLevel}
       />
 
       <div className="flex flex-1 min-h-0">
         <BlockDrawer
-          projectId={projectId}
           selectedBlock={selectedBlock}
           setSelectedBlock={setSelectedBlock}
           atlasData={atlasData}
@@ -65,17 +59,15 @@ export const ProjectLayout = ({
 
         <div className="flex-1 relative bg-muted/5 min-w-0">
           {children}
-          {accessLevel?.tag === "ReadWrite" && (
-            <FloatingToolbar
-              currentTool={currentTool}
-              currentMode={currentMode}
-              onToolChange={onToolChange}
-              onModeChange={onModeChange}
-            />
-          )}
+          <FloatingToolbar
+            currentTool={currentTool}
+            currentMode={currentMode}
+            onToolChange={onToolChange}
+            onModeChange={onModeChange}
+          />
         </div>
 
-        <RightSideDrawer onSelectLayer={onSelectLayer} projectId={projectId} />
+        <RightSideDrawer onSelectLayer={onSelectLayer} />
       </div>
     </div>
   );

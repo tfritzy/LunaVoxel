@@ -66,7 +66,6 @@ export class RectTool implements Tool {
     );
 
     context.reducers.modifyBlockRect(
-      context.projectId,
       context.mode,
       context.selectedBlock,
       event.startGridPosition,

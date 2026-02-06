@@ -5,7 +5,6 @@ import type { VoxelFrame } from "./voxel-frame";
 import type { reducers, Vector3, BlockModificationMode } from "@/state";
 
 export interface ToolContext {
-  projectId: string;
   dimensions: Vector3;
   projectManager: ProjectManager;
   previewFrame: VoxelFrame;

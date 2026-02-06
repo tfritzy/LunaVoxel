@@ -1,5 +1,5 @@
 import { ChunkManager } from "../lib/chunk-manager";
-import type { Project } from "@/state";
+import type { Vector3 } from "@/state";
 import { MeshConsolidator } from "./mesh-consolidator";
 import { OBJExporter } from "./obj-exporter";
 import { GLTFExporter } from "./gltf-exporter";
@@ -16,16 +16,16 @@ export type ExportType = "GLTF" | "OBJ" | "STL";
 
 export class ModelExporter {
   private chunkManager: ChunkManager;
-  private project: Project;
+  private dimensions: Vector3;
   private atlasData: AtlasData | null;
 
   constructor(
     chunkManager: ChunkManager,
-    project: Project,
+    dimensions: Vector3,
     atlasData: AtlasData | null
   ) {
     this.chunkManager = chunkManager;
-    this.project = project;
+    this.dimensions = dimensions;
     this.atlasData = atlasData;
   }
 
@@ -50,16 +50,16 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = this.sanitizeFilename(this.project.name);
-      const exporter = new OBJExporter(consolidatedMesh, projectName);
+      const filename = "lunavoxel_export";
+      const exporter = new OBJExporter(consolidatedMesh, filename);
 
       const objContent = exporter.generateOBJ();
       const mtlContent = exporter.generateMTL();
 
-      downloadFile(objContent, `${projectName}.obj`, "text/plain");
-      downloadFile(mtlContent, `${projectName}.mtl`, "text/plain");
+      downloadFile(objContent, `${filename}.obj`, "text/plain");
+      downloadFile(mtlContent, `${filename}.mtl`, "text/plain");
 
-      this.exportTexture(projectName);
+      this.exportTexture(filename);
       toast.success("Export successful");
     } catch {
       toast.error("Sorry, export failed.");
@@ -71,7 +71,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = this.sanitizeFilename(this.project.name);
+      const filename = "lunavoxel_export";
       let textureDataUri: string | undefined;
 
       if (this.atlasData?.texture) {
@@ -83,10 +83,10 @@ export class ModelExporter {
         }
       }
 
-      const exporter = new GLTFExporter(consolidatedMesh, projectName);
+      const exporter = new GLTFExporter(consolidatedMesh, filename);
       const gltfContent = exporter.generateGLTF(textureDataUri);
 
-      downloadFile(gltfContent, `${projectName}.gltf`, "application/json");
+      downloadFile(gltfContent, `${filename}.gltf`, "application/json");
 
       toast.success("Export successful");
     } catch {
@@ -99,12 +99,12 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = this.sanitizeFilename(this.project.name);
-      const exporter = new STLExporter(consolidatedMesh, projectName);
+      const filename = "lunavoxel_export";
+      const exporter = new STLExporter(consolidatedMesh, filename);
 
       const stlContent = exporter.generateSTL();
 
-      downloadFile(stlContent, `${projectName}.stl`, "text/plain");
+      downloadFile(stlContent, `${filename}.stl`, "text/plain");
 
       toast.success("Export successful");
     } catch {
@@ -114,9 +114,9 @@ export class ModelExporter {
 
   private getConsolidatedMesh() {
     const worldDimensions = {
-      x: this.project.dimensions.x,
-      y: this.project.dimensions.y,
-      z: this.project.dimensions.z,
+      x: this.dimensions.x,
+      y: this.dimensions.y,
+      z: this.dimensions.z,
     };
 
     const consolidator = new MeshConsolidator(
@@ -127,7 +127,7 @@ export class ModelExporter {
 
     if (consolidatedMesh.vertices.length === 0) {
       toast.success(
-        "No geometry to export. Please add some blocks to your project first."
+        "No geometry to export. Please add some blocks first."
       );
       return null;
     }
@@ -135,24 +135,14 @@ export class ModelExporter {
     return consolidatedMesh;
   }
 
-  private exportTexture(projectName: string): void {
+  private exportTexture(filename: string): void {
     if (this.atlasData?.texture) {
       try {
         const canvas = extractTextureAtlasImage(this.atlasData?.texture);
-        downloadImageFromCanvas(canvas, `${projectName}_texture.png`);
+        downloadImageFromCanvas(canvas, `${filename}_texture.png`);
       } catch (error) {
         console.error("Failed to export texture atlas:", error);
       }
     }
-  }
-
-  private sanitizeFilename(filename: string): string {
-    return (
-      filename
-        .replace(/[^a-z0-9]/gi, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_|_$/g, "")
-        .toLowerCase() || "lunavoxel_export"
-    );
   }
 }
