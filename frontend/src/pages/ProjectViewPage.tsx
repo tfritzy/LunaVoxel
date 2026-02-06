@@ -5,8 +5,6 @@ import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persist
 import { ExportType } from "@/modeling/export/model-exporter";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
 import { useAtlas } from "@/lib/useAtlas";
-import { useAuth } from "@/firebase/AuthContext";
-import { SignInModal } from "@/components/custom/SignInModal";
 import { createProject } from "@/lib/createProject";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import { useProject, useProjectAccess, useReducers, type BlockModificationMode, reducers } from "@/state";
@@ -22,7 +20,6 @@ export const ProjectViewPage = () => {
   const project = useProject(projectId);
   const [loading, setLoading] = useState<boolean>(true);
   const atlasData = useAtlas();
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { accessLevel } = useProjectAccess(projectId);
 
@@ -182,39 +179,29 @@ export const ProjectViewPage = () => {
 
   let modal = null;
   if (!project) {
-    const isAnonymous = currentUser?.isAnonymous;
-
     modal = (
       <div className="h-screen flex items-center justify-center bg-background">
-        {isAnonymous ? (
-          <SignInModal
-            title="Sign in"
-            subheader="To continue to LunaVoxel"
-            onSignIn={() => {}}
-          />
-        ) : (
-          <div className="bg-background border border-border rounded-lg p-12 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">
-            <div className="space-y-6">
-              <div className="">
-                <h1 className="text-3xl font-bold text-foreground mb-3">
-                  Project not found
-                </h1>
-                <div className="text-muted-foreground">
-                  This project hasn't been shared with you or may not exist.
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={createNewProject}
-                  className="flex flex-row cursor-pointer rounded items-center justify-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-                >
-                  <span>Create New Project</span>
-                </button>
+        <div className="bg-background border border-border rounded-lg p-12 py-12 max-w-md w-full mx-4 pointer-events-auto shadow-2xl">
+          <div className="space-y-6">
+            <div className="">
+              <h1 className="text-3xl font-bold text-foreground mb-3">
+                Project not found
+              </h1>
+              <div className="text-muted-foreground">
+                This project doesn't exist. Would you like to create a new one?
               </div>
             </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={createNewProject}
+                className="flex flex-row cursor-pointer rounded items-center justify-center w-full border bg-background shadow-xs hover:bg-accent py-3 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+              >
+                <span>Create New Project</span>
+              </button>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }

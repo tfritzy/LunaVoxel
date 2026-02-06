@@ -1,7 +1,6 @@
 import { useParams } from "react-router-dom";
 import { FileDropdown } from "./FileDropdown";
 import { EditDropdown } from "./EditDropdown";
-import { useAuth } from "@/firebase/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createProject } from "@/lib/createProject";
 import { ProjectNameInput } from "./ProjectNameInput";
@@ -9,7 +8,6 @@ import { Logo } from "./Logo";
 import { useState, useCallback } from "react";
 import { PresenceIndicator } from "./PresenceIndicator";
 import { ShareButton } from "./Share/ShareButton";
-import { UserDropdown } from "./Share/UserDropdown";
 import { ExportType } from "@/modeling/export/model-exporter";
 import type { AccessType } from "@/state";
 import { ProjectModal } from "./ProjectModal";
@@ -27,23 +25,9 @@ export function ProjectHeader({
   onRedo,
   accessLevel,
 }: ProjectHeaderProps) {
-  const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [openProjectOpen, setOpenProjectOpen] = useState(false);
-
-  const handleSignIn = useCallback(() => {
-    navigate("/signin", { replace: true });
-  }, [navigate]);
-
-  const handleSignOut = useCallback(async () => {
-    try {
-      await signOut();
-      window.location.assign("")
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  }, [signOut]);
 
   const handleNewProject = useCallback(async () => {
     try {
@@ -87,11 +71,6 @@ export function ProjectHeader({
           <div className="flex items-center space-x-4">
             {projectId && <PresenceIndicator />}
             {projectId && <ShareButton accessLevel={accessLevel} />}
-            <UserDropdown
-              currentUser={currentUser}
-              onSignIn={handleSignIn}
-              onSignOut={handleSignOut}
-            />
           </div>
           <ProjectModal
             isOpen={openProjectOpen}

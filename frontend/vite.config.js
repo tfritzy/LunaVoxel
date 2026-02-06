@@ -14,8 +14,7 @@ function spaFallbackPlugin() {
           req.url = "/index.html";
         } else if (
           url.startsWith("/project") ||
-          url.startsWith("/project") ||
-          url.startsWith("/create-new")
+          url.startsWith("/create")
         ) {
           req.url = "/app.html";
         }
