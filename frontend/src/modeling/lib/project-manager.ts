@@ -1,22 +1,18 @@
 import * as THREE from "three";
-import {
-  DbConnection,
-  Project,
-  BlockModificationMode,
-} from "../../module_bindings";
+import type { BlockModificationMode, Project } from "@/state/types";
+import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
-import { VoxelFrame } from "./voxel-frame";
 
 export class ProjectManager {
   public builder;
   public chunkManager;
   private cursorManager: CursorManager;
-  private dbConn: DbConnection;
+  private stateStore: StateStore;
   private project: Project;
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
@@ -24,26 +20,26 @@ export class ProjectManager {
 
   constructor(
     scene: THREE.Scene,
-    dbConn: DbConnection,
+    stateStore: StateStore,
     project: Project,
     camera: THREE.Camera,
     container: HTMLElement
   ) {
-    this.dbConn = dbConn;
+    this.stateStore = stateStore;
     this.project = project;
     this.chunkManager = new ChunkManager(
       scene,
       project.dimensions,
-      dbConn,
+      stateStore,
       project.id,
       () => this.builder.getMode()
     );
-    this.cursorManager = new CursorManager(scene, project.id, dbConn);
-    this.editHistory = new EditHistory(dbConn, project.id);
+    this.cursorManager = new CursorManager(scene);
+    this.editHistory = new EditHistory(stateStore, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
 
     this.builder = new Builder(
-      this.dbConn,
+      this.stateStore,
       this.project.id,
       project.dimensions,
       camera,
@@ -99,7 +95,7 @@ export class ProjectManager {
     beforeDiff: Uint8Array,
     afterDiff: Uint8Array
   ) => {
-    this.dbConn.reducers.undoEdit(
+    this.stateStore.reducers.undoEdit(
       this.project.id,
       beforeDiff,
       afterDiff,

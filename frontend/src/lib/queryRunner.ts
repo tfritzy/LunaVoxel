@@ -1,5 +1,8 @@
-import { EventContext } from "@/module_bindings";
-import { TableCache } from "@clockworklabs/spacetimedb-sdk";
+export type EventContext = unknown;
+
+export type TableCache<T> = {
+  iter: () => T[];
+};
 
 export type TableHandle<T> = {
   tableCache: TableCache<T>;

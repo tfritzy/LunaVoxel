@@ -1,10 +1,9 @@
-import { Plus, FolderOpen, FileUp } from "lucide-react";
+import { FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -14,14 +13,10 @@ import { ExportType } from "@/modeling/export/model-exporter";
 import { useCallback } from "react";
 
 interface FileDropdownProps {
-  onNewProject: () => void;
-  onOpenProject: () => void;
   onExport: (type: ExportType) => void;
 }
 
 export function FileDropdown({
-  onNewProject,
-  onOpenProject,
   onExport,
 }: FileDropdownProps) {
   const obj = useCallback(() => onExport("OBJ"), [onExport]);
@@ -35,19 +30,10 @@ export function FileDropdown({
           File
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={onNewProject}>
-          <Plus className="mr-2 h-4 w-4" />
-          New
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenProject}>
-          <FolderOpen className="mr-2 h-4 w-4" />
-          Open
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <FileUp className="mr-2 h-4 w-4" />
+        <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FileUp className="mr-2 h-4 w-4" />
             Export
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

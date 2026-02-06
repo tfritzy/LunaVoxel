@@ -1,27 +1,12 @@
-import { AccessType, DbConnection } from "@/module_bindings";
-import { useEffect, useState } from "react";
-import { ProjectAccessManager } from "./projectAccessManager";
+import { useMemo } from "react";
+import type { AccessLevel } from "@/state/types";
 
 export const useProjectAccess = (
-  connection: DbConnection | null,
-  projectId: string
+  _connection: unknown | null,
+  _projectId: string
 ) => {
-  const [hasWriteAccess, setHasWriteAccess] = useState(false);
-  const [accessLevel, setAccessLevel] = useState<AccessType | null>(null);
-
-  useEffect(() => {
-    if (!connection || !projectId) return;
-
-    new ProjectAccessManager(
-      connection,
-      projectId,
-      connection.identity?.toHexString(),
-      (writeAccess, level) => {
-        setHasWriteAccess(writeAccess);
-        setAccessLevel(level);
-      }
-    );
-  }, [connection, projectId]);
-
-  return { hasWriteAccess, accessLevel };
+  void _connection;
+  void _projectId;
+  const access = useMemo<AccessLevel>(() => ({ tag: "ReadWrite" }), []);
+  return { hasWriteAccess: true, accessLevel: access };
 };

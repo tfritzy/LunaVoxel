@@ -1,9 +1,9 @@
 import { SortableLayerRow } from "./SortableLayerRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { DbConnection, Layer } from "@/module_bindings";
+import React, { useEffect, useMemo, useState } from "react";
+import type { Layer } from "@/state/types";
+import { stateStore, useGlobalState } from "@/state/store";
 import {
   DndContext,
   closestCenter,
@@ -23,7 +23,6 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
-import { useQueryRunner } from "@/lib/useQueryRunner";
 
 interface LayersSectionProps {
   onSelectLayer?: (layerIndex: number) => void;
@@ -34,14 +33,8 @@ export const LayersSection = ({
   onSelectLayer,
   projectId,
 }: LayersSectionProps) => {
-  const { connection } = useDatabase();
   const [selectedLayer, setSelectedLayer] = useState<number>(0);
-
-  const getTable = useCallback((db: DbConnection) => db.db.layer, []);
-  const { data: layers, setDataOptimistically } = useQueryRunner<Layer>(
-    connection,
-    getTable
-  );
+  const layers = useGlobalState((state) => state.layers);
 
   const sortedLayers = useMemo(() => {
     return layers ? [...layers].sort((a, b) => b.index - a.index) : [];
@@ -59,31 +52,31 @@ export const LayersSection = ({
   );
 
   const addLayer = React.useCallback(() => {
-    connection?.reducers.addLayer(projectId);
-  }, [connection?.reducers, projectId]);
+    stateStore.reducers.addLayer(projectId);
+  }, [projectId]);
 
   const onDelete = React.useCallback(
     (layer: Layer) => {
-      connection?.reducers.deleteLayer(layer.id);
+      stateStore.reducers.deleteLayer(layer.id);
       if (selectedLayer >= sortedLayers.length - 1) {
         setSelectedLayer(selectedLayer - 1);
       }
     },
-    [connection?.reducers, sortedLayers, selectedLayer]
+    [sortedLayers, selectedLayer]
   );
 
   const toggleVisibility = React.useCallback(
     (layer: Layer) => {
-      connection?.reducers.toggleLayerVisibility(layer.id);
+      stateStore.reducers.toggleLayerVisibility(layer.id);
     },
-    [connection?.reducers]
+    []
   );
 
   const toggleLocked = React.useCallback(
     (layer: Layer) => {
-      connection?.reducers.toggleLayerLock(layer.id);
+      stateStore.reducers.toggleLayerLock(layer.id);
     },
-    [connection?.reducers]
+    []
   );
 
   const handleDragEnd = React.useCallback(
@@ -102,24 +95,17 @@ export const LayersSection = ({
         if (oldIndex !== -1 && newIndex !== -1) {
           let newLayers = arrayMove(currentLayers, oldIndex, newIndex);
           newLayers = newLayers.map((l, i) => ({ ...l, index: i }));
-          setDataOptimistically(newLayers);
           const newSelectedIndex = newLayers.findIndex(
             (l) => l.id === selectedId
           );
           setSelectedLayer(newSelectedIndex);
 
           const newOrder = newLayers.map((layer) => layer.id);
-          connection?.reducers.reorderLayers(projectId, newOrder);
+          stateStore.reducers.reorderLayers(projectId, newOrder);
         }
       }
     },
-    [
-      connection?.reducers,
-      projectId,
-      selectedLayer,
-      setDataOptimistically,
-      sortedLayers,
-    ]
+    [projectId, selectedLayer, sortedLayers]
   );
 
   const layerIds = sortedLayers.map((layer) => layer.id);

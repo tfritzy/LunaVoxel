@@ -5,7 +5,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Timestamp } from "@clockworklabs/spacetimedb-sdk";
 import { getAvatarGradient } from "@/lib/getAvatarColor";
 
 export interface AvatarProps {
@@ -16,7 +15,7 @@ export interface AvatarProps {
   showTooltip?: boolean;
   colorIndexOverride?: number;
   useAnimalIcon?: boolean;
-  updatedAt?: Timestamp;
+  updatedAt?: Date;
   displayName?: string;
 }
 
@@ -123,9 +122,9 @@ function getAnimalEmoji(token: string): string | undefined {
   return undefined;
 }
 
-function getTimeAgo(timestamp: Timestamp): string {
+function getTimeAgo(timestamp: Date): string {
   const now = new Date();
-  const diff = now.getTime() - timestamp.toDate().getTime();
+  const diff = now.getTime() - timestamp.getTime();
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);

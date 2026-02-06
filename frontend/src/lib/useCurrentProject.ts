@@ -1,13 +1,11 @@
-import { useCallback } from "react";
-import { DbConnection, Project } from "@/module_bindings";
-import { useQueryRunner } from "./useQueryRunner";
+import { useGlobalState } from "@/state/store";
+import type { Project } from "@/state/types";
 
 export function useCurrentProject(
-  db: DbConnection | null,
-  projectId: string
+  _db: unknown | null,
+  _projectId: string
 ): Project | undefined {
-  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
-  const { data: projects } = useQueryRunner(db, getTable);
-  const project = projects.find((p) => p.id === projectId);
-  return project;
+  void _db;
+  void _projectId;
+  return useGlobalState((state) => state.project);
 }

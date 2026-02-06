@@ -1,15 +1,11 @@
-import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useCurrentProject } from "@/lib/useCurrentProject";
+import { stateStore, useGlobalState } from "@/state/store";
 
 export function ProjectNameInput() {
-  const projectId = useParams<{ projectId: string }>().projectId || "";
-  const { connection } = useDatabase();
   const [localName, setLocalName] = useState("");
   const debounceRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const project = useCurrentProject(connection, projectId);
+  const project = useGlobalState((current) => current.project);
 
   useEffect(() => {
     if (!project || localName === project.name) return;
@@ -20,7 +16,7 @@ export function ProjectNameInput() {
 
     debounceRef.current = setTimeout(() => {
       if (localName.trim() && localName !== project.name) {
-        connection?.reducers.updateProjectName(projectId!, localName.trim());
+        stateStore.reducers.updateProjectName(project.id, localName.trim());
       }
     }, 500);
 
@@ -29,7 +25,7 @@ export function ProjectNameInput() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [localName, project, projectId, connection]);
+  }, [localName, project]);
 
   const handleFocus = useCallback(() => {
     if (inputRef.current) {
@@ -72,11 +68,6 @@ export function ProjectNameInput() {
       onKeyDown={handleKeyDown}
       className="bg-transparent border-none outline-none text-lg placeholder-foreground-muted font-medium px-3 rounded focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all"
       placeholder="Untitled Project"
-      disabled={
-        !project ||
-        !connection?.identity ||
-        !project.owner.isEqual(connection.identity)
-      }
     />
   );
 }

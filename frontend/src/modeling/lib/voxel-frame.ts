@@ -1,4 +1,4 @@
-import { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state/types";
 
 export class VoxelFrame {
   private dimensions: Vector3;
@@ -256,4 +256,3 @@ export class VoxelFrame {
     }
   }
 }
-

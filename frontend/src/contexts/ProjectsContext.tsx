@@ -1,7 +1,6 @@
-import { DbConnection, Project } from "@/module_bindings";
-import { useCallback, useMemo } from "react";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useQueryRunner } from "@/lib/useQueryRunner";
+import type { Project } from "@/state/types";
+import { useMemo } from "react";
+import { useGlobalState } from "@/state/store";
 
 interface UseProjectsReturn {
   userProjects: Project[];
@@ -9,29 +8,11 @@ interface UseProjectsReturn {
 }
 
 export function useProjects(): UseProjectsReturn {
-  const { connection } = useDatabase();
-
-  const getTable = useCallback((db: DbConnection) => db.db.projects, []);
-  const { data: projects } = useQueryRunner(connection, getTable);
+  const project = useGlobalState((state) => state.project);
 
   const { userProjects, sharedProjects } = useMemo(() => {
-    if (!connection?.identity) {
-      return { userProjects: [], sharedProjects: [] };
-    }
-
-    const user: Project[] = [];
-    const shared: Project[] = [];
-
-    for (const project of projects) {
-      if (project.owner.isEqual(connection.identity)) {
-        user.push(project);
-      } else {
-        shared.push(project);
-      }
-    }
-
-    return { userProjects: user, sharedProjects: shared };
-  }, [projects, connection?.identity]);
+    return { userProjects: [project], sharedProjects: [] };
+  }, [project]);
 
   return { userProjects, sharedProjects };
 }

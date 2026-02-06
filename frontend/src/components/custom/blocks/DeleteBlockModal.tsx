@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { useDatabase } from "@/contexts/DatabaseContext";
 import { AtlasData } from "@/lib/useAtlas";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { X, ChevronDown } from "lucide-react";
@@ -11,8 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useQueryRunner } from "@/lib/useQueryRunner";
-import { DbConnection, Layer } from "@/module_bindings";
+import { stateStore } from "@/state/store";
 
 interface DeleteBlockModalProps {
   isOpen: boolean;
@@ -29,14 +27,7 @@ export const DeleteBlockModal = ({
   atlasData,
   projectId,
 }: DeleteBlockModalProps) => {
-  const { connection } = useDatabase();
   const [submitPending, setSubmitPending] = useState(false);
-  const getTable = useCallback((db: DbConnection) => db.db.layer, []);
-  const filter = useCallback(
-    (layer: Layer) => layer.projectId === projectId,
-    [projectId]
-  );
-  const { data: layers } = useQueryRunner(connection, getTable, filter);
   const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
 
   const calculateDefaultReplacement = (
@@ -69,7 +60,7 @@ export const DeleteBlockModal = ({
 
   const handleDelete = () => {
     setSubmitPending(true);
-    connection?.reducers.deleteBlock(
+    stateStore.reducers.deleteBlock(
       projectId,
       blockIndex,
       replacementBlockType
@@ -133,7 +124,7 @@ export const DeleteBlockModal = ({
                         <>
                           <div className="w-12 h-12 flex items-center justify-center rounded overflow-hidden">
                             <img
-                              src={getBlockTexture(replacementBlockType - 1)}
+                              src={getBlockTexture(replacementBlockType - 1) ?? undefined}
                               alt=""
                               className="w-full h-full object-contain"
                             />
@@ -177,7 +168,7 @@ export const DeleteBlockModal = ({
                           <div className="w-10 h-10 flex items-center justify-center rounded overflow-hidden">
                             {isReady && (
                               <img
-                                src={getBlockTexture(index)}
+                                src={getBlockTexture(index) ?? undefined}
                                 alt=""
                                 className="w-full h-full object-contain"
                               />

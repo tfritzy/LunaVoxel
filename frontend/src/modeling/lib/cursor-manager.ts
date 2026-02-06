@@ -1,8 +1,6 @@
 import * as THREE from "three";
-import { Vector3, DbConnection, PlayerCursor } from "../../module_bindings";
+import type { Vector3 } from "@/state/types";
 import { layers } from "./layers";
-import { QueryRunner } from "@/lib/queryRunner";
-import { Timestamp } from "spacetimedb";
 
 export const CURSOR_COLORS = [
   new THREE.Color("#EE5A32"), // Vivid Orange
@@ -19,122 +17,22 @@ export const CURSOR_COLORS = [
 
 export class CursorManager {
   private scene: THREE.Scene;
-  private cursors: Map<string, THREE.Mesh> = new Map();
-  private playerColors: Map<string, THREE.Color> = new Map();
-  private colorIndex: number = 0;
-  private projectId: string;
-  private dbConn: DbConnection | null = null;
-  private queryRunner: QueryRunner<PlayerCursor>;
+  private localCursor: THREE.Mesh | null = null;
 
-  constructor(scene: THREE.Scene, projectId: string, dbConn: DbConnection) {
+  constructor(scene: THREE.Scene) {
     this.scene = scene;
-    this.projectId = projectId;
-
-    this.queryRunner = new QueryRunner<PlayerCursor>(
-      dbConn.db.playerCursor,
-      (data) => {
-        this.update(data);
-      }
-    );
   }
 
   updateLocalCursor(position: THREE.Vector3, normal: THREE.Vector3): void {
-    if (!this.dbConn?.identity) return;
-
-    const cursorId = this.dbConn.identity.toHexString();
-    const existingMesh = this.cursors.get(cursorId);
-
-    if (existingMesh) {
-      existingMesh.position.set(position.x, position.y, position.z);
-      this.orientCursorToNormal(existingMesh, normal);
-    } else {
-      this.createLocalCursor(position, normal);
+    if (this.localCursor) {
+      this.localCursor.position.set(position.x, position.y, position.z);
+      this.orientCursorToNormal(this.localCursor, normal);
+      return;
     }
-  }
-
-  private createLocalCursor(
-    position: THREE.Vector3,
-    normal: THREE.Vector3
-  ): void {
-    if (!this.dbConn?.identity) return;
-
-    const playerKey = this.dbConn.identity.toHexString();
-    const cursor: PlayerCursor = {
-      id: playerKey,
-      projectId: this.projectId,
-      player: this.dbConn.identity,
-      displayName: "",
-      position: { x: position.x, y: position.y, z: position.z },
-      normal: { x: normal.x, y: normal.y, z: normal.z },
-      lastUpdated: Timestamp.now(),
-    };
-
-    this.createCursor(cursor);
-  }
-
-  private update(cursors: PlayerCursor[]): void {
-    const activeCursorIds = new Set<string>();
-
-    for (const cursor of cursors) {
-      activeCursorIds.add(cursor.id);
-
-      const existingMesh = this.cursors.get(cursor.id);
-
-      if (cursor.position && cursor.normal) {
-        if (existingMesh) {
-          const newPosition = new THREE.Vector3(
-            cursor.position.x,
-            cursor.position.y,
-            cursor.position.z
-          );
-          const newNormal = new THREE.Vector3(
-            cursor.normal.x,
-            cursor.normal.y,
-            cursor.normal.z
-          );
-
-          if (
-            !existingMesh.position.equals(newPosition) ||
-            !this.getMeshNormal(existingMesh).equals(newNormal)
-          ) {
-            existingMesh.position.copy(newPosition);
-            this.orientCursorToNormal(existingMesh, cursor.normal);
-          }
-        } else {
-          this.createCursor(cursor);
-        }
-      }
-    }
-
-    for (const [cursorId] of this.cursors) {
-      if (!activeCursorIds.has(cursorId)) {
-        this.removeCursor(cursorId);
-      }
-    }
-  }
-
-  private getMeshNormal(mesh: THREE.Mesh): THREE.Vector3 {
-    const direction = new THREE.Vector3();
-    mesh.getWorldDirection(direction);
-    return direction.negate();
-  }
-
-  private createCursor(cursor: PlayerCursor): void {
-    if (cursor.player === this.dbConn?.identity) return;
 
     const geometry = new THREE.PlaneGeometry(1, 1);
-
-    const playerKey = cursor.player.toHexString();
-    let color = this.playerColors.get(playerKey);
-
-    if (!color) {
-      color = CURSOR_COLORS[this.colorIndex % CURSOR_COLORS.length];
-      this.playerColors.set(playerKey, color);
-      this.colorIndex++;
-    }
-
     const material = new THREE.MeshBasicMaterial({
-      color: color,
+      color: CURSOR_COLORS[0],
       transparent: true,
       opacity: 0.8,
       side: THREE.DoubleSide,
@@ -142,19 +40,10 @@ export class CursorManager {
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.layers.set(layers.ghost);
-    if (cursor.position) {
-      mesh.position.set(
-        cursor.position.x,
-        cursor.position.y,
-        cursor.position.z
-      );
-    }
-    if (cursor.normal) {
-      this.orientCursorToNormal(mesh, cursor.normal);
-    }
-
-    this.cursors.set(cursor.id, mesh);
+    mesh.position.set(position.x, position.y, position.z);
+    this.orientCursorToNormal(mesh, normal);
     this.scene.add(mesh);
+    this.localCursor = mesh;
   }
 
   private orientCursorToNormal(mesh: THREE.Mesh, normal: Vector3): void {
@@ -181,25 +70,12 @@ export class CursorManager {
     mesh.setRotationFromQuaternion(quaternion);
   }
 
-  private removeCursor(cursorId: string): void {
-    const mesh = this.cursors.get(cursorId);
-    if (mesh) {
-      this.scene.remove(mesh);
-      mesh.geometry.dispose();
-      (mesh.material as THREE.Material).dispose();
-      this.cursors.delete(cursorId);
-    }
-  }
-
   dispose(): void {
-    if (this.queryRunner) {
-      this.queryRunner.dispose();
+    if (this.localCursor) {
+      this.scene.remove(this.localCursor);
+      this.localCursor.geometry.dispose();
+      (this.localCursor.material as THREE.Material).dispose();
+      this.localCursor = null;
     }
-
-    for (const [cursorId] of this.cursors) {
-      this.removeCursor(cursorId);
-    }
-    this.cursors.clear();
-    this.playerColors.clear();
   }
 }

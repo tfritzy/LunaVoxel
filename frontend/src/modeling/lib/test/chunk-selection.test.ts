@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Chunk } from "../chunk";
 import * as THREE from "three";
-import { Vector3, BlockModificationMode } from "@/module_bindings";
+import type { Vector3, BlockModificationMode } from "@/state/types";
 import { AtlasData } from "@/lib/useAtlas";
 
 describe("Chunk selection rendering", () => {
@@ -12,6 +12,7 @@ describe("Chunk selection rendering", () => {
   const mockAtlasData: AtlasData = {
     texture: null as unknown as THREE.Texture,
     blockAtlasMappings: [[0, 1, 2, 3, 4, 5]],
+    colors: [0xffffff, 0x000000, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00],
   };
 
   beforeEach(() => {

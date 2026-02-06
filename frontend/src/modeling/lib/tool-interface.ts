@@ -1,11 +1,12 @@
 import * as THREE from "three";
-import type { DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import type { BlockModificationMode, Vector3 } from "@/state/types";
+import type { Reducers } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import type { VoxelFrame } from "./voxel-frame";
 
 export interface ToolContext {
-  dbConn: DbConnection;
+  reducers: Reducers;
   projectId: string;
   dimensions: Vector3;
   projectManager: ProjectManager;

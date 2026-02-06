@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { ExteriorFacesFinder } from "../find-exterior-faces";
 import { MeshArrays } from "../mesh-arrays";
 import { VoxelFrame } from "../voxel-frame";
+import { FlatVoxelFrame } from "../flat-voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
-import type { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state/types";
 
 /**
  * Helper function to create block atlas mappings
@@ -35,7 +36,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -72,7 +73,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -117,7 +118,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -153,7 +154,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -182,7 +183,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -212,7 +213,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       // Add a preview block adjacent to the real block
       previewFrame.set(1, 0, 0, 1);
@@ -250,7 +251,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       // Mark the block as selected
       selectionFrame.set(0, 0, 0, 1);
@@ -287,7 +288,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -328,7 +329,7 @@ describe("ExteriorFacesFinder", () => {
       const realMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const realPreviewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const realPreviewFrame = new VoxelFrame(dimensions);
-      const realSelectionFrame = new VoxelFrame(dimensions);
+      const realSelectionFrame = new FlatVoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         realVoxelData,
@@ -346,7 +347,7 @@ describe("ExteriorFacesFinder", () => {
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays2 = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const previewSelectionFrame = new VoxelFrame(dimensions);
+      const previewSelectionFrame = new FlatVoxelFrame(dimensions);
 
       for (let x = 0; x < 8; x++) {
         for (let y = 0; y < 8; y++) {
@@ -383,7 +384,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       // Set every other voxel with polka dot pattern - alternating between real and preview blocks
       for (let x = 0; x < dimensions.x; x++) {
@@ -443,7 +444,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       // Fill entire cube with real blocks
       for (let x = 0; x < dimensions.x; x++) {
@@ -498,7 +499,7 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
-      const selectionFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
 
       // Fill entire cube with preview blocks
       for (let x = 0; x < dimensions.x; x++) {
