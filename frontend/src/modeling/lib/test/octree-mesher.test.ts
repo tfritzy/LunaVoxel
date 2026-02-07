@@ -127,8 +127,8 @@ describe("OctreeMesher", () => {
     });
     const aoCull = results.find((entry) => entry.label === "AO+culling");
     const baseline = results.find((entry) => entry.label === "Neither enabled");
-    if (aoCull && baseline) {
-      expect(aoCull.avg).toBeGreaterThan(baseline.avg);
-    }
+    expect(aoCull).toBeDefined();
+    expect(baseline).toBeDefined();
+    expect(aoCull!.avg).toBeGreaterThan(baseline!.avg);
   }, 30000);
 });
