@@ -168,9 +168,15 @@ export class OctreeMesher {
     textureWidth: number,
     blockAtlasMappings: number[][],
     meshArrays: MeshArrays,
-    isSelected: (value: number) => number = () => 0
+    isSelected: (value: number) => number = () => 0,
+    options?: {
+      enableAO?: boolean;
+      enableCulling?: boolean;
+    }
   ): void {
     meshArrays.reset();
+    const enableAO = options?.enableAO ?? true;
+    const enableCulling = options?.enableCulling ?? true;
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
@@ -197,7 +203,7 @@ export class OctreeMesher {
         const tangents = FACE_TANGENTS[faceIndex];
         const { uAxis, vAxis } = this.faceTangentAxes[faceIndex];
 
-        if (this.isFaceOccluded(leaf, normal, octree)) {
+        if (enableCulling && this.isFaceOccluded(leaf, normal, octree)) {
           continue;
         }
 
@@ -245,15 +251,17 @@ export class OctreeMesher {
             leaf.size,
             cornerZ
           );
-          const occlusion = this.getOcclusionLevel(
-            baseX,
-            baseY,
-            baseZ,
-            uDir,
-            vDir,
-            tangents,
-            octree
-          );
+          const occlusion = enableAO
+            ? this.getOcclusionLevel(
+                baseX,
+                baseY,
+                baseZ,
+                uDir,
+                vDir,
+                tangents,
+                octree
+              )
+            : 0;
 
           meshArrays.pushVertex(vx, vy, vz);
           meshArrays.pushNormal(normal[0], normal[1], normal[2]);
