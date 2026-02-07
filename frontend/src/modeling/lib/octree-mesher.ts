@@ -74,6 +74,9 @@ export class OctreeMesher {
     return "z";
   }
 
+  /**
+   * Compute the AO sampling coordinate along a face normal.
+   */
   private getBaseCoord(
     normalComponent: number,
     minCoord: number,
