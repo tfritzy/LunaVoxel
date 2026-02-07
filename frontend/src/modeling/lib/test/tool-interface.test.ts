@@ -8,7 +8,7 @@ import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
-import { VoxelFrame } from "../voxel-frame";
+import { SparseVoxelOctree } from "../sparse-voxel-octree";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
@@ -51,7 +51,7 @@ describe("Tool Interface", () => {
           setPreview: () => {},
         },
       } as unknown as ProjectManager,
-      previewFrame: new VoxelFrame(dimensions),
+      previewOctree: new SparseVoxelOctree(dimensions),
       selectedBlock: 1,
       selectedLayer: 0,
       setSelectedBlockInParent: () => {},
@@ -128,7 +128,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5)
       });
       
-      expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
+      expect(mockContext.previewOctree.get(1, 2, 3)).toBeGreaterThan(0);
     });
   });
 

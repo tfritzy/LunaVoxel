@@ -119,6 +119,47 @@ export class OctreeMesher {
     return octree.get(x, y, z) !== 0;
   }
 
+  private isFaceOccluded(
+    leaf: { minPos: { x: number; y: number; z: number }; size: number },
+    normal: [number, number, number],
+    octree: SparseVoxelOctree
+  ): boolean {
+    const size = leaf.size;
+    if (normal[0] !== 0) {
+      const x = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - 1;
+      for (let y = 0; y < size; y++) {
+        for (let z = 0; z < size; z++) {
+          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    if (normal[1] !== 0) {
+      const y = normal[1] > 0 ? leaf.minPos.y + size : leaf.minPos.y - 1;
+      for (let x = 0; x < size; x++) {
+        for (let z = 0; z < size; z++) {
+          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    const z = normal[2] > 0 ? leaf.minPos.z + size : leaf.minPos.z - 1;
+    for (let x = 0; x < size; x++) {
+      for (let y = 0; y < size; y++) {
+        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /**
    * Build brute-force meshes for each leaf; isSelected maps a voxel value to 0/1.
    */
@@ -152,9 +193,14 @@ export class OctreeMesher {
         const face = faces[faceIndex];
         const textureIndex = faceTextures[faceIndex];
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
-        const normal = face.normal;
+        const normal = face.normal as [number, number, number];
         const tangents = FACE_TANGENTS[faceIndex];
         const { uAxis, vAxis } = this.faceTangentAxes[faceIndex];
+
+        if (this.isFaceOccluded(leaf, normal, octree)) {
+          continue;
+        }
+
         const startVertexIndex = meshArrays.vertexCount;
 
         for (let vi = 0; vi < 4; vi++) {

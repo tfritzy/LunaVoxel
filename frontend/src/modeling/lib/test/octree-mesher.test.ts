@@ -41,7 +41,7 @@ describe("OctreeMesher", () => {
     expect(meshArrays.indexCount).toBe(36);
   });
 
-  it("does not cull faces between leaves", () => {
+  it("culls shared faces between leaves", () => {
     const octree = new SparseVoxelOctree({ x: 4, y: 4, z: 4 });
     octree.set(0, 0, 0, 1);
     octree.set(1, 0, 0, 1);
@@ -52,8 +52,8 @@ describe("OctreeMesher", () => {
 
     mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays);
 
-    expect(meshArrays.vertexCount).toBe(leafCount * 24);
-    expect(meshArrays.indexCount).toBe(leafCount * 36);
+    expect(meshArrays.vertexCount).toBe(40);
+    expect(meshArrays.indexCount).toBe(60);
   });
 
   it("applies ambient occlusion near occupied neighbors", () => {

@@ -2,7 +2,6 @@ import * as THREE from "three";
 import type { BlockModificationMode, Layer, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { AtlasData } from "@/lib/useAtlas";
-import { VoxelFrame } from "./voxel-frame";
 import { MeshArrays } from "./mesh-arrays";
 import { createVoxelMaterial } from "./shader";
 import { OctreeMesher } from "./octree-mesher";
@@ -109,7 +108,7 @@ export class OctreeManager {
   }
 
   /**
-   * Allocate enough space for 6 faces per leaf (no culling).
+   * Allocate enough space for 6 faces per leaf (upper bound).
    */
   private createMeshArrays(leafCount: number): MeshArrays {
     const maxFaces = leafCount * 6;
@@ -254,25 +253,8 @@ export class OctreeManager {
     this.updateMeshes();
   }
 
-  public setPreview(previewFrame: VoxelFrame): void {
-    this.previewOctree.clear();
-
-    if (!previewFrame.isEmpty()) {
-      const minPos = previewFrame.getMinPos();
-      const maxPos = previewFrame.getMaxPos();
-
-      for (let x = minPos.x; x < maxPos.x; x++) {
-        for (let y = minPos.y; y < maxPos.y; y++) {
-          for (let z = minPos.z; z < maxPos.z; z++) {
-            const value = previewFrame.get(x, y, z);
-            if (value !== 0) {
-              this.previewOctree.set(x, y, z, value);
-            }
-          }
-        }
-      }
-    }
-
+  public setPreview(previewOctree: SparseVoxelOctree): void {
+    this.previewOctree = previewOctree;
     this.updateMeshes();
   }
 

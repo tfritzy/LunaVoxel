@@ -20,20 +20,14 @@ const nextPowerOfTwo = (value: number): number => {
 };
 
 export class SparseVoxelOctree {
-  private dimensions: Vector3;
   private size: number;
   private root: OctreeNode;
 
   constructor(dimensions: Vector3) {
-    this.dimensions = { ...dimensions };
     this.size = nextPowerOfTwo(
       Math.max(dimensions.x, dimensions.y, dimensions.z)
     );
     this.root = { value: 0 };
-  }
-
-  public getDimensions(): Vector3 {
-    return { ...this.dimensions };
   }
 
   public isEmpty(): boolean {
@@ -74,9 +68,9 @@ export class SparseVoxelOctree {
     };
 
     const clampedMax = {
-      x: Math.min(this.dimensions.x, maxPos.x),
-      y: Math.min(this.dimensions.y, maxPos.y),
-      z: Math.min(this.dimensions.z, maxPos.z),
+      x: Math.min(this.size, maxPos.x),
+      y: Math.min(this.size, maxPos.y),
+      z: Math.min(this.size, maxPos.z),
     };
 
     if (
@@ -128,9 +122,9 @@ export class SparseVoxelOctree {
       x >= 0 &&
       y >= 0 &&
       z >= 0 &&
-      x < this.dimensions.x &&
-      y < this.dimensions.y &&
-      z < this.dimensions.z
+      x < this.size &&
+      y < this.size &&
+      z < this.size
     );
   }
 
