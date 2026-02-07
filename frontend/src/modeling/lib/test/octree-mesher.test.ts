@@ -111,7 +111,7 @@ describe("OctreeMesher", () => {
     runBenchmark("AO+culling", { enableAO: true, enableCulling: true });
     runBenchmark("AO only", { enableAO: true, enableCulling: false });
     runBenchmark("Culling only", { enableAO: false, enableCulling: true });
-    runBenchmark("Neither enabled", { enableAO: false, enableCulling: false });
+    runBenchmark("Baseline", { enableAO: false, enableCulling: false });
 
     console.table(
       results.map((entry) => ({
@@ -126,7 +126,7 @@ describe("OctreeMesher", () => {
       expect(entry.avg).toBeGreaterThan(0);
     });
     const aoCull = results.find((entry) => entry.label === "AO+culling");
-    const baseline = results.find((entry) => entry.label === "Neither enabled");
+    const baseline = results.find((entry) => entry.label === "Baseline");
     expect(aoCull).toBeDefined();
     expect(baseline).toBeDefined();
     expect(aoCull!.avg).toBeGreaterThan(baseline!.avg);
