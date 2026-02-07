@@ -108,29 +108,29 @@ export class OctreeMesher {
     baseX: number,
     baseY: number,
     baseZ: number,
-    corner: CornerOffsets,
+    cornerOffsets: CornerOffsets,
     octree: SparseVoxelOctree,
     occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): number {
     const side1Occlusion = this.isOccluder(
       octree,
-      baseX + corner.side1Offset[0],
-      baseY + corner.side1Offset[1],
-      baseZ + corner.side1Offset[2],
+      baseX + cornerOffsets.side1Offset[0],
+      baseY + cornerOffsets.side1Offset[1],
+      baseZ + cornerOffsets.side1Offset[2],
       occupancy
     );
     const side2Occlusion = this.isOccluder(
       octree,
-      baseX + corner.side2Offset[0],
-      baseY + corner.side2Offset[1],
-      baseZ + corner.side2Offset[2],
+      baseX + cornerOffsets.side2Offset[0],
+      baseY + cornerOffsets.side2Offset[1],
+      baseZ + cornerOffsets.side2Offset[2],
       occupancy
     );
     const diagonalOcclusion = this.isOccluder(
       octree,
-      baseX + corner.diagonalOffset[0],
-      baseY + corner.diagonalOffset[1],
-      baseZ + corner.diagonalOffset[2],
+      baseX + cornerOffsets.diagonalOffset[0],
+      baseY + cornerOffsets.diagonalOffset[1],
+      baseZ + cornerOffsets.diagonalOffset[2],
       occupancy
     );
 
