@@ -16,18 +16,20 @@ type FacePrecompute = {
   corners: CornerOffsets[];
 };
 
+const ADJACENT_VOXEL_OFFSET = -1;
+const AXIS_INDEX = { x: 0, y: 1, z: 2 } as const;
+
 export class OctreeMesher {
   private faceData: FacePrecompute[];
 
   constructor() {
-    const axisIndex = { x: 0, y: 1, z: 2 } as const;
     this.faceData = faces.map((face, faceIndex) => {
       const normal = face.normal as [number, number, number];
       const tangents = FACE_TANGENTS[faceIndex];
       const uAxis = this.getAxisFromVector(tangents.u);
       const vAxis = this.getAxisFromVector(tangents.v);
-      const uIndex = axisIndex[uAxis];
-      const vIndex = axisIndex[vAxis];
+      const uIndex = AXIS_INDEX[uAxis];
+      const vIndex = AXIS_INDEX[vAxis];
       const corners = face.vertices.map((vertex) => {
         const cornerMultiplier: [number, number, number] = [
           vertex[0] > 0 ? 1 : 0,
@@ -90,7 +92,7 @@ export class OctreeMesher {
     if (normalComponent === 0) {
       return cornerCoord;
     }
-    return minCoord + (normalComponent === 1 ? size : -1);
+    return minCoord + (normalComponent === 1 ? size : ADJACENT_VOXEL_OFFSET);
   }
 
   private getCornerCoord(
