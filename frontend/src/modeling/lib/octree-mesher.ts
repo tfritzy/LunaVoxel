@@ -112,14 +112,14 @@ export class OctreeMesher {
     octree: SparseVoxelOctree,
     occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): number {
-    const side1Occlusion = this.isOccluder(
+    const uTangentOcclusion = this.isOccluder(
       octree,
       baseX + cornerOffsets.side1Offset[0],
       baseY + cornerOffsets.side1Offset[1],
       baseZ + cornerOffsets.side1Offset[2],
       occupancy
     );
-    const side2Occlusion = this.isOccluder(
+    const vTangentOcclusion = this.isOccluder(
       octree,
       baseX + cornerOffsets.side2Offset[0],
       baseY + cornerOffsets.side2Offset[1],
@@ -135,8 +135,8 @@ export class OctreeMesher {
     );
 
     return calculateOcclusionLevel(
-      side1Occlusion,
-      side2Occlusion,
+      uTangentOcclusion,
+      vTangentOcclusion,
       diagonalOcclusion
     );
   }
