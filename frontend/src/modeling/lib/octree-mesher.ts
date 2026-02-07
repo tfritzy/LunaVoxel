@@ -13,7 +13,7 @@ type CornerOffsets = {
 
 type FacePrecompute = {
   normal: [number, number, number];
-  baseCoordMode: [number, number, number];
+  baseCoordNormal: [number, number, number];
   corners: CornerOffsets[];
 };
 
@@ -61,7 +61,7 @@ export class OctreeMesher {
       });
       return {
         normal,
-        baseCoordMode: [...normal] as [number, number, number],
+        baseCoordNormal: [...normal] as [number, number, number],
         corners,
       };
     });
@@ -113,7 +113,7 @@ export class OctreeMesher {
       baseZ + corner.side2Offset[2],
       occupancy
     );
-    const cornerOcc = this.isOccluder(
+    const diagonalOcc = this.isOccluder(
       octree,
       baseX + corner.cornerOffsetVec[0],
       baseY + corner.cornerOffsetVec[1],
@@ -121,7 +121,7 @@ export class OctreeMesher {
       occupancy
     );
 
-    return calculateOcclusionLevel(side1, side2, cornerOcc);
+    return calculateOcclusionLevel(side1, side2, diagonalOcc);
   }
 
   private isOccluder(
@@ -277,19 +277,19 @@ export class OctreeMesher {
           const cornerY = leaf.minPos.y + corner.cornerOffset[1] * leaf.size;
           const cornerZ = leaf.minPos.z + corner.cornerOffset[2] * leaf.size;
           const baseX = this.getBaseCoord(
-            faceInfo.baseCoordMode[0],
+            faceInfo.baseCoordNormal[0],
             leaf.minPos.x,
             leaf.size,
             cornerX
           );
           const baseY = this.getBaseCoord(
-            faceInfo.baseCoordMode[1],
+            faceInfo.baseCoordNormal[1],
             leaf.minPos.y,
             leaf.size,
             cornerY
           );
           const baseZ = this.getBaseCoord(
-            faceInfo.baseCoordMode[2],
+            faceInfo.baseCoordNormal[2],
             leaf.minPos.z,
             leaf.size,
             cornerZ
