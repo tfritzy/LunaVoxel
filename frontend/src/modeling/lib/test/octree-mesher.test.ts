@@ -55,4 +55,22 @@ describe("OctreeMesher", () => {
     expect(meshArrays.vertexCount).toBe(leafCount * 24);
     expect(meshArrays.indexCount).toBe(leafCount * 36);
   });
+
+  it("applies ambient occlusion near occupied neighbors", () => {
+    const octree = new SparseVoxelOctree({ x: 3, y: 3, z: 3 });
+    octree.set(0, 0, 0, 1);
+    octree.set(1, 0, 1, 1);
+    octree.set(1, 1, 0, 1);
+    octree.set(1, 0, 0, 1);
+
+    const leafCount = octree.countLeaves();
+    const mesher = new OctreeMesher();
+    const meshArrays = createMeshArrays(leafCount);
+
+    mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays);
+
+    const aoValues = meshArrays.getAO();
+    const minAo = aoValues.length ? Math.min(...aoValues) : 1;
+    expect(minAo).toBeLessThan(1);
+  });
 });

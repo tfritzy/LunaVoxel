@@ -50,12 +50,23 @@ export const DeleteBlockModal = ({
   }, [isOpen]);
 
   const blockCount = useMemo(() => {
-    // Note: With sparse octree storage, counting blocks would require
-    // traversing every leaf across all layers. For now, we'll return 0
-    // which means we can't show the exact count.
-    
-    return 0;
-  }, [blockIndex]);
+    if (!isOpen) return 0;
+    const { layers, layerOctrees } = stateStore.getState();
+    let count = 0;
+
+    for (const layer of layers) {
+      if (layer.projectId !== projectId) continue;
+      const octree = layerOctrees.get(layer.id);
+      if (!octree) continue;
+      octree.forEachLeaf((leaf) => {
+        if (leaf.value === blockIndex) {
+          count += leaf.size * leaf.size * leaf.size;
+        }
+      });
+    }
+
+    return count;
+  }, [blockIndex, isOpen, projectId]);
 
   const handleDelete = () => {
     setSubmitPending(true);
