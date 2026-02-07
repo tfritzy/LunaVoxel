@@ -5,10 +5,10 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 type CornerOffsets = {
-  cornerOffset: [number, number, number];
+  cornerMultiplier: [number, number, number];
   side1Offset: [number, number, number];
   side2Offset: [number, number, number];
-  cornerOffsetVec: [number, number, number];
+  diagonalOffset: [number, number, number];
 };
 
 type FacePrecompute = {
@@ -29,13 +29,13 @@ export class OctreeMesher {
       const uIndex = axisIndex[uAxis];
       const vIndex = axisIndex[vAxis];
       const corners = face.vertices.map((vertex) => {
-        const cornerOffset: [number, number, number] = [
+        const cornerMultiplier: [number, number, number] = [
           vertex[0] > 0 ? 1 : 0,
           vertex[1] > 0 ? 1 : 0,
           vertex[2] > 0 ? 1 : 0,
         ];
-        const side1Direction = cornerOffset[uIndex] === 0 ? -1 : 1;
-        const side2Direction = cornerOffset[vIndex] === 0 ? -1 : 1;
+        const side1Direction = cornerMultiplier[uIndex] === 0 ? -1 : 1;
+        const side2Direction = cornerMultiplier[vIndex] === 0 ? -1 : 1;
         const side1Offset: [number, number, number] = [
           tangents.u[0] * side1Direction,
           tangents.u[1] * side1Direction,
@@ -46,16 +46,16 @@ export class OctreeMesher {
           tangents.v[1] * side2Direction,
           tangents.v[2] * side2Direction,
         ];
-        const cornerOffsetVec: [number, number, number] = [
+        const diagonalOffset: [number, number, number] = [
           side1Offset[0] + side2Offset[0],
           side1Offset[1] + side2Offset[1],
           side1Offset[2] + side2Offset[2],
         ];
         return {
-          cornerOffset,
+          cornerMultiplier,
           side1Offset,
           side2Offset,
-          cornerOffsetVec,
+          diagonalOffset,
         };
       });
       return {
@@ -93,6 +93,14 @@ export class OctreeMesher {
     return minCoord + (normalComponent === 1 ? size : -1);
   }
 
+  private getCornerCoord(
+    minCoord: number,
+    size: number,
+    multiplier: number
+  ): number {
+    return minCoord + multiplier * size;
+  }
+
   /**
    * Check side and corner occluders to compute AO level for a vertex corner.
    */
@@ -120,9 +128,9 @@ export class OctreeMesher {
     );
     const diagonalOcclusion = this.isOccluder(
       octree,
-      baseX + corner.cornerOffsetVec[0],
-      baseY + corner.cornerOffsetVec[1],
-      baseZ + corner.cornerOffsetVec[2],
+      baseX + corner.diagonalOffset[0],
+      baseY + corner.diagonalOffset[1],
+      baseZ + corner.diagonalOffset[2],
       occupancy
     );
 
@@ -278,9 +286,21 @@ export class OctreeMesher {
           const vy = centerY + vertex[1] * leaf.size;
           const vz = centerZ + vertex[2] * leaf.size;
           const corner = faceInfo.corners[vi];
-          const cornerX = leaf.minPos.x + corner.cornerOffset[0] * leaf.size;
-          const cornerY = leaf.minPos.y + corner.cornerOffset[1] * leaf.size;
-          const cornerZ = leaf.minPos.z + corner.cornerOffset[2] * leaf.size;
+          const cornerX = this.getCornerCoord(
+            leaf.minPos.x,
+            leaf.size,
+            corner.cornerMultiplier[0]
+          );
+          const cornerY = this.getCornerCoord(
+            leaf.minPos.y,
+            leaf.size,
+            corner.cornerMultiplier[1]
+          );
+          const cornerZ = this.getCornerCoord(
+            leaf.minPos.z,
+            leaf.size,
+            corner.cornerMultiplier[2]
+          );
           const baseX = this.getBaseCoord(
             faceInfo.normal[0],
             leaf.minPos.x,
