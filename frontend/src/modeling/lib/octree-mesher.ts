@@ -5,10 +5,10 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
-  private faceAxes: { uAxis: "x" | "y" | "z"; vAxis: "x" | "y" | "z" }[];
+  private faceTangentAxes: { uAxis: "x" | "y" | "z"; vAxis: "x" | "y" | "z" }[];
 
   constructor() {
-    this.faceAxes = FACE_TANGENTS.map((tangent) => ({
+    this.faceTangentAxes = FACE_TANGENTS.map((tangent) => ({
       uAxis: this.getAxisFromVector(tangent.u),
       vAxis: this.getAxisFromVector(tangent.v),
     }));
@@ -24,7 +24,11 @@ export class OctreeMesher {
   }
 
   /**
-   * Compute the neighbor coordinate along a face normal for AO sampling.
+   * Compute the AO sampling coordinate along a face normal.
+   * @param normalComponent The normal component (-1, 0, 1) for the face axis.
+   * @param minCoord The leaf minimum coordinate on that axis.
+   * @param size The leaf size along that axis.
+   * @param cornerCoord The vertex corner coordinate when the face is perpendicular.
    */
   private getBaseCoord(
     normalComponent: number,
@@ -48,6 +52,9 @@ export class OctreeMesher {
     return component > 0 ? minCoord + size : minCoord;
   }
 
+  /**
+   * Select the corner coordinate for a specific axis.
+   */
   private getCoordForAxis(
     axis: "x" | "y" | "z",
     cornerX: number,
@@ -147,7 +154,7 @@ export class OctreeMesher {
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
         const normal = face.normal;
         const tangents = FACE_TANGENTS[faceIndex];
-        const { uAxis, vAxis } = this.faceAxes[faceIndex];
+        const { uAxis, vAxis } = this.faceTangentAxes[faceIndex];
         const startVertexIndex = meshArrays.vertexCount;
 
         for (let vi = 0; vi < 4; vi++) {

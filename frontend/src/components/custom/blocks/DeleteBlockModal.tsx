@@ -20,6 +20,8 @@ interface DeleteBlockModalProps {
   projectId: string;
 }
 
+const EMPTY_VOXEL = 0;
+
 export const DeleteBlockModal = ({
   isOpen,
   onClose,
@@ -59,7 +61,7 @@ export const DeleteBlockModal = ({
       const octree = layerOctrees.get(layer.id);
       if (!octree) continue;
       octree.forEachLeaf((leaf) => {
-        if (leaf.value === 0) return;
+        if (leaf.value === EMPTY_VOXEL) return;
         const leafVoxelCount = leaf.size * leaf.size * leaf.size;
         counts.set(
           leaf.value,
