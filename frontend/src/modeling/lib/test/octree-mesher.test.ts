@@ -109,7 +109,7 @@ describe("OctreeMesher", () => {
     runBenchmark("AO+culling", { enableAO: true, enableCulling: true });
     runBenchmark("AO only", { enableAO: true, enableCulling: false });
     runBenchmark("Culling only", { enableAO: false, enableCulling: true });
-    runBenchmark("AO+culling disabled", { enableAO: false, enableCulling: false });
+    runBenchmark("Neither enabled", { enableAO: false, enableCulling: false });
 
     console.table(
       results.map((entry) => ({
