@@ -87,7 +87,7 @@ export class OctreeMesher {
     vDir: number,
     tangents: { u: [number, number, number]; v: [number, number, number] },
     octree: SparseVoxelOctree,
-    occupancy?: { data: Uint8Array; size: number; stride: number }
+    occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): number {
     const side1 = this.isOccluder(
       octree,
@@ -119,7 +119,7 @@ export class OctreeMesher {
     x: number,
     y: number,
     z: number,
-    occupancy?: { data: Uint8Array; size: number; stride: number }
+    occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): boolean {
     if (!occupancy) {
       return octree.get(x, y, z) !== 0;
@@ -127,7 +127,7 @@ export class OctreeMesher {
     if (x < 0 || y < 0 || z < 0 || x >= occupancy.size || y >= occupancy.size || z >= occupancy.size) {
       return false;
     }
-    const index = x * occupancy.stride + y * occupancy.size + z;
+    const index = x * occupancy.planeStride + y * occupancy.size + z;
     return occupancy.data[index] !== 0;
   }
 
@@ -135,7 +135,7 @@ export class OctreeMesher {
     leaf: { minPos: { x: number; y: number; z: number }; size: number },
     normal: [number, number, number],
     octree: SparseVoxelOctree,
-    occupancy?: { data: Uint8Array; size: number; stride: number }
+    occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): boolean {
     const size = leaf.size;
     if (normal[0] !== 0) {
@@ -173,10 +173,15 @@ export class OctreeMesher {
     return true;
   }
 
-  private buildOccupancy(octree: SparseVoxelOctree): { data: Uint8Array; size: number; stride: number } {
+  /**
+   * Precompute an occupancy buffer indexed as x * size * size + y * size + z.
+   */
+  private buildOccupancy(
+    octree: SparseVoxelOctree
+  ): { data: Uint8Array; size: number; planeStride: number } {
     const size = octree.getSize();
-    const stride = size * size;
-    const data = new Uint8Array(size * stride);
+    const planeStride = size * size;
+    const data = new Uint8Array(size * planeStride);
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
@@ -189,7 +194,7 @@ export class OctreeMesher {
       const endY = startY + leaf.size;
       const endZ = startZ + leaf.size;
       for (let x = startX; x < endX; x++) {
-        const xOffset = x * stride;
+        const xOffset = x * planeStride;
         for (let y = startY; y < endY; y++) {
           const yOffset = y * size;
           for (let z = startZ; z < endZ; z++) {
@@ -199,7 +204,7 @@ export class OctreeMesher {
       }
     });
 
-    return { data, size, stride };
+    return { data, size, planeStride };
   }
 
   /**
