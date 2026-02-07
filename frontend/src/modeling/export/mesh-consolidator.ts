@@ -19,7 +19,7 @@ export class MeshConsolidator {
     this.worldDimensions = worldDimensions;
   }
 
-  public consolidateMesh(): ConsolidatedMesh {
+  public consolidateOctreeMesh(): ConsolidatedMesh {
     const vertices: number[] = [];
     const normals: number[] = [];
     const uvs: number[] = [];

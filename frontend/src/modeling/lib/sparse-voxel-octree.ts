@@ -103,6 +103,9 @@ export class SparseVoxelOctree {
     this.visitLeaves(this.root, 0, 0, 0, this.size, callback);
   }
 
+  /**
+   * Count leaf nodes, optionally including empty (value 0) leaves.
+   */
   public countLeaves(includeEmpty: boolean = false): number {
     let count = 0;
     this.forEachLeaf((leaf) => {
@@ -113,6 +116,9 @@ export class SparseVoxelOctree {
     return count;
   }
 
+  /**
+   * Apply an updater to all leaf values and collapse uniform children.
+   */
   public updateValues(updater: (value: number) => number): void {
     this.updateNodeValues(this.root, updater);
   }

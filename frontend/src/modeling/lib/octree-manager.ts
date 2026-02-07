@@ -108,6 +108,9 @@ export class OctreeManager {
     }
   }
 
+  /**
+   * Allocate enough space for 6 faces per leaf (no culling).
+   */
   private createMeshArrays(leafCount: number): MeshArrays {
     const maxFaces = leafCount * 6;
     const maxVertices = maxFaces * 4;

@@ -123,7 +123,7 @@ export class ModelExporter {
       this.octreeManager,
       worldDimensions
     );
-    const consolidatedMesh = consolidator.consolidateMesh();
+    const consolidatedMesh = consolidator.consolidateOctreeMesh();
 
     if (consolidatedMesh.vertices.length === 0) {
       toast.success(

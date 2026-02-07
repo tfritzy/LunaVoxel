@@ -4,6 +4,9 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  /**
+   * Build brute-force meshes for each leaf; isSelected maps a voxel value to 0/1.
+   */
   public buildMesh(
     octree: SparseVoxelOctree,
     textureWidth: number,
@@ -49,6 +52,7 @@ export class OctreeMesher {
             textureCoords[vi * 2],
             textureCoords[vi * 2 + 1]
           );
+          // Brute-force mesher skips AO, so vertices are fully lit.
           meshArrays.pushAO(1);
           meshArrays.pushIsSelected(selectedFlag);
           meshArrays.incrementVertex();
