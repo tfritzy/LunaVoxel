@@ -5,6 +5,7 @@ export const OCCLUSION_LEVELS = [1.0, 0.9, 0.85, 0.75];
 
 /**
  * Tangent vectors per face index used to sample neighboring voxels for AO.
+ * Each tangent must have exactly one non-zero component for axis resolution.
  */
 export const FACE_TANGENTS: { u: [number, number, number]; v: [number, number, number] }[] = [
   { u: [0, 1, 0], v: [0, 0, 1] }, // +X

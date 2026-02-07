@@ -60,8 +60,11 @@ export const DeleteBlockModal = ({
       if (!octree) continue;
       octree.forEachLeaf((leaf) => {
         if (leaf.value === 0) return;
-        const leafVolume = leaf.size * leaf.size * leaf.size;
-        counts.set(leaf.value, (counts.get(leaf.value) ?? 0) + leafVolume);
+        const leafVoxelCount = leaf.size * leaf.size * leaf.size;
+        counts.set(
+          leaf.value,
+          (counts.get(leaf.value) ?? 0) + leafVoxelCount
+        );
       });
     }
 
