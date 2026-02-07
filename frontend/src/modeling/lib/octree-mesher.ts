@@ -6,8 +6,8 @@ import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 type CornerOffsets = {
   cornerMultiplier: [number, number, number];
-  side1Offset: [number, number, number];
-  side2Offset: [number, number, number];
+  uTangentOffset: [number, number, number];
+  vTangentOffset: [number, number, number];
   diagonalOffset: [number, number, number];
 };
 
@@ -16,7 +16,7 @@ type FacePrecompute = {
   corners: CornerOffsets[];
 };
 
-const ADJACENT_VOXEL_OFFSET = -1;
+const ADJACENT_VOXEL_DELTA = -1;
 const AXIS_INDEX = { x: 0, y: 1, z: 2 } as const;
 
 export class OctreeMesher {
@@ -38,25 +38,25 @@ export class OctreeMesher {
         ];
         const side1Direction = cornerMultiplier[uIndex] === 0 ? -1 : 1;
         const side2Direction = cornerMultiplier[vIndex] === 0 ? -1 : 1;
-        const side1Offset: [number, number, number] = [
+        const uTangentOffset: [number, number, number] = [
           tangents.u[0] * side1Direction,
           tangents.u[1] * side1Direction,
           tangents.u[2] * side1Direction,
         ];
-        const side2Offset: [number, number, number] = [
+        const vTangentOffset: [number, number, number] = [
           tangents.v[0] * side2Direction,
           tangents.v[1] * side2Direction,
           tangents.v[2] * side2Direction,
         ];
         const diagonalOffset: [number, number, number] = [
-          side1Offset[0] + side2Offset[0],
-          side1Offset[1] + side2Offset[1],
-          side1Offset[2] + side2Offset[2],
+          uTangentOffset[0] + vTangentOffset[0],
+          uTangentOffset[1] + vTangentOffset[1],
+          uTangentOffset[2] + vTangentOffset[2],
         ];
         return {
           cornerMultiplier,
-          side1Offset,
-          side2Offset,
+          uTangentOffset,
+          vTangentOffset,
           diagonalOffset,
         };
       });
@@ -92,7 +92,7 @@ export class OctreeMesher {
     if (normalComponent === 0) {
       return cornerCoord;
     }
-    return minCoord + (normalComponent === 1 ? size : ADJACENT_VOXEL_OFFSET);
+    return minCoord + (normalComponent === 1 ? size : ADJACENT_VOXEL_DELTA);
   }
 
   private getCornerCoord(
@@ -116,16 +116,16 @@ export class OctreeMesher {
   ): number {
     const uTangentOcclusion = this.isOccluder(
       octree,
-      baseX + cornerOffsets.side1Offset[0],
-      baseY + cornerOffsets.side1Offset[1],
-      baseZ + cornerOffsets.side1Offset[2],
+      baseX + cornerOffsets.uTangentOffset[0],
+      baseY + cornerOffsets.uTangentOffset[1],
+      baseZ + cornerOffsets.uTangentOffset[2],
       occupancy
     );
     const vTangentOcclusion = this.isOccluder(
       octree,
-      baseX + cornerOffsets.side2Offset[0],
-      baseY + cornerOffsets.side2Offset[1],
-      baseZ + cornerOffsets.side2Offset[2],
+      baseX + cornerOffsets.vTangentOffset[0],
+      baseY + cornerOffsets.vTangentOffset[1],
+      baseZ + cornerOffsets.vTangentOffset[2],
       occupancy
     );
     const diagonalOcclusion = this.isOccluder(
