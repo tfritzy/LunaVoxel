@@ -100,6 +100,8 @@ describe("OctreeMesher", () => {
         mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays, undefined, options);
         durations.push(performance.now() - start);
       }
+      expect(meshArrays.vertexCount).toBeGreaterThan(0);
+      expect(meshArrays.indexCount).toBeGreaterThan(0);
       const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
@@ -123,5 +125,10 @@ describe("OctreeMesher", () => {
     results.forEach((entry) => {
       expect(entry.avg).toBeGreaterThan(0);
     });
-  }, 120000);
+    const aoCull = results.find((entry) => entry.label === "AO+culling");
+    const baseline = results.find((entry) => entry.label === "Neither enabled");
+    if (aoCull && baseline) {
+      expect(aoCull.avg).toBeGreaterThan(baseline.avg);
+    }
+  }, 30000);
 });
