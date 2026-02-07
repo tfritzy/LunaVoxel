@@ -86,25 +86,29 @@ export class OctreeMesher {
     uDir: number,
     vDir: number,
     tangents: { u: [number, number, number]; v: [number, number, number] },
-    octree: SparseVoxelOctree
+    octree: SparseVoxelOctree,
+    occupancy?: { data: Uint8Array; size: number; stride: number }
   ): number {
     const side1 = this.isOccluder(
       octree,
       baseX + uDir * tangents.u[0],
       baseY + uDir * tangents.u[1],
-      baseZ + uDir * tangents.u[2]
+      baseZ + uDir * tangents.u[2],
+      occupancy
     );
     const side2 = this.isOccluder(
       octree,
       baseX + vDir * tangents.v[0],
       baseY + vDir * tangents.v[1],
-      baseZ + vDir * tangents.v[2]
+      baseZ + vDir * tangents.v[2],
+      occupancy
     );
     const corner = this.isOccluder(
       octree,
       baseX + uDir * tangents.u[0] + vDir * tangents.v[0],
       baseY + uDir * tangents.u[1] + vDir * tangents.v[1],
-      baseZ + uDir * tangents.u[2] + vDir * tangents.v[2]
+      baseZ + uDir * tangents.u[2] + vDir * tangents.v[2],
+      occupancy
     );
 
     return calculateOcclusionLevel(side1, side2, corner);
@@ -114,22 +118,31 @@ export class OctreeMesher {
     octree: SparseVoxelOctree,
     x: number,
     y: number,
-    z: number
+    z: number,
+    occupancy?: { data: Uint8Array; size: number; stride: number }
   ): boolean {
-    return octree.get(x, y, z) !== 0;
+    if (!occupancy) {
+      return octree.get(x, y, z) !== 0;
+    }
+    if (x < 0 || y < 0 || z < 0 || x >= occupancy.size || y >= occupancy.size || z >= occupancy.size) {
+      return false;
+    }
+    const index = x * occupancy.stride + y * occupancy.size + z;
+    return occupancy.data[index] !== 0;
   }
 
   private isFaceOccluded(
     leaf: { minPos: { x: number; y: number; z: number }; size: number },
     normal: [number, number, number],
-    octree: SparseVoxelOctree
+    octree: SparseVoxelOctree,
+    occupancy?: { data: Uint8Array; size: number; stride: number }
   ): boolean {
     const size = leaf.size;
     if (normal[0] !== 0) {
       const x = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - 1;
       for (let y = 0; y < size; y++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z)) {
+          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z, occupancy)) {
             return false;
           }
         }
@@ -141,7 +154,7 @@ export class OctreeMesher {
       const y = normal[1] > 0 ? leaf.minPos.y + size : leaf.minPos.y - 1;
       for (let x = 0; x < size; x++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z)) {
+          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z, occupancy)) {
             return false;
           }
         }
@@ -152,12 +165,41 @@ export class OctreeMesher {
     const z = normal[2] > 0 ? leaf.minPos.z + size : leaf.minPos.z - 1;
     for (let x = 0; x < size; x++) {
       for (let y = 0; y < size; y++) {
-        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z)) {
+        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z, occupancy)) {
           return false;
         }
       }
     }
     return true;
+  }
+
+  private buildOccupancy(octree: SparseVoxelOctree): { data: Uint8Array; size: number; stride: number } {
+    const size = octree.getSize();
+    const stride = size * size;
+    const data = new Uint8Array(size * stride);
+
+    octree.forEachLeaf((leaf) => {
+      if (leaf.value === 0) {
+        return;
+      }
+      const startX = leaf.minPos.x;
+      const startY = leaf.minPos.y;
+      const startZ = leaf.minPos.z;
+      const endX = startX + leaf.size;
+      const endY = startY + leaf.size;
+      const endZ = startZ + leaf.size;
+      for (let x = startX; x < endX; x++) {
+        const xOffset = x * stride;
+        for (let y = startY; y < endY; y++) {
+          const yOffset = y * size;
+          for (let z = startZ; z < endZ; z++) {
+            data[xOffset + yOffset + z] = 1;
+          }
+        }
+      }
+    });
+
+    return { data, size, stride };
   }
 
   /**
@@ -177,6 +219,7 @@ export class OctreeMesher {
     meshArrays.reset();
     const enableAO = options?.enableAO ?? true;
     const enableCulling = options?.enableCulling ?? true;
+    const occupancy = enableAO || enableCulling ? this.buildOccupancy(octree) : undefined;
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
@@ -203,7 +246,7 @@ export class OctreeMesher {
         const tangents = FACE_TANGENTS[faceIndex];
         const { uAxis, vAxis } = this.faceTangentAxes[faceIndex];
 
-        if (enableCulling && this.isFaceOccluded(leaf, normal, octree)) {
+        if (enableCulling && this.isFaceOccluded(leaf, normal, octree, occupancy)) {
           continue;
         }
 
@@ -259,7 +302,8 @@ export class OctreeMesher {
                 uDir,
                 vDir,
                 tangents,
-                octree
+                octree,
+                occupancy
               )
             : 0;
 

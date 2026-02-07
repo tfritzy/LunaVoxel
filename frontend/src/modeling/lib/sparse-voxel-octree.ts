@@ -30,6 +30,10 @@ export class SparseVoxelOctree {
     this.root = { value: 0 };
   }
 
+  public getSize(): number {
+    return this.size;
+  }
+
   public isEmpty(): boolean {
     return !this.root.children && this.root.value === 0;
   }
