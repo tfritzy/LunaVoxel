@@ -90,12 +90,13 @@ describe("OctreeMesher", () => {
     const leafCount = octree.countLeaves();
     const mesher = new OctreeMesher();
     const meshArrays = createMeshArrays(leafCount);
-    const iterations = 3;
+    const iterations = 10;
 
     const runBenchmark = (label: string, options: { enableAO: boolean; enableCulling: boolean }) => {
       const durations: number[] = [];
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
+        meshArrays.reset();
         mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays, undefined, options);
         durations.push(performance.now() - start);
       }
