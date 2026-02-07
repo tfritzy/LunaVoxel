@@ -174,7 +174,7 @@ export class OctreeMesher {
   }
 
   /**
-   * Precompute an occupancy buffer indexed as x * size * size + y * size + z.
+   * Precompute an occupancy buffer indexed as x * planeStride + y * size + z.
    */
   private buildOccupancy(
     octree: SparseVoxelOctree
