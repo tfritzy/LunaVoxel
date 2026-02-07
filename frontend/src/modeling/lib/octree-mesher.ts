@@ -34,17 +34,17 @@ export class OctreeMesher {
           vertex[1] > 0 ? 1 : 0,
           vertex[2] > 0 ? 1 : 0,
         ];
-        const uDir = cornerOffset[uIndex] === 0 ? -1 : 1;
-        const vDir = cornerOffset[vIndex] === 0 ? -1 : 1;
+        const uDirection = cornerOffset[uIndex] === 0 ? -1 : 1;
+        const vDirection = cornerOffset[vIndex] === 0 ? -1 : 1;
         const side1Offset: [number, number, number] = [
-          tangents.u[0] * uDir,
-          tangents.u[1] * uDir,
-          tangents.u[2] * uDir,
+          tangents.u[0] * uDirection,
+          tangents.u[1] * uDirection,
+          tangents.u[2] * uDirection,
         ];
         const side2Offset: [number, number, number] = [
-          tangents.v[0] * vDir,
-          tangents.v[1] * vDir,
-          tangents.v[2] * vDir,
+          tangents.v[0] * vDirection,
+          tangents.v[1] * vDirection,
+          tangents.v[2] * vDirection,
         ];
         const cornerOffsetVec: [number, number, number] = [
           side1Offset[0] + side2Offset[0],
@@ -111,7 +111,7 @@ export class OctreeMesher {
       baseZ + corner.side2Offset[2],
       occupancy
     );
-    const diagonalOcc = this.isOccluder(
+    const diagonalOcclusion = this.isOccluder(
       octree,
       baseX + corner.cornerOffsetVec[0],
       baseY + corner.cornerOffsetVec[1],
@@ -119,7 +119,7 @@ export class OctreeMesher {
       occupancy
     );
 
-    return calculateOcclusionLevel(side1, side2, diagonalOcc);
+    return calculateOcclusionLevel(side1, side2, diagonalOcclusion);
   }
 
   private isOccluder(
