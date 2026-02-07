@@ -61,25 +61,37 @@ export class OctreeMesher {
     uDir: number,
     vDir: number,
     tangents: { u: [number, number, number]; v: [number, number, number] },
-    isOccluder: (x: number, y: number, z: number) => boolean
+    octree: SparseVoxelOctree
   ): number {
-    const side1 = isOccluder(
+    const side1 = this.isOccluder(
+      octree,
       baseX + uDir * tangents.u[0],
       baseY + uDir * tangents.u[1],
       baseZ + uDir * tangents.u[2]
     );
-    const side2 = isOccluder(
+    const side2 = this.isOccluder(
+      octree,
       baseX + vDir * tangents.v[0],
       baseY + vDir * tangents.v[1],
       baseZ + vDir * tangents.v[2]
     );
-    const corner = isOccluder(
+    const corner = this.isOccluder(
+      octree,
       baseX + uDir * tangents.u[0] + vDir * tangents.v[0],
       baseY + uDir * tangents.u[1] + vDir * tangents.v[1],
       baseZ + uDir * tangents.u[2] + vDir * tangents.v[2]
     );
 
     return calculateOcclusionLevel(side1, side2, corner);
+  }
+
+  private isOccluder(
+    octree: SparseVoxelOctree,
+    x: number,
+    y: number,
+    z: number
+  ): boolean {
+    return octree.get(x, y, z) !== 0;
   }
 
   /**
@@ -93,8 +105,6 @@ export class OctreeMesher {
     isSelected: (value: number) => number = () => 0
   ): void {
     meshArrays.reset();
-    const isOccluder = (x: number, y: number, z: number) =>
-      octree.get(x, y, z) !== 0;
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
@@ -174,7 +184,7 @@ export class OctreeMesher {
             uDir,
             vDir,
             tangents,
-            isOccluder
+            octree
           );
 
           meshArrays.pushVertex(vx, vy, vz);

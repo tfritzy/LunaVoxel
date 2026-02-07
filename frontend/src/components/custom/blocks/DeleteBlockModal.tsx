@@ -49,25 +49,26 @@ export const DeleteBlockModal = ({
     );
   }, [isOpen]);
 
-  const blockCount = useMemo(() => {
-    if (!isOpen) return 0;
+  const blockCounts = useMemo(() => {
+    if (!isOpen) return new Map<number, number>();
     const { layers, layerOctrees } = stateStore.getState();
-    let count = 0;
+    const counts = new Map<number, number>();
 
     for (const layer of layers) {
       if (layer.projectId !== projectId) continue;
       const octree = layerOctrees.get(layer.id);
       if (!octree) continue;
       octree.forEachLeaf((leaf) => {
-        if (leaf.value === blockIndex) {
-          const leafVolume = leaf.size ** 3;
-          count += leafVolume;
-        }
+        if (leaf.value === 0) return;
+        const leafVolume = leaf.size ** 3;
+        counts.set(leaf.value, (counts.get(leaf.value) ?? 0) + leafVolume);
       });
     }
 
-    return count;
-  }, [blockIndex, isOpen, projectId]);
+    return counts;
+  }, [isOpen, projectId]);
+
+  const blockCount = blockCounts.get(blockIndex) ?? 0;
 
   const handleDelete = () => {
     setSubmitPending(true);
