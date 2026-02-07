@@ -61,7 +61,7 @@ export class OctreeMesher {
       });
       return {
         normal,
-        baseCoordNormal: [...normal] as [number, number, number],
+        baseCoordNormal: normal,
         corners,
       };
     });
