@@ -22,6 +22,43 @@ export class OctreeMesher {
     return cornerCoord;
   }
 
+  private getDirectionFromCorner(
+    axis: "x" | "y" | "z",
+    cornerCoord: number,
+    minPos: { x: number; y: number; z: number }
+  ): number {
+    const minCoord = axis === "x" ? minPos.x : axis === "y" ? minPos.y : minPos.z;
+    return cornerCoord === minCoord ? -1 : 1;
+  }
+
+  private getOcclusionLevel(
+    baseX: number,
+    baseY: number,
+    baseZ: number,
+    uDir: number,
+    vDir: number,
+    tangents: { u: [number, number, number]; v: [number, number, number] },
+    isOccluder: (x: number, y: number, z: number) => boolean
+  ): number {
+    const side1 = isOccluder(
+      baseX + uDir * tangents.u[0],
+      baseY + uDir * tangents.u[1],
+      baseZ + uDir * tangents.u[2]
+    );
+    const side2 = isOccluder(
+      baseX + vDir * tangents.v[0],
+      baseY + vDir * tangents.v[1],
+      baseZ + vDir * tangents.v[2]
+    );
+    const corner = isOccluder(
+      baseX + uDir * tangents.u[0] + vDir * tangents.v[0],
+      baseY + uDir * tangents.u[1] + vDir * tangents.v[1],
+      baseZ + uDir * tangents.u[2] + vDir * tangents.v[2]
+    );
+
+    return calculateOcclusionLevel(side1, side2, corner);
+  }
+
   /**
    * Build brute-force meshes for each leaf; isSelected maps a voxel value to 0/1.
    */
@@ -71,16 +108,12 @@ export class OctreeMesher {
           const cornerZ = vertex[2] > 0 ? leaf.minPos.z + leaf.size : leaf.minPos.z;
           const uAxis = this.getAxisFromVector(tangents.u);
           const vAxis = this.getAxisFromVector(tangents.v);
-          const uDir =
-            (uAxis === "x" ? cornerX : uAxis === "y" ? cornerY : cornerZ) ===
-            (uAxis === "x" ? leaf.minPos.x : uAxis === "y" ? leaf.minPos.y : leaf.minPos.z)
-              ? -1
-              : 1;
-          const vDir =
-            (vAxis === "x" ? cornerX : vAxis === "y" ? cornerY : cornerZ) ===
-            (vAxis === "x" ? leaf.minPos.x : vAxis === "y" ? leaf.minPos.y : leaf.minPos.z)
-              ? -1
-              : 1;
+          const uCorner =
+            uAxis === "x" ? cornerX : uAxis === "y" ? cornerY : cornerZ;
+          const vCorner =
+            vAxis === "x" ? cornerX : vAxis === "y" ? cornerY : cornerZ;
+          const uDir = this.getDirectionFromCorner(uAxis, uCorner, leaf.minPos);
+          const vDir = this.getDirectionFromCorner(vAxis, vCorner, leaf.minPos);
           const baseX = this.getBaseCoord(
             normal[0],
             leaf.minPos.x,
@@ -99,22 +132,15 @@ export class OctreeMesher {
             leaf.size,
             cornerZ
           );
-          const side1 = isOccluder(
-            baseX + uDir * tangents.u[0],
-            baseY + uDir * tangents.u[1],
-            baseZ + uDir * tangents.u[2]
+          const occlusion = this.getOcclusionLevel(
+            baseX,
+            baseY,
+            baseZ,
+            uDir,
+            vDir,
+            tangents,
+            isOccluder
           );
-          const side2 = isOccluder(
-            baseX + vDir * tangents.v[0],
-            baseY + vDir * tangents.v[1],
-            baseZ + vDir * tangents.v[2]
-          );
-          const corner = isOccluder(
-            baseX + uDir * tangents.u[0] + vDir * tangents.v[0],
-            baseY + uDir * tangents.u[1] + vDir * tangents.v[1],
-            baseZ + uDir * tangents.u[2] + vDir * tangents.v[2]
-          );
-          const occlusion = calculateOcclusionLevel(side1, side2, corner);
 
           meshArrays.pushVertex(vx, vy, vz);
           meshArrays.pushNormal(normal[0], normal[1], normal[2]);
