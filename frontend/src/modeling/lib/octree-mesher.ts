@@ -34,17 +34,17 @@ export class OctreeMesher {
           vertex[1] > 0 ? 1 : 0,
           vertex[2] > 0 ? 1 : 0,
         ];
-        const uDirection = cornerOffset[uIndex] === 0 ? -1 : 1;
-        const vDirection = cornerOffset[vIndex] === 0 ? -1 : 1;
+        const side1Direction = cornerOffset[uIndex] === 0 ? -1 : 1;
+        const side2Direction = cornerOffset[vIndex] === 0 ? -1 : 1;
         const side1Offset: [number, number, number] = [
-          tangents.u[0] * uDirection,
-          tangents.u[1] * uDirection,
-          tangents.u[2] * uDirection,
+          tangents.u[0] * side1Direction,
+          tangents.u[1] * side1Direction,
+          tangents.u[2] * side1Direction,
         ];
         const side2Offset: [number, number, number] = [
-          tangents.v[0] * vDirection,
-          tangents.v[1] * vDirection,
-          tangents.v[2] * vDirection,
+          tangents.v[0] * side2Direction,
+          tangents.v[1] * side2Direction,
+          tangents.v[2] * side2Direction,
         ];
         const cornerOffsetVec: [number, number, number] = [
           side1Offset[0] + side2Offset[0],
