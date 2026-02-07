@@ -3,14 +3,14 @@ import type { BlockModificationMode, Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
-import { ChunkManager } from "./chunk-manager";
+import { OctreeManager } from "./octree-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 
 export class ProjectManager {
   public builder;
-  public chunkManager;
+  public octreeManager: OctreeManager;
   private cursorManager: CursorManager;
   private stateStore: StateStore;
   private project: Project;
@@ -27,7 +27,7 @@ export class ProjectManager {
   ) {
     this.stateStore = stateStore;
     this.project = project;
-    this.chunkManager = new ChunkManager(
+    this.octreeManager = new OctreeManager(
       scene,
       project.dimensions,
       stateStore,
@@ -83,7 +83,7 @@ export class ProjectManager {
 
   public export = (type: ExportType): void => {
     const exporter = new ModelExporter(
-      this.chunkManager,
+      this.octreeManager,
       this.project,
       this.atlasData
     );
@@ -106,7 +106,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.chunkManager.setTextureAtlas(atlasData);
+      this.octreeManager.setTextureAtlas(atlasData);
     }
   };
 
@@ -122,10 +122,10 @@ export class ProjectManager {
     blockType: number,
     rotation: number
   ) => {
-    const layer = this.chunkManager.getLayer(layerIndex);
+    const layer = this.octreeManager.getLayer(layerIndex);
     if (!layer) return;
 
-    this.chunkManager.applyOptimisticRect(
+    this.octreeManager.applyOptimisticRect(
       layer,
       mode,
       start,
@@ -139,15 +139,15 @@ export class ProjectManager {
     position: THREE.Vector3,
     layerIndex: number
   ): number | null {
-    const layer = this.chunkManager.getLayer(layerIndex);
+    const layer = this.octreeManager.getLayer(layerIndex);
     if (!layer) return null;
 
-    return this.chunkManager.getBlockAtPosition(position, layer);
+    return this.octreeManager.getBlockAtPosition(position, layer);
   }
 
   dispose(): void {
     this.builder.dispose();
-    this.chunkManager.dispose();
+    this.octreeManager.dispose();
     this.cursorManager.dispose();
     window.removeEventListener("keydown", this.keydownHandler);
   }

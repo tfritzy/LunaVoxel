@@ -108,7 +108,7 @@ export const Builder = class {
   cancelCurrentOperation(): void {
     if (this.isMouseDown) {
       this.previewFrame.clear();
-      this.projectManager.chunkManager.setPreview(this.previewFrame);
+      this.projectManager.octreeManager.setPreview(this.previewFrame);
     }
     this.isMouseDown = false;
     this.startPosition = null;

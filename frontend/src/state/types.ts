@@ -31,12 +31,3 @@ export type ProjectBlocks = {
   projectId: string;
   faceColors: number[][];
 };
-
-export type ChunkData = {
-  key: string;
-  projectId: string;
-  layerId: string;
-  minPos: Vector3;
-  size: Vector3;
-  voxels: Uint8Array;
-};

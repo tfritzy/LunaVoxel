@@ -47,7 +47,7 @@ describe("Tool Interface", () => {
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
-        chunkManager: {
+        octreeManager: {
           setPreview: () => {},
         },
       } as unknown as ProjectManager,

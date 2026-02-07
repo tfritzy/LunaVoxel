@@ -50,10 +50,9 @@ export const DeleteBlockModal = ({
   }, [isOpen]);
 
   const blockCount = useMemo(() => {
-    // Note: With chunk-based storage, counting blocks would require
-    // iterating through all chunks across all layers. For now, we'll
-    // return 0 which means we can't show the exact count.
-    // A better approach would be to add a server-side query for this.
+    // Note: With sparse octree storage, counting blocks would require
+    // traversing every leaf across all layers. For now, we'll return 0
+    // which means we can't show the exact count.
     
     return 0;
   }, [blockIndex]);

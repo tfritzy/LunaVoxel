@@ -53,7 +53,7 @@ export class RectTool implements Tool {
       }
     }
 
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
+    context.projectManager.octreeManager.setPreview(context.previewFrame);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
