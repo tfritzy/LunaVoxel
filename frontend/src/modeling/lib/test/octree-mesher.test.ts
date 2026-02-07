@@ -90,12 +90,12 @@ describe("OctreeMesher", () => {
     const leafCount = octree.countLeaves();
     const mesher = new OctreeMesher();
     const meshArrays = createMeshArrays(leafCount);
-    const BENCH_ITERATIONS = 10;
+    const benchIterations = 10;
     const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
 
     const runBenchmark = (label: string, options: { enableAO: boolean; enableCulling: boolean }) => {
       const durations: number[] = [];
-      for (let i = 0; i < BENCH_ITERATIONS; i++) {
+      for (let i = 0; i < benchIterations; i++) {
         const start = performance.now();
         mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays, undefined, options);
         durations.push(performance.now() - start);
@@ -119,5 +119,9 @@ describe("OctreeMesher", () => {
         max: `${entry.max.toFixed(2)}ms`,
       }))
     );
+    expect(results).toHaveLength(4);
+    results.forEach((entry) => {
+      expect(entry.avg).toBeGreaterThan(0);
+    });
   }, 120000);
 });
