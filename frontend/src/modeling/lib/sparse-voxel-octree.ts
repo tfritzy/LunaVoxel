@@ -117,6 +117,9 @@ export class SparseVoxelOctree {
     this.updateNodeValues(this.root, updater);
   }
 
+  /**
+   * Bounds are based on the internal power-of-two size; callers enforce world limits.
+   */
   private isWithinBounds(x: number, y: number, z: number): boolean {
     return (
       x >= 0 &&
