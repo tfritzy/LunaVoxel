@@ -90,11 +90,12 @@ describe("OctreeMesher", () => {
     const leafCount = octree.countLeaves();
     const mesher = new OctreeMesher();
     const meshArrays = createMeshArrays(leafCount);
-    const iterations = 10;
+    const BENCH_ITERATIONS = 10;
+    const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
 
     const runBenchmark = (label: string, options: { enableAO: boolean; enableCulling: boolean }) => {
       const durations: number[] = [];
-      for (let i = 0; i < iterations; i++) {
+      for (let i = 0; i < BENCH_ITERATIONS; i++) {
         const start = performance.now();
         mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays, undefined, options);
         durations.push(performance.now() - start);
@@ -102,12 +103,21 @@ describe("OctreeMesher", () => {
       const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
-      console.log(`${label}: avg=${avgDuration.toFixed(2)}ms min=${minDuration.toFixed(2)}ms max=${maxDuration.toFixed(2)}ms`);
+      results.push({ label, avg: avgDuration, min: minDuration, max: maxDuration });
     };
 
     runBenchmark("AO+culling", { enableAO: true, enableCulling: true });
     runBenchmark("AO only", { enableAO: true, enableCulling: false });
     runBenchmark("Culling only", { enableAO: false, enableCulling: true });
     runBenchmark("AO+culling disabled", { enableAO: false, enableCulling: false });
+
+    console.table(
+      results.map((entry) => ({
+        label: entry.label,
+        avg: `${entry.avg.toFixed(2)}ms`,
+        min: `${entry.min.toFixed(2)}ms`,
+        max: `${entry.max.toFixed(2)}ms`,
+      }))
+    );
   }, 120000);
 });
