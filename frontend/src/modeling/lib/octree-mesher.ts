@@ -306,19 +306,19 @@ export class OctreeMesher {
             corner.cornerMultiplier[2]
           );
           const baseX = this.getBaseCoord(
-            faceInfo.normal[0],
+            normal[0],
             leaf.minPos.x,
             leaf.size,
             cornerX
           );
           const baseY = this.getBaseCoord(
-            faceInfo.normal[1],
+            normal[1],
             leaf.minPos.y,
             leaf.size,
             cornerY
           );
           const baseZ = this.getBaseCoord(
-            faceInfo.normal[2],
+            normal[2],
             leaf.minPos.z,
             leaf.size,
             cornerZ
