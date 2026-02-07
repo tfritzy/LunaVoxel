@@ -4,7 +4,9 @@ import { BlockPickerTool } from "../tools/block-picker-tool";
 import { MagicSelectTool } from "../tools/magic-select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
 import type { Tool, ToolContext } from "../tool-interface";
-import type { Vector3, BlockModificationMode } from "@/module_bindings";
+import type { Vector3, BlockModificationMode } from "@/state/types";
+import type { Reducers } from "@/state/store";
+import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
 import { VoxelFrame } from "../voxel-frame";
 
@@ -21,20 +23,34 @@ describe("Tool Interface", () => {
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld();
 
+    const reducers: Reducers = {
+      updateProjectName: () => {},
+      addBlock: () => {},
+      updateBlock: () => {},
+      deleteBlock: () => {},
+      addLayer: () => {},
+      deleteLayer: () => {},
+      toggleLayerVisibility: () => {},
+      toggleLayerLock: () => {},
+      reorderLayers: () => {},
+      modifyBlockRect: () => {},
+      undoEdit: () => {},
+      updateCursorPos: () => {},
+      magicSelect: () => {},
+      commitSelectionMove: () => {},
+    };
+
     mockContext = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      dbConn: {} as any,
+      reducers,
       projectId: "test-project",
       dimensions,
       projectManager: {
-        onPreviewUpdate: () => {},
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
         chunkManager: {
           setPreview: () => {},
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
+      } as unknown as ProjectManager,
       previewFrame: new VoxelFrame(dimensions),
       selectedBlock: 1,
       selectedLayer: 0,
@@ -143,7 +159,12 @@ describe("Tool Interface", () => {
       };
       mockContext.projectManager.getBlockAtPosition = () => 5;
 
-      tool.onMouseUp(mockContext, startPos, endPos);
+      tool.onMouseUp(mockContext, {
+        startGridPosition: startPos,
+        currentGridPosition: endPos,
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
 
       expect(selectedBlock).toBe(5);
     });
@@ -168,19 +189,22 @@ describe("Tool Interface", () => {
 
     it("should execute magic select on mouse up", () => {
       let magicSelectCalled = false;
-      mockContext.dbConn = {
-        reducers: {
-          magicSelect: () => {
-            magicSelectCalled = true;
-          },
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        magicSelect: () => {
+          magicSelectCalled = true;
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+      };
 
       const startPos = new THREE.Vector3(1, 2, 3);
       const endPos = new THREE.Vector3(1, 2, 3);
 
-      tool.onMouseUp(mockContext, startPos, endPos);
+      tool.onMouseUp(mockContext, {
+        startGridPosition: startPos,
+        currentGridPosition: endPos,
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
 
       expect(magicSelectCalled).toBe(true);
     });
@@ -207,14 +231,13 @@ describe("Tool Interface", () => {
       let commitSelectionMoveCalled = false;
       let passedOffset: Vector3 | null = null;
       
-      mockContext.dbConn = {
-        reducers: {
-          commitSelectionMove: (_projectId: string, offset: Vector3) => {
-            commitSelectionMoveCalled = true;
-            passedOffset = offset;
-          },
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        commitSelectionMove: (_projectId: string, offset: Vector3) => {
+          commitSelectionMoveCalled = true;
+          passedOffset = offset;
         },
-      } as any;
+      };
 
       // Simulate drag with movement
       tool.onDrag(mockContext, {
@@ -243,13 +266,12 @@ describe("Tool Interface", () => {
     it("should not call commitSelectionMove reducer on mouse up without mouse movement", () => {
       let commitSelectionMoveCalled = false;
       
-      mockContext.dbConn = {
-        reducers: {
-          commitSelectionMove: () => {
-            commitSelectionMoveCalled = true;
-          },
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        commitSelectionMove: () => {
+          commitSelectionMoveCalled = true;
         },
-      } as any;
+      };
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),

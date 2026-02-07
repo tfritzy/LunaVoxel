@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode } from "../../../module_bindings";
+import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
@@ -19,7 +19,10 @@ export class RectTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, direction);
   }
 
-  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    void context;
+    void event;
+  }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
     const bounds = calculateRectBounds(
@@ -65,7 +68,7 @@ export class RectTool implements Tool {
       0
     );
 
-    context.dbConn.reducers.modifyBlockRect(
+    context.reducers.modifyBlockRect(
       context.projectId,
       context.mode,
       context.selectedBlock,

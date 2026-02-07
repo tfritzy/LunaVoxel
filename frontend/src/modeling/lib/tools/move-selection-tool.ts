@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode } from "@/module_bindings";
+import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
@@ -17,10 +17,13 @@ export class MoveSelectionTool implements Tool {
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
+    void mode;
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
-  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    void context;
+    void event;
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
   }
@@ -35,9 +38,10 @@ export class MoveSelectionTool implements Tool {
     this.lastOffset.copy(offset);
   }
 
-  onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    void event;
     if (this.lastOffset.length() > 0.1) {
-      context.dbConn.reducers.commitSelectionMove(
+      context.reducers.commitSelectionMove(
         context.projectId,
         {
           x: Math.round(this.lastOffset.x),

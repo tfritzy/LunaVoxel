@@ -1,4 +1,4 @@
-import type { Vector3 } from "@/module_bindings";
+import type { Vector3 } from "@/state/types";
 
 /**
  * Helper function to create voxel data structure

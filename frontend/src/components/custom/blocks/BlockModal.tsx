@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useParams } from "react-router-dom";
+import { stateStore, useGlobalState } from "@/state/store";
 import { HexColorPicker } from "react-colorful";
 import "@/components/custom/color-picker.css";
 import { Block3DPreview } from "./Block3dPreview";
@@ -96,8 +95,7 @@ export const BlockModal = ({
   blockIndex,
   atlasData,
 }: BlockModalProps) => {
-  const projectId = useParams().projectId || "";
-  const { connection } = useDatabase();
+  const projectId = useGlobalState((state) => state.project.id);
   const isNewBlock = blockIndex === "new";
 
   const defaultColor = "#ffffff";
@@ -170,9 +168,9 @@ export const BlockModal = ({
     );
 
     if (isNewBlock) {
-      connection?.reducers.addBlock(projectId, colorNumbers);
+      stateStore.reducers.addBlock(projectId, colorNumbers);
     } else {
-      connection?.reducers.updateBlock(
+      stateStore.reducers.updateBlock(
         projectId,
         (blockIndex as number) - 1,
         colorNumbers

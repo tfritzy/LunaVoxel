@@ -1,14 +1,7 @@
 import * as THREE from "three";
-import {
-  Vector3,
-  Chunk as DbChunk,
-  BlockModificationMode,
-  VoxelFrame as DbVoxelFrame,
-} from "@/module_bindings";
+import type { BlockModificationMode, Vector3 } from "@/state/types";
 import {
   isBlockPresent,
-  decompressVoxelDataInto,
-  decompressVoxelData,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
@@ -18,11 +11,15 @@ import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
 import { layers } from "./layers";
 
-export const CHUNK_SIZE = 32;
+type SelectionFrameData = {
+  minPos: Vector3;
+  dimensions: Vector3;
+  voxelData: Uint8Array;
+};
 
 export type SelectionData = {
   layer: number;
-  frame: DbVoxelFrame;
+  frame: SelectionFrameData;
   offset: Vector3;
 };
 
@@ -33,7 +30,7 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type DecompressedChunk = Omit<DbChunk, "voxels"> & {
+export type LayerChunk = {
   voxels: Uint8Array;
 };
 
@@ -41,7 +38,7 @@ export class Chunk {
   private scene: THREE.Scene;
   public readonly minPos: Vector3;
   public readonly size: Vector3;
-  private layerChunks: (DecompressedChunk | null)[];
+  private layerChunks: (LayerChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
@@ -110,28 +107,18 @@ export class Chunk {
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  public setLayerChunk(layerIndex: number, chunk: DbChunk | null): void {
-    if (chunk === null) {
+  public setLayerChunk(layerIndex: number, voxels: Uint8Array | null): void {
+    if (voxels === null) {
       this.layerChunks[layerIndex] = null;
       return;
     }
-
-    const existing = this.layerChunks[layerIndex];
-    let voxels: Uint8Array;
-    if (existing) {
-      decompressVoxelDataInto(chunk.voxels, existing.voxels);
-      voxels = existing.voxels;
-    } else {
-      voxels = decompressVoxelData(chunk.voxels);
-    }
     this.layerChunks[layerIndex] = {
-      ...chunk,
       voxels,
     };
     this.update();
   }
 
-  public getLayerChunk(layerIndex: number): DecompressedChunk | null {
+  public getLayerChunk(layerIndex: number): LayerChunk | null {
     return this.layerChunks[layerIndex] || null;
   }
 
@@ -264,7 +251,7 @@ export class Chunk {
   }
 
   private addLayerChunkToBlocks(
-    layerChunk: DecompressedChunk,
+    layerChunk: LayerChunk,
     blocks: Uint8Array
   ): void {
     for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {

@@ -15,12 +15,18 @@ export class MagicSelectTool implements Tool {
     return calculateGridPositionWithMode(intersectionPoint, normal, "under");
   }
 
-  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    void context;
+    void event;
+  }
 
-  onDrag(_context: ToolContext, _event: ToolDragEvent): void {}
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
+    void context;
+    void event;
+  }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    context.dbConn.reducers.magicSelect(
+    context.reducers.magicSelect(
       context.projectId,
       context.selectedLayer,
       event.currentGridPosition

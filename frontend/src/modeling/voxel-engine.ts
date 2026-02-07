@@ -2,12 +2,13 @@ import * as THREE from "three";
 import { addGroundPlane } from "./lib/add-ground-plane";
 import { CameraController, CameraState } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
-import { DbConnection, Project } from "../module_bindings";
+import type { Project } from "@/state/types";
+import type { StateStore } from "@/state/store";
 import { ProjectManager } from "./lib/project-manager";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
-  connection: DbConnection;
+  stateStore: StateStore;
   project: Project;
   onGridPositionUpdate?: (position: THREE.Vector3 | null) => void;
   initialCameraState?: CameraState;
@@ -21,12 +22,12 @@ export class VoxelEngine {
   private camera: THREE.PerspectiveCamera;
   private controls: CameraController;
   private animationFrameId: number | null = null;
-  private conn: DbConnection;
+  private stateStore: StateStore;
   private project: Project;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
-    this.conn = options.connection;
+    this.stateStore = options.stateStore;
     this.project = options.project;
 
     this.renderer = this.setupRenderer(this.container);
@@ -57,7 +58,7 @@ export class VoxelEngine {
     );
     this.projectManager = new ProjectManager(
       this.scene,
-      this.conn,
+      this.stateStore,
       this.project,
       this.camera,
       this.container
@@ -162,7 +163,6 @@ export class VoxelEngine {
     let lastFrameStart: number = 0;
     let minFrameTime: number = Infinity;
     let maxFrameTime: number = 0;
-    let avgFrameTime: number = 0;
     const frameTimeHistory: number[] = [];
     const HISTORY_SIZE: number = 60;
 

@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { layers } from "./layers";
-import { DbConnection, Vector3, BlockModificationMode } from "../../module_bindings";
+import type { BlockModificationMode, Vector3 } from "@/state/types";
+import type { StateStore } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import { ProjectAccessManager } from "@/lib/projectAccessManager";
 import { VoxelFrame } from "./voxel-frame";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
@@ -12,9 +12,8 @@ import { MoveSelectionTool } from "./tools/move-selection-tool";
 import type { Tool } from "./tool-interface";
 
 export const Builder = class {
-  private accessManager: ProjectAccessManager;
   private previewFrame: VoxelFrame;
-  private dbConn: DbConnection;
+  private stateStore: StateStore;
   private projectId: string;
   private dimensions: Vector3;
   private projectManager: ProjectManager;
@@ -31,7 +30,7 @@ export const Builder = class {
   private currentTool: Tool;
   private currentMode: BlockModificationMode = { tag: "Attach" };
   private toolContext: {
-    dbConn: DbConnection;
+    reducers: StateStore["reducers"];
     projectId: string;
     dimensions: Vector3;
     projectManager: ProjectManager;
@@ -60,7 +59,7 @@ export const Builder = class {
   private lastSentCursorNormal: THREE.Vector3 | null = null;
 
   constructor(
-    dbConn: DbConnection,
+    stateStore: StateStore,
     projectId: string,
     dimensions: Vector3,
     camera: THREE.Camera,
@@ -68,7 +67,7 @@ export const Builder = class {
     domElement: HTMLElement,
     projectManager: ProjectManager
   ) {
-    this.dbConn = dbConn;
+    this.stateStore = stateStore;
     this.projectId = projectId;
     this.dimensions = dimensions;
     this.camera = camera;
@@ -86,7 +85,7 @@ export const Builder = class {
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
-      dbConn: this.dbConn,
+      reducers: this.stateStore.reducers,
       projectId: this.projectId,
       dimensions: this.dimensions,
       projectManager: this.projectManager,
@@ -104,12 +103,6 @@ export const Builder = class {
     this.boundContextMenu = this.onContextMenu.bind(this);
 
     this.addEventListeners();
-
-    this.accessManager = new ProjectAccessManager(
-      dbConn,
-      projectId,
-      dbConn.identity?.toHexString()
-    );
   }
 
   cancelCurrentOperation(): void {
@@ -198,17 +191,13 @@ export const Builder = class {
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-    if (gridPos && this.accessManager.hasWriteAccess) {
+    if (gridPos) {
       this.handleMouseDrag(gridPos);
     }
   }
 
   private onMouseClick(event: MouseEvent): void {
     if (event.button !== 0) {
-      return;
-    }
-
-    if (!this.accessManager.hasWriteAccess) {
       return;
     }
 
@@ -223,10 +212,6 @@ export const Builder = class {
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
-      if (!this.accessManager.hasWriteAccess) {
-        return;
-      }
-
       this.isMouseDown = true;
       this.startMousePos = this.mouse.clone();
 
@@ -275,9 +260,9 @@ export const Builder = class {
 
     if (now - this.lastCursorUpdateTime >= this.CURSOR_UPDATE_THROTTLE_MS) {
       if (hasPositionChanged || hasNormalChanged) {
-        this.dbConn.reducers.updateCursorPos(
+        this.stateStore.reducers.updateCursorPos(
           this.projectId,
-          this.dbConn.identity!,
+          "local",
           faceCenter,
           worldNormal
         );
@@ -335,8 +320,6 @@ export const Builder = class {
   }
 
   private handleMouseDrag(gridPos: THREE.Vector3): void {
-    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
-
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
       this.startMousePos = this.mouse.clone();
@@ -365,8 +348,6 @@ export const Builder = class {
   }
 
   private handleMouseUp(position: THREE.Vector3): void {
-    if (!this.dbConn.isActive || !this.accessManager.hasWriteAccess) return;
-
     const endPos = position;
     const startPos = this.startPosition || position;
     const startMousePos = this.startMousePos || this.mouse.clone();

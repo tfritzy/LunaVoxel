@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
-import { BlockModificationMode } from "@/module_bindings";
+import type { BlockModificationMode } from "@/state/types";
 
 export class BlockPickerTool implements Tool {
   getType(): ToolType {
@@ -14,12 +14,19 @@ export class BlockPickerTool implements Tool {
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
+    void mode;
     return calculateGridPositionWithMode(intersectionPoint, normal, 'under');
   }
 
-  onMouseDown(_context: ToolContext, _event: ToolMouseEvent): void {}
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    void context;
+    void event;
+  }
 
-  onDrag(_context: ToolContext, _event: ToolDragEvent): void {}
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
+    void context;
+    void event;
+  }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     const blockType = context.projectManager.getBlockAtPosition(

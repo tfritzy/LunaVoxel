@@ -1,8 +1,6 @@
-import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { DbConnection, ProjectBlocks } from "@/module_bindings";
-import { useDatabase } from "@/contexts/DatabaseContext";
-import { useQueryRunner } from "./useQueryRunner";
+import { useGlobalState } from "@/state/store";
 
 export interface AtlasData {
   blockAtlasMappings: number[][];
@@ -11,16 +9,10 @@ export interface AtlasData {
 }
 
 export const useAtlas = (): AtlasData => {
-  const { connection } = useDatabase();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const textureRef = useRef<THREE.Texture | null>(null);
-
-  const getTable = useCallback((db: DbConnection) => db.db.projectBlocks, []);
-  const { data: allBlocks } = useQueryRunner<ProjectBlocks>(
-    connection,
-    getTable
-  );
+  const blocks = useGlobalState((state) => state.blocks);
 
   const atlasData = useMemo(() => {
     if (textureRef.current) {
@@ -28,11 +20,10 @@ export const useAtlas = (): AtlasData => {
       textureRef.current = null;
     }
 
-    if (!allBlocks || allBlocks.length === 0) {
+    if (!blocks.faceColors.length) {
       return { blockAtlasMappings: [], colors: [], texture: null };
     }
 
-    const blocks = allBlocks[0];
     const colors: number[] = [];
     const colorMap = new Map<number, number>();
     const blockAtlasMappings: number[][] = [];
@@ -92,7 +83,7 @@ export const useAtlas = (): AtlasData => {
     textureRef.current = texture;
 
     return { blockAtlasMappings, colors, texture };
-  }, [allBlocks]);
+  }, [blocks]);
 
   useEffect(() => {
     return () => {
