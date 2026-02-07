@@ -13,7 +13,7 @@ type CornerOffsets = {
 
 type FacePrecompute = {
   normal: [number, number, number];
-  baseMode: [number, number, number];
+  baseCoordMode: [number, number, number];
   corners: CornerOffsets[];
 };
 
@@ -61,7 +61,7 @@ export class OctreeMesher {
       });
       return {
         normal,
-        baseMode: [...normal] as [number, number, number],
+        baseCoordMode: [...normal] as [number, number, number],
         corners,
       };
     });
@@ -277,19 +277,19 @@ export class OctreeMesher {
           const cornerY = leaf.minPos.y + corner.cornerOffset[1] * leaf.size;
           const cornerZ = leaf.minPos.z + corner.cornerOffset[2] * leaf.size;
           const baseX = this.getBaseCoord(
-            faceInfo.baseMode[0],
+            faceInfo.baseCoordMode[0],
             leaf.minPos.x,
             leaf.size,
             cornerX
           );
           const baseY = this.getBaseCoord(
-            faceInfo.baseMode[1],
+            faceInfo.baseCoordMode[1],
             leaf.minPos.y,
             leaf.size,
             cornerY
           );
           const baseZ = this.getBaseCoord(
-            faceInfo.baseMode[2],
+            faceInfo.baseCoordMode[2],
             leaf.minPos.z,
             leaf.size,
             cornerZ
