@@ -5,12 +5,18 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  /**
+   * Resolve which axis a tangent vector aligns with.
+   */
   private getAxisFromVector(vector: [number, number, number]): "x" | "y" | "z" {
     if (vector[0] !== 0) return "x";
     if (vector[1] !== 0) return "y";
     return "z";
   }
 
+  /**
+   * Compute the neighbor coordinate along a face normal for AO sampling.
+   */
   private getBaseCoord(
     normalComponent: number,
     minCoord: number,
@@ -22,6 +28,9 @@ export class OctreeMesher {
     return cornerCoord;
   }
 
+  /**
+   * Map a vertex component to its corner coordinate for the leaf bounds.
+   */
   private getCornerCoord(
     component: number,
     minCoord: number,
@@ -30,6 +39,9 @@ export class OctreeMesher {
     return component > 0 ? minCoord + size : minCoord;
   }
 
+  /**
+   * Determine the sign (+/-) for AO sampling along the tangent axis.
+   */
   private getDirectionFromCorner(
     axis: "x" | "y" | "z",
     cornerCoord: number,
@@ -39,6 +51,9 @@ export class OctreeMesher {
     return cornerCoord === minCoord ? -1 : 1;
   }
 
+  /**
+   * Check side and corner occluders to compute AO level for a vertex corner.
+   */
   private getOcclusionLevel(
     baseX: number,
     baseY: number,
