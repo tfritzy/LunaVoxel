@@ -129,6 +129,8 @@ export class OctreeMesher {
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
         const normal = face.normal;
         const tangents = FACE_TANGENTS[faceIndex];
+        const uAxis = this.getAxisFromVector(tangents.u);
+        const vAxis = this.getAxisFromVector(tangents.v);
         const startVertexIndex = meshArrays.vertexCount;
 
         for (let vi = 0; vi < 4; vi++) {
@@ -151,8 +153,6 @@ export class OctreeMesher {
             leaf.minPos.z,
             leaf.size
           );
-          const uAxis = this.getAxisFromVector(tangents.u);
-          const vAxis = this.getAxisFromVector(tangents.v);
           const uCorner =
             uAxis === "x" ? cornerX : uAxis === "y" ? cornerY : cornerZ;
           const vCorner =
