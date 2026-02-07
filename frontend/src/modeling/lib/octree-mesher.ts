@@ -5,6 +5,15 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  private faceAxes: { uAxis: "x" | "y" | "z"; vAxis: "x" | "y" | "z" }[];
+
+  constructor() {
+    this.faceAxes = FACE_TANGENTS.map((tangent) => ({
+      uAxis: this.getAxisFromVector(tangent.u),
+      vAxis: this.getAxisFromVector(tangent.v),
+    }));
+  }
+
   /**
    * Resolve which axis a tangent vector aligns with (expects a single non-zero component).
    */
@@ -37,6 +46,15 @@ export class OctreeMesher {
     size: number
   ): number {
     return component > 0 ? minCoord + size : minCoord;
+  }
+
+  private getCoordForAxis(
+    axis: "x" | "y" | "z",
+    cornerX: number,
+    cornerY: number,
+    cornerZ: number
+  ): number {
+    return axis === "x" ? cornerX : axis === "y" ? cornerY : cornerZ;
   }
 
   /**
@@ -129,8 +147,7 @@ export class OctreeMesher {
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
         const normal = face.normal;
         const tangents = FACE_TANGENTS[faceIndex];
-        const uAxis = this.getAxisFromVector(tangents.u);
-        const vAxis = this.getAxisFromVector(tangents.v);
+        const { uAxis, vAxis } = this.faceAxes[faceIndex];
         const startVertexIndex = meshArrays.vertexCount;
 
         for (let vi = 0; vi < 4; vi++) {
@@ -153,10 +170,8 @@ export class OctreeMesher {
             leaf.minPos.z,
             leaf.size
           );
-          const uCorner =
-            uAxis === "x" ? cornerX : uAxis === "y" ? cornerY : cornerZ;
-          const vCorner =
-            vAxis === "x" ? cornerX : vAxis === "y" ? cornerY : cornerZ;
+          const uCorner = this.getCoordForAxis(uAxis, cornerX, cornerY, cornerZ);
+          const vCorner = this.getCoordForAxis(vAxis, cornerX, cornerY, cornerZ);
           const uDir = this.getDirectionFromCorner(uAxis, uCorner, leaf.minPos);
           const vDir = this.getDirectionFromCorner(vAxis, vCorner, leaf.minPos);
           const baseX = this.getBaseCoord(
