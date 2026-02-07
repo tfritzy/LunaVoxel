@@ -76,6 +76,10 @@ export class OctreeMesher {
 
   /**
    * Compute the AO sampling coordinate along a face normal.
+   * @param normalComponent The normal component (-1, 0, 1) for the face axis.
+   * @param minCoord The leaf minimum coordinate on that axis.
+   * @param size The leaf size along that axis.
+   * @param cornerCoord The vertex corner coordinate when the face is perpendicular.
    */
   private getBaseCoord(
     normalComponent: number,
