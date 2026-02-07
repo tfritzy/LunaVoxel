@@ -5,6 +5,23 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  private getAxisFromVector(vector: [number, number, number]): "x" | "y" | "z" {
+    if (vector[0] !== 0) return "x";
+    if (vector[1] !== 0) return "y";
+    return "z";
+  }
+
+  private getBaseCoord(
+    normalComponent: number,
+    minCoord: number,
+    size: number,
+    cornerCoord: number
+  ): number {
+    if (normalComponent === 1) return minCoord + size;
+    if (normalComponent === -1) return minCoord - 1;
+    return cornerCoord;
+  }
+
   /**
    * Build brute-force meshes for each leaf; isSelected maps a voxel value to 0/1.
    */
@@ -52,8 +69,8 @@ export class OctreeMesher {
           const cornerX = vertex[0] > 0 ? leaf.minPos.x + leaf.size : leaf.minPos.x;
           const cornerY = vertex[1] > 0 ? leaf.minPos.y + leaf.size : leaf.minPos.y;
           const cornerZ = vertex[2] > 0 ? leaf.minPos.z + leaf.size : leaf.minPos.z;
-          const uAxis = tangents.u[0] !== 0 ? "x" : tangents.u[1] !== 0 ? "y" : "z";
-          const vAxis = tangents.v[0] !== 0 ? "x" : tangents.v[1] !== 0 ? "y" : "z";
+          const uAxis = this.getAxisFromVector(tangents.u);
+          const vAxis = this.getAxisFromVector(tangents.v);
           const uDir =
             (uAxis === "x" ? cornerX : uAxis === "y" ? cornerY : cornerZ) ===
             (uAxis === "x" ? leaf.minPos.x : uAxis === "y" ? leaf.minPos.y : leaf.minPos.z)
@@ -64,24 +81,24 @@ export class OctreeMesher {
             (vAxis === "x" ? leaf.minPos.x : vAxis === "y" ? leaf.minPos.y : leaf.minPos.z)
               ? -1
               : 1;
-          const baseX =
-            normal[0] === 1
-              ? leaf.minPos.x + leaf.size
-              : normal[0] === -1
-                ? leaf.minPos.x - 1
-                : cornerX;
-          const baseY =
-            normal[1] === 1
-              ? leaf.minPos.y + leaf.size
-              : normal[1] === -1
-                ? leaf.minPos.y - 1
-                : cornerY;
-          const baseZ =
-            normal[2] === 1
-              ? leaf.minPos.z + leaf.size
-              : normal[2] === -1
-                ? leaf.minPos.z - 1
-                : cornerZ;
+          const baseX = this.getBaseCoord(
+            normal[0],
+            leaf.minPos.x,
+            leaf.size,
+            cornerX
+          );
+          const baseY = this.getBaseCoord(
+            normal[1],
+            leaf.minPos.y,
+            leaf.size,
+            cornerY
+          );
+          const baseZ = this.getBaseCoord(
+            normal[2],
+            leaf.minPos.z,
+            leaf.size,
+            cornerZ
+          );
           const side1 = isOccluder(
             baseX + uDir * tangents.u[0],
             baseY + uDir * tangents.u[1],
