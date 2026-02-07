@@ -22,6 +22,14 @@ export class OctreeMesher {
     return cornerCoord;
   }
 
+  private getCornerCoord(
+    component: number,
+    minCoord: number,
+    size: number
+  ): number {
+    return component > 0 ? minCoord + size : minCoord;
+  }
+
   private getDirectionFromCorner(
     axis: "x" | "y" | "z",
     cornerCoord: number,
@@ -103,9 +111,21 @@ export class OctreeMesher {
           const vx = centerX + vertex[0] * leaf.size;
           const vy = centerY + vertex[1] * leaf.size;
           const vz = centerZ + vertex[2] * leaf.size;
-          const cornerX = vertex[0] > 0 ? leaf.minPos.x + leaf.size : leaf.minPos.x;
-          const cornerY = vertex[1] > 0 ? leaf.minPos.y + leaf.size : leaf.minPos.y;
-          const cornerZ = vertex[2] > 0 ? leaf.minPos.z + leaf.size : leaf.minPos.z;
+          const cornerX = this.getCornerCoord(
+            vertex[0],
+            leaf.minPos.x,
+            leaf.size
+          );
+          const cornerY = this.getCornerCoord(
+            vertex[1],
+            leaf.minPos.y,
+            leaf.size
+          );
+          const cornerZ = this.getCornerCoord(
+            vertex[2],
+            leaf.minPos.z,
+            leaf.size
+          );
           const uAxis = this.getAxisFromVector(tangents.u);
           const vAxis = this.getAxisFromVector(tangents.v);
           const uCorner =
