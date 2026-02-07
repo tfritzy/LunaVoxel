@@ -6,7 +6,7 @@ import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
   /**
-   * Resolve which axis a tangent vector aligns with.
+   * Resolve which axis a tangent vector aligns with (expects a single non-zero component).
    */
   private getAxisFromVector(vector: [number, number, number]): "x" | "y" | "z" {
     if (vector[0] !== 0) return "x";
