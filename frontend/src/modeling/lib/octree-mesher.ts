@@ -4,14 +4,67 @@ import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
+type CornerOffsets = {
+  cornerOffset: [number, number, number];
+  side1Offset: [number, number, number];
+  side2Offset: [number, number, number];
+  cornerOffsetVec: [number, number, number];
+};
+
+type FacePrecompute = {
+  normal: [number, number, number];
+  baseMode: [number, number, number];
+  corners: CornerOffsets[];
+};
+
 export class OctreeMesher {
-  private faceTangentAxes: { uAxis: "x" | "y" | "z"; vAxis: "x" | "y" | "z" }[];
+  private faceData: FacePrecompute[];
 
   constructor() {
-    this.faceTangentAxes = FACE_TANGENTS.map((tangent) => ({
-      uAxis: this.getAxisFromVector(tangent.u),
-      vAxis: this.getAxisFromVector(tangent.v),
-    }));
+    const axisIndex = { x: 0, y: 1, z: 2 } as const;
+    this.faceData = faces.map((face, faceIndex) => {
+      const normal = face.normal as [number, number, number];
+      const tangents = FACE_TANGENTS[faceIndex];
+      const uAxis = this.getAxisFromVector(tangents.u);
+      const vAxis = this.getAxisFromVector(tangents.v);
+      const uIndex = axisIndex[uAxis];
+      const vIndex = axisIndex[vAxis];
+      const corners = face.vertices.map((vertex) => {
+        const cornerOffset: [number, number, number] = [
+          vertex[0] > 0 ? 1 : 0,
+          vertex[1] > 0 ? 1 : 0,
+          vertex[2] > 0 ? 1 : 0,
+        ];
+        const uDir = cornerOffset[uIndex] === 0 ? -1 : 1;
+        const vDir = cornerOffset[vIndex] === 0 ? -1 : 1;
+        const side1Offset: [number, number, number] = [
+          tangents.u[0] * uDir,
+          tangents.u[1] * uDir,
+          tangents.u[2] * uDir,
+        ];
+        const side2Offset: [number, number, number] = [
+          tangents.v[0] * vDir,
+          tangents.v[1] * vDir,
+          tangents.v[2] * vDir,
+        ];
+        const cornerOffsetVec: [number, number, number] = [
+          side1Offset[0] + side2Offset[0],
+          side1Offset[1] + side2Offset[1],
+          side1Offset[2] + side2Offset[2],
+        ];
+        return {
+          cornerOffset,
+          side1Offset,
+          side2Offset,
+          cornerOffsetVec,
+        };
+      });
+      return {
+        normal,
+        baseMode: [...normal] as [number, number, number],
+        corners,
+      };
+    });
   }
 
   /**
@@ -23,57 +76,16 @@ export class OctreeMesher {
     return "z";
   }
 
-  /**
-   * Compute the AO sampling coordinate along a face normal.
-   * @param normalComponent The normal component (-1, 0, 1) for the face axis.
-   * @param minCoord The leaf minimum coordinate on that axis.
-   * @param size The leaf size along that axis.
-   * @param cornerCoord The vertex corner coordinate when the face is perpendicular.
-   */
   private getBaseCoord(
     normalComponent: number,
     minCoord: number,
     size: number,
     cornerCoord: number
   ): number {
-    if (normalComponent === 1) return minCoord + size;
-    if (normalComponent === -1) return minCoord - 1;
-    return cornerCoord;
-  }
-
-  /**
-   * Map a vertex component to its corner coordinate for the leaf bounds.
-   */
-  private getCornerCoord(
-    component: number,
-    minCoord: number,
-    size: number
-  ): number {
-    return component > 0 ? minCoord + size : minCoord;
-  }
-
-  /**
-   * Select the corner coordinate for a specific axis.
-   */
-  private getCoordForAxis(
-    axis: "x" | "y" | "z",
-    cornerX: number,
-    cornerY: number,
-    cornerZ: number
-  ): number {
-    return axis === "x" ? cornerX : axis === "y" ? cornerY : cornerZ;
-  }
-
-  /**
-   * Determine the sign (+/-) for AO sampling along the tangent axis.
-   */
-  private getDirectionFromCorner(
-    axis: "x" | "y" | "z",
-    cornerCoord: number,
-    minPos: { x: number; y: number; z: number }
-  ): number {
-    const minCoord = axis === "x" ? minPos.x : axis === "y" ? minPos.y : minPos.z;
-    return cornerCoord === minCoord ? -1 : 1;
+    if (normalComponent === 0) {
+      return cornerCoord;
+    }
+    return minCoord + (normalComponent === 1 ? size : -1);
   }
 
   /**
@@ -83,35 +95,33 @@ export class OctreeMesher {
     baseX: number,
     baseY: number,
     baseZ: number,
-    uDir: number,
-    vDir: number,
-    tangents: { u: [number, number, number]; v: [number, number, number] },
+    corner: CornerOffsets,
     octree: SparseVoxelOctree,
     occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): number {
     const side1 = this.isOccluder(
       octree,
-      baseX + uDir * tangents.u[0],
-      baseY + uDir * tangents.u[1],
-      baseZ + uDir * tangents.u[2],
+      baseX + corner.side1Offset[0],
+      baseY + corner.side1Offset[1],
+      baseZ + corner.side1Offset[2],
       occupancy
     );
     const side2 = this.isOccluder(
       octree,
-      baseX + vDir * tangents.v[0],
-      baseY + vDir * tangents.v[1],
-      baseZ + vDir * tangents.v[2],
+      baseX + corner.side2Offset[0],
+      baseY + corner.side2Offset[1],
+      baseZ + corner.side2Offset[2],
       occupancy
     );
-    const corner = this.isOccluder(
+    const cornerOcc = this.isOccluder(
       octree,
-      baseX + uDir * tangents.u[0] + vDir * tangents.v[0],
-      baseY + uDir * tangents.u[1] + vDir * tangents.v[1],
-      baseZ + uDir * tangents.u[2] + vDir * tangents.v[2],
+      baseX + corner.cornerOffsetVec[0],
+      baseY + corner.cornerOffsetVec[1],
+      baseZ + corner.cornerOffsetVec[2],
       occupancy
     );
 
-    return calculateOcclusionLevel(side1, side2, corner);
+    return calculateOcclusionLevel(side1, side2, cornerOcc);
   }
 
   private isOccluder(
@@ -248,9 +258,8 @@ export class OctreeMesher {
         const face = faces[faceIndex];
         const textureIndex = faceTextures[faceIndex];
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
-        const normal = face.normal as [number, number, number];
-        const tangents = FACE_TANGENTS[faceIndex];
-        const { uAxis, vAxis } = this.faceTangentAxes[faceIndex];
+        const faceInfo = this.faceData[faceIndex];
+        const normal = faceInfo.normal;
 
         if (enableCulling && this.isFaceOccluded(leaf, normal, octree, occupancy)) {
           continue;
@@ -263,39 +272,24 @@ export class OctreeMesher {
           const vx = centerX + vertex[0] * leaf.size;
           const vy = centerY + vertex[1] * leaf.size;
           const vz = centerZ + vertex[2] * leaf.size;
-          const cornerX = this.getCornerCoord(
-            vertex[0],
-            leaf.minPos.x,
-            leaf.size
-          );
-          const cornerY = this.getCornerCoord(
-            vertex[1],
-            leaf.minPos.y,
-            leaf.size
-          );
-          const cornerZ = this.getCornerCoord(
-            vertex[2],
-            leaf.minPos.z,
-            leaf.size
-          );
-          const uCorner = this.getCoordForAxis(uAxis, cornerX, cornerY, cornerZ);
-          const vCorner = this.getCoordForAxis(vAxis, cornerX, cornerY, cornerZ);
-          const uDir = this.getDirectionFromCorner(uAxis, uCorner, leaf.minPos);
-          const vDir = this.getDirectionFromCorner(vAxis, vCorner, leaf.minPos);
+          const corner = faceInfo.corners[vi];
+          const cornerX = leaf.minPos.x + corner.cornerOffset[0] * leaf.size;
+          const cornerY = leaf.minPos.y + corner.cornerOffset[1] * leaf.size;
+          const cornerZ = leaf.minPos.z + corner.cornerOffset[2] * leaf.size;
           const baseX = this.getBaseCoord(
-            normal[0],
+            faceInfo.baseMode[0],
             leaf.minPos.x,
             leaf.size,
             cornerX
           );
           const baseY = this.getBaseCoord(
-            normal[1],
+            faceInfo.baseMode[1],
             leaf.minPos.y,
             leaf.size,
             cornerY
           );
           const baseZ = this.getBaseCoord(
-            normal[2],
+            faceInfo.baseMode[2],
             leaf.minPos.z,
             leaf.size,
             cornerZ
@@ -305,9 +299,7 @@ export class OctreeMesher {
                 baseX,
                 baseY,
                 baseZ,
-                uDir,
-                vDir,
-                tangents,
+                corner,
                 octree,
                 occupancy
               )
