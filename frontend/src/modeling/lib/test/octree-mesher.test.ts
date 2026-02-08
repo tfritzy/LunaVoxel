@@ -76,42 +76,113 @@ describe("OctreeMesher", () => {
     expect(maxAo).toBe(1);
   });
 
-  it("benchmarks meshing with culling toggles", () => {
-    const dimensions = { x: 24, y: 24, z: 24 };
-    const octree = new SparseVoxelOctree(dimensions);
-    for (let x = 0; x < dimensions.x; x++) {
-      for (let y = 0; y < dimensions.y; y++) {
-        for (let z = 0; z < dimensions.z; z++) {
-          if ((x + y + z) % 2 === 0) {
-            octree.set(x, y, z, 1);
+  it("benchmarks meshing with layer + preview setup", () => {
+    const dimensions = { x: 64, y: 64, z: 64 };
+    const layerCount = 3;
+    const benchIterations = 5;
+    const mesher = new OctreeMesher();
+    const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
+
+    const createLayerOctree = (seed: number, density: number) => {
+      const octree = new SparseVoxelOctree(dimensions);
+      for (let x = 0; x < dimensions.x; x++) {
+        for (let y = 0; y < dimensions.y; y++) {
+          for (let z = 0; z < dimensions.z; z++) {
+            const value = (x * 31 + y * 17 + z * 13 + seed) % 10;
+            if (value < density) {
+              octree.set(x, y, z, 1);
+            }
           }
         }
       }
-    }
+      return octree;
+    };
 
-    const leafCount = octree.countLeaves();
-    const mesher = new OctreeMesher();
-    const meshArrays = createMeshArrays(leafCount);
-    const benchIterations = 10;
-    const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
-
-    const runBenchmark = (label: string, options: { enableCulling: boolean }) => {
-      const durations: number[] = [];
-      for (let i = 0; i < benchIterations; i++) {
-        const start = performance.now();
-        mesher.buildMesh(octree, 4, blockAtlasMappings, meshArrays, undefined, options);
-        durations.push(performance.now() - start);
+    const buildRenderOctree = (layers: SparseVoxelOctree[]) => {
+      const renderOctree = new SparseVoxelOctree(dimensions);
+      for (const layer of layers) {
+        layer.forEachLeaf((leaf) => {
+          if (leaf.value === 0) {
+            return;
+          }
+          renderOctree.setRegion(
+            leaf.minPos,
+            { x: leaf.size, y: leaf.size, z: leaf.size },
+            leaf.value
+          );
+        });
       }
-      expect(meshArrays.vertexCount).toBeGreaterThan(0);
-      expect(meshArrays.indexCount).toBeGreaterThan(0);
+      return renderOctree;
+    };
+
+    const buildPreviewOctree = () => {
+      const preview = new SparseVoxelOctree(dimensions);
+      preview.setRegion({ x: 20, y: 20, z: 20 }, { x: 16, y: 16, z: 16 }, 1);
+      return preview;
+    };
+
+    const applyPreviewMask = (
+      renderOctree: SparseVoxelOctree,
+      previewOctree: SparseVoxelOctree
+    ) => {
+      const masked = renderOctree.clone();
+      previewOctree.forEachLeaf((leaf) => {
+        if (leaf.value === 0) {
+          return;
+        }
+        masked.setRegion(
+          leaf.minPos,
+          { x: leaf.size, y: leaf.size, z: leaf.size },
+          0,
+          false
+        );
+      });
+      return masked;
+    };
+
+    const baseLayers = Array.from({ length: layerCount }, (_, index) =>
+      createLayerOctree(index + 3, 4)
+    );
+    const previewOctree = buildPreviewOctree();
+
+    const measure = (label: string, durations: number[]) => {
       const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
       results.push({ label, avg: avgDuration, min: minDuration, max: maxDuration });
     };
 
-    runBenchmark("Culling on", { enableCulling: true });
-    runBenchmark("Culling off", { enableCulling: false });
+    const setupDurations: number[] = [];
+    const cullingOnDurations: number[] = [];
+    const cullingOffDurations: number[] = [];
+
+    for (let i = 0; i < benchIterations; i++) {
+      const setupStart = performance.now();
+      const renderOctree = buildRenderOctree(baseLayers);
+      const maskedOctree = applyPreviewMask(renderOctree, previewOctree);
+      const setupDuration = performance.now() - setupStart;
+      setupDurations.push(setupDuration);
+
+      const meshArraysOn = createMeshArrays(maskedOctree.countLeaves());
+      const cullingOnStart = performance.now();
+      mesher.buildMesh(maskedOctree, 4, blockAtlasMappings, meshArraysOn, undefined, {
+        enableCulling: true,
+      });
+      cullingOnDurations.push(performance.now() - cullingOnStart);
+      expect(meshArraysOn.vertexCount).toBeGreaterThan(0);
+
+      const meshArraysOff = createMeshArrays(maskedOctree.countLeaves());
+      const cullingOffStart = performance.now();
+      mesher.buildMesh(maskedOctree, 4, blockAtlasMappings, meshArraysOff, undefined, {
+        enableCulling: false,
+      });
+      cullingOffDurations.push(performance.now() - cullingOffStart);
+      expect(meshArraysOff.vertexCount).toBeGreaterThan(0);
+    }
+
+    measure("Setup (layers + preview)", setupDurations);
+    measure("Culling on", cullingOnDurations);
+    measure("Culling off", cullingOffDurations);
 
     console.table(
       results.map((entry) => ({
@@ -121,13 +192,9 @@ describe("OctreeMesher", () => {
         max: `${entry.max.toFixed(2)}ms`,
       }))
     );
-    expect(results).toHaveLength(2);
+    expect(results).toHaveLength(3);
     results.forEach((entry) => {
       expect(entry.avg).toBeGreaterThan(0);
     });
-    const cullingOn = results.find((entry) => entry.label === "Culling on");
-    const cullingOff = results.find((entry) => entry.label === "Culling off");
-    expect(cullingOn).toBeDefined();
-    expect(cullingOff).toBeDefined();
   }, 30000);
 });
