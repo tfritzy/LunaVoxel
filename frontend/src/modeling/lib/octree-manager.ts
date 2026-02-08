@@ -26,6 +26,7 @@ export class OctreeManager {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private renderOctree: SparseVoxelOctree;
+  private readonly transparentBlockValue = 1_000_000_000;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
@@ -34,6 +35,8 @@ export class OctreeManager {
   private previewOverrides: Map<number, { x: number; y: number; z: number; value: number }> =
     new Map();
   private previewMode: BlockModificationMode | null = null;
+  private lastLayerSignature = "";
+  private lastBlocksCount = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -77,8 +80,19 @@ export class OctreeManager {
     }
 
     this.layerOctrees = current.layerOctrees;
-    this.clearPreview(false);
-    this.rebuildRenderOctree();
+    const layerSignature = this.layers
+      .map((layer) => `${layer.id}:${layer.index}:${layer.visible}`)
+      .join("|");
+    const blocksCount = current.blocks.faceColors.length;
+    const shouldRebuild =
+      layerSignature !== this.lastLayerSignature || blocksCount !== this.lastBlocksCount;
+    this.lastLayerSignature = layerSignature;
+    this.lastBlocksCount = blocksCount;
+
+    if (shouldRebuild) {
+      this.clearPreview(false);
+      this.rebuildRenderOctree();
+    }
     this.updateMeshes();
   };
 
@@ -127,6 +141,14 @@ export class OctreeManager {
       }
     });
     return count;
+  }
+
+  private isTransparentValue(value: number): boolean {
+    return value === this.transparentBlockValue;
+  }
+
+  private isRenderableValue(value: number): boolean {
+    return value > 0 && !this.isTransparentValue(value);
   }
 
   private coordinateToKey(x: number, y: number, z: number, shiftBits: number): number {
@@ -233,8 +255,12 @@ export class OctreeManager {
     }
 
     const textureWidth = this.atlasData.texture?.image.width ?? 1;
-    const mainLeaves = this.countLeavesByPredicate((value) => value > 0);
-    const previewLeaves = this.countLeavesByPredicate((value) => value < 0);
+    const mainLeaves = this.countLeavesByPredicate((value) =>
+      this.isRenderableValue(value)
+    );
+    const previewLeaves = this.countLeavesByPredicate((value) =>
+      this.isTransparentValue(value)
+    );
 
     this.meshes.main.meshArrays = this.createMeshArrays(mainLeaves);
     this.meshes.preview.meshArrays = this.createMeshArrays(previewLeaves);
@@ -247,9 +273,9 @@ export class OctreeManager {
       undefined,
       {
         enableCulling: true,
-        valuePredicate: (value) => value > 0,
+        valuePredicate: (value) => this.isRenderableValue(value),
         valueTransform: (value) => value,
-        occludesValue: (value) => value > 0,
+        occludesValue: (value) => this.isRenderableValue(value),
       }
     );
 
@@ -261,9 +287,9 @@ export class OctreeManager {
       undefined,
       {
         enableCulling: false,
-        valuePredicate: (value) => value < 0,
-        valueTransform: (value) => Math.abs(value),
-        occludesValue: (value) => value < 0,
+        valuePredicate: (value) => this.isTransparentValue(value),
+        valueTransform: () => 1,
+        occludesValue: (value) => this.isTransparentValue(value),
       }
     );
 
@@ -367,13 +393,13 @@ export class OctreeManager {
           let previewValue: number;
           switch (mode.tag) {
             case "Erase":
-              previewValue = -Math.max(layerValue, 1);
+              previewValue = this.transparentBlockValue;
               break;
             case "Paint":
-              previewValue = -Math.max(blockType, 1);
+              previewValue = Math.max(blockType, 1);
               break;
             case "Attach":
-              previewValue = -Math.max(blockType, 1);
+              previewValue = Math.max(blockType, 1);
               break;
           }
           this.renderOctree.set(x, y, z, previewValue);

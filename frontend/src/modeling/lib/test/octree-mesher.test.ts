@@ -83,6 +83,7 @@ describe("OctreeMesher", () => {
     // Reduced iterations from 10 to 5 to accommodate setup cost within the test timeout.
     const LAYER_SEED_OFFSET = 3;
     const FILL_DENSITY_THRESHOLD = 4;
+    const TRANSPARENT_BLOCK_VALUE = 1_000_000_000;
     const mesher = new OctreeMesher();
     const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
 
@@ -132,7 +133,7 @@ describe("OctreeMesher", () => {
             if (current <= 0) {
               continue;
             }
-            renderOctree.set(x, y, z, -current);
+            renderOctree.set(x, y, z, TRANSPARENT_BLOCK_VALUE);
           }
         }
       }
@@ -172,16 +173,22 @@ describe("OctreeMesher", () => {
       const setupDuration = performance.now() - setupStart;
       setupDurations.push(setupDuration);
 
-      const mainLeaves = countLeavesByPredicate(renderOctree, (value) => value > 0);
-      const previewLeaves = countLeavesByPredicate(renderOctree, (value) => value < 0);
+      const mainLeaves = countLeavesByPredicate(
+        renderOctree,
+        (value) => value > 0 && value !== TRANSPARENT_BLOCK_VALUE
+      );
+      const previewLeaves = countLeavesByPredicate(
+        renderOctree,
+        (value) => value === TRANSPARENT_BLOCK_VALUE
+      );
 
       const meshArraysOn = createMeshArrays(mainLeaves);
       const cullingOnStart = performance.now();
       mesher.buildMesh(renderOctree, 4, blockAtlasMappings, meshArraysOn, undefined, {
         enableCulling: true,
-        valuePredicate: (value) => value > 0,
+        valuePredicate: (value) => value > 0 && value !== TRANSPARENT_BLOCK_VALUE,
         valueTransform: (value) => value,
-        occludesValue: (value) => value > 0,
+        occludesValue: (value) => value > 0 && value !== TRANSPARENT_BLOCK_VALUE,
       });
       cullingOnDurations.push(performance.now() - cullingOnStart);
       expect(meshArraysOn.vertexCount).toBeGreaterThan(0);
@@ -190,9 +197,9 @@ describe("OctreeMesher", () => {
       const cullingOffStart = performance.now();
       mesher.buildMesh(renderOctree, 4, blockAtlasMappings, meshArraysOff, undefined, {
         enableCulling: false,
-        valuePredicate: (value) => value > 0,
+        valuePredicate: (value) => value > 0 && value !== TRANSPARENT_BLOCK_VALUE,
         valueTransform: (value) => value,
-        occludesValue: (value) => value > 0,
+        occludesValue: (value) => value > 0 && value !== TRANSPARENT_BLOCK_VALUE,
       });
       cullingOffDurations.push(performance.now() - cullingOffStart);
       expect(meshArraysOff.vertexCount).toBeGreaterThan(0);
@@ -200,9 +207,9 @@ describe("OctreeMesher", () => {
       const previewMeshArrays = createMeshArrays(previewLeaves);
       mesher.buildMesh(renderOctree, 4, blockAtlasMappings, previewMeshArrays, undefined, {
         enableCulling: false,
-        valuePredicate: (value) => value < 0,
-        valueTransform: (value) => Math.abs(value),
-        occludesValue: (value) => value < 0,
+        valuePredicate: (value) => value === TRANSPARENT_BLOCK_VALUE,
+        valueTransform: () => 1,
+        occludesValue: (value) => value === TRANSPARENT_BLOCK_VALUE,
       });
       expect(previewMeshArrays.vertexCount).toBeGreaterThan(0);
     }
