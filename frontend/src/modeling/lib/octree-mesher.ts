@@ -42,7 +42,8 @@ export class OctreeMesher {
   }
 
   /**
-   * Map a vertex component (e.g., vertex[0]) to its min/max corner coordinate.
+   * Map a vertex component to either the minimum or maximum corner coordinate
+   * based on its sign.
    */
   private getCornerCoord(
     component: number,
@@ -73,6 +74,7 @@ export class OctreeMesher {
 
   /**
    * Determine ambient-occlusion sampling direction based on corner placement.
+   * Returns -1 for the negative direction or 1 for the positive direction.
    */
   private getDirectionFromCorner(
     axis: "x" | "y" | "z",
