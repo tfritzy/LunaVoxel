@@ -4,8 +4,6 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
-  constructor() {}
-
   private isOccluder(
     octree: SparseVoxelOctree,
     x: number,
