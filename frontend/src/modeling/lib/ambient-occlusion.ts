@@ -57,13 +57,13 @@ export const calculateAmbientOcclusion = (
   const v2 = FACE_TANGENTS_FLAT[offset + 5];
 
   // Check if the voxel is far enough from edges to skip bounds checking
-  const isInteriorVoxel = 
+  const canSkipBoundsCheck = 
     nx > 0 && nx < dimensions.x - 1 &&
     ny > 0 && ny < dimensions.y - 1 &&
     nz > 0 && nz < dimensions.z - 1;
 
   const isOccluder = (x: number, y: number, z: number): boolean => {
-    if (!isInteriorVoxel) {
+    if (!canSkipBoundsCheck) {
       if (
         x < 0 ||
         x >= dimensions.x ||
@@ -92,11 +92,11 @@ export const calculateAmbientOcclusion = (
   const corner_np = isOccluder(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2);
   const corner_pp = isOccluder(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2);
 
-  const calculateOcclusion = (side1: boolean, side2: boolean, corner: boolean): number => {
-    if (side1 && side2) {
+  const calculateOcclusion = (s1: boolean, s2: boolean, c: boolean): number => {
+    if (s1 && s2) {
       return 3; // Inner corner case
     }
-    return (side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0);
+    return (s1 ? 1 : 0) + (s2 ? 1 : 0) + (c ? 1 : 0);
   };
 
   const occ00 = calculateOcclusion(side1_neg, side2_neg, corner_nn);

@@ -56,7 +56,7 @@ export class RectTool implements Tool {
               position,
               context.selectedLayer
             );
-            if (current && current > 0) {
+            if (current !== null && current > 0) {
               const previewValue =
                 context.mode.tag === "Paint" ? context.selectedBlock : current;
               context.previewOctree.set(x, y, z, previewValue);
