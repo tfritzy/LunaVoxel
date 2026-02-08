@@ -43,7 +43,7 @@ export class OctreeMesher {
 
   /**
    * Map a vertex component to the minimum or maximum corner coordinate;
-   * non-positive values map to the minimum corner.
+   * non-positive values (≤ 0) map to the minimum corner.
    */
   private getCornerCoord(
     component: number,
@@ -69,6 +69,8 @@ export class OctreeMesher {
         return cornerY;
       case "z":
         return cornerZ;
+      default:
+        throw new Error(`Unknown axis: ${axis}`);
     }
   }
 
