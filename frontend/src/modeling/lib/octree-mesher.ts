@@ -80,12 +80,12 @@ export class OctreeMesher {
     minPos: { x: number; y: number; z: number }
   ): number {
     if (axis === "x") {
-      return cornerCoord === minPos.x ? -1 : 1;
+      return cornerCoord <= minPos.x ? -1 : 1;
     }
     if (axis === "y") {
-      return cornerCoord === minPos.y ? -1 : 1;
+      return cornerCoord <= minPos.y ? -1 : 1;
     }
-    return cornerCoord === minPos.z ? -1 : 1;
+    return cornerCoord <= minPos.z ? -1 : 1;
   }
 
   /**
@@ -107,21 +107,21 @@ export class OctreeMesher {
     const vOffsetX = vDir * tangents.v[0];
     const vOffsetY = vDir * tangents.v[1];
     const vOffsetZ = vDir * tangents.v[2];
-    const side1 = this.isOccluder(
+    const uTangentOcclusion = this.isOccluder(
       octree,
       baseX + uOffsetX,
       baseY + uOffsetY,
       baseZ + uOffsetZ,
       occupancy
     );
-    const side2 = this.isOccluder(
+    const vTangentOcclusion = this.isOccluder(
       octree,
       baseX + vOffsetX,
       baseY + vOffsetY,
       baseZ + vOffsetZ,
       occupancy
     );
-    const corner = this.isOccluder(
+    const diagonalOcclusion = this.isOccluder(
       octree,
       baseX + uOffsetX + vOffsetX,
       baseY + uOffsetY + vOffsetY,
@@ -129,7 +129,11 @@ export class OctreeMesher {
       occupancy
     );
 
-    return calculateOcclusionLevel(side1, side2, corner);
+    return calculateOcclusionLevel(
+      uTangentOcclusion,
+      vTangentOcclusion,
+      diagonalOcclusion
+    );
   }
 
   private isOccluder(
