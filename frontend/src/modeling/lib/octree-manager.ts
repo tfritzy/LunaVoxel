@@ -31,7 +31,7 @@ export class OctreeManager {
   private meshes: Record<MeshType, MeshData>;
   private mesher: OctreeMesher;
   private unsubscribe?: () => void;
-  private previewOverrides: Map<string, { x: number; y: number; z: number; value: number }> =
+  private previewOverrides: Map<number, { x: number; y: number; z: number; value: number }> =
     new Map();
   private previewMode: BlockModificationMode | null = null;
 
@@ -336,6 +336,7 @@ export class OctreeManager {
       this.dimensions.z - 1,
       Math.floor(Math.max(start.z, end.z))
     );
+    const shift = Math.ceil(Math.log2(this.renderOctree.getSize()));
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
@@ -345,7 +346,7 @@ export class OctreeManager {
             continue;
           }
 
-          const key = `${x},${y},${z}`;
+          const key = x | (y << shift) | (z << (shift * 2));
           if (!this.previewOverrides.has(key)) {
             this.previewOverrides.set(key, {
               x,
@@ -355,10 +356,18 @@ export class OctreeManager {
             });
           }
 
-          const previewValue =
-            mode.tag === "Erase"
-              ? -Math.max(layerValue, 1)
-              : -Math.max(blockType, 1);
+          let previewValue: number;
+          switch (mode.tag) {
+            case "Erase":
+              previewValue = -Math.max(layerValue, 1);
+              break;
+            case "Paint":
+              previewValue = -Math.max(blockType, 1);
+              break;
+            case "Attach":
+              previewValue = -Math.max(blockType, 1);
+              break;
+          }
           this.renderOctree.set(x, y, z, previewValue);
         }
       }
