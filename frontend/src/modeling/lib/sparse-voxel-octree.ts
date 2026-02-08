@@ -1,3 +1,5 @@
+export const ERASE_PREVIEW_BLOCK = 255;
+
 export class SparseVoxelOctree {
   private data: Map<number, number> = new Map();
 

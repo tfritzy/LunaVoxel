@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SparseVoxelOctree } from "../sparse-voxel-octree";
+import { SparseVoxelOctree, ERASE_PREVIEW_BLOCK } from "../sparse-voxel-octree";
 import { OctreeMesher } from "../octree-mesher";
 import { MeshArrays } from "../mesh-arrays";
 
@@ -110,6 +110,32 @@ describe("OctreeMesher", () => {
     const octree = new SparseVoxelOctree();
     octree.set(0, 0, 0, 1);
     octree.set(1, 0, 0, 1);
+
+    const meshArrays = new MeshArrays(100, 200);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+
+    expect(meshArrays.vertexCount).toBe(40);
+    expect(meshArrays.indexCount).toBe(60);
+  });
+
+  it("should generate faces for ERASE_PREVIEW_BLOCK with ao=0", () => {
+    const octree = new SparseVoxelOctree();
+    octree.set(0, 0, 0, ERASE_PREVIEW_BLOCK);
+
+    const meshArrays = new MeshArrays(24, 36);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+
+    expect(meshArrays.vertexCount).toBe(24);
+    expect(meshArrays.indexCount).toBe(36);
+    for (let i = 0; i < meshArrays.vertexCount; i++) {
+      expect(meshArrays.ao[i]).toBe(0.0);
+    }
+  });
+
+  it("should cull faces between normal blocks and ERASE_PREVIEW_BLOCK", () => {
+    const octree = new SparseVoxelOctree();
+    octree.set(0, 0, 0, 1);
+    octree.set(1, 0, 0, ERASE_PREVIEW_BLOCK);
 
     const meshArrays = new MeshArrays(100, 200);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);

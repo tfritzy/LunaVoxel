@@ -102,7 +102,7 @@ export const Builder = class {
 
   cancelCurrentOperation(): void {
     if (this.isMouseDown) {
-      this.projectManager.octreeManager.revertRenderTree();
+      this.projectManager.octreeManager.clearPreview();
     }
     this.isMouseDown = false;
     this.startPosition = null;

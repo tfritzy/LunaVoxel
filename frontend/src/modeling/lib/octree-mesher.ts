@@ -1,4 +1,4 @@
-import { SparseVoxelOctree } from "./sparse-voxel-octree";
+import { SparseVoxelOctree, ERASE_PREVIEW_BLOCK } from "./sparse-voxel-octree";
 import { getTextureCoordinates } from "./texture-coords";
 import { faces } from "./voxel-constants";
 import { MeshArrays } from "./mesh-arrays";
@@ -73,7 +73,8 @@ export class OctreeMesher {
       const z = (key >> 20) & 0x3ff;
       const occIdx = (x + 1) * strideX + (y + 1) * strideY + (z + 1);
 
-      const blockType = value;
+      const isErasePreview = value === ERASE_PREVIEW_BLOCK;
+      const blockType = isErasePreview ? 1 : value;
 
       for (let faceDir = 0; faceDir < 6; faceDir++) {
         if (occ[occIdx + neighborOffsets[faceDir]]) continue;
@@ -110,7 +111,7 @@ export class OctreeMesher {
           uvsArr[off2] = textureCoords[vi * 2];
           uvsArr[off2 + 1] = textureCoords[vi * 2 + 1];
 
-          aoArr[vertexCount + vi] = 1.0;
+          aoArr[vertexCount + vi] = isErasePreview ? 0.0 : 1.0;
           isSelectedArr[vertexCount + vi] = 0;
         }
 

@@ -25,8 +25,6 @@ export class RectTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    context.projectManager.octreeManager.revertRenderTree();
-
     const bounds = calculateRectBounds(
       event.startGridPosition, 
       event.currentGridPosition, 
@@ -37,19 +35,17 @@ export class RectTool implements Tool {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          if (context.mode.tag === "Erase") {
-            positions.push({ x, y, z, value: 0 });
-          } else {
-            positions.push({ x, y, z, value: context.selectedBlock });
-          }
+          positions.push({ x, y, z, value: context.selectedBlock });
         }
       }
     }
 
-    context.projectManager.octreeManager.writeToRenderTree(positions);
+    context.projectManager.octreeManager.setPreview(context.mode, positions);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    context.projectManager.octreeManager.clearPreview();
+
     context.reducers.modifyBlockRect(
       context.projectId,
       context.mode,
