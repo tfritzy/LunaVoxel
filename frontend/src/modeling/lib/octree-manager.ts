@@ -263,17 +263,7 @@ export class OctreeManager {
         return this.previewMaskCache.octree;
       }
 
-      const maskedOctree = new SparseVoxelOctree(this.dimensions);
-      this.renderOctree.forEachLeaf((leaf) => {
-        if (leaf.value === 0) {
-          return;
-        }
-        maskedOctree.setRegion(
-          leaf.minPos,
-          { x: leaf.size, y: leaf.size, z: leaf.size },
-          leaf.value
-        );
-      });
+      const maskedOctree = this.renderOctree.clone();
       this.previewOctree.forEachLeaf((leaf) => {
         if (leaf.value === 0) {
           return;

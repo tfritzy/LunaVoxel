@@ -4,6 +4,7 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree, type OctreeLeaf } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  // size is expected to be a power of two for octree leaves.
   private getLog2OfSize(size: number): number {
     return 31 - Math.clz32(size);
   }
@@ -23,10 +24,10 @@ export class OctreeMesher {
   private encodeMorton(x: number, y: number, z: number, depth: number): number {
     let code = 0;
     for (let i = 0; i < depth; i++) {
-      const mask = 1 << i;
-      code |= ((x & mask) !== 0 ? 1 : 0) << (3 * i);
-      code |= ((y & mask) !== 0 ? 1 : 0) << (3 * i + 1);
-      code |= ((z & mask) !== 0 ? 1 : 0) << (3 * i + 2);
+      const shift = 3 * i;
+      code |= ((x >> i) & 1) << shift;
+      code |= ((y >> i) & 1) << (shift + 1);
+      code |= ((z >> i) & 1) << (shift + 2);
     }
     return code;
   }
@@ -38,6 +39,9 @@ export class OctreeMesher {
     const leafMap = new Map<number, OctreeLeaf>();
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
+        return;
+      }
+      if (leaf.size <= 1) {
         return;
       }
       const leafDepth = this.getLog2OfSize(leaf.size);
@@ -53,6 +57,10 @@ export class OctreeMesher {
     return leafMap;
   }
 
+  /**
+   * Returns true if the neighbor is definitively occluding, false if definitively empty,
+   * or null if the neighbor is partially filled and requires per-voxel checks.
+   */
   private lookupNeighborOcclusion(
     x: number,
     y: number,
@@ -66,6 +74,10 @@ export class OctreeMesher {
     const octreeSize = octree.getSize();
     if (x < 0 || y < 0 || z < 0 || x >= octreeSize || y >= octreeSize || z >= octreeSize) {
       return false;
+    }
+
+    if (leafDepth === 0) {
+      return octree.get(x, y, z) !== 0;
     }
 
     if (leafMap) {

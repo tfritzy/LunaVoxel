@@ -130,6 +130,17 @@ export class SparseVoxelOctree {
     return this.version;
   }
 
+  public clone(): SparseVoxelOctree {
+    const clone = new SparseVoxelOctree({
+      x: this.size,
+      y: this.size,
+      z: this.size,
+    });
+    clone.root = this.cloneNode(this.root);
+    clone.version = this.version;
+    return clone;
+  }
+
   /**
    * Bounds are based on the internal power-of-two size; callers enforce world limits.
    */
@@ -326,6 +337,16 @@ export class SparseVoxelOctree {
       children[i] = { value };
     }
     return children;
+  }
+
+  private cloneNode(node: OctreeNode): OctreeNode {
+    if (!node.children) {
+      return { value: node.value };
+    }
+    return {
+      value: node.value,
+      children: node.children.map((child) => this.cloneNode(child)),
+    };
   }
 
   private tryCollapse(node: OctreeNode): void {
