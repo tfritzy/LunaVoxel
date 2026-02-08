@@ -80,7 +80,7 @@ describe("OctreeMesher", () => {
     const dimensions = { x: 64, y: 64, z: 64 };
     const layerCount = 3;
     const benchIterations = 5;
-    // Fewer iterations to keep the benchmark within the test timeout.
+    // Reduced iterations from 10 to 5 to accommodate setup cost within the test timeout.
     const LAYER_SEED_OFFSET = 3;
     const FILL_DENSITY_THRESHOLD = 4;
     const mesher = new OctreeMesher();
