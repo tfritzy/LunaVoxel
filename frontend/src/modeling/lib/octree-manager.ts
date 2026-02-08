@@ -212,15 +212,17 @@ export class OctreeManager {
     }
 
     const textureWidth = this.atlasData.texture?.image.width ?? 1;
+    const mode = this.getMode();
+    const renderOctree = this.getRenderOctreeForPreview(mode);
 
-    const mainLeaves = this.renderOctree.countLeaves();
+    const mainLeaves = renderOctree.countLeaves();
     const previewLeaves = this.previewOctree.countLeaves();
 
     this.meshes.main.meshArrays = this.createMeshArrays(mainLeaves);
     this.meshes.preview.meshArrays = this.createMeshArrays(previewLeaves);
 
     this.mesher.buildMesh(
-      this.renderOctree,
+      renderOctree,
       textureWidth,
       this.atlasData.blockAtlasMappings,
       this.meshes.main.meshArrays
@@ -235,6 +237,40 @@ export class OctreeManager {
 
     this.updateMainMesh(this.atlasData);
     this.updatePreviewMesh();
+  }
+
+  private getRenderOctreeForPreview(
+    mode: BlockModificationMode
+  ): SparseVoxelOctree {
+    if (
+      (mode.tag === "Erase" || mode.tag === "Paint") &&
+      !this.previewOctree.isEmpty()
+    ) {
+      const maskedOctree = new SparseVoxelOctree(this.dimensions);
+      this.renderOctree.forEachLeaf((leaf) => {
+        if (leaf.value === 0) {
+          return;
+        }
+        maskedOctree.setRegion(
+          leaf.minPos,
+          { x: leaf.size, y: leaf.size, z: leaf.size },
+          leaf.value
+        );
+      });
+      this.previewOctree.forEachLeaf((leaf) => {
+        if (leaf.value === 0) {
+          return;
+        }
+        maskedOctree.setRegion(
+          leaf.minPos,
+          { x: leaf.size, y: leaf.size, z: leaf.size },
+          0
+        );
+      });
+      return maskedOctree;
+    }
+
+    return this.renderOctree;
   }
 
   public setTextureAtlas(atlasData: AtlasData): void {

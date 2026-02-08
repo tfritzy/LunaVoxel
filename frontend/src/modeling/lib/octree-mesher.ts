@@ -1,38 +1,119 @@
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
-import { SparseVoxelOctree } from "./sparse-voxel-octree";
+import { SparseVoxelOctree, type OctreeLeaf } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  private buildLeafKey(
+    x: number,
+    y: number,
+    z: number,
+    leafDepth: number,
+    treeDepth: number
+  ): number {
+    const morton = this.encodeMorton(x, y, z, treeDepth);
+    return (leafDepth << 24) | morton;
+  }
+
+  private encodeMorton(x: number, y: number, z: number, depth: number): number {
+    let code = 0;
+    for (let i = 0; i < depth; i++) {
+      const mask = 1 << i;
+      code |= ((x & mask) !== 0 ? 1 : 0) << (3 * i);
+      code |= ((y & mask) !== 0 ? 1 : 0) << (3 * i + 1);
+      code |= ((z & mask) !== 0 ? 1 : 0) << (3 * i + 2);
+    }
+    return code;
+  }
+
+  private buildLeafMap(
+    octree: SparseVoxelOctree,
+    treeDepth: number
+  ): Map<number, OctreeLeaf> {
+    const leafMap = new Map<number, OctreeLeaf>();
+    octree.forEachLeaf((leaf) => {
+      if (leaf.value === 0) {
+        return;
+      }
+      const leafDepth = Math.round(Math.log2(leaf.size));
+      const key = this.buildLeafKey(
+        leaf.minPos.x,
+        leaf.minPos.y,
+        leaf.minPos.z,
+        leafDepth,
+        treeDepth
+      );
+      leafMap.set(key, leaf);
+    });
+    return leafMap;
+  }
+
+  private lookupNeighborOcclusion(
+    x: number,
+    y: number,
+    z: number,
+    size: number,
+    treeDepth: number,
+    octree: SparseVoxelOctree,
+    leafMap?: Map<number, OctreeLeaf>
+  ): boolean | null {
+    const octreeSize = octree.getSize();
+    if (x < 0 || y < 0 || z < 0 || x >= octreeSize || y >= octreeSize || z >= octreeSize) {
+      return false;
+    }
+
+    if (leafMap) {
+      const leafDepth = Math.round(Math.log2(size));
+      const key = this.buildLeafKey(x, y, z, leafDepth, treeDepth);
+      const neighbor = leafMap.get(key);
+      if (neighbor) {
+        return neighbor.value !== 0;
+      }
+    }
+
+    if (octree.get(x, y, z) === 0) {
+      return false;
+    }
+
+    return null;
+  }
+
   private isOccluder(
     octree: SparseVoxelOctree,
     x: number,
     y: number,
-    z: number,
-    occupancy?: { data: Uint8Array; size: number; planeStride: number }
+    z: number
   ): boolean {
-    if (!occupancy) {
-      return octree.get(x, y, z) !== 0;
-    }
-    if (x < 0 || y < 0 || z < 0 || x >= occupancy.size || y >= occupancy.size || z >= occupancy.size) {
-      return false;
-    }
-    const index = x * occupancy.planeStride + y * occupancy.size + z;
-    return occupancy.data[index] !== 0;
+    return octree.get(x, y, z) !== 0;
   }
 
   private isFaceOccluded(
     leaf: { minPos: { x: number; y: number; z: number }; size: number },
     normal: [number, number, number],
     octree: SparseVoxelOctree,
-    occupancy?: { data: Uint8Array; size: number; planeStride: number }
+    leafMap?: Map<number, OctreeLeaf>,
+    treeDepth?: number
   ): boolean {
+    const resolvedTreeDepth = treeDepth ?? Math.round(Math.log2(octree.getSize()));
     const size = leaf.size;
     if (normal[0] !== 0) {
+      const neighborX = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - size;
+      const neighborOcclusion = this.lookupNeighborOcclusion(
+        neighborX,
+        leaf.minPos.y,
+        leaf.minPos.z,
+        size,
+        resolvedTreeDepth,
+        octree,
+        leafMap
+      );
+      if (neighborOcclusion !== null) {
+        return neighborOcclusion;
+      }
       const x = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - 1;
       for (let y = 0; y < size; y++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z, occupancy)) {
+          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z)) {
             return false;
           }
         }
@@ -41,10 +122,23 @@ export class OctreeMesher {
     }
 
     if (normal[1] !== 0) {
+      const neighborY = normal[1] > 0 ? leaf.minPos.y + size : leaf.minPos.y - size;
+      const neighborOcclusion = this.lookupNeighborOcclusion(
+        leaf.minPos.x,
+        neighborY,
+        leaf.minPos.z,
+        size,
+        resolvedTreeDepth,
+        octree,
+        leafMap
+      );
+      if (neighborOcclusion !== null) {
+        return neighborOcclusion;
+      }
       const y = normal[1] > 0 ? leaf.minPos.y + size : leaf.minPos.y - 1;
       for (let x = 0; x < size; x++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z, occupancy)) {
+          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z)) {
             return false;
           }
         }
@@ -52,50 +146,28 @@ export class OctreeMesher {
       return true;
     }
 
+    const neighborZ = normal[2] > 0 ? leaf.minPos.z + size : leaf.minPos.z - size;
+    const neighborOcclusion = this.lookupNeighborOcclusion(
+      leaf.minPos.x,
+      leaf.minPos.y,
+      neighborZ,
+      size,
+      resolvedTreeDepth,
+      octree,
+      leafMap
+    );
+    if (neighborOcclusion !== null) {
+      return neighborOcclusion;
+    }
     const z = normal[2] > 0 ? leaf.minPos.z + size : leaf.minPos.z - 1;
     for (let x = 0; x < size; x++) {
       for (let y = 0; y < size; y++) {
-        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z, occupancy)) {
+        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z)) {
           return false;
         }
       }
     }
     return true;
-  }
-
-  /**
-   * Precompute an occupancy buffer indexed as x * planeStride + y * size + z,
-   * where planeStride = size * size.
-   */
-  private buildOccupancy(
-    octree: SparseVoxelOctree
-  ): { data: Uint8Array; size: number; planeStride: number } {
-    const size = octree.getSize();
-    const planeStride = size * size;
-    const data = new Uint8Array(size * planeStride);
-
-    octree.forEachLeaf((leaf) => {
-      if (leaf.value === 0) {
-        return;
-      }
-      const startX = leaf.minPos.x;
-      const startY = leaf.minPos.y;
-      const startZ = leaf.minPos.z;
-      const endX = startX + leaf.size;
-      const endY = startY + leaf.size;
-      const endZ = startZ + leaf.size;
-      for (let x = startX; x < endX; x++) {
-        const xOffset = x * planeStride;
-        for (let y = startY; y < endY; y++) {
-          const yOffset = y * size;
-          for (let z = startZ; z < endZ; z++) {
-            data[xOffset + yOffset + z] = 1;
-          }
-        }
-      }
-    });
-
-    return { data, size, planeStride };
   }
 
   /**
@@ -114,7 +186,8 @@ export class OctreeMesher {
   ): void {
     meshArrays.reset();
     const enableCulling = options?.enableCulling ?? true;
-    const occupancy = enableCulling ? this.buildOccupancy(octree) : undefined;
+    const treeDepth = Math.round(Math.log2(octree.getSize()));
+    const leafMap = enableCulling ? this.buildLeafMap(octree, treeDepth) : undefined;
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
@@ -139,7 +212,10 @@ export class OctreeMesher {
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
         const normal = face.normal as [number, number, number];
 
-        if (enableCulling && this.isFaceOccluded(leaf, normal, octree, occupancy)) {
+        if (
+          enableCulling &&
+          this.isFaceOccluded(leaf, normal, octree, leafMap, treeDepth)
+        ) {
           continue;
         }
 
