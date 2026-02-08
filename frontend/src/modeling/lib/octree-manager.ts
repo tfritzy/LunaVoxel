@@ -185,6 +185,7 @@ export class OctreeManager {
     if (!this.meshes.preview.mesh && this.atlasData) {
       const geometry = new THREE.BufferGeometry();
       const material = createVoxelMaterial(this.atlasData.texture, 1);
+      material.transparent = true;
       this.meshes.preview.mesh = new THREE.Mesh(geometry, material);
       this.scene.add(this.meshes.preview.mesh);
     }
