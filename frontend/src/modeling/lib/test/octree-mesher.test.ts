@@ -80,6 +80,8 @@ describe("OctreeMesher", () => {
     const dimensions = { x: 64, y: 64, z: 64 };
     const layerCount = 3;
     const benchIterations = 5;
+    const layerSeedOffset = 3;
+    const fillDensityThreshold = 4;
     const mesher = new OctreeMesher();
     const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
 
@@ -141,7 +143,7 @@ describe("OctreeMesher", () => {
     };
 
     const baseLayers = Array.from({ length: layerCount }, (_, index) =>
-      createLayerOctree(index + 3, 4)
+      createLayerOctree(index + layerSeedOffset, fillDensityThreshold)
     );
     const previewOctree = buildPreviewOctree();
 
