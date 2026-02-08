@@ -42,7 +42,7 @@ export class OctreeMesher {
   }
 
   /**
-   * Map a vertex component to its corner coordinate for the leaf bounds.
+   * Map a vertex component (e.g., vertex[0]) to its min/max corner coordinate.
    */
   private getCornerCoord(
     component: number,
@@ -72,7 +72,7 @@ export class OctreeMesher {
   }
 
   /**
-   * Determine the sign (+/-) for AO sampling along the tangent axis.
+   * Determine ambient-occlusion sampling direction based on corner placement.
    */
   private getDirectionFromCorner(
     axis: "x" | "y" | "z",
