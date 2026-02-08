@@ -131,7 +131,8 @@ describe("ExteriorFacesFinder", () => {
 
       // Cube with a hole exposes interior faces around the opening
       // A solid 3x3x3 cube would have 6 faces (36 indices, 24 vertices)
-      // With a hole in one face, we expose additional interior faces around the hole
+      // Greedy meshing merges the remaining exterior faces and the interior ring
+      // around the hole into fewer quads, resulting in 14 total faces
       expect(meshArrays.indexCount).toBe(84); // 14 faces * 6 indices per face
       expect(meshArrays.vertexCount).toBe(56); // 14 faces * 4 vertices per face
       

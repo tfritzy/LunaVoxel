@@ -88,6 +88,11 @@ export class SparseVoxelOctree {
     this.forEachNode(this.root, this.size, 0, 0, 0, callback);
   }
 
+  public every(predicate: (entry: VoxelEntry) => boolean): boolean {
+    if (this.isEmpty()) return true;
+    return this.everyNode(this.root, this.size, 0, 0, 0, predicate);
+  }
+
   public collectEntries(): VoxelEntry[] {
     const entries: VoxelEntry[] = [];
     this.forEach((entry) => entries.push(entry));
@@ -239,6 +244,57 @@ export class SparseVoxelOctree {
         }
       }
     }
+  }
+
+  private everyNode(
+    node: OctreeNode,
+    size: number,
+    originX: number,
+    originY: number,
+    originZ: number,
+    predicate: (entry: VoxelEntry) => boolean
+  ): boolean {
+    if (node.value !== null) {
+      if (node.value === 0) return true;
+      const maxX = Math.min(originX + size, this.dimensions.x);
+      const maxY = Math.min(originY + size, this.dimensions.y);
+      const maxZ = Math.min(originZ + size, this.dimensions.z);
+      for (let x = originX; x < maxX; x++) {
+        for (let y = originY; y < maxY; y++) {
+          for (let z = originZ; z < maxZ; z++) {
+            if (!predicate({ x, y, z, value: node.value })) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    const half = size / 2;
+    if (!node.children) return true;
+    for (let dx = 0; dx < 2; dx++) {
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dz = 0; dz < 2; dz++) {
+          const index = dx + dy * 2 + dz * 4;
+          const child = node.children[index];
+          if (!child) continue;
+          if (
+            !this.everyNode(
+              child,
+              half,
+              originX + dx * half,
+              originY + dy * half,
+              originZ + dz * half,
+              predicate
+            )
+          ) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   private cloneNode(node: OctreeNode): OctreeNode {

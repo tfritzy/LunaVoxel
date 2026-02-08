@@ -171,27 +171,17 @@ export class VoxelFrame {
     ) {
       return false;
     }
-    const mismatch = {};
-    try {
-      this.data.forEach((entry) => {
-        if (other.data.get(entry.x, entry.y, entry.z) !== entry.value) {
-          throw mismatch;
-        }
-      });
-
-      other.data.forEach((entry) => {
-        if (this.data.get(entry.x, entry.y, entry.z) !== entry.value) {
-          throw mismatch;
-        }
-      });
-    } catch (error) {
-      if (error === mismatch) {
-        return false;
-      }
-      throw error;
+    if (
+      !this.data.every(
+        (entry) => other.data.get(entry.x, entry.y, entry.z) === entry.value
+      )
+    ) {
+      return false;
     }
 
-    return true;
+    return other.data.every(
+      (entry) => this.data.get(entry.x, entry.y, entry.z) === entry.value
+    );
   }
 
   /**
