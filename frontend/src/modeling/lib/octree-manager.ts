@@ -129,6 +129,11 @@ export class OctreeManager {
     return count;
   }
 
+  private coordinateToKey(x: number, y: number, z: number, shiftBits: number): number {
+    // Pack 3D coordinates into a single integer using bit shifts.
+    return x | (y << shiftBits) | (z << (shiftBits * 2));
+  }
+
   private updateMeshGeometry(meshType: MeshType, meshArrays: MeshArrays): void {
     const meshData = this.meshes[meshType];
     if (!meshData.mesh) return;
@@ -336,7 +341,9 @@ export class OctreeManager {
       this.dimensions.z - 1,
       Math.floor(Math.max(start.z, end.z))
     );
-    const shift = Math.ceil(Math.log2(this.renderOctree.getSize()));
+    const coordinateBitShift = Math.ceil(
+      Math.log2(this.renderOctree.getSize())
+    );
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
@@ -346,7 +353,7 @@ export class OctreeManager {
             continue;
           }
 
-          const key = x | (y << shift) | (z << (shift * 2));
+          const key = this.coordinateToKey(x, y, z, coordinateBitShift);
           if (!this.previewOverrides.has(key)) {
             this.previewOverrides.set(key, {
               x,
