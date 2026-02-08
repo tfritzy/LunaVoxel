@@ -271,7 +271,8 @@ export class OctreeManager {
         maskedOctree.setRegion(
           leaf.minPos,
           { x: leaf.size, y: leaf.size, z: leaf.size },
-          0
+          0,
+          false
         );
       });
       this.previewMaskCache = {

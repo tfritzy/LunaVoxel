@@ -62,7 +62,12 @@ export class SparseVoxelOctree {
     this.version += 1;
   }
 
-  public setRegion(minPos: Vector3, size: Vector3, value: number): void {
+  public setRegion(
+    minPos: Vector3,
+    size: Vector3,
+    value: number,
+    updateVersion: boolean = true
+  ): void {
     const maxPos = {
       x: minPos.x + size.x,
       y: minPos.y + size.y,
@@ -99,7 +104,9 @@ export class SparseVoxelOctree {
       clampedMax,
       value
     );
-    this.version += 1;
+    if (updateVersion) {
+      this.version += 1;
+    }
   }
 
   public forEachLeaf(callback: (leaf: OctreeLeaf) => void): void {
@@ -134,8 +141,7 @@ export class SparseVoxelOctree {
   public clone(): SparseVoxelOctree {
     return new SparseVoxelOctree(
       { x: this.size, y: this.size, z: this.size },
-      this.cloneNode(this.root),
-      this.version
+      this.cloneNode(this.root)
     );
   }
 
