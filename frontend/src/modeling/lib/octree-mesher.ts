@@ -69,7 +69,6 @@ export class OctreeMesher {
       case "z":
         return cornerZ;
     }
-    throw new Error(`Unknown axis: ${axis}`);
   }
 
   /**
@@ -87,6 +86,8 @@ export class OctreeMesher {
         return cornerCoord === minPos.y ? -1 : 1;
       case "z":
         return cornerCoord === minPos.z ? -1 : 1;
+      default:
+        throw new Error(`Unknown axis: ${axis}`);
     }
   }
 
