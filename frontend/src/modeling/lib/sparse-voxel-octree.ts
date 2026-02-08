@@ -24,11 +24,12 @@ export class SparseVoxelOctree {
   private root: OctreeNode;
   private version: number = 0;
 
-  constructor(dimensions: Vector3) {
+  constructor(dimensions: Vector3, root?: OctreeNode, version: number = 0) {
     this.size = nextPowerOfTwo(
       Math.max(dimensions.x, dimensions.y, dimensions.z)
     );
-    this.root = { value: 0 };
+    this.root = root ?? { value: 0 };
+    this.version = version;
   }
 
   public getSize(): number {
@@ -131,14 +132,11 @@ export class SparseVoxelOctree {
   }
 
   public clone(): SparseVoxelOctree {
-    const clone = new SparseVoxelOctree({
-      x: this.size,
-      y: this.size,
-      z: this.size,
-    });
-    clone.root = this.cloneNode(this.root);
-    clone.version = this.version;
-    return clone;
+    return new SparseVoxelOctree(
+      { x: this.size, y: this.size, z: this.size },
+      this.cloneNode(this.root),
+      this.version
+    );
   }
 
   /**

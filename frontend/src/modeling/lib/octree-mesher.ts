@@ -42,6 +42,10 @@ export class OctreeMesher {
         return;
       }
       if (leaf.size <= 1) {
+        // Size-1 leaves are handled via direct octree.get lookups in neighbor checks.
+        return;
+      }
+      if (leaf.size <= 1) {
         return;
       }
       const leafDepth = this.getLog2OfSize(leaf.size);
@@ -72,6 +76,7 @@ export class OctreeMesher {
     leafMap?: Map<number, OctreeLeaf>
   ): boolean | null {
     const octreeSize = octree.getSize();
+    // SparseVoxelOctree is cubic based on its power-of-two size.
     if (x < 0 || y < 0 || z < 0 || x >= octreeSize || y >= octreeSize || z >= octreeSize) {
       return false;
     }
