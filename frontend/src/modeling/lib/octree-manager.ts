@@ -32,6 +32,12 @@ export class OctreeManager {
   private meshes: Record<MeshType, MeshData>;
   private mesher: OctreeMesher;
   private unsubscribe?: () => void;
+  private previewMaskCache: {
+    octree: SparseVoxelOctree;
+    renderVersion: number;
+    previewVersion: number;
+    modeTag: BlockModificationMode["tag"];
+  } | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -246,6 +252,17 @@ export class OctreeManager {
       (mode.tag === "Erase" || mode.tag === "Paint") &&
       !this.previewOctree.isEmpty()
     ) {
+      const renderVersion = this.renderOctree.getVersion();
+      const previewVersion = this.previewOctree.getVersion();
+      if (
+        this.previewMaskCache &&
+        this.previewMaskCache.renderVersion === renderVersion &&
+        this.previewMaskCache.previewVersion === previewVersion &&
+        this.previewMaskCache.modeTag === mode.tag
+      ) {
+        return this.previewMaskCache.octree;
+      }
+
       const maskedOctree = new SparseVoxelOctree(this.dimensions);
       this.renderOctree.forEachLeaf((leaf) => {
         if (leaf.value === 0) {
@@ -267,6 +284,12 @@ export class OctreeManager {
           0
         );
       });
+      this.previewMaskCache = {
+        octree: maskedOctree,
+        renderVersion,
+        previewVersion,
+        modeTag: mode.tag,
+      };
       return maskedOctree;
     }
 

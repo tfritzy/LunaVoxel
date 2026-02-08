@@ -4,6 +4,10 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree, type OctreeLeaf } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
+  private getDepthFromSize(size: number): number {
+    return 31 - Math.clz32(size);
+  }
+
   private buildLeafKey(
     x: number,
     y: number,
@@ -12,7 +16,8 @@ export class OctreeMesher {
     treeDepth: number
   ): number {
     const morton = this.encodeMorton(x, y, z, treeDepth);
-    return (leafDepth << 24) | morton;
+    const shift = treeDepth * 3;
+    return (leafDepth << shift) | morton;
   }
 
   private encodeMorton(x: number, y: number, z: number, depth: number): number {
@@ -35,7 +40,10 @@ export class OctreeMesher {
       if (leaf.value === 0) {
         return;
       }
-      const leafDepth = Math.round(Math.log2(leaf.size));
+      if (leaf.size <= 1) {
+        return;
+      }
+      const leafDepth = this.getDepthFromSize(leaf.size);
       const key = this.buildLeafKey(
         leaf.minPos.x,
         leaf.minPos.y,
@@ -53,6 +61,7 @@ export class OctreeMesher {
     y: number,
     z: number,
     size: number,
+    leafDepth: number,
     treeDepth: number,
     octree: SparseVoxelOctree,
     leafMap?: Map<number, OctreeLeaf>
@@ -63,7 +72,6 @@ export class OctreeMesher {
     }
 
     if (leafMap) {
-      const leafDepth = Math.round(Math.log2(size));
       const key = this.buildLeafKey(x, y, z, leafDepth, treeDepth);
       const neighbor = leafMap.get(key);
       if (neighbor) {
@@ -92,9 +100,11 @@ export class OctreeMesher {
     normal: [number, number, number],
     octree: SparseVoxelOctree,
     leafMap?: Map<number, OctreeLeaf>,
+    leafDepth?: number,
     treeDepth?: number
   ): boolean {
-    const resolvedTreeDepth = treeDepth ?? Math.round(Math.log2(octree.getSize()));
+    const resolvedLeafDepth = leafDepth ?? this.getDepthFromSize(leaf.size);
+    const resolvedTreeDepth = treeDepth ?? this.getDepthFromSize(octree.getSize());
     const size = leaf.size;
     if (normal[0] !== 0) {
       const neighborX = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - size;
@@ -103,6 +113,7 @@ export class OctreeMesher {
         leaf.minPos.y,
         leaf.minPos.z,
         size,
+        resolvedLeafDepth,
         resolvedTreeDepth,
         octree,
         leafMap
@@ -128,6 +139,7 @@ export class OctreeMesher {
         neighborY,
         leaf.minPos.z,
         size,
+        resolvedLeafDepth,
         resolvedTreeDepth,
         octree,
         leafMap
@@ -152,6 +164,7 @@ export class OctreeMesher {
       leaf.minPos.y,
       neighborZ,
       size,
+      resolvedLeafDepth,
       resolvedTreeDepth,
       octree,
       leafMap
@@ -186,13 +199,14 @@ export class OctreeMesher {
   ): void {
     meshArrays.reset();
     const enableCulling = options?.enableCulling ?? true;
-    const treeDepth = Math.round(Math.log2(octree.getSize()));
+    const treeDepth = this.getDepthFromSize(octree.getSize());
     const leafMap = enableCulling ? this.buildLeafMap(octree, treeDepth) : undefined;
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
         return;
       }
+      const leafDepth = this.getDepthFromSize(leaf.size);
 
       const blockType = Math.max(leaf.value, 1);
       const faceTextures = blockAtlasMappings[blockType - 1];
@@ -214,7 +228,7 @@ export class OctreeMesher {
 
         if (
           enableCulling &&
-          this.isFaceOccluded(leaf, normal, octree, leafMap, treeDepth)
+          this.isFaceOccluded(leaf, normal, octree, leafMap, leafDepth, treeDepth)
         ) {
           continue;
         }

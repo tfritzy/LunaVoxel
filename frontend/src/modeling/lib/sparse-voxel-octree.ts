@@ -22,6 +22,7 @@ const nextPowerOfTwo = (value: number): number => {
 export class SparseVoxelOctree {
   private size: number;
   private root: OctreeNode;
+  private version: number = 0;
 
   constructor(dimensions: Vector3) {
     this.size = nextPowerOfTwo(
@@ -40,6 +41,7 @@ export class SparseVoxelOctree {
 
   public clear(): void {
     this.root = { value: 0 };
+    this.version += 1;
   }
 
   public get(x: number, y: number, z: number): number {
@@ -56,6 +58,7 @@ export class SparseVoxelOctree {
     }
 
     this.setNodeValue(this.root, 0, 0, 0, this.size, x, y, z, value);
+    this.version += 1;
   }
 
   public setRegion(minPos: Vector3, size: Vector3, value: number): void {
@@ -95,6 +98,7 @@ export class SparseVoxelOctree {
       clampedMax,
       value
     );
+    this.version += 1;
   }
 
   public forEachLeaf(callback: (leaf: OctreeLeaf) => void): void {
@@ -119,6 +123,11 @@ export class SparseVoxelOctree {
    */
   public updateValues(updater: (value: number) => number): void {
     this.updateNodeValues(this.root, updater);
+    this.version += 1;
+  }
+
+  public getVersion(): number {
+    return this.version;
   }
 
   /**
