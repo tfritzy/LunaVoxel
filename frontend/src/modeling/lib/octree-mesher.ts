@@ -66,6 +66,8 @@ export class OctreeMesher {
         return cornerX;
       case "y":
         return cornerY;
+      case "z":
+        return cornerZ;
       default:
         return cornerZ;
     }
@@ -79,7 +81,18 @@ export class OctreeMesher {
     cornerCoord: number,
     minPos: { x: number; y: number; z: number }
   ): number {
-    const minCoord = axis === "x" ? minPos.x : axis === "y" ? minPos.y : minPos.z;
+    let minCoord = minPos.z;
+    switch (axis) {
+      case "x":
+        minCoord = minPos.x;
+        break;
+      case "y":
+        minCoord = minPos.y;
+        break;
+      case "z":
+        minCoord = minPos.z;
+        break;
+    }
     return cornerCoord === minCoord ? -1 : 1;
   }
 
