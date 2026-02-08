@@ -8,16 +8,17 @@ import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
-import { VoxelFrame } from "../voxel-frame";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
+  let lastPreviewPositions: { x: number; y: number; z: number; value: number }[] = [];
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
   const attachMode: BlockModificationMode = { tag: "Attach" };
   const eraseMode: BlockModificationMode = { tag: "Erase" };
   const paintMode: BlockModificationMode = { tag: "Paint" };
 
   beforeEach(() => {
+    lastPreviewPositions = [];
     const camera = new THREE.PerspectiveCamera();
     camera.position.set(10, 10, 10);
     camera.lookAt(0, 0, 0);
@@ -47,11 +48,15 @@ describe("Tool Interface", () => {
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
-        chunkManager: {
-          setPreview: () => {},
+        octreeManager: {
+          setPreview: (positions: { x: number; y: number; z: number; value: number }[]) => {
+            lastPreviewPositions = positions;
+          },
+          clearPreview: () => {
+            lastPreviewPositions = [];
+          },
         },
       } as unknown as ProjectManager,
-      previewFrame: new VoxelFrame(dimensions),
       selectedBlock: 1,
       selectedLayer: 0,
       setSelectedBlockInParent: () => {},
@@ -128,7 +133,11 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5)
       });
       
-      expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
+      expect(lastPreviewPositions.length).toBeGreaterThan(0);
+      const hasBlock = lastPreviewPositions.some(
+        (p) => p.x === 1 && p.y === 2 && p.z === 3
+      );
+      expect(hasBlock).toBe(true);
     });
   });
 
