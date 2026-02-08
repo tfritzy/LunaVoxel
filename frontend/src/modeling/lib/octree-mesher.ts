@@ -1,4 +1,4 @@
-import { SparseVoxelOctree, PREVIEW_ERASE_SENTINEL } from "./sparse-voxel-octree";
+import { SparseVoxelOctree } from "./sparse-voxel-octree";
 import { getTextureCoordinates } from "./texture-coords";
 import { faces } from "./voxel-constants";
 import { MeshArrays } from "./mesh-arrays";
@@ -14,7 +14,6 @@ export class OctreeMesher {
     textureWidth: number,
     blockAtlasMappings: number[][],
     meshArrays: MeshArrays,
-    valuePredicate?: (value: number, key?: number) => boolean,
   ): void {
     meshArrays.reset();
 
@@ -52,12 +51,7 @@ export class OctreeMesher {
       const y = (key >> 10) & 0x3ff;
       const z = (key >> 20) & 0x3ff;
       const occIdx = (x + 1) * strideX + (y + 1) * strideY + (z + 1);
-
-      if (valuePredicate) {
-        occ[occIdx] = valuePredicate(value) ? 1 : 0;
-      } else {
-        occ[occIdx] = (value > 0 && value !== PREVIEW_ERASE_SENTINEL) ? 1 : 0;
-      }
+      occ[occIdx] = value > 0 ? 1 : 0;
     }
 
     const neighborOffsets = [strideX, -strideX, strideY, -strideY, 1, -1];
@@ -72,7 +66,7 @@ export class OctreeMesher {
     let indexCount = 0;
 
     for (const [key, value] of octree.entries()) {
-      if (valuePredicate && !valuePredicate(value, key)) continue;
+      if (value <= 0) continue;
 
       const x = key & 0x3ff;
       const y = (key >> 10) & 0x3ff;

@@ -99,7 +99,7 @@ export class ChunkManager {
     );
     const nextChunkLayers = new Map<string, Set<number>>();
 
-    for (const chunkData of current.chunks.values()) {
+    for (const chunkData of (current as any).chunks?.values?.() ?? []) {
       if (chunkData.projectId !== this.projectId) continue;
       const layerIndex = layerIndexById.get(chunkData.layerId);
       if (layerIndex === undefined) continue;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SparseVoxelOctree, PREVIEW_ERASE_SENTINEL } from "../sparse-voxel-octree";
+import { SparseVoxelOctree } from "../sparse-voxel-octree";
 import { OctreeMesher } from "../octree-mesher";
 import { MeshArrays } from "../mesh-arrays";
 
@@ -106,19 +106,16 @@ describe("OctreeMesher", () => {
     expect(meshArrays.indexCount).toBe(0);
   });
 
-  it("should respect valuePredicate to skip PREVIEW_ERASE_SENTINEL", () => {
+  it("should skip zero-value entries", () => {
     const octree = new SparseVoxelOctree();
     octree.set(0, 0, 0, 1);
-    octree.set(1, 0, 0, PREVIEW_ERASE_SENTINEL);
+    octree.set(1, 0, 0, 1);
 
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(
-      octree, 4, createBlockAtlasMappings(2), meshArrays,
-      (v) => v > 0 && v !== PREVIEW_ERASE_SENTINEL,
-    );
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
 
-    expect(meshArrays.vertexCount).toBe(24);
-    expect(meshArrays.indexCount).toBe(36);
+    expect(meshArrays.vertexCount).toBe(40);
+    expect(meshArrays.indexCount).toBe(60);
   });
 
   describe("Benchmarks", () => {
@@ -240,7 +237,7 @@ describe("OctreeMesher", () => {
       console.log(`  Vertices: ${meshArrays.vertexCount}, Indices: ${meshArrays.indexCount}`);
     }, 120000);
 
-    it("64x64 multi-layer + preview scenario (benchmark)", () => {
+    it("64x64 multi-layer merge scenario (benchmark)", () => {
       const layer1 = new SparseVoxelOctree();
       const layer2 = new SparseVoxelOctree();
       for (let x = 0; x < 64; x++) {
@@ -256,18 +253,7 @@ describe("OctreeMesher", () => {
         }
       }
 
-      const renderTree = layer1.clone();
-      renderTree.mergeFrom(layer2);
-
-      for (let x = 30; x <= 33; x++) {
-        for (let y = 30; y <= 33; y++) {
-          for (let z = 30; z <= 33; z++) {
-            renderTree.set(x, y, z, PREVIEW_ERASE_SENTINEL);
-          }
-        }
-      }
-
-      const maxFaces = renderTree.size * 6;
+      const maxFaces = (layer1.size + layer2.size) * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
 
       const iterations = 5;
@@ -278,23 +264,16 @@ describe("OctreeMesher", () => {
         const setupStart = performance.now();
         const rt = layer1.clone();
         rt.mergeFrom(layer2);
-        for (let x = 30; x <= 33; x++)
-          for (let y = 30; y <= 33; y++)
-            for (let z = 30; z <= 33; z++)
-              rt.set(x, y, z, PREVIEW_ERASE_SENTINEL);
         setupDurations.push(performance.now() - setupStart);
 
         const meshStart = performance.now();
-        mesher.buildMesh(
-          rt, 4, createBlockAtlasMappings(3), meshArrays,
-          (v) => v > 0 && v !== PREVIEW_ERASE_SENTINEL,
-        );
+        mesher.buildMesh(rt, 4, createBlockAtlasMappings(3), meshArrays);
         meshDurations.push(performance.now() - meshStart);
       }
 
       const setupAvg = setupDurations.reduce((a, b) => a + b, 0) / setupDurations.length;
       const meshAvg = meshDurations.reduce((a, b) => a + b, 0) / meshDurations.length;
-      console.log(`64x64 multi-layer + preview:`);
+      console.log(`64x64 multi-layer merge:`);
       console.log(`  Setup avg: ${setupAvg.toFixed(2)}ms`);
       console.log(`  Mesh avg: ${meshAvg.toFixed(2)}ms`);
       console.log(`  Total avg: ${(setupAvg + meshAvg).toFixed(2)}ms`);

@@ -25,7 +25,7 @@ export class MeshConsolidator {
     const uvs: number[] = [];
     const indices: number[] = [];
 
-    const mainMesh = this.octreeManager.getMainMesh();
+    const mainMesh = this.octreeManager.getMesh();
     if (!mainMesh || !mainMesh.geometry) {
       return { vertices, normals, uvs, indices };
     }

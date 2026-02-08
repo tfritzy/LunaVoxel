@@ -11,14 +11,16 @@ import * as THREE from "three";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
-  let lastPreviewPositions: { x: number; y: number; z: number; value: number }[] = [];
+  let renderTreeWrites: { x: number; y: number; z: number; value: number }[] = [];
+  let revertCalled = false;
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
   const attachMode: BlockModificationMode = { tag: "Attach" };
   const eraseMode: BlockModificationMode = { tag: "Erase" };
   const paintMode: BlockModificationMode = { tag: "Paint" };
 
   beforeEach(() => {
-    lastPreviewPositions = [];
+    renderTreeWrites = [];
+    revertCalled = false;
     const camera = new THREE.PerspectiveCamera();
     camera.position.set(10, 10, 10);
     camera.lookAt(0, 0, 0);
@@ -46,14 +48,13 @@ describe("Tool Interface", () => {
       projectId: "test-project",
       dimensions,
       projectManager: {
-        applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
         octreeManager: {
-          setPreview: (positions: { x: number; y: number; z: number; value: number }[]) => {
-            lastPreviewPositions = positions;
+          writeToRenderTree: (positions: { x: number; y: number; z: number; value: number }[]) => {
+            renderTreeWrites = positions;
           },
-          clearPreview: () => {
-            lastPreviewPositions = [];
+          revertRenderTree: () => {
+            revertCalled = true;
           },
         },
       } as unknown as ProjectManager,
@@ -133,8 +134,9 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5)
       });
       
-      expect(lastPreviewPositions.length).toBeGreaterThan(0);
-      const hasBlock = lastPreviewPositions.some(
+      expect(revertCalled).toBe(true);
+      expect(renderTreeWrites.length).toBeGreaterThan(0);
+      const hasBlock = renderTreeWrites.some(
         (p) => p.x === 1 && p.y === 2 && p.z === 3
       );
       expect(hasBlock).toBe(true);

@@ -25,6 +25,8 @@ export class RectTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
+    context.projectManager.octreeManager.revertRenderTree();
+
     const bounds = calculateRectBounds(
       event.startGridPosition, 
       event.currentGridPosition, 
@@ -35,26 +37,19 @@ export class RectTool implements Tool {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          positions.push({ x, y, z, value: context.selectedBlock });
+          if (context.mode.tag === "Erase") {
+            positions.push({ x, y, z, value: 0 });
+          } else {
+            positions.push({ x, y, z, value: context.selectedBlock });
+          }
         }
       }
     }
 
-    context.projectManager.octreeManager.setPreview(positions);
+    context.projectManager.octreeManager.writeToRenderTree(positions);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    context.projectManager.octreeManager.clearPreview();
-    
-    context.projectManager.applyOptimisticRectEdit(
-      context.selectedLayer,
-      context.mode,
-      event.startGridPosition.clone(),
-      event.currentGridPosition.clone(),
-      context.selectedBlock,
-      0
-    );
-
     context.reducers.modifyBlockRect(
       context.projectId,
       context.mode,

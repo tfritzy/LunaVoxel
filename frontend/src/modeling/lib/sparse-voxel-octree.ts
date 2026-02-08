@@ -1,5 +1,3 @@
-export const PREVIEW_ERASE_SENTINEL = 255;
-
 export class SparseVoxelOctree {
   private data: Map<number, number> = new Map();
 
