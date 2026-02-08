@@ -14,7 +14,7 @@ export class OctreeMesher {
     textureWidth: number,
     blockAtlasMappings: number[][],
     meshArrays: MeshArrays,
-    valuePredicate?: (value: number) => boolean,
+    valuePredicate?: (value: number, key?: number) => boolean,
   ): void {
     meshArrays.reset();
 
@@ -72,7 +72,7 @@ export class OctreeMesher {
     let indexCount = 0;
 
     for (const [key, value] of octree.entries()) {
-      if (valuePredicate && !valuePredicate(value)) continue;
+      if (valuePredicate && !valuePredicate(value, key)) continue;
 
       const x = key & 0x3ff;
       const y = (key >> 10) & 0x3ff;

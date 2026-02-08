@@ -282,36 +282,34 @@ export class OctreeManager {
     const textureWidth = this.atlasData.texture?.image?.width ?? 4;
     const blockAtlasMappings = this.atlasData.blockAtlasMappings;
 
+    const previewKeys = this.previewOverrides;
+    const hasPreview = previewKeys.size > 0;
+
     this.mesher.buildMesh(
       this.renderTree,
       textureWidth,
       blockAtlasMappings,
       this.mainMeshArrays,
-      (v) => v > 0 && v !== PREVIEW_ERASE_SENTINEL,
+      hasPreview
+        ? (v, key) => v > 0 && v !== PREVIEW_ERASE_SENTINEL && !previewKeys.has(key!)
+        : (v) => v > 0 && v !== PREVIEW_ERASE_SENTINEL,
     );
 
     this.updateMainMesh();
 
     const mode = this.getMode();
-    if (this.previewOverrides.size > 0) {
-      if (mode.tag === "Erase") {
-        this.previewMeshArrays.reset();
-      } else {
-        this.mesher.buildMesh(
-          this.renderTree,
-          textureWidth,
-          blockAtlasMappings,
-          this.previewMeshArrays,
-          (v) => {
-            return false;
-          },
-        );
-        this.previewMeshArrays.reset();
-      }
+    if (hasPreview && (mode.tag === "Attach" || mode.tag === "Paint")) {
+      this.mesher.buildMesh(
+        this.renderTree,
+        textureWidth,
+        blockAtlasMappings,
+        this.previewMeshArrays,
+        (v, key) => v > 0 && v !== PREVIEW_ERASE_SENTINEL && previewKeys.has(key!),
+      );
       this.updatePreviewMesh();
     } else {
+      this.previewMeshArrays.reset();
       if (this.previewMesh) {
-        this.previewMeshArrays.reset();
         this.updatePreviewMesh();
       }
     }
