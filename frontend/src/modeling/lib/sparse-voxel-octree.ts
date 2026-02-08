@@ -141,7 +141,8 @@ export class SparseVoxelOctree {
   public clone(): SparseVoxelOctree {
     return new SparseVoxelOctree(
       { x: this.size, y: this.size, z: this.size },
-      this.cloneNode(this.root)
+      this.cloneNode(this.root),
+      this.version
     );
   }
 

@@ -4,7 +4,7 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree, type OctreeLeaf } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
-  // size is expected to be a power of two for octree leaves.
+  // size is expected to be a non-zero power of two for octree leaves/trees.
   private getLog2OfSize(size: number): number {
     return 31 - Math.clz32(size);
   }
@@ -21,6 +21,9 @@ export class OctreeMesher {
     return (leafDepth << shift) | morton;
   }
 
+  /**
+   * Encode a 3D Morton (Z-order) code by interleaving x/y/z bits up to depth.
+   */
   private encodeMorton(x: number, y: number, z: number, depth: number): number {
     let code = 0;
     for (let i = 0; i < depth; i++) {
@@ -43,6 +46,7 @@ export class OctreeMesher {
       }
       if (leaf.size <= 1) {
         // Size-1 leaves are handled via direct octree.get lookups in neighbor checks.
+        // See lookupNeighborOcclusion for the leafDepth === 0 path.
         return;
       }
       const leafDepth = this.getLog2OfSize(leaf.size);
