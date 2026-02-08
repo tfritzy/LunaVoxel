@@ -61,7 +61,14 @@ export class OctreeMesher {
     cornerY: number,
     cornerZ: number
   ): number {
-    return axis === "x" ? cornerX : axis === "y" ? cornerY : cornerZ;
+    switch (axis) {
+      case "x":
+        return cornerX;
+      case "y":
+        return cornerY;
+      default:
+        return cornerZ;
+    }
   }
 
   /**
