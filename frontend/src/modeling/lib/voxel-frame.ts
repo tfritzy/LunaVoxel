@@ -1,30 +1,22 @@
 import type { Vector3 } from "@/state/types";
+import { SparseVoxelOctree } from "@/state/sparse-voxel-octree";
 
 export class VoxelFrame {
   private dimensions: Vector3;
   private minPos: Vector3;
-  private data: Uint8Array[][]; // 3D array for direct access: data[x][y][z]
-  private empty: boolean = true; // Track whether any voxels are set
+  private data: SparseVoxelOctree;
 
   constructor(dimensions: Vector3, minPos?: Vector3) {
     this.dimensions = { ...dimensions };
     this.minPos = minPos ? { ...minPos } : { x: 0, y: 0, z: 0 };
-    this.data = [];
-    
-    // Initialize 3D array structure
-    for (let x = 0; x < dimensions.x; x++) {
-      this.data[x] = [];
-      for (let y = 0; y < dimensions.y; y++) {
-        this.data[x][y] = new Uint8Array(dimensions.z);
-      }
-    }
+    this.data = new SparseVoxelOctree(dimensions);
   }
 
   /**
    * Check if the frame is empty (no voxels set)
    */
   public isEmpty(): boolean {
-    return this.empty;
+    return this.data.isEmpty();
   }
 
   /**
@@ -34,7 +26,6 @@ export class VoxelFrame {
    * @param z World Z coordinate
    */
   public isSet(x: number, y: number, z: number): boolean {
-    if (this.empty) return false;
     const localX = x - this.minPos.x;
     const localY = y - this.minPos.y;
     const localZ = z - this.minPos.z;
@@ -43,7 +34,7 @@ export class VoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return false;
     }
-    return this.data[localX][localY][localZ] !== 0;
+    return this.data.isSet(localX, localY, localZ);
   }
 
   /**
@@ -53,7 +44,6 @@ export class VoxelFrame {
    * @param z World Z coordinate
    */
   public get(x: number, y: number, z: number): number {
-    if (this.empty) return 0;
     const localX = x - this.minPos.x;
     const localY = y - this.minPos.y;
     const localZ = z - this.minPos.z;
@@ -62,7 +52,7 @@ export class VoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return 0;
     }
-    return this.data[localX][localY][localZ];
+    return this.data.get(localX, localY, localZ);
   }
 
   /**
@@ -80,22 +70,14 @@ export class VoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return;
     }
-    this.data[localX][localY][localZ] = blockIndex;
-    if (blockIndex !== 0) {
-      this.empty = false;
-    }
+    this.data.set(localX, localY, localZ, blockIndex);
   }
 
   /**
    * Clear all voxels in the frame
    */
   public clear(): void {
-    for (let x = 0; x < this.dimensions.x; x++) {
-      for (let y = 0; y < this.dimensions.y; y++) {
-        this.data[x][y].fill(0);
-      }
-    }
-    this.empty = true;
+    this.data.clear();
   }
 
   /**
@@ -140,36 +122,28 @@ export class VoxelFrame {
       return;
     }
 
-    const newData: Uint8Array[][] = [];
+    const newData = new SparseVoxelOctree(newDimensions);
+    this.data.forEach((entry) => {
+      const worldX = entry.x + this.minPos.x;
+      const worldY = entry.y + this.minPos.y;
+      const worldZ = entry.z + this.minPos.z;
 
-    // Initialize new 3D array structure
-    for (let x = 0; x < newDimensions.x; x++) {
-      newData[x] = [];
-      for (let y = 0; y < newDimensions.y; y++) {
-        newData[x][y] = new Uint8Array(newDimensions.z);
+      if (
+        worldX < targetMinPos.x ||
+        worldY < targetMinPos.y ||
+        worldZ < targetMinPos.z ||
+        worldX >= targetMinPos.x + newDimensions.x ||
+        worldY >= targetMinPos.y + newDimensions.y ||
+        worldZ >= targetMinPos.z + newDimensions.z
+      ) {
+        return;
       }
-    }
 
-    const overlapMinX = Math.max(this.minPos.x, targetMinPos.x);
-    const overlapMinY = Math.max(this.minPos.y, targetMinPos.y);
-    const overlapMinZ = Math.max(this.minPos.z, targetMinPos.z);
-    const overlapMaxX = Math.min(this.minPos.x + this.dimensions.x, targetMinPos.x + newDimensions.x);
-    const overlapMaxY = Math.min(this.minPos.y + this.dimensions.y, targetMinPos.y + newDimensions.y);
-    const overlapMaxZ = Math.min(this.minPos.z + this.dimensions.z, targetMinPos.z + newDimensions.z);
-
-    for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
-      for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
-        for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
-          const oldLocalX = worldX - this.minPos.x;
-          const oldLocalY = worldY - this.minPos.y;
-          const oldLocalZ = worldZ - this.minPos.z;
-          const newLocalX = worldX - targetMinPos.x;
-          const newLocalY = worldY - targetMinPos.y;
-          const newLocalZ = worldZ - targetMinPos.z;
-          newData[newLocalX][newLocalY][newLocalZ] = this.data[oldLocalX][oldLocalY][oldLocalZ];
-        }
-      }
-    }
+      const newLocalX = worldX - targetMinPos.x;
+      const newLocalY = worldY - targetMinPos.y;
+      const newLocalZ = worldZ - targetMinPos.z;
+      newData.set(newLocalX, newLocalY, newLocalZ, entry.value);
+    });
 
     this.dimensions = { ...newDimensions };
     this.minPos = { ...targetMinPos };
@@ -180,22 +154,15 @@ export class VoxelFrame {
    * Check if any voxel in the frame is set
    */
   public hasAnySet(): boolean {
-    for (let x = 0; x < this.dimensions.x; x++) {
-      for (let y = 0; y < this.dimensions.y; y++) {
-        for (let z = 0; z < this.dimensions.z; z++) {
-          if (this.data[x][y][z] !== 0) return true;
-        }
-      }
-    }
-    return false;
+    return !this.data.isEmpty();
   }
 
   /**
    * Check if this frame equals another frame
    */
   public equals(other: VoxelFrame): boolean {
-    if (this.empty && other.empty) return true;
-    if (this.empty !== other.empty) return false;
+    if (this.isEmpty() && other.isEmpty()) return true;
+    if (this.isEmpty() !== other.isEmpty()) return false;
     
     if (
       this.dimensions.x !== other.dimensions.x ||
@@ -204,16 +171,21 @@ export class VoxelFrame {
     ) {
       return false;
     }
-
-    for (let x = 0; x < this.dimensions.x; x++) {
-      for (let y = 0; y < this.dimensions.y; y++) {
-        for (let z = 0; z < this.dimensions.z; z++) {
-          if (this.data[x][y][z] !== other.data[x][y][z]) return false;
-        }
+    let matches = true;
+    this.data.forEach((entry) => {
+      if (other.data.get(entry.x, entry.y, entry.z) !== entry.value) {
+        matches = false;
       }
-    }
+    });
+    if (!matches) return false;
 
-    return true;
+    other.data.forEach((entry) => {
+      if (this.data.get(entry.x, entry.y, entry.z) !== entry.value) {
+        matches = false;
+      }
+    });
+
+    return matches;
   }
 
   /**
@@ -244,14 +216,12 @@ export class VoxelFrame {
       return cloned;
     } else {
       const cloned = new VoxelFrame(this.dimensions, this.minPos);
-      
-      for (let x = 0; x < this.dimensions.x; x++) {
-        for (let y = 0; y < this.dimensions.y; y++) {
-          cloned.data[x][y].set(this.data[x][y]);
-        }
-      }
-      
-      cloned.empty = this.empty;
+      this.data.forEach((entry) => {
+        const worldX = entry.x + this.minPos.x;
+        const worldY = entry.y + this.minPos.y;
+        const worldZ = entry.z + this.minPos.z;
+        cloned.set(worldX, worldY, worldZ, entry.value);
+      });
       return cloned;
     }
   }

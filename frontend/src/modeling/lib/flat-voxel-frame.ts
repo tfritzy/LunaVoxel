@@ -1,4 +1,5 @@
 import type { Vector3 } from "@/state/types";
+import { SparseVoxelOctree } from "@/state/sparse-voxel-octree";
 
 /**
  * A flat VoxelFrame that uses a 1D Uint8Array for voxel data storage.
@@ -7,33 +8,23 @@ import type { Vector3 } from "@/state/types";
 export class FlatVoxelFrame {
   private dimensions: Vector3;
   private minPos: Vector3;
-  private data: Uint8Array; // Flat 1D array: index = x * sizeY * sizeZ + y * sizeZ + z
-  private empty: boolean = true;
+  private data: SparseVoxelOctree;
 
-  constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
+  constructor(
+    dimensions: Vector3,
+    minPos?: Vector3,
+    data?: SparseVoxelOctree
+  ) {
     this.dimensions = { ...dimensions };
     this.minPos = minPos ? { ...minPos } : { x: 0, y: 0, z: 0 };
-    const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
-    
-    if (data) {
-      this.data = data;
-      // Check if data is non-empty
-      for (let i = 0; i < data.length; i++) {
-        if (data[i] !== 0) {
-          this.empty = false;
-          break;
-        }
-      }
-    } else {
-      this.data = new Uint8Array(totalVoxels);
-    }
+    this.data = data ?? new SparseVoxelOctree(dimensions);
   }
 
   /**
    * Check if the frame is empty (no voxels set)
    */
   public isEmpty(): boolean {
-    return this.empty;
+    return this.data.isEmpty();
   }
 
   /**
@@ -43,7 +34,6 @@ export class FlatVoxelFrame {
    * @param z World Z coordinate
    */
   public isSet(x: number, y: number, z: number): boolean {
-    if (this.empty) return false;
     const localX = x - this.minPos.x;
     const localY = y - this.minPos.y;
     const localZ = z - this.minPos.z;
@@ -52,8 +42,7 @@ export class FlatVoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return false;
     }
-    const index = localX * this.dimensions.y * this.dimensions.z + localY * this.dimensions.z + localZ;
-    return this.data[index] !== 0;
+    return this.data.isSet(localX, localY, localZ);
   }
 
   /**
@@ -63,7 +52,6 @@ export class FlatVoxelFrame {
    * @param z World Z coordinate
    */
   public get(x: number, y: number, z: number): number {
-    if (this.empty) return 0;
     const localX = x - this.minPos.x;
     const localY = y - this.minPos.y;
     const localZ = z - this.minPos.z;
@@ -72,8 +60,7 @@ export class FlatVoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return 0;
     }
-    const index = localX * this.dimensions.y * this.dimensions.z + localY * this.dimensions.z + localZ;
-    return this.data[index];
+    return this.data.get(localX, localY, localZ);
   }
 
   /**
@@ -92,11 +79,7 @@ export class FlatVoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return;
     }
-    const index = localX * this.dimensions.y * this.dimensions.z + localY * this.dimensions.z + localZ;
-    this.data[index] = blockIndex;
-    if (blockIndex !== 0) {
-      this.empty = false;
-    }
+    this.data.set(localX, localY, localZ, blockIndex);
   }
 
   /**
@@ -104,8 +87,7 @@ export class FlatVoxelFrame {
    * @param index The flat array index
    */
   public getByIndex(index: number): number {
-    if (this.empty || index < 0 || index >= this.data.length) return 0;
-    return this.data[index];
+    return this.data.getByIndex(index);
   }
 
   /**
@@ -114,11 +96,7 @@ export class FlatVoxelFrame {
    * @param blockIndex The block value to set
    */
   public setByIndex(index: number, blockIndex: number): void {
-    if (index < 0 || index >= this.data.length) return;
-    this.data[index] = blockIndex;
-    if (blockIndex !== 0) {
-      this.empty = false;
-    }
+    this.data.setByIndex(index, blockIndex);
   }
 
   /**
@@ -126,16 +104,14 @@ export class FlatVoxelFrame {
    * @param index The flat array index
    */
   public isSetByIndex(index: number): boolean {
-    if (this.empty || index < 0 || index >= this.data.length) return false;
-    return this.data[index] !== 0;
+    return this.data.isSetByIndex(index);
   }
 
   /**
    * Clear all voxels in the frame
    */
   public clear(): void {
-    this.data.fill(0);
-    this.empty = true;
+    this.data.clear();
   }
 
   /**
@@ -155,7 +131,7 @@ export class FlatVoxelFrame {
   /**
    * Get the raw flat data array
    */
-  public getData(): Uint8Array {
+  public getData(): SparseVoxelOctree {
     return this.data;
   }
 }

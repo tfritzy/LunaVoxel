@@ -46,8 +46,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // Single block should have 6 faces exposed
@@ -83,8 +82,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // 2x2x2 solid cube has 6 faces (one per direction)
@@ -128,17 +126,14 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // Cube with a hole exposes interior faces around the opening
       // A solid 3x3x3 cube would have 6 faces (36 indices, 24 vertices)
-      // With a hole in one face, we expose 4 interior faces around the hole
-      // This creates additional faces: 6 exterior + 4 interior = 10 faces with greedy meshing
-      // Plus the removed face is gone, and surrounding faces may be affected
-      expect(meshArrays.indexCount).toBe(108); // 18 faces * 6 indices per face
-      expect(meshArrays.vertexCount).toBe(72); // 18 faces * 4 vertices per face
+      // With a hole in one face, we expose additional interior faces around the hole
+      expect(meshArrays.indexCount).toBe(84); // 14 faces * 6 indices per face
+      expect(meshArrays.vertexCount).toBe(56); // 14 faces * 4 vertices per face
       
       // Verify that there are some faces rendered
       expect(meshArrays.indexCount % 6).toBe(0); // Should be multiple of 6 (indices per quad)
@@ -164,8 +159,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // Empty voxel data should produce no faces
@@ -193,8 +187,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // Two adjacent blocks share one face, so they expose 10 individual faces
@@ -226,8 +219,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // Real block should have all 6 faces visible since preview blocks
@@ -264,8 +256,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // The selected block should have all 6 faces visible
@@ -298,8 +289,7 @@ describe("ExteriorFacesFinder", () => {
         meshArrays,
         previewMeshArrays,
         previewFrame,
-        selectionFrame,
-        true
+        selectionFrame
       );
 
       // The non-selected block should have all 6 faces visible
@@ -339,8 +329,7 @@ describe("ExteriorFacesFinder", () => {
         realMeshArrays,
         realPreviewMeshArrays,
         realPreviewFrame,
-        realSelectionFrame,
-        true
+        realSelectionFrame
       );
 
       const previewVoxelData = createVoxelData(dimensions);
@@ -365,8 +354,7 @@ describe("ExteriorFacesFinder", () => {
         previewMeshArrays,
         previewMeshArrays2,
         previewFrame,
-        previewSelectionFrame,
-        true
+        previewSelectionFrame
       );
 
       expect(previewMeshArrays2.indexCount).toBe(realMeshArrays.indexCount);
@@ -413,8 +401,7 @@ describe("ExteriorFacesFinder", () => {
           meshArrays,
           previewMeshArrays,
           previewFrame,
-          selectionFrame,
-          true
+          selectionFrame
         );
 
         const endTime = performance.now();
@@ -469,8 +456,7 @@ describe("ExteriorFacesFinder", () => {
           meshArrays,
           previewMeshArrays,
           previewFrame,
-          selectionFrame,
-          true
+          selectionFrame
         );
 
         const endTime = performance.now();
@@ -524,8 +510,7 @@ describe("ExteriorFacesFinder", () => {
           meshArrays,
           previewMeshArrays,
           previewFrame,
-          selectionFrame,
-          true
+          selectionFrame
         );
 
         const endTime = performance.now();

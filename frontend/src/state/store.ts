@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { CHUNK_SIZE } from "./constants";
+import { SparseVoxelOctree } from "./sparse-voxel-octree";
 import type {
   BlockModificationMode,
   ChunkData,
@@ -77,7 +78,7 @@ const createChunkData = (
     y: Math.min(CHUNK_SIZE, project.dimensions.y - minPos.y),
     z: Math.min(CHUNK_SIZE, project.dimensions.z - minPos.z),
   };
-  const voxels = new Uint8Array(size.x * size.y * size.z);
+  const voxels = new SparseVoxelOctree(size);
   return {
     key: getChunkKey(layerId, minPos),
     projectId: project.id,
@@ -130,8 +131,7 @@ const createInitialState = (): GlobalState => {
       z >= seedChunk.size.z
     )
       return;
-    const index = x * seedChunk.size.y * seedChunk.size.z + y * seedChunk.size.z + z;
-    seedChunk.voxels[index] = value;
+    seedChunk.voxels.set(x, y, z, value);
   };
 
   for (let x = 10; x <= 14; x++) {
@@ -193,21 +193,16 @@ const applyBlockAt = (
   localZ: number,
   blockType: number
 ) => {
-  const index =
-    localX * chunk.size.y * chunk.size.z +
-    localY * chunk.size.z +
-    localZ;
-
   switch (mode.tag) {
     case "Attach":
-      chunk.voxels[index] = blockType;
+      chunk.voxels.set(localX, localY, localZ, blockType);
       break;
     case "Erase":
-      chunk.voxels[index] = 0;
+      chunk.voxels.set(localX, localY, localZ, 0);
       break;
     case "Paint":
-      if (chunk.voxels[index] !== 0) {
-        chunk.voxels[index] = blockType;
+      if (chunk.voxels.get(localX, localY, localZ) !== 0) {
+        chunk.voxels.set(localX, localY, localZ, blockType);
       }
       break;
   }
@@ -244,12 +239,12 @@ const reducers: Reducers = {
       current.blocks.faceColors.splice(zeroBasedIndex, 1);
 
       for (const chunk of current.chunks.values()) {
-        for (let i = 0; i < chunk.voxels.length; i++) {
-          const value = chunk.voxels[i];
-          if (value === blockIndex) {
-            chunk.voxels[i] = replacementBlockType;
-          } else if (value > blockIndex) {
-            chunk.voxels[i] = value - 1;
+        const entries = chunk.voxels.collectEntries();
+        for (const entry of entries) {
+          if (entry.value === blockIndex) {
+            chunk.voxels.set(entry.x, entry.y, entry.z, replacementBlockType);
+          } else if (entry.value > blockIndex) {
+            chunk.voxels.set(entry.x, entry.y, entry.z, entry.value - 1);
           }
         }
       }

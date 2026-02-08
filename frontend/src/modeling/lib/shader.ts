@@ -1,18 +1,15 @@
 import * as THREE from "three";
 
 const vertexShader = `
-attribute float aochannel;
 attribute float isSelected;
 varying vec2 vUv;
 varying vec3 vNormal;
-varying float vAO;
 varying float vIsSelected;
 varying vec3 vWorldPosition;
 
 void main() {
   vUv = uv;
   vNormal = normalize(mat3(modelMatrix) * normal);
-  vAO = aochannel;
   vIsSelected = isSelected;
   vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
  
@@ -26,7 +23,6 @@ uniform float opacity;
 uniform bool showGrid;
 varying vec2 vUv;
 varying vec3 vNormal;
-varying float vAO;
 varying float vIsSelected;
 varying vec3 vWorldPosition;
 
@@ -69,7 +65,7 @@ void main() {
     darknessFactor = 0.8;
   }
  
-  vec3 finalColor = textureColor.rgb * darknessFactor * vAO;
+  vec3 finalColor = textureColor.rgb * darknessFactor;
   
   // Apply grid effect (either for selection or regular grid)
   if (vIsSelected > 0.5 || showGrid) {

@@ -1,3 +1,5 @@
+import type { SparseVoxelOctree } from "./sparse-voxel-octree";
+
 export type Vector3 = {
   x: number;
   y: number;
@@ -38,5 +40,5 @@ export type ChunkData = {
   layerId: string;
   minPos: Vector3;
   size: Vector3;
-  voxels: Uint8Array;
+  voxels: SparseVoxelOctree;
 };

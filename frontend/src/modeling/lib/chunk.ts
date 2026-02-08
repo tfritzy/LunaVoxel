@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
+import { SparseVoxelOctree } from "@/state/sparse-voxel-octree";
 import {
   isBlockPresent,
 } from "./voxel-data-utils";
@@ -14,7 +15,7 @@ import { layers } from "./layers";
 type SelectionFrameData = {
   minPos: Vector3;
   dimensions: Vector3;
-  voxelData: Uint8Array;
+  voxelData: SparseVoxelOctree;
 };
 
 export type SelectionData = {
@@ -31,7 +32,7 @@ interface MeshData {
 }
 
 export type LayerChunk = {
-  voxels: Uint8Array;
+  voxels: SparseVoxelOctree;
 };
 
 export class Chunk {
@@ -39,12 +40,9 @@ export class Chunk {
   public readonly minPos: Vector3;
   public readonly size: Vector3;
   private layerChunks: (LayerChunk | null)[];
-  private renderedBlocks: Uint8Array;
-  private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private mergedSelectionFrame: FlatVoxelFrame;
   private previewFrame: VoxelFrame;
-  private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private getLayerVisible: (layerIndex: number) => boolean;
@@ -53,7 +51,6 @@ export class Chunk {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
-  private voxelData: Uint8Array[][];
   private facesFinder: ExteriorFacesFinder;
 
   constructor(
@@ -75,8 +72,6 @@ export class Chunk {
     this.layerChunks = new Array(maxLayers).fill(null);
 
     const totalVoxels = size.x * size.y * size.z;
-    this.renderedBlocks = new Uint8Array(totalVoxels);
-    this.blocksToRender = new Uint8Array(totalVoxels);
     this.mergedSelectionFrame = new FlatVoxelFrame(size);
     this.previewFrame = new VoxelFrame(size);
 
@@ -95,19 +90,11 @@ export class Chunk {
       },
     };
 
-    this.voxelData = [];
-    for (let x = 0; x < size.x; x++) {
-      this.voxelData[x] = [];
-      for (let y = 0; y < size.y; y++) {
-        this.voxelData[x][y] = new Uint8Array(size.z);
-      }
-    }
-
     const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  public setLayerChunk(layerIndex: number, voxels: Uint8Array | null): void {
+  public setLayerChunk(layerIndex: number, voxels: SparseVoxelOctree | null): void {
     if (voxels === null) {
       this.layerChunks[layerIndex] = null;
       return;
@@ -143,18 +130,16 @@ export class Chunk {
     for (let x = localMinX; x <= localMaxX; x++) {
       for (let y = localMinY; y <= localMaxY; y++) {
         for (let z = localMinZ; z <= localMaxZ; z++) {
-          const index = x * this.size.y * this.size.z + y * this.size.z + z;
-
           switch (mode.tag) {
             case "Attach":
-              layerChunk.voxels[index] = blockType;
+              layerChunk.voxels.set(x, y, z, blockType);
               break;
             case "Erase":
-              layerChunk.voxels[index] = 0;
+              layerChunk.voxels.set(x, y, z, 0);
               break;
             case "Paint":
-              if (layerChunk.voxels[index] !== 0) {
-                layerChunk.voxels[index] = blockType;
+              if (layerChunk.voxels.get(x, y, z) !== 0) {
+                layerChunk.voxels.set(x, y, z, blockType);
               }
               break;
           }
@@ -163,18 +148,6 @@ export class Chunk {
     }
 
     this.update();
-  }
-
-  private copyChunkData(blocks: Uint8Array): void {
-    for (let x = 0; x < this.size.x; x++) {
-      for (let y = 0; y < this.size.y; y++) {
-        for (let z = 0; z < this.size.z; z++) {
-          const blockIndex =
-            x * this.size.y * this.size.z + y * this.size.z + z;
-          this.voxelData[x][y][z] = blocks[blockIndex];
-        }
-      }
-    }
   }
 
   public setTextureAtlas = (atlasData: AtlasData) => {
@@ -246,87 +219,81 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
-  private clearBlocks(blocks: Uint8Array) {
-    blocks.fill(0);
-  }
-
-  private addLayerChunkToBlocks(
-    layerChunk: LayerChunk,
-    blocks: Uint8Array
-  ): void {
-    for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (layerChunk.voxels[i] > 0) {
-        blocks[i] = layerChunk.voxels[i];
-        this.mergedSelectionFrame.setByIndex(i, 0);
+  private getMergedBlockValue(x: number, y: number, z: number): number {
+    let value = 0;
+    for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
+      if (!this.getLayerVisible(layerIndex)) continue;
+      const layerChunk = this.layerChunks[layerIndex];
+      if (!layerChunk) continue;
+      const layerValue = layerChunk.voxels.get(x, y, z);
+      if (layerValue !== 0) {
+        value = layerValue;
       }
     }
+    return value;
   }
 
-  private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
+  private applySelectionFrames(): void {
+    this.mergedSelectionFrame.clear();
+
     for (const selectionData of this.selectionFrames.values()) {
-      if (selectionData.layer !== layerIndex) continue;
-      
-      const selectionVoxels = selectionData.frame.voxelData;
-      
-      for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
-        if (selectionVoxels[i] > 0) {
-          if (blocks[i] === 0) {
-            this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
-          }
+      if (!this.getLayerVisible(selectionData.layer)) continue;
+
+      selectionData.frame.voxelData.forEach((entry) => {
+        if (entry.value === 0) return;
+        const worldX = selectionData.frame.minPos.x + entry.x;
+        const worldY = selectionData.frame.minPos.y + entry.y;
+        const worldZ = selectionData.frame.minPos.z + entry.z;
+
+        const localX = worldX - this.minPos.x;
+        const localY = worldY - this.minPos.y;
+        const localZ = worldZ - this.minPos.z;
+
+        if (
+          localX < 0 ||
+          localY < 0 ||
+          localZ < 0 ||
+          localX >= this.size.x ||
+          localY >= this.size.y ||
+          localZ >= this.size.z
+        ) {
+          return;
         }
-      }
+
+        if (this.getMergedBlockValue(localX, localY, localZ) === 0) {
+          this.mergedSelectionFrame.set(localX, localY, localZ, entry.value);
+        }
+      });
     }
   }
 
-  private updatePreviewState(blocks: Uint8Array): void {
+  private updatePreviewState(): void {
     if (this.previewFrame.isEmpty()) return;
 
     const buildMode = this.getMode();
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-    const sizeYZ = sizeY * sizeZ;
 
-    if (buildMode.tag === "Attach") {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const x = Math.floor(voxelIndex / sizeYZ);
-        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
-        const z = voxelIndex % sizeZ;
+    for (let x = 0; x < this.size.x; x++) {
+      for (let y = 0; y < this.size.y; y++) {
+        for (let z = 0; z < this.size.z; z++) {
+          const previewBlockValue = this.previewFrame.get(x, y, z);
+          if (previewBlockValue === 0) continue;
 
-        const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
-          this.previewFrame.set(x, y, z, 0);
-        }
-      }
-    } else if (buildMode.tag === "Erase") {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const previewBlockValue = this.previewFrame.get(
-          Math.floor(voxelIndex / sizeYZ),
-          Math.floor((voxelIndex % sizeYZ) / sizeZ),
-          voxelIndex % sizeZ
-        );
+          const realBlockValue = this.getMergedBlockValue(x, y, z);
 
-        if (previewBlockValue !== 0) {
-          const realBlockValue = blocks[voxelIndex];
-          const newValue = isBlockPresent(realBlockValue) ? realBlockValue : 0;
-          if (newValue !== previewBlockValue) {
-            this.previewFrame.set(
-              Math.floor(voxelIndex / sizeYZ),
-              Math.floor((voxelIndex % sizeYZ) / sizeZ),
-              voxelIndex % sizeZ,
-              newValue
-            );
+          if (buildMode.tag === "Attach") {
+            if (isBlockPresent(realBlockValue)) {
+              this.previewFrame.set(x, y, z, 0);
+            }
+          } else if (buildMode.tag === "Erase") {
+            const newValue = isBlockPresent(realBlockValue) ? realBlockValue : 0;
+            if (newValue !== previewBlockValue) {
+              this.previewFrame.set(x, y, z, newValue);
+            }
+          } else if (buildMode.tag === "Paint") {
+            if (!isBlockPresent(realBlockValue)) {
+              this.previewFrame.set(x, y, z, 0);
+            }
           }
-        }
-      }
-    } else if (buildMode.tag === "Paint") {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const x = Math.floor(voxelIndex / sizeYZ);
-        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
-        const z = voxelIndex % sizeZ;
-
-        const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0 && !isBlockPresent(blocks[voxelIndex])) {
-          this.previewFrame.set(x, y, z, 0);
         }
       }
     }
@@ -351,10 +318,6 @@ export class Chunk {
       new THREE.BufferAttribute(meshArrays.getUVs(), 2)
     );
     geometry.setAttribute(
-      "aochannel",
-      new THREE.BufferAttribute(meshArrays.getAO(), 1)
-    );
-    geometry.setAttribute(
       "isSelected",
       new THREE.BufferAttribute(meshArrays.getIsSelected(), 1)
     );
@@ -363,7 +326,6 @@ export class Chunk {
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.normal.needsUpdate = true;
     geometry.attributes.uv.needsUpdate = true;
-    geometry.attributes.aochannel.needsUpdate = true;
     geometry.attributes.isSelected.needsUpdate = true;
     if (geometry.index) {
       geometry.index.needsUpdate = true;
@@ -426,74 +388,34 @@ export class Chunk {
     this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
   };
 
-  private updateMeshes = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
+  private updateMeshes = (atlasData: AtlasData) => {
+    const voxelData = {
+      get: (x: number, y: number, z: number) =>
+        this.getMergedBlockValue(x, y, z),
+    };
+
     this.facesFinder.findExteriorFaces(
-      this.voxelData,
+      voxelData,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,
       this.size,
       this.meshes.main.meshArrays,
       this.meshes.preview.meshArrays,
       this.previewFrame,
-      this.mergedSelectionFrame,
-      buildMode.tag !== "Erase"
+      this.mergedSelectionFrame
     );
 
     this.updateMainMesh(atlasData);
     this.updatePreviewMesh();
   };
 
-  private needsRender(): boolean {
-    for (let i = 0; i < this.blocksToRender.length; i++) {
-      if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
-        return true;
-      }
-    }
-
-    if (this.previewFrame.isEmpty() && this.renderedPreviewFrame === null) {
-      return false;
-    }
-
-    if (this.previewFrame.isEmpty() !== (this.renderedPreviewFrame === null)) {
-      return true;
-    }
-
-    if (this.renderedPreviewFrame && !this.previewFrame.equals(this.renderedPreviewFrame)) {
-      return true;
-    }
-
-    return false;
-  }
-
   update = () => {
     try {
-      this.clearBlocks(this.blocksToRender);
-      this.mergedSelectionFrame.clear();
+      this.applySelectionFrames();
+      this.updatePreviewState();
 
-      for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
-        const chunk = this.layerChunks[layerIndex];
-        
-        if (!this.getLayerVisible(layerIndex)) continue;
-
-        if (chunk) {
-          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
-        }
-        
-        this.applySelectionForLayer(layerIndex, this.blocksToRender);
-      }
-
-      this.updatePreviewState(this.blocksToRender);
-
-      if (this.atlasData && this.needsRender()) {
-        this.copyChunkData(this.blocksToRender);
-        this.updateMeshes(this.getMode(), this.atlasData);
-        this.renderedBlocks.set(this.blocksToRender);
-
-        if (this.previewFrame.isEmpty()) {
-          this.renderedPreviewFrame = null;
-        } else {
-          this.renderedPreviewFrame = this.previewFrame.clone();
-        }
+      if (this.atlasData) {
+        this.updateMeshes(this.atlasData);
       }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);

@@ -2,10 +2,6 @@ import type { Vector3 } from "@/state/types";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
-import {
-  calculateAmbientOcclusion,
-  OCCLUSION_LEVELS,
-} from "./ambient-occlusion";
 import { getBlockType, isBlockPresent } from "./voxel-data-utils";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
@@ -21,12 +17,15 @@ function isNeighborInBounds(
   return dir > 0 ? neighborCoord < maxCoord : neighborCoord >= 0;
 }
 
+type VoxelAccess = {
+  get: (x: number, y: number, z: number) => number;
+};
+
 export class ExteriorFacesFinder {
   private realMask: Int16Array[];
   private previewMask: Int16Array[];
   private selectionMask: Int16Array[];
   private processed: Uint8Array[];
-  private aoMask: Uint8Array[];
   private isSelectedMask: Uint8Array[];
   private maskSize: number;
 
@@ -36,28 +35,25 @@ export class ExteriorFacesFinder {
     this.previewMask = new Array(maxDimension);
     this.selectionMask = new Array(maxDimension);
     this.processed = new Array(maxDimension);
-    this.aoMask = new Array(maxDimension);
     this.isSelectedMask = new Array(maxDimension);
     for (let i = 0; i < maxDimension; i++) {
       this.realMask[i] = new Int16Array(maxDimension);
       this.previewMask[i] = new Int16Array(maxDimension);
       this.selectionMask[i] = new Int16Array(maxDimension);
       this.processed[i] = new Uint8Array(maxDimension);
-      this.aoMask[i] = new Uint8Array(maxDimension);
       this.isSelectedMask[i] = new Uint8Array(maxDimension);
     }
   }
 
   public findExteriorFaces(
-    voxelData: Uint8Array[][],
+    voxelData: VoxelAccess,
     textureWidth: number,
     blockAtlasMappings: number[][],
     dimensions: Vector3,
     meshArrays: MeshArrays,
     previewMeshArrays: MeshArrays,
     previewFrame: VoxelFrame,
-    selectionFrame: FlatVoxelFrame,
-    previewOccludes: boolean
+    selectionFrame: FlatVoxelFrame
   ): void {
     meshArrays.reset();
     previewMeshArrays.reset();
@@ -71,14 +67,12 @@ export class ExteriorFacesFinder {
       this.previewMask = new Array(maxDimension);
       this.selectionMask = new Array(maxDimension);
       this.processed = new Array(maxDimension);
-      this.aoMask = new Array(maxDimension);
       this.isSelectedMask = new Array(maxDimension);
       for (let i = 0; i < maxDimension; i++) {
         this.realMask[i] = new Int16Array(maxDimension);
         this.previewMask[i] = new Int16Array(maxDimension);
         this.selectionMask[i] = new Int16Array(maxDimension);
         this.processed[i] = new Uint8Array(maxDimension);
-        this.aoMask[i] = new Uint8Array(maxDimension);
         this.isSelectedMask[i] = new Uint8Array(maxDimension);
       }
     }
@@ -102,7 +96,6 @@ export class ExteriorFacesFinder {
             this.realMask[iv].fill(-1, 0, uSize);
             this.previewMask[iv].fill(-1, 0, uSize);
             this.selectionMask[iv].fill(-1, 0, uSize);
-            this.aoMask[iv].fill(0, 0, uSize);
             this.isSelectedMask[iv].fill(0, 0, uSize);
           }
 
@@ -115,7 +108,7 @@ export class ExteriorFacesFinder {
               const y = axis === 1 ? d : u === 1 ? iu : iv;
               const z = axis === 2 ? d : u === 2 ? iu : iv;
 
-              const blockValue = voxelData[x][y][z];
+              const blockValue = voxelData.get(x, y, z);
               const blockPresent = isBlockPresent(blockValue);
               const previewBlockValue = previewFrame.get(x, y, z);
               const blockIsPreview = previewBlockValue !== 0;
@@ -143,7 +136,7 @@ export class ExteriorFacesFinder {
                     ? isNeighborInBounds(axis, dir, ny, dimensions.y)
                     : isNeighborInBounds(axis, dir, nz, dimensions.z);
 
-              const neighborValue = neighborInBounds ? voxelData[nx][ny][nz] : 0;
+              const neighborValue = neighborInBounds ? voxelData.get(nx, ny, nz) : 0;
               const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
 
               if (blockIsPreview) {
@@ -152,17 +145,6 @@ export class ExteriorFacesFinder {
                 if (shouldRenderFace) {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
-
-                  this.aoMask[iv][iu] = calculateAmbientOcclusion(
-                    nx,
-                    ny,
-                    nz,
-                    faceDir,
-                    voxelData,
-                    dimensions,
-                    previewFrame,
-                    previewOccludes
-                  );
 
                   this.previewMask[iv][iu] = textureIndex;
                   hasPreviewFaces = true;
@@ -174,17 +156,6 @@ export class ExteriorFacesFinder {
                 if (shouldRenderSelectionFace) {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
-                  
-                  this.aoMask[iv][iu] = calculateAmbientOcclusion(
-                    nx,
-                    ny,
-                    nz,
-                    faceDir,
-                    voxelData,
-                    dimensions,
-                    previewFrame,
-                    previewOccludes
-                  );
                   
                   this.realMask[iv][iu] = textureIndex;
                   this.isSelectedMask[iv][iu] = 1;
@@ -198,17 +169,6 @@ export class ExteriorFacesFinder {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
 
-                  this.aoMask[iv][iu] = calculateAmbientOcclusion(
-                    nx,
-                    ny,
-                    nz,
-                    faceDir,
-                    voxelData,
-                    dimensions,
-                    previewFrame,
-                    previewOccludes
-                  );
-
                   this.realMask[iv][iu] = textureIndex;
                   hasRealFaces = true;
                 }
@@ -219,7 +179,6 @@ export class ExteriorFacesFinder {
           if (hasRealFaces) {
             this.generateGreedyMesh(
               this.realMask,
-              this.aoMask,
               this.isSelectedMask,
               this.processed,
               uSize,
@@ -237,7 +196,6 @@ export class ExteriorFacesFinder {
           if (hasPreviewFaces) {
             this.generateGreedyMesh(
               this.previewMask,
-              this.aoMask,
               this.isSelectedMask,
               this.processed,
               uSize,
@@ -259,7 +217,6 @@ export class ExteriorFacesFinder {
 
   private generateGreedyMesh(
     mask: Int16Array[],
-    aoMask: Uint8Array[],
     isSelectedMask: Uint8Array[],
     processed: Uint8Array[],
     width: number,
@@ -292,7 +249,6 @@ export class ExteriorFacesFinder {
             if (
               processed[j][i + quadWidth] ||
               mask[j][i + quadWidth] !== textureIndex ||
-              aoMask[j][i + quadWidth] !== aoMask[j][i] ||
               isSelectedMask[j][i + quadWidth] !== isSelected
             )
               break;
@@ -307,7 +263,6 @@ export class ExteriorFacesFinder {
               if (
                 processed[j + quadHeight][i + w] ||
                 mask[j + quadHeight][i + w] !== textureIndex ||
-                aoMask[j + quadHeight][i + w] !== aoMask[j][i] ||
                 isSelectedMask[j + quadHeight][i + w] !== isSelected
               )
                 break outer;
@@ -398,23 +353,6 @@ export class ExteriorFacesFinder {
           meshArrays.pushVertex(vx, vy, vz);
           meshArrays.pushNormal(normal[0], normal[1], normal[2]);
           meshArrays.pushUV(textureCoords[vi * 2], textureCoords[vi * 2 + 1]);
-
-          const packedAO = aoMask[j][i];
-
-          // Faces 1, 2, 5 use swapped pattern [0, 3, 2, 1]
-          // Faces 0, 3, 4 use standard pattern [0, 1, 2, 3]
-          let aoCornerIndex: number;
-          if (faceDir === 1 || faceDir === 2 || faceDir === 5) {
-            // Swapped pattern for these faces
-            aoCornerIndex = vi === 1 ? 3 : vi === 3 ? 1 : vi;
-          } else {
-            // Standard pattern - direct mapping
-            aoCornerIndex = vi;
-          }
-
-          const occlusionCount = (packedAO >> (aoCornerIndex * 2)) & 0x03;
-          const aoFactor = OCCLUSION_LEVELS[occlusionCount];
-          meshArrays.pushAO(aoFactor);
           meshArrays.pushIsSelected(isSelected);
           meshArrays.incrementVertex();
         }

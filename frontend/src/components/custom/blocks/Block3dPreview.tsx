@@ -9,15 +9,12 @@ interface Block3DPreviewProps {
 
 const createBlockMaterial = (opacity: number = 1) => {
   const vertexShader = `
-    attribute float aochannel;
     varying vec3 vColor;
     varying vec3 vNormal;
-    varying float vAO;
     
     void main() {
       vColor = color;
       vNormal = normalize(mat3(modelMatrix) * normal);
-      vAO = aochannel;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `;
@@ -26,7 +23,6 @@ const createBlockMaterial = (opacity: number = 1) => {
     uniform float opacity;
     varying vec3 vColor;
     varying vec3 vNormal;
-    varying float vAO;
     
     void main() {
       vec3 normal = normalize(vNormal);
@@ -83,7 +79,6 @@ export const Block3DPreview = ({
     const vertices: number[] = [];
     const normals: number[] = [];
     const vertexColors: number[] = [];
-    const ao: number[] = [];
     const indices: number[] = [];
 
     let vertexIndex = 0;
@@ -102,7 +97,6 @@ export const Block3DPreview = ({
         vertices.push(vertex[0], vertex[1], vertex[2]);
         normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
         vertexColors.push(color.r, color.g, color.b);
-        ao.push(1.0);
         vertexIndex++;
       }
 
@@ -127,10 +121,6 @@ export const Block3DPreview = ({
     geometry.setAttribute(
       "color",
       new THREE.BufferAttribute(new Float32Array(vertexColors), 3)
-    );
-    geometry.setAttribute(
-      "aochannel",
-      new THREE.BufferAttribute(new Float32Array(ao), 1)
     );
     geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
 

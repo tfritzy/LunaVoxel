@@ -202,9 +202,7 @@ export class ChunkManager {
     const localY = position.y - chunkMinPos.y;
     const localZ = position.z - chunkMinPos.z;
     
-    const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
-    
-    return layerChunk.voxels[index] || 0;
+    return layerChunk.voxels.get(localX, localY, localZ) || 0;
   }
 
   public getChunks(): Chunk[] {
