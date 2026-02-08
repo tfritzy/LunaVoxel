@@ -21,10 +21,8 @@ describe("Chunk selection rendering", () => {
       scene,
       minPos,
       chunkSize,
-      3, // 3 layers
       mockAtlasData,
-      () => ({ tag: "Attach" } as BlockModificationMode),
-      () => true // all layers visible
+      () => ({ tag: "Attach" } as BlockModificationMode)
     );
   });
 

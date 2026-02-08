@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { BlockModificationMode, Layer, Vector3 } from "@/state/types";
-import type { StateStore } from "@/state/store";
+import type { BlockModificationMode, ChunkData, Layer, Vector3 } from "@/state/types";
+import { getChunkKey as getLayerChunkKey, type StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
@@ -12,13 +12,11 @@ export class ChunkManager {
   private stateStore: StateStore;
   private projectId: string;
   private layers: Layer[] = [];
-  private layerVisibilityMap: Map<number, boolean> = new Map();
   private chunks: Map<string, Chunk> = new Map();
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
   private unsubscribe?: () => void;
-  private readonly maxLayers = 10;
 
   constructor(
     scene: THREE.Scene,
@@ -38,12 +36,6 @@ export class ChunkManager {
 
   private getChunkKey(minPos: Vector3): string {
     return `${minPos.x},${minPos.y},${minPos.z}`;
-  }
-
-  private updateAllChunks(): void {
-    for (const chunk of this.chunks.values()) {
-      chunk.update();
-    }
   }
 
   private getChunkMinPos(worldPos: Vector3): Vector3 {
@@ -70,12 +62,8 @@ export class ChunkManager {
         this.scene, 
         minPos, 
         size, 
-        this.maxLayers,
         this.atlasData, 
-        this.getMode,
-        (layerIndex: number) => {
-          return this.layerVisibilityMap.get(layerIndex) ?? true;
-        }
+        this.getMode
       );
       this.chunks.set(key, chunk); 
     }
@@ -89,46 +77,88 @@ export class ChunkManager {
       .filter((layer) => layer.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
 
-    this.layerVisibilityMap.clear();
-    for (const layer of this.layers) {
-      this.layerVisibilityMap.set(layer.index, layer.visible);
-    }
-
-    const layerIndexById = new Map(
-      this.layers.map((layer) => [layer.id, layer.index])
-    );
-    const nextChunkLayers = new Map<string, Set<number>>();
-
+    const chunksByLayerId = new Map<string, ChunkData[]>();
     for (const chunkData of current.chunks.values()) {
       if (chunkData.projectId !== this.projectId) continue;
-      const layerIndex = layerIndexById.get(chunkData.layerId);
-      if (layerIndex === undefined) continue;
-
-      const chunk = this.getOrCreateChunk(chunkData.minPos);
-      chunk.setLayerChunk(layerIndex, chunkData.voxels);
-      const key = this.getChunkKey(chunkData.minPos);
-      if (!nextChunkLayers.has(key)) {
-        nextChunkLayers.set(key, new Set());
+      const bucket = chunksByLayerId.get(chunkData.layerId);
+      if (bucket) {
+        bucket.push(chunkData);
+      } else {
+        chunksByLayerId.set(chunkData.layerId, [chunkData]);
       }
-      nextChunkLayers.get(key)?.add(layerIndex);
     }
 
-    const activeLayerCount = Math.max(this.maxLayers, this.layers.length);
+    const nextWorldChunks = new Map<
+      string,
+      { minPos: Vector3; size: Vector3; voxels: Uint8Array; hasData: boolean }
+    >();
 
-    for (const [key, chunk] of this.chunks.entries()) {
-      const activeLayers = nextChunkLayers.get(key) ?? new Set<number>();
-      for (let i = 0; i < activeLayerCount; i++) {
-        if (!activeLayers.has(i) && chunk.getLayerChunk(i)) {
-          chunk.setLayerChunk(i, null);
+    for (const layer of this.layers) {
+      if (!layer.visible) continue;
+      const layerChunks = chunksByLayerId.get(layer.id);
+      if (!layerChunks) continue;
+
+      for (const chunkData of layerChunks) {
+        const key = this.getChunkKey(chunkData.minPos);
+        let worldChunk = nextWorldChunks.get(key);
+        if (!worldChunk) {
+          worldChunk = {
+            minPos: chunkData.minPos,
+            size: chunkData.size,
+            voxels: new Uint8Array(
+              chunkData.size.x * chunkData.size.y * chunkData.size.z
+            ),
+            hasData: false,
+          };
+          nextWorldChunks.set(key, worldChunk);
+        }
+
+        const sourceVoxels = chunkData.voxels;
+        for (let i = 0; i < sourceVoxels.length; i++) {
+          const value = sourceVoxels[i];
+          if (value > 0) {
+            worldChunk.voxels[i] = value;
+            worldChunk.hasData = true;
+          }
         }
       }
-      if (chunk.isEmpty()) {
+    }
+
+    for (const chunkKey of this.chunksWithPreview) {
+      if (nextWorldChunks.has(chunkKey)) continue;
+      const existingChunk = this.chunks.get(chunkKey);
+      if (!existingChunk) continue;
+      nextWorldChunks.set(chunkKey, {
+        minPos: existingChunk.minPos,
+        size: existingChunk.size,
+        voxels: new Uint8Array(
+          existingChunk.size.x *
+            existingChunk.size.y *
+            existingChunk.size.z
+        ),
+        hasData: false,
+      });
+    }
+
+    for (const [key, chunkData] of nextWorldChunks.entries()) {
+      if (!chunkData.hasData && !this.chunksWithPreview.has(key)) {
+        nextWorldChunks.delete(key);
+      }
+    }
+
+    const activeChunkKeys = new Set(nextWorldChunks.keys());
+    for (const [key, chunkData] of nextWorldChunks.entries()) {
+      const chunk = this.getOrCreateChunk(chunkData.minPos);
+      chunk.setWorldData(chunkData.voxels);
+      activeChunkKeys.add(key);
+    }
+
+    for (const [key, chunk] of this.chunks.entries()) {
+      if (!activeChunkKeys.has(key)) {
         chunk.dispose();
         this.chunks.delete(key);
       }
     }
-
-    this.updateAllChunks();
   };
 
   public getLayer(layerIndex: number): Layer | undefined {
@@ -190,74 +220,25 @@ export class ChunkManager {
 
   public getBlockAtPosition(position: THREE.Vector3, layer: Layer): number | null {
     const chunkMinPos = this.getChunkMinPos(position);
-    const key = this.getChunkKey(chunkMinPos);
-    const chunk = this.chunks.get(key);
-    
-    if (!chunk) return 0; // No chunk means empty
-    
-    const layerChunk = chunk.getLayerChunk(layer.index);
+    const layerChunk = this.stateStore
+      .getState()
+      .chunks.get(getLayerChunkKey(layer.id, chunkMinPos));
     if (!layerChunk) return 0;
     
     const localX = position.x - chunkMinPos.x;
     const localY = position.y - chunkMinPos.y;
     const localZ = position.z - chunkMinPos.z;
     
-    const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
+    const index =
+      localX * layerChunk.size.y * layerChunk.size.z +
+      localY * layerChunk.size.z +
+      localZ;
     
     return layerChunk.voxels[index] || 0;
   }
 
   public getChunks(): Chunk[] {
     return Array.from(this.chunks.values());
-  }
-
-  public applyOptimisticRect(
-    layer: Layer,
-    mode: BlockModificationMode,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    blockType: number,
-    _rotation: number
-  ) {
-    void _rotation;
-    if (layer.locked) return;
-
-    const minX = Math.floor(Math.min(start.x, end.x));
-    const maxX = Math.floor(Math.max(start.x, end.x));
-    const minY = Math.floor(Math.min(start.y, end.y));
-    const maxY = Math.floor(Math.max(start.y, end.y));
-    const minZ = Math.floor(Math.min(start.z, end.z));
-    const maxZ = Math.floor(Math.max(start.z, end.z));
-
-    for (let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE; 
-         chunkX <= maxX; 
-         chunkX += CHUNK_SIZE) {
-      for (let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE; 
-           chunkY <= maxY; 
-           chunkY += CHUNK_SIZE) {
-        for (let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE; 
-             chunkZ <= maxZ; 
-             chunkZ += CHUNK_SIZE) {
-          const chunk = this.getOrCreateChunk({ x: chunkX, y: chunkY, z: chunkZ });
-          
-          const localMinX = Math.max(0, minX - chunkX);
-          const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
-          const localMinY = Math.max(0, minY - chunkY);
-          const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
-          const localMinZ = Math.max(0, minZ - chunkZ);
-          const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
-
-          chunk.applyOptimisticRect(
-            layer.index,
-            mode,
-            localMinX, localMaxX,
-            localMinY, localMaxY,
-            localMinZ, localMaxZ,
-            blockType
-          );
-        }
-      }
-    }
   }
 
   dispose = () => {

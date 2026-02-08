@@ -375,9 +375,9 @@ describe("ExteriorFacesFinder", () => {
   });
 
   describe("Benchmark test", () => {
-    it("should handle a large 128x128x128 chunk with polka dot pattern (benchmark only)", () => {
-      const dimensions: Vector3 = { x: 128, y: 128, z: 128 };
-      const finder = new ExteriorFacesFinder(128);
+    it("should handle a large 64x64x64 chunk with polka dot pattern (benchmark only)", () => {
+      const dimensions: Vector3 = { x: 64, y: 64, z: 64 };
+      const finder = new ExteriorFacesFinder(64);
       const voxelData = createVoxelData(dimensions);
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
@@ -425,7 +425,7 @@ describe("ExteriorFacesFinder", () => {
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
 
-      console.log(`128x128x128 chunk with polka dot pattern (real and preview blocks):`);
+      console.log(`64x64x64 chunk with polka dot pattern (real and preview blocks):`);
       console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
@@ -435,9 +435,9 @@ describe("ExteriorFacesFinder", () => {
       // This is a benchmark test - no assertions, just timing
     }, 120000); // 120 second timeout for benchmark
 
-    it("should handle a large 128x128x128 solid cube of real blocks (benchmark only)", () => {
-      const dimensions: Vector3 = { x: 128, y: 128, z: 128 };
-      const finder = new ExteriorFacesFinder(128);
+    it("should handle a large 64x64x64 solid cube of real blocks (benchmark only)", () => {
+      const dimensions: Vector3 = { x: 64, y: 64, z: 64 };
+      const finder = new ExteriorFacesFinder(64);
       const voxelData = createVoxelData(dimensions);
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
@@ -481,7 +481,7 @@ describe("ExteriorFacesFinder", () => {
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
 
-      console.log(`128x128x128 solid cube of real blocks:`);
+      console.log(`64x64x64 solid cube of real blocks:`);
       console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
@@ -490,9 +490,9 @@ describe("ExteriorFacesFinder", () => {
       // This is a benchmark test - no assertions, just timing
     }, 120000); // 120 second timeout for benchmark
 
-    it("should handle a large 128x128x128 solid cube of preview blocks (benchmark only)", () => {
-      const dimensions: Vector3 = { x: 128, y: 128, z: 128 };
-      const finder = new ExteriorFacesFinder(128);
+    it("should handle a large 64x64x64 solid cube of preview blocks (benchmark only)", () => {
+      const dimensions: Vector3 = { x: 64, y: 64, z: 64 };
+      const finder = new ExteriorFacesFinder(64);
       const voxelData = createVoxelData(dimensions);
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
@@ -536,7 +536,7 @@ describe("ExteriorFacesFinder", () => {
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
 
-      console.log(`128x128x128 solid cube of preview blocks:`);
+      console.log(`64x64x64 solid cube of preview blocks:`);
       console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);

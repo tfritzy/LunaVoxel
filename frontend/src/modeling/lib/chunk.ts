@@ -30,15 +30,10 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type LayerChunk = {
-  voxels: Uint8Array;
-};
-
 export class Chunk {
   private scene: THREE.Scene;
   public readonly minPos: Vector3;
   public readonly size: Vector3;
-  private layerChunks: (LayerChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
@@ -47,7 +42,6 @@ export class Chunk {
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
-  private getLayerVisible: (layerIndex: number) => boolean;
 
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
@@ -60,19 +54,14 @@ export class Chunk {
     scene: THREE.Scene,
     minPos: Vector3,
     size: Vector3,
-    maxLayers: number,
     atlasData: AtlasData | undefined,
-    getMode: () => BlockModificationMode,
-    getLayerVisible: (layerIndex: number) => boolean
+    getMode: () => BlockModificationMode
   ) {
     this.scene = scene;
     this.minPos = minPos;
     this.size = size;
     this.atlasData = atlasData;
     this.getMode = getMode;
-    this.getLayerVisible = getLayerVisible;
-
-    this.layerChunks = new Array(maxLayers).fill(null);
 
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
@@ -107,61 +96,8 @@ export class Chunk {
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  public setLayerChunk(layerIndex: number, voxels: Uint8Array | null): void {
-    if (voxels === null) {
-      this.layerChunks[layerIndex] = null;
-      return;
-    }
-    this.layerChunks[layerIndex] = {
-      voxels,
-    };
-    this.update();
-  }
-
-  public getLayerChunk(layerIndex: number): LayerChunk | null {
-    return this.layerChunks[layerIndex] || null;
-  }
-
-  public isEmpty(): boolean {
-    return this.layerChunks.every((chunk) => chunk === null);
-  }
-
-  public applyOptimisticRect(
-    layerIndex: number,
-    mode: { tag: string },
-    localMinX: number,
-    localMaxX: number,
-    localMinY: number,
-    localMaxY: number,
-    localMinZ: number,
-    localMaxZ: number,
-    blockType: number
-  ): void {
-    const layerChunk = this.layerChunks[layerIndex];
-    if (!layerChunk) return;
-
-    for (let x = localMinX; x <= localMaxX; x++) {
-      for (let y = localMinY; y <= localMaxY; y++) {
-        for (let z = localMinZ; z <= localMaxZ; z++) {
-          const index = x * this.size.y * this.size.z + y * this.size.z + z;
-
-          switch (mode.tag) {
-            case "Attach":
-              layerChunk.voxels[index] = blockType;
-              break;
-            case "Erase":
-              layerChunk.voxels[index] = 0;
-              break;
-            case "Paint":
-              if (layerChunk.voxels[index] !== 0) {
-                layerChunk.voxels[index] = blockType;
-              }
-              break;
-          }
-        }
-      }
-    }
-
+  public setWorldData(voxels: Uint8Array): void {
+    this.blocksToRender = voxels;
     this.update();
   }
 
@@ -246,33 +182,13 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
-  private clearBlocks(blocks: Uint8Array) {
-    blocks.fill(0);
-  }
-
-  private addLayerChunkToBlocks(
-    layerChunk: LayerChunk,
-    blocks: Uint8Array
-  ): void {
-    for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (layerChunk.voxels[i] > 0) {
-        blocks[i] = layerChunk.voxels[i];
-        this.mergedSelectionFrame.setByIndex(i, 0);
-      }
-    }
-  }
-
-  private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
+  private applySelections(blocks: Uint8Array): void {
     for (const selectionData of this.selectionFrames.values()) {
-      if (selectionData.layer !== layerIndex) continue;
-      
       const selectionVoxels = selectionData.frame.voxelData;
-      
+
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
-        if (selectionVoxels[i] > 0) {
-          if (blocks[i] === 0) {
-            this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
-          }
+        if (selectionVoxels[i] > 0 && blocks[i] === 0) {
+          this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
         }
       }
     }
@@ -467,20 +383,8 @@ export class Chunk {
 
   update = () => {
     try {
-      this.clearBlocks(this.blocksToRender);
       this.mergedSelectionFrame.clear();
-
-      for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
-        const chunk = this.layerChunks[layerIndex];
-        
-        if (!this.getLayerVisible(layerIndex)) continue;
-
-        if (chunk) {
-          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
-        }
-        
-        this.applySelectionForLayer(layerIndex, this.blocksToRender);
-      }
+      this.applySelections(this.blocksToRender);
 
       this.updatePreviewState(this.blocksToRender);
 

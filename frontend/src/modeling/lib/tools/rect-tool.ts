@@ -58,15 +58,6 @@ export class RectTool implements Tool {
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     context.previewFrame.clear();
-    
-    context.projectManager.applyOptimisticRectEdit(
-      context.selectedLayer,
-      context.mode,
-      event.startGridPosition.clone(),
-      event.currentGridPosition.clone(),
-      context.selectedBlock,
-      0
-    );
 
     context.reducers.modifyBlockRect(
       context.projectId,

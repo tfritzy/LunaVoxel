@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode, Project } from "@/state/types";
+import type { Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
@@ -112,27 +112,6 @@ export class ProjectManager {
 
   setSelectedBlock = (block: number) => {
     this.builder.setSelectedBlock(block, () => {});
-  };
-
-  public applyOptimisticRectEdit = (
-    layerIndex: number,
-    mode: BlockModificationMode,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    blockType: number,
-    rotation: number
-  ) => {
-    const layer = this.chunkManager.getLayer(layerIndex);
-    if (!layer) return;
-
-    this.chunkManager.applyOptimisticRect(
-      layer,
-      mode,
-      start,
-      end,
-      blockType,
-      rotation
-    );
   };
 
   public getBlockAtPosition(
