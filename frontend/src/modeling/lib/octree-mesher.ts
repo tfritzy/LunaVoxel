@@ -43,7 +43,7 @@ export class OctreeMesher {
 
   /**
    * Map a vertex component to the minimum or maximum corner coordinate;
-   * non-positive values map to the minimum corner.
+   * positive values map to the maximum corner, zero/negative map to minimum.
    */
   private getCornerCoord(
     component: number,
