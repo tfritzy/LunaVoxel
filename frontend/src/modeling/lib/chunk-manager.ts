@@ -46,6 +46,10 @@ export class ChunkManager {
     };
   }
 
+  private createVoxelData(size: Vector3): Uint8Array {
+    return new Uint8Array(size.x * size.y * size.z);
+  }
+
   private getOrCreateChunk(minPos: Vector3): Chunk {
     const key = this.getChunkKey(minPos);
     let chunk = this.chunks.get(key);
@@ -105,9 +109,7 @@ export class ChunkManager {
           worldChunk = {
             minPos: chunkData.minPos,
             size: chunkData.size,
-            voxels: new Uint8Array(
-              chunkData.size.x * chunkData.size.y * chunkData.size.z
-            ),
+            voxels: this.createVoxelData(chunkData.size),
             hasData: false,
           };
           nextWorldChunks.set(key, worldChunk);
@@ -131,11 +133,7 @@ export class ChunkManager {
       nextWorldChunks.set(chunkKey, {
         minPos: existingChunk.minPos,
         size: existingChunk.size,
-        voxels: new Uint8Array(
-          existingChunk.size.x *
-            existingChunk.size.y *
-            existingChunk.size.z
-        ),
+        voxels: this.createVoxelData(existingChunk.size),
         hasData: false,
       });
     }
@@ -147,10 +145,9 @@ export class ChunkManager {
     }
 
     const activeChunkKeys = new Set(nextWorldChunks.keys());
-    for (const [key, chunkData] of nextWorldChunks.entries()) {
+    for (const chunkData of nextWorldChunks.values()) {
       const chunk = this.getOrCreateChunk(chunkData.minPos);
       chunk.setWorldData(chunkData.voxels);
-      activeChunkKeys.add(key);
     }
 
     for (const [key, chunk] of this.chunks.entries()) {
@@ -220,21 +217,21 @@ export class ChunkManager {
 
   public getBlockAtPosition(position: THREE.Vector3, layer: Layer): number | null {
     const chunkMinPos = this.getChunkMinPos(position);
-    const layerChunk = this.stateStore
+    const chunkData = this.stateStore
       .getState()
       .chunks.get(getLayerChunkKey(layer.id, chunkMinPos));
-    if (!layerChunk) return 0;
+    if (!chunkData) return 0;
     
     const localX = position.x - chunkMinPos.x;
     const localY = position.y - chunkMinPos.y;
     const localZ = position.z - chunkMinPos.z;
     
     const index =
-      localX * layerChunk.size.y * layerChunk.size.z +
-      localY * layerChunk.size.z +
+      localX * chunkData.size.y * chunkData.size.z +
+      localY * chunkData.size.z +
       localZ;
     
-    return layerChunk.voxels[index] || 0;
+    return chunkData.voxels[index] || 0;
   }
 
   public getChunks(): Chunk[] {
