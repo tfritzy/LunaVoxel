@@ -31,33 +31,20 @@ export class RectTool implements Tool {
       context.dimensions
     );
 
-    const frameSize = {
-      x: bounds.maxX - bounds.minX + 1,
-      y: bounds.maxY - bounds.minY + 1,
-      z: bounds.maxZ - bounds.minZ + 1,
-    };
-    const frameMinPos = {
-      x: bounds.minX,
-      y: bounds.minY,
-      z: bounds.minZ,
-    };
-    
-    context.previewFrame.clear();
-    context.previewFrame.resize(frameSize, frameMinPos);
-
+    const positions: { x: number; y: number; z: number; value: number }[] = [];
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          context.previewFrame.set(x, y, z, context.selectedBlock);
+          positions.push({ x, y, z, value: context.selectedBlock });
         }
       }
     }
 
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
+    context.projectManager.octreeManager.setPreview(positions);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    context.previewFrame.clear();
+    context.projectManager.octreeManager.clearPreview();
     
     context.projectManager.applyOptimisticRectEdit(
       context.selectedLayer,
