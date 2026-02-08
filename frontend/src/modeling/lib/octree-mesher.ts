@@ -45,9 +45,6 @@ export class OctreeMesher {
         // Size-1 leaves are handled via direct octree.get lookups in neighbor checks.
         return;
       }
-      if (leaf.size <= 1) {
-        return;
-      }
       const leafDepth = this.getLog2OfSize(leaf.size);
       const key = this.buildLeafKey(
         leaf.minPos.x,
