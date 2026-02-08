@@ -4,7 +4,7 @@ import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree, type OctreeLeaf } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
-  // size is expected to be a non-zero power of two for octree leaves/trees.
+  // size is expected to be a non-zero power of two; callers enforce this.
   private getLog2OfSize(size: number): number {
     return 31 - Math.clz32(size);
   }
@@ -46,7 +46,7 @@ export class OctreeMesher {
       }
       if (leaf.size <= 1) {
         // Size-1 leaves are handled via direct octree.get lookups in neighbor checks.
-        // See lookupNeighborOcclusion for the leafDepth === 0 path.
+        // See the leafDepth === 0 path in lookupNeighborOcclusion below.
         return;
       }
       const leafDepth = this.getLog2OfSize(leaf.size);
@@ -77,7 +77,7 @@ export class OctreeMesher {
     leafMap?: Map<number, OctreeLeaf>
   ): boolean | null {
     const octreeSize = octree.getSize();
-    // SparseVoxelOctree is cubic based on its power-of-two size.
+    // SparseVoxelOctree is cubic with all axes equal to the power-of-two size.
     if (x < 0 || y < 0 || z < 0 || x >= octreeSize || y >= octreeSize || z >= octreeSize) {
       return false;
     }
