@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
-import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
@@ -25,53 +24,17 @@ export class RectTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    const bounds = calculateRectBounds(
-      event.startGridPosition, 
-      event.currentGridPosition, 
-      context.dimensions
+    context.projectManager.octreeManager.applyPreviewRect(
+      context.selectedLayer,
+      context.mode,
+      event.startGridPosition,
+      event.currentGridPosition,
+      context.selectedBlock
     );
-
-    const frameSize = {
-      x: bounds.maxX - bounds.minX + 1,
-      y: bounds.maxY - bounds.minY + 1,
-      z: bounds.maxZ - bounds.minZ + 1,
-    };
-    const frameMinPos = {
-      x: bounds.minX,
-      y: bounds.minY,
-      z: bounds.minZ,
-    };
-    
-    context.previewOctree.clear();
-
-    if (context.mode.tag === "Attach") {
-      context.previewOctree.setRegion(frameMinPos, frameSize, context.selectedBlock);
-    } else {
-      const position = new THREE.Vector3();
-      for (let x = bounds.minX; x <= bounds.maxX; x++) {
-        for (let y = bounds.minY; y <= bounds.maxY; y++) {
-          for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-            position.set(x, y, z);
-            const current = context.projectManager.getBlockAtPosition(
-              position,
-              context.selectedLayer
-            );
-            if (current !== null && current > 0) {
-              const previewValue =
-                context.mode.tag === "Paint" ? context.selectedBlock : current;
-              context.previewOctree.set(x, y, z, previewValue);
-            }
-          }
-        }
-      }
-    }
-
-    context.projectManager.octreeManager.setPreview(context.previewOctree);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    context.previewOctree.clear();
-    context.projectManager.octreeManager.setPreview(context.previewOctree);
+    context.projectManager.octreeManager.clearPreview();
     
     context.projectManager.applyOptimisticRectEdit(
       context.selectedLayer,

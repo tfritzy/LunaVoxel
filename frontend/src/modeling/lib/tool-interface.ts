@@ -3,14 +3,12 @@ import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import type { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export interface ToolContext {
   reducers: Reducers;
   projectId: string;
   dimensions: Vector3;
   projectManager: ProjectManager;
-  previewOctree: SparseVoxelOctree;
   selectedBlock: number;
   selectedLayer: number;
   setSelectedBlockInParent: (index: number) => void;

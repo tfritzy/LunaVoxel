@@ -118,35 +118,41 @@ describe("OctreeMesher", () => {
       return renderOctree;
     };
 
-    const buildPreviewOctree = () => {
-      const preview = new SparseVoxelOctree(dimensions);
-      preview.setRegion({ x: 20, y: 20, z: 20 }, { x: 16, y: 16, z: 16 }, 1);
-      return preview;
-    };
+    const applyPreviewOverlay = (renderOctree: SparseVoxelOctree) => {
+      const previewMin = { x: 20, y: 20, z: 20 };
+      const previewSize = { x: 16, y: 16, z: 16 };
+      const maxX = previewMin.x + previewSize.x - 1;
+      const maxY = previewMin.y + previewSize.y - 1;
+      const maxZ = previewMin.z + previewSize.z - 1;
 
-    const applyPreviewMask = (
-      renderOctree: SparseVoxelOctree,
-      previewOctree: SparseVoxelOctree
-    ) => {
-      const masked = renderOctree.clone();
-      previewOctree.forEachLeaf((leaf) => {
-        if (leaf.value === 0) {
-          return;
+      for (let x = previewMin.x; x <= maxX; x++) {
+        for (let y = previewMin.y; y <= maxY; y++) {
+          for (let z = previewMin.z; z <= maxZ; z++) {
+            const current = renderOctree.get(x, y, z);
+            if (current <= 0) {
+              continue;
+            }
+            renderOctree.set(x, y, z, -current);
+          }
         }
-        masked.setRegion(
-          leaf.minPos,
-          { x: leaf.size, y: leaf.size, z: leaf.size },
-          0,
-          false
-        );
-      });
-      return masked;
+      }
     };
 
     const baseLayers = Array.from({ length: layerCount }, (_, index) =>
       createLayerOctree(index + LAYER_SEED_OFFSET, FILL_DENSITY_THRESHOLD)
     );
-    const previewOctree = buildPreviewOctree();
+    const countLeavesByPredicate = (
+      octree: SparseVoxelOctree,
+      predicate: (value: number) => boolean
+    ) => {
+      let count = 0;
+      octree.forEachLeaf((leaf) => {
+        if (predicate(leaf.value)) {
+          count += 1;
+        }
+      });
+      return count;
+    };
 
     const measure = (label: string, durations: number[]) => {
       const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
@@ -162,25 +168,43 @@ describe("OctreeMesher", () => {
     for (let i = 0; i < benchIterations; i++) {
       const setupStart = performance.now();
       const renderOctree = buildRenderOctree(baseLayers);
-      const maskedOctree = applyPreviewMask(renderOctree, previewOctree);
+      applyPreviewOverlay(renderOctree);
       const setupDuration = performance.now() - setupStart;
       setupDurations.push(setupDuration);
 
-      const meshArraysOn = createMeshArrays(maskedOctree.countLeaves());
+      const mainLeaves = countLeavesByPredicate(renderOctree, (value) => value > 0);
+      const previewLeaves = countLeavesByPredicate(renderOctree, (value) => value < 0);
+
+      const meshArraysOn = createMeshArrays(mainLeaves);
       const cullingOnStart = performance.now();
-      mesher.buildMesh(maskedOctree, 4, blockAtlasMappings, meshArraysOn, undefined, {
+      mesher.buildMesh(renderOctree, 4, blockAtlasMappings, meshArraysOn, undefined, {
         enableCulling: true,
+        valuePredicate: (value) => value > 0,
+        valueTransform: (value) => value,
+        occludesValue: (value) => value > 0,
       });
       cullingOnDurations.push(performance.now() - cullingOnStart);
       expect(meshArraysOn.vertexCount).toBeGreaterThan(0);
 
-      const meshArraysOff = createMeshArrays(maskedOctree.countLeaves());
+      const meshArraysOff = createMeshArrays(mainLeaves);
       const cullingOffStart = performance.now();
-      mesher.buildMesh(maskedOctree, 4, blockAtlasMappings, meshArraysOff, undefined, {
+      mesher.buildMesh(renderOctree, 4, blockAtlasMappings, meshArraysOff, undefined, {
         enableCulling: false,
+        valuePredicate: (value) => value > 0,
+        valueTransform: (value) => value,
+        occludesValue: (value) => value > 0,
       });
       cullingOffDurations.push(performance.now() - cullingOffStart);
       expect(meshArraysOff.vertexCount).toBeGreaterThan(0);
+
+      const previewMeshArrays = createMeshArrays(previewLeaves);
+      mesher.buildMesh(renderOctree, 4, blockAtlasMappings, previewMeshArrays, undefined, {
+        enableCulling: false,
+        valuePredicate: (value) => value < 0,
+        valueTransform: (value) => Math.abs(value),
+        occludesValue: (value) => value < 0,
+      });
+      expect(previewMeshArrays.vertexCount).toBeGreaterThan(0);
     }
 
     measure("Setup (layers + preview)", setupDurations);

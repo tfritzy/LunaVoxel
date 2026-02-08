@@ -37,11 +37,12 @@ export class OctreeMesher {
 
   private buildLeafMap(
     octree: SparseVoxelOctree,
-    treeDepth: number
+    treeDepth: number,
+    occludesValue: (value: number) => boolean
   ): Map<number, OctreeLeaf> {
     const leafMap = new Map<number, OctreeLeaf>();
     octree.forEachLeaf((leaf) => {
-      if (leaf.value === 0) {
+      if (!occludesValue(leaf.value)) {
         return;
       }
       if (leaf.size <= 1) {
@@ -74,7 +75,8 @@ export class OctreeMesher {
     leafDepth: number,
     treeDepth: number,
     octree: SparseVoxelOctree,
-    leafMap?: Map<number, OctreeLeaf>
+    leafMap: Map<number, OctreeLeaf> | undefined,
+    occludesValue: (value: number) => boolean
   ): boolean | null {
     const octreeSize = octree.getSize();
     // SparseVoxelOctree is cubic with all axes equal to the power-of-two size.
@@ -83,18 +85,18 @@ export class OctreeMesher {
     }
 
     if (leafDepth === 0) {
-      return octree.get(x, y, z) !== 0;
+      return occludesValue(octree.get(x, y, z));
     }
 
     if (leafMap) {
       const key = this.buildLeafKey(x, y, z, leafDepth, treeDepth);
       const neighbor = leafMap.get(key);
       if (neighbor) {
-        return neighbor.value !== 0;
+        return occludesValue(neighbor.value);
       }
     }
 
-    if (octree.get(x, y, z) === 0) {
+    if (!occludesValue(octree.get(x, y, z))) {
       return false;
     }
 
@@ -113,9 +115,10 @@ export class OctreeMesher {
     octree: SparseVoxelOctree,
     x: number,
     y: number,
-    z: number
+    z: number,
+    occludesValue: (value: number) => boolean
   ): boolean {
-    return octree.get(x, y, z) !== 0;
+    return occludesValue(octree.get(x, y, z));
   }
 
   private isFaceOccluded(
@@ -124,7 +127,8 @@ export class OctreeMesher {
     octree: SparseVoxelOctree,
     leafMap?: Map<number, OctreeLeaf>,
     leafDepth?: number,
-    treeDepth?: number
+    treeDepth?: number,
+    occludesValue: (value: number) => boolean = (value) => value !== 0
   ): boolean {
     const resolvedLeafDepth = leafDepth ?? this.getLog2OfSize(leaf.size);
     const resolvedTreeDepth = treeDepth ?? this.getLog2OfSize(octree.getSize());
@@ -143,7 +147,8 @@ export class OctreeMesher {
         resolvedLeafDepth,
         resolvedTreeDepth,
         octree,
-        leafMap
+        leafMap,
+        occludesValue
       );
       if (neighborOcclusion !== null) {
         return neighborOcclusion;
@@ -151,7 +156,7 @@ export class OctreeMesher {
       const x = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - 1;
       for (let y = 0; y < size; y++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z)) {
+          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z, occludesValue)) {
             return false;
           }
         }
@@ -173,7 +178,8 @@ export class OctreeMesher {
         resolvedLeafDepth,
         resolvedTreeDepth,
         octree,
-        leafMap
+        leafMap,
+        occludesValue
       );
       if (neighborOcclusion !== null) {
         return neighborOcclusion;
@@ -181,7 +187,7 @@ export class OctreeMesher {
       const y = normal[1] > 0 ? leaf.minPos.y + size : leaf.minPos.y - 1;
       for (let x = 0; x < size; x++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z)) {
+          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z, occludesValue)) {
             return false;
           }
         }
@@ -202,7 +208,8 @@ export class OctreeMesher {
       resolvedLeafDepth,
       resolvedTreeDepth,
       octree,
-      leafMap
+      leafMap,
+      occludesValue
     );
     if (neighborOcclusion !== null) {
       return neighborOcclusion;
@@ -210,7 +217,7 @@ export class OctreeMesher {
     const z = normal[2] > 0 ? leaf.minPos.z + size : leaf.minPos.z - 1;
     for (let x = 0; x < size; x++) {
       for (let y = 0; y < size; y++) {
-        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z)) {
+        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z, occludesValue)) {
           return false;
         }
       }
@@ -230,20 +237,29 @@ export class OctreeMesher {
     options?: {
       enableAO?: boolean;
       enableCulling?: boolean;
+      valuePredicate?: (value: number) => boolean;
+      valueTransform?: (value: number) => number;
+      occludesValue?: (value: number) => boolean;
     }
   ): void {
     meshArrays.reset();
     const enableCulling = options?.enableCulling ?? true;
+    const valuePredicate = options?.valuePredicate ?? ((value) => value !== 0);
+    const valueTransform = options?.valueTransform ?? ((value) => value);
+    const occludesValue = options?.occludesValue ?? valuePredicate;
     const treeDepth = this.getLog2OfSize(octree.getSize());
-    const leafMap = enableCulling ? this.buildLeafMap(octree, treeDepth) : undefined;
+    const leafMap = enableCulling
+      ? this.buildLeafMap(octree, treeDepth, occludesValue)
+      : undefined;
 
     octree.forEachLeaf((leaf) => {
-      if (leaf.value === 0) {
+      if (!valuePredicate(leaf.value)) {
         return;
       }
       const leafDepth = this.getLog2OfSize(leaf.size);
 
-      const blockType = Math.max(leaf.value, 1);
+      const blockValue = valueTransform(leaf.value);
+      const blockType = Math.max(blockValue, 1);
       const faceTextures = blockAtlasMappings[blockType - 1];
       if (!faceTextures) {
         return;
@@ -253,7 +269,7 @@ export class OctreeMesher {
       const centerX = leaf.minPos.x + halfSize;
       const centerY = leaf.minPos.y + halfSize;
       const centerZ = leaf.minPos.z + halfSize;
-      const selectedFlag = isSelected(leaf.value);
+      const selectedFlag = isSelected(blockValue);
 
       for (let faceIndex = 0; faceIndex < faces.length; faceIndex++) {
         const face = faces[faceIndex];
@@ -263,7 +279,15 @@ export class OctreeMesher {
 
         if (
           enableCulling &&
-          this.isFaceOccluded(leaf, normal, octree, leafMap, leafDepth, treeDepth)
+          this.isFaceOccluded(
+            leaf,
+            normal,
+            octree,
+            leafMap,
+            leafDepth,
+            treeDepth,
+            occludesValue
+          )
         ) {
           continue;
         }

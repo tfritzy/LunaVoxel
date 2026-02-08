@@ -8,16 +8,17 @@ import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
-import { SparseVoxelOctree } from "../sparse-voxel-octree";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
+  let previewCallCount = 0;
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
   const attachMode: BlockModificationMode = { tag: "Attach" };
   const eraseMode: BlockModificationMode = { tag: "Erase" };
   const paintMode: BlockModificationMode = { tag: "Paint" };
 
   beforeEach(() => {
+    previewCallCount = 0;
     const camera = new THREE.PerspectiveCamera();
     camera.position.set(10, 10, 10);
     camera.lookAt(0, 0, 0);
@@ -48,10 +49,12 @@ describe("Tool Interface", () => {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
         octreeManager: {
-          setPreview: () => {},
+          applyPreviewRect: () => {
+            previewCallCount += 1;
+          },
+          clearPreview: () => {},
         },
       } as unknown as ProjectManager,
-      previewOctree: new SparseVoxelOctree(dimensions),
       selectedBlock: 1,
       selectedLayer: 0,
       setSelectedBlockInParent: () => {},
@@ -127,8 +130,8 @@ describe("Tool Interface", () => {
         startMousePosition: new THREE.Vector2(0, 0),
         currentMousePosition: new THREE.Vector2(0.5, 0.5)
       });
-      
-      expect(mockContext.previewOctree.get(1, 2, 3)).toBeGreaterThan(0);
+
+      expect(previewCallCount).toBeGreaterThan(0);
     });
   });
 

@@ -26,18 +26,14 @@ export class OctreeManager {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private renderOctree: SparseVoxelOctree;
-  private previewOctree: SparseVoxelOctree;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
   private mesher: OctreeMesher;
   private unsubscribe?: () => void;
-  private previewMaskCache: {
-    octree: SparseVoxelOctree;
-    renderVersion: number;
-    previewVersion: number;
-    modeTag: BlockModificationMode["tag"];
-  } | null = null;
+  private previewOverrides: Map<string, { x: number; y: number; z: number; value: number }> =
+    new Map();
+  private previewMode: BlockModificationMode | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -52,7 +48,6 @@ export class OctreeManager {
     this.projectId = projectId;
     this.getMode = getMode;
     this.renderOctree = new SparseVoxelOctree(dimensions);
-    this.previewOctree = new SparseVoxelOctree(dimensions);
     this.mesher = new OctreeMesher();
 
     this.meshes = {
@@ -82,6 +77,7 @@ export class OctreeManager {
     }
 
     this.layerOctrees = current.layerOctrees;
+    this.clearPreview(false);
     this.rebuildRenderOctree();
     this.updateMeshes();
   };
@@ -121,6 +117,16 @@ export class OctreeManager {
     const maxVertices = maxFaces * 4;
     const maxIndices = maxFaces * 6;
     return new MeshArrays(maxVertices, maxIndices);
+  }
+
+  private countLeavesByPredicate(predicate: (value: number) => boolean): number {
+    let count = 0;
+    this.renderOctree.forEachLeaf((leaf) => {
+      if (predicate(leaf.value)) {
+        count += 1;
+      }
+    });
+    return count;
   }
 
   private updateMeshGeometry(meshType: MeshType, meshArrays: MeshArrays): void {
@@ -187,7 +193,7 @@ export class OctreeManager {
     this.updateMeshGeometry("main", this.meshes.main.meshArrays);
   }
 
-  private updatePreviewMesh(): void {
+  private updatePreviewMesh(hasPreview: boolean): void {
     if (!this.meshes.preview.mesh && this.atlasData) {
       const geometry = new THREE.BufferGeometry();
       const material = createVoxelMaterial(this.atlasData.texture, 1);
@@ -200,8 +206,11 @@ export class OctreeManager {
       return;
     }
 
-    const mode = this.getMode();
-    this.meshes.preview.mesh.visible = true;
+    const mode = this.previewMode ?? this.getMode();
+    this.meshes.preview.mesh.visible = hasPreview;
+    if (!hasPreview) {
+      return;
+    }
     this.meshes.preview.mesh.layers.set(
       mode.tag === "Attach" ? layers.ghost : layers.raycast
     );
@@ -218,73 +227,42 @@ export class OctreeManager {
     }
 
     const textureWidth = this.atlasData.texture?.image.width ?? 1;
-    const mode = this.getMode();
-    const renderOctree = this.getRenderOctreeForPreview(mode);
-
-    const mainLeaves = renderOctree.countLeaves();
-    const previewLeaves = this.previewOctree.countLeaves();
+    const mainLeaves = this.countLeavesByPredicate((value) => value > 0);
+    const previewLeaves = this.countLeavesByPredicate((value) => value < 0);
 
     this.meshes.main.meshArrays = this.createMeshArrays(mainLeaves);
     this.meshes.preview.meshArrays = this.createMeshArrays(previewLeaves);
 
     this.mesher.buildMesh(
-      renderOctree,
+      this.renderOctree,
       textureWidth,
       this.atlasData.blockAtlasMappings,
-      this.meshes.main.meshArrays
+      this.meshes.main.meshArrays,
+      undefined,
+      {
+        enableCulling: true,
+        valuePredicate: (value) => value > 0,
+        valueTransform: (value) => value,
+        occludesValue: (value) => value > 0,
+      }
     );
 
     this.mesher.buildMesh(
-      this.previewOctree,
+      this.renderOctree,
       textureWidth,
       this.atlasData.blockAtlasMappings,
-      this.meshes.preview.meshArrays
+      this.meshes.preview.meshArrays,
+      undefined,
+      {
+        enableCulling: false,
+        valuePredicate: (value) => value < 0,
+        valueTransform: (value) => Math.abs(value),
+        occludesValue: (value) => value < 0,
+      }
     );
 
     this.updateMainMesh(this.atlasData);
-    this.updatePreviewMesh();
-  }
-
-  private getRenderOctreeForPreview(
-    mode: BlockModificationMode
-  ): SparseVoxelOctree {
-    if (
-      (mode.tag === "Erase" || mode.tag === "Paint") &&
-      !this.previewOctree.isEmpty()
-    ) {
-      const renderVersion = this.renderOctree.getVersion();
-      const previewVersion = this.previewOctree.getVersion();
-      if (
-        this.previewMaskCache &&
-        this.previewMaskCache.renderVersion === renderVersion &&
-        this.previewMaskCache.previewVersion === previewVersion &&
-        this.previewMaskCache.modeTag === mode.tag
-      ) {
-        return this.previewMaskCache.octree;
-      }
-
-      const maskedOctree = this.renderOctree.clone();
-      this.previewOctree.forEachLeaf((leaf) => {
-        if (leaf.value === 0) {
-          return;
-        }
-        maskedOctree.setRegion(
-          leaf.minPos,
-          { x: leaf.size, y: leaf.size, z: leaf.size },
-          0,
-          false
-        );
-      });
-      this.previewMaskCache = {
-        octree: maskedOctree,
-        renderVersion,
-        previewVersion,
-        modeTag: mode.tag,
-      };
-      return maskedOctree;
-    }
-
-    return this.renderOctree;
+    this.updatePreviewMesh(previewLeaves > 0);
   }
 
   public setTextureAtlas(atlasData: AtlasData): void {
@@ -306,8 +284,87 @@ export class OctreeManager {
     this.updateMeshes();
   }
 
-  public setPreview(previewOctree: SparseVoxelOctree): void {
-    this.previewOctree = previewOctree;
+  public clearPreview(updateMeshes: boolean = true): void {
+    if (this.previewOverrides.size === 0) {
+      if (updateMeshes) {
+        this.updateMeshes();
+      }
+      return;
+    }
+
+    for (const entry of this.previewOverrides.values()) {
+      this.renderOctree.set(entry.x, entry.y, entry.z, entry.value);
+    }
+    this.previewOverrides.clear();
+    this.previewMode = null;
+
+    if (updateMeshes) {
+      this.updateMeshes();
+    }
+  }
+
+  public applyPreviewRect(
+    layerIndex: number,
+    mode: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number
+  ): void {
+    const layer = this.getLayer(layerIndex);
+    if (!layer || layer.locked) {
+      return;
+    }
+    const octree = this.layerOctrees.get(layer.id);
+    if (!octree) {
+      return;
+    }
+
+    this.clearPreview(false);
+
+    const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
+    const maxX = Math.min(
+      this.dimensions.x - 1,
+      Math.floor(Math.max(start.x, end.x))
+    );
+    const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
+    const maxY = Math.min(
+      this.dimensions.y - 1,
+      Math.floor(Math.max(start.y, end.y))
+    );
+    const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
+    const maxZ = Math.min(
+      this.dimensions.z - 1,
+      Math.floor(Math.max(start.z, end.z))
+    );
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          const layerValue = octree.get(x, y, z);
+          if (mode.tag !== "Attach" && layerValue === 0) {
+            continue;
+          }
+
+          const key = `${x},${y},${z}`;
+          if (!this.previewOverrides.has(key)) {
+            this.previewOverrides.set(key, {
+              x,
+              y,
+              z,
+              value: this.renderOctree.get(x, y, z),
+            });
+          }
+
+          const previewValue =
+            mode.tag === "Erase"
+              ? -Math.max(layerValue, 1)
+              : -Math.max(blockType, 1);
+          this.renderOctree.set(x, y, z, previewValue);
+        }
+      }
+    }
+
+    this.previewMode = mode;
     this.updateMeshes();
   }
 
@@ -330,6 +387,24 @@ export class OctreeManager {
     return this.meshes.main.mesh;
   }
 
+  private getTopmostValue(x: number, y: number, z: number): number {
+    for (let i = this.layers.length - 1; i >= 0; i--) {
+      const layer = this.layers[i];
+      if (!this.layerVisibilityMap.get(layer.index)) {
+        continue;
+      }
+      const octree = this.layerOctrees.get(layer.id);
+      if (!octree) {
+        continue;
+      }
+      const value = octree.get(x, y, z);
+      if (value !== 0) {
+        return value;
+      }
+    }
+    return 0;
+  }
+
   public applyOptimisticRect(
     layer: Layer,
     mode: BlockModificationMode,
@@ -342,6 +417,7 @@ export class OctreeManager {
     if (layer.locked) return;
     const octree = this.layerOctrees.get(layer.id);
     if (!octree) return;
+    this.clearPreview(false);
 
     const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
     const maxX = Math.min(
@@ -363,24 +439,33 @@ export class OctreeManager {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
           const current = octree.get(x, y, z);
+          let changed = false;
           switch (mode.tag) {
             case "Attach":
               octree.set(x, y, z, blockType);
+              changed = true;
               break;
             case "Erase":
-              octree.set(x, y, z, 0);
+              if (current !== 0) {
+                octree.set(x, y, z, 0);
+                changed = true;
+              }
               break;
             case "Paint":
               if (current !== 0) {
                 octree.set(x, y, z, blockType);
+                changed = true;
               }
               break;
+          }
+
+          if (changed) {
+            this.renderOctree.set(x, y, z, this.getTopmostValue(x, y, z));
           }
         }
       }
     }
 
-    this.rebuildRenderOctree();
     this.updateMeshes();
   }
 
