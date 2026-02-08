@@ -26,6 +26,7 @@ export class OctreeManager {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private renderOctree: SparseVoxelOctree;
+  private readonly previewTextureBlockType = 1;
   private readonly transparentBlockValue = 1_000_000_000;
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
@@ -294,7 +295,7 @@ export class OctreeManager {
         enableCulling: false,
         valuePredicate: (value) => this.isTransparentValue(value),
         // Transparent preview blocks reuse the base texture index to keep the atlas lookup valid.
-        valueTransform: () => 1,
+        valueTransform: () => this.previewTextureBlockType,
         occludesValue: (value) => this.isTransparentValue(value),
       }
     );
@@ -402,9 +403,11 @@ export class OctreeManager {
               previewValue = this.transparentBlockValue;
               break;
             case "Paint":
+              // Paint/Attach previews are real block values stored in the render tree.
               previewValue = Math.max(blockType, 1);
               break;
             case "Attach":
+              // Paint/Attach previews are real block values stored in the render tree.
               previewValue = Math.max(blockType, 1);
               break;
           }
