@@ -17,7 +17,7 @@ function isNeighborInBounds(
   return dir > 0 ? neighborCoord < maxCoord : neighborCoord >= 0;
 }
 
-type VoxelAccess = {
+type VoxelAccessor = {
   get: (x: number, y: number, z: number) => number;
 };
 
@@ -46,7 +46,7 @@ export class ExteriorFacesFinder {
   }
 
   public findExteriorFaces(
-    voxelData: VoxelAccess,
+    voxelData: VoxelAccessor,
     textureWidth: number,
     blockAtlasMappings: number[][],
     dimensions: Vector3,

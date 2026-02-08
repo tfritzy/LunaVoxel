@@ -52,7 +52,7 @@ export class Chunk {
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
   private facesFinder: ExteriorFacesFinder;
-  private voxelAccess: { get: (x: number, y: number, z: number) => number };
+  private voxelAccessor: { get: (x: number, y: number, z: number) => number };
 
   constructor(
     scene: THREE.Scene,
@@ -93,7 +93,7 @@ export class Chunk {
 
     const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
-    this.voxelAccess = {
+    this.voxelAccessor = {
       get: (x: number, y: number, z: number) =>
         this.getMergedBlockValue(x, y, z),
     };
@@ -395,7 +395,7 @@ export class Chunk {
 
   private updateMeshes = (atlasData: AtlasData) => {
     this.facesFinder.findExteriorFaces(
-      this.voxelAccess,
+      this.voxelAccessor,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,
       this.size,

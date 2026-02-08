@@ -189,7 +189,7 @@ export class SparseVoxelOctree {
     const firstChild = node.children[0];
     if (
       firstChild.value !== null &&
-      node.children.every((childEntry) => childEntry.value === firstChild.value)
+      node.children.every((childNode) => childNode.value === firstChild.value)
     ) {
       node.value = firstChild.value;
       node.children = undefined;
