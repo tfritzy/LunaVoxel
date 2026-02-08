@@ -69,7 +69,7 @@ void main() {
     darknessFactor = 0.8;
   }
  
-  vec3 finalColor = textureColor.rgb * darknessFactor * vAO;
+  vec3 finalColor = textureColor.rgb * darknessFactor;
   
   // Apply grid effect (either for selection or regular grid)
   if (vIsSelected > 0.5 || showGrid) {

@@ -43,7 +43,29 @@ export class RectTool implements Tool {
     };
     
     context.previewOctree.clear();
-    context.previewOctree.setRegion(frameMinPos, frameSize, context.selectedBlock);
+
+    if (context.mode.tag === "Attach") {
+      context.previewOctree.setRegion(frameMinPos, frameSize, context.selectedBlock);
+    } else {
+      const position = new THREE.Vector3();
+      for (let x = bounds.minX; x <= bounds.maxX; x++) {
+        for (let y = bounds.minY; y <= bounds.maxY; y++) {
+          for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
+            position.set(x, y, z);
+            const current = context.projectManager.getBlockAtPosition(
+              position,
+              context.selectedLayer
+            );
+            if (current && current > 0) {
+              const previewValue =
+                context.mode.tag === "Paint" ? context.selectedBlock : current;
+              context.previewOctree.set(x, y, z, previewValue);
+            }
+          }
+        }
+      }
+    }
+
     context.projectManager.octreeManager.setPreview(context.previewOctree);
   }
 

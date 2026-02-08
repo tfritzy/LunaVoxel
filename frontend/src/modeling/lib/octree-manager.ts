@@ -194,11 +194,13 @@ export class OctreeManager {
     }
 
     const mode = this.getMode();
-    this.meshes.preview.mesh.visible =
-      mode.tag === "Attach" || mode.tag === "Paint";
+    this.meshes.preview.mesh.visible = true;
     this.meshes.preview.mesh.layers.set(
       mode.tag === "Attach" ? layers.ghost : layers.raycast
     );
+    const previewMaterial = this.meshes.preview.mesh
+      .material as THREE.ShaderMaterial;
+    previewMaterial.uniforms.opacity.value = mode.tag === "Erase" ? 0 : 1;
 
     this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
   }

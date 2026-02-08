@@ -222,6 +222,7 @@ export const Builder = class {
           gridPosition: gridPos,
           mousePosition: this.mouse.clone()
         });
+        this.handleMouseDrag(gridPos);
       }
     }
   }

@@ -1,139 +1,10 @@
-import { calculateOcclusionLevel, FACE_TANGENTS, OCCLUSION_LEVELS } from "./ambient-occlusion";
 import { faces } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
 
 export class OctreeMesher {
-  private faceTangentAxes: { uAxis: "x" | "y" | "z"; vAxis: "x" | "y" | "z" }[];
-
-  constructor() {
-    this.faceTangentAxes = FACE_TANGENTS.map((tangent) => ({
-      uAxis: this.getAxisFromVector(tangent.u),
-      vAxis: this.getAxisFromVector(tangent.v),
-    }));
-  }
-
-  /**
-   * Resolve which axis a tangent vector aligns with (expects a single non-zero component).
-   */
-  private getAxisFromVector(vector: [number, number, number]): "x" | "y" | "z" {
-    if (vector[0] !== 0) return "x";
-    if (vector[1] !== 0) return "y";
-    return "z";
-  }
-
-  /**
-   * Compute the AO sampling coordinate along a face normal.
-   * @param normalComponent The normal component (-1, 0, 1) for the face axis.
-   * @param minCoord The leaf minimum coordinate on that axis.
-   * @param size The leaf size along that axis.
-   * @param cornerCoord The vertex corner coordinate when the face is perpendicular.
-   */
-  private getBaseCoord(
-    normalComponent: number,
-    minCoord: number,
-    size: number,
-    cornerCoord: number
-  ): number {
-    if (normalComponent === 1) return minCoord + size;
-    if (normalComponent === -1) return minCoord - 1;
-    return cornerCoord;
-  }
-
-  /**
-   * Map a vertex component to the minimum or maximum corner coordinate;
-   * non-positive values (≤ 0) map to the minimum corner.
-   */
-  private getCornerCoord(
-    component: number,
-    minCoord: number,
-    size: number
-  ): number {
-    return component > 0 ? minCoord + size : minCoord;
-  }
-
-  /**
-   * Select the corner coordinate for a specific axis.
-   */
-  private getCoordForAxis(
-    axis: "x" | "y" | "z",
-    cornerX: number,
-    cornerY: number,
-    cornerZ: number
-  ): number {
-    switch (axis) {
-      case "x":
-        return cornerX;
-      case "y":
-        return cornerY;
-      case "z":
-        return cornerZ;
-      default:
-        throw new Error(`Unknown axis: ${axis}`);
-    }
-  }
-
-  /**
-   * Determine ambient-occlusion sampling direction based on corner placement.
-   * Returns -1 when the corner is at the minimum coordinate, otherwise 1.
-   */
-  private getDirectionFromCorner(
-    axis: "x" | "y" | "z",
-    cornerCoord: number,
-    minPos: { x: number; y: number; z: number }
-  ): number {
-    const minCoord = this.getCoordForAxis(axis, minPos.x, minPos.y, minPos.z);
-    return cornerCoord <= minCoord ? -1 : 1;
-  }
-
-  /**
-   * Check side and corner occluders to compute AO level for a vertex corner.
-   */
-  private getOcclusionLevel(
-    baseX: number,
-    baseY: number,
-    baseZ: number,
-    uDir: number,
-    vDir: number,
-    tangents: { u: [number, number, number]; v: [number, number, number] },
-    octree: SparseVoxelOctree,
-    occupancy?: { data: Uint8Array; size: number; planeStride: number }
-  ): number {
-    const uOffsetX = uDir * tangents.u[0];
-    const uOffsetY = uDir * tangents.u[1];
-    const uOffsetZ = uDir * tangents.u[2];
-    const vOffsetX = vDir * tangents.v[0];
-    const vOffsetY = vDir * tangents.v[1];
-    const vOffsetZ = vDir * tangents.v[2];
-    const uTangentOcclusion = this.isOccluder(
-      octree,
-      baseX + uOffsetX,
-      baseY + uOffsetY,
-      baseZ + uOffsetZ,
-      occupancy
-    );
-    const vTangentOcclusion = this.isOccluder(
-      octree,
-      baseX + vOffsetX,
-      baseY + vOffsetY,
-      baseZ + vOffsetZ,
-      occupancy
-    );
-    const diagonalOcclusion = this.isOccluder(
-      octree,
-      baseX + uOffsetX + vOffsetX,
-      baseY + uOffsetY + vOffsetY,
-      baseZ + uOffsetZ + vOffsetZ,
-      occupancy
-    );
-
-    return calculateOcclusionLevel(
-      uTangentOcclusion,
-      vTangentOcclusion,
-      diagonalOcclusion
-    );
-  }
+  constructor() {}
 
   private isOccluder(
     octree: SparseVoxelOctree,
@@ -244,9 +115,8 @@ export class OctreeMesher {
     }
   ): void {
     meshArrays.reset();
-    const enableAO = options?.enableAO ?? true;
     const enableCulling = options?.enableCulling ?? true;
-    const occupancy = enableAO || enableCulling ? this.buildOccupancy(octree) : undefined;
+    const occupancy = enableCulling ? this.buildOccupancy(octree) : undefined;
 
     octree.forEachLeaf((leaf) => {
       if (leaf.value === 0) {
@@ -270,8 +140,6 @@ export class OctreeMesher {
         const textureIndex = faceTextures[faceIndex];
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
         const normal = face.normal as [number, number, number];
-        const tangents = FACE_TANGENTS[faceIndex];
-        const { uAxis, vAxis } = this.faceTangentAxes[faceIndex];
 
         if (enableCulling && this.isFaceOccluded(leaf, normal, octree, occupancy)) {
           continue;
@@ -284,55 +152,6 @@ export class OctreeMesher {
           const vx = centerX + vertex[0] * leaf.size;
           const vy = centerY + vertex[1] * leaf.size;
           const vz = centerZ + vertex[2] * leaf.size;
-          const cornerX = this.getCornerCoord(
-            vertex[0],
-            leaf.minPos.x,
-            leaf.size
-          );
-          const cornerY = this.getCornerCoord(
-            vertex[1],
-            leaf.minPos.y,
-            leaf.size
-          );
-          const cornerZ = this.getCornerCoord(
-            vertex[2],
-            leaf.minPos.z,
-            leaf.size
-          );
-          const uCorner = this.getCoordForAxis(uAxis, cornerX, cornerY, cornerZ);
-          const vCorner = this.getCoordForAxis(vAxis, cornerX, cornerY, cornerZ);
-          const uDir = this.getDirectionFromCorner(uAxis, uCorner, leaf.minPos);
-          const vDir = this.getDirectionFromCorner(vAxis, vCorner, leaf.minPos);
-          const baseX = this.getBaseCoord(
-            normal[0],
-            leaf.minPos.x,
-            leaf.size,
-            cornerX
-          );
-          const baseY = this.getBaseCoord(
-            normal[1],
-            leaf.minPos.y,
-            leaf.size,
-            cornerY
-          );
-          const baseZ = this.getBaseCoord(
-            normal[2],
-            leaf.minPos.z,
-            leaf.size,
-            cornerZ
-          );
-          const occlusion = enableAO
-            ? this.getOcclusionLevel(
-                baseX,
-                baseY,
-                baseZ,
-                uDir,
-                vDir,
-                tangents,
-                octree,
-                occupancy
-              )
-            : 0;
 
           meshArrays.pushVertex(vx, vy, vz);
           meshArrays.pushNormal(normal[0], normal[1], normal[2]);
@@ -340,7 +159,7 @@ export class OctreeMesher {
             textureCoords[vi * 2],
             textureCoords[vi * 2 + 1]
           );
-          meshArrays.pushAO(OCCLUSION_LEVELS[occlusion]);
+          meshArrays.pushAO(1);
           meshArrays.pushIsSelected(selectedFlag);
           meshArrays.incrementVertex();
         }
