@@ -35,6 +35,7 @@ export class OctreeManager {
   private previewOverrides: Map<number, { x: number; y: number; z: number; value: number }> =
     new Map();
   private previewMode: BlockModificationMode | null = null;
+  // Cached layer + block metadata to avoid rebuilding the render tree on every state update.
   private lastLayerSignature = "";
   private lastBlocksCount = 0;
 
@@ -80,9 +81,13 @@ export class OctreeManager {
     }
 
     this.layerOctrees = current.layerOctrees;
-    const layerSignature = this.layers
-      .map((layer) => `${layer.id}:${layer.index}:${layer.visible}`)
-      .join("|");
+    const layerSignature = JSON.stringify(
+      this.layers.map((layer) => ({
+        id: layer.id,
+        index: layer.index,
+        visible: layer.visible,
+      }))
+    );
     const blocksCount = current.blocks.faceColors.length;
     const shouldRebuild =
       layerSignature !== this.lastLayerSignature || blocksCount !== this.lastBlocksCount;
@@ -288,6 +293,7 @@ export class OctreeManager {
       {
         enableCulling: false,
         valuePredicate: (value) => this.isTransparentValue(value),
+        // Transparent preview blocks reuse the base texture index to keep the atlas lookup valid.
         valueTransform: () => 1,
         occludesValue: (value) => this.isTransparentValue(value),
       }
