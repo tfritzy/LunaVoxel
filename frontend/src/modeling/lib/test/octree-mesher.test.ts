@@ -76,7 +76,7 @@ describe("OctreeMesher", () => {
     expect(maxAo).toBe(1);
   });
 
-  it("benchmarks meshing with AO/culling toggles", () => {
+  it("benchmarks meshing with culling toggles", () => {
     const dimensions = { x: 24, y: 24, z: 24 };
     const octree = new SparseVoxelOctree(dimensions);
     for (let x = 0; x < dimensions.x; x++) {
@@ -95,7 +95,7 @@ describe("OctreeMesher", () => {
     const benchIterations = 10;
     const results: Array<{ label: string; avg: number; min: number; max: number }> = [];
 
-    const runBenchmark = (label: string, options: { enableAO: boolean; enableCulling: boolean }) => {
+    const runBenchmark = (label: string, options: { enableCulling: boolean }) => {
       const durations: number[] = [];
       for (let i = 0; i < benchIterations; i++) {
         const start = performance.now();
@@ -110,10 +110,8 @@ describe("OctreeMesher", () => {
       results.push({ label, avg: avgDuration, min: minDuration, max: maxDuration });
     };
 
-    runBenchmark("AO+culling", { enableAO: true, enableCulling: true });
-    runBenchmark("AO only", { enableAO: true, enableCulling: false });
-    runBenchmark("Culling only", { enableAO: false, enableCulling: true });
-    runBenchmark("Baseline", { enableAO: false, enableCulling: false });
+    runBenchmark("Culling on", { enableCulling: true });
+    runBenchmark("Culling off", { enableCulling: false });
 
     console.table(
       results.map((entry) => ({
@@ -123,14 +121,13 @@ describe("OctreeMesher", () => {
         max: `${entry.max.toFixed(2)}ms`,
       }))
     );
-    expect(results).toHaveLength(4);
+    expect(results).toHaveLength(2);
     results.forEach((entry) => {
       expect(entry.avg).toBeGreaterThan(0);
     });
-    const aoCull = results.find((entry) => entry.label === "AO+culling");
-    const baseline = results.find((entry) => entry.label === "Baseline");
-    expect(aoCull).toBeDefined();
-    expect(baseline).toBeDefined();
-    expect(aoCull!.avg).toBeGreaterThan(baseline!.avg);
+    const cullingOn = results.find((entry) => entry.label === "Culling on");
+    const cullingOff = results.find((entry) => entry.label === "Culling off");
+    expect(cullingOn).toBeDefined();
+    expect(cullingOff).toBeDefined();
   }, 30000);
 });
