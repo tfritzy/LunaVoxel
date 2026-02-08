@@ -131,7 +131,8 @@ export class OctreeManager {
 
   private coordinateToKey(x: number, y: number, z: number, shiftBits: number): number {
     // Pack 3D coordinates into a single integer using bit shifts.
-    return x | (y << shiftBits) | (z << (shiftBits * 2));
+    const mask = (1 << shiftBits) - 1;
+    return (x & mask) | ((y & mask) << shiftBits) | ((z & mask) << (shiftBits * 2));
   }
 
   private updateMeshGeometry(meshType: MeshType, meshArrays: MeshArrays): void {

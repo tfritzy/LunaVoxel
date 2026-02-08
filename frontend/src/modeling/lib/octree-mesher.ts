@@ -128,8 +128,9 @@ export class OctreeMesher {
     leafMap?: Map<number, OctreeLeaf>,
     leafDepth?: number,
     treeDepth?: number,
-    occludesValue: (value: number) => boolean = (value) => value !== 0
+    occludesValue?: (value: number) => boolean
   ): boolean {
+    const resolvedOccludesValue = occludesValue ?? ((value) => value !== 0);
     const resolvedLeafDepth = leafDepth ?? this.getLog2OfSize(leaf.size);
     const resolvedTreeDepth = treeDepth ?? this.getLog2OfSize(octree.getSize());
     const size = leaf.size;
@@ -148,7 +149,7 @@ export class OctreeMesher {
         resolvedTreeDepth,
         octree,
         leafMap,
-        occludesValue
+        resolvedOccludesValue
       );
       if (neighborOcclusion !== null) {
         return neighborOcclusion;
@@ -156,7 +157,7 @@ export class OctreeMesher {
       const x = normal[0] > 0 ? leaf.minPos.x + size : leaf.minPos.x - 1;
       for (let y = 0; y < size; y++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z, occludesValue)) {
+          if (!this.isOccluder(octree, x, leaf.minPos.y + y, leaf.minPos.z + z, resolvedOccludesValue)) {
             return false;
           }
         }
@@ -179,7 +180,7 @@ export class OctreeMesher {
         resolvedTreeDepth,
         octree,
         leafMap,
-        occludesValue
+        resolvedOccludesValue
       );
       if (neighborOcclusion !== null) {
         return neighborOcclusion;
@@ -187,7 +188,7 @@ export class OctreeMesher {
       const y = normal[1] > 0 ? leaf.minPos.y + size : leaf.minPos.y - 1;
       for (let x = 0; x < size; x++) {
         for (let z = 0; z < size; z++) {
-          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z, occludesValue)) {
+          if (!this.isOccluder(octree, leaf.minPos.x + x, y, leaf.minPos.z + z, resolvedOccludesValue)) {
             return false;
           }
         }
@@ -209,7 +210,7 @@ export class OctreeMesher {
       resolvedTreeDepth,
       octree,
       leafMap,
-      occludesValue
+      resolvedOccludesValue
     );
     if (neighborOcclusion !== null) {
       return neighborOcclusion;
@@ -217,7 +218,7 @@ export class OctreeMesher {
     const z = normal[2] > 0 ? leaf.minPos.z + size : leaf.minPos.z - 1;
     for (let x = 0; x < size; x++) {
       for (let y = 0; y < size; y++) {
-        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z, occludesValue)) {
+        if (!this.isOccluder(octree, leaf.minPos.x + x, leaf.minPos.y + y, z, resolvedOccludesValue)) {
           return false;
         }
       }
