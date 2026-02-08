@@ -82,13 +82,9 @@ export class OctreeManager {
     }
 
     this.layerOctrees = current.layerOctrees;
-    const layerSignature = JSON.stringify(
-      this.layers.map((layer) => ({
-        id: layer.id,
-        index: layer.index,
-        visible: layer.visible,
-      }))
-    );
+    const layerSignature = this.layers
+      .map((layer) => `${layer.id}\u0000${layer.index}\u0000${layer.visible}`)
+      .join("\u0001");
     const blocksCount = current.blocks.faceColors.length;
     const shouldRebuild =
       layerSignature !== this.lastLayerSignature || blocksCount !== this.lastBlocksCount;
@@ -294,7 +290,7 @@ export class OctreeManager {
       {
         enableCulling: false,
         valuePredicate: (value) => this.isTransparentValue(value),
-        // Transparent preview blocks reuse the base texture index to keep the atlas lookup valid.
+        // Transparent preview blocks reuse the preview texture block type to keep the atlas lookup valid.
         valueTransform: () => this.previewTextureBlockType,
         occludesValue: (value) => this.isTransparentValue(value),
       }
@@ -403,9 +399,6 @@ export class OctreeManager {
               previewValue = this.transparentBlockValue;
               break;
             case "Paint":
-              // Paint/Attach previews are real block values stored in the render tree.
-              previewValue = Math.max(blockType, 1);
-              break;
             case "Attach":
               // Paint/Attach previews are real block values stored in the render tree.
               previewValue = Math.max(blockType, 1);
