@@ -68,9 +68,8 @@ export class OctreeMesher {
         return cornerY;
       case "z":
         return cornerZ;
-      default:
-        throw new Error(`Unknown axis: ${axis}`);
     }
+    throw new Error(`Unknown axis: ${axis}`);
   }
 
   /**
@@ -104,25 +103,31 @@ export class OctreeMesher {
     octree: SparseVoxelOctree,
     occupancy?: { data: Uint8Array; size: number; planeStride: number }
   ): number {
+    const uOffsetX = uDir * tangents.u[0];
+    const uOffsetY = uDir * tangents.u[1];
+    const uOffsetZ = uDir * tangents.u[2];
+    const vOffsetX = vDir * tangents.v[0];
+    const vOffsetY = vDir * tangents.v[1];
+    const vOffsetZ = vDir * tangents.v[2];
     const side1 = this.isOccluder(
       octree,
-      baseX + uDir * tangents.u[0],
-      baseY + uDir * tangents.u[1],
-      baseZ + uDir * tangents.u[2],
+      baseX + uOffsetX,
+      baseY + uOffsetY,
+      baseZ + uOffsetZ,
       occupancy
     );
     const side2 = this.isOccluder(
       octree,
-      baseX + vDir * tangents.v[0],
-      baseY + vDir * tangents.v[1],
-      baseZ + vDir * tangents.v[2],
+      baseX + vOffsetX,
+      baseY + vOffsetY,
+      baseZ + vOffsetZ,
       occupancy
     );
     const corner = this.isOccluder(
       octree,
-      baseX + uDir * tangents.u[0] + vDir * tangents.v[0],
-      baseY + uDir * tangents.u[1] + vDir * tangents.v[1],
-      baseZ + uDir * tangents.u[2] + vDir * tangents.v[2],
+      baseX + uOffsetX + vOffsetX,
+      baseY + uOffsetY + vOffsetY,
+      baseZ + uOffsetZ + vOffsetZ,
       occupancy
     );
 
