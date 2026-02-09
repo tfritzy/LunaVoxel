@@ -105,6 +105,42 @@ export class SparseVoxelOctree {
     this.forEachNode(this.root, 0, 0, 0, SparseVoxelOctree.ROOT_SIZE, callback);
   }
 
+  forEachLeaf(
+    callback: (x: number, y: number, z: number, size: number, value: NodeValue) => void
+  ): void {
+    this.forEachLeafNode(this.root, 0, 0, 0, SparseVoxelOctree.ROOT_SIZE, callback);
+  }
+
+  getRegionValue(
+    x: number,
+    y: number,
+    z: number,
+    size: number,
+  ): NodeValue | null | undefined {
+    if (size <= 0) return null;
+    if (
+      x < 0 ||
+      y < 0 ||
+      z < 0 ||
+      x + size > SparseVoxelOctree.ROOT_SIZE ||
+      y + size > SparseVoxelOctree.ROOT_SIZE ||
+      z + size > SparseVoxelOctree.ROOT_SIZE
+    ) {
+      return null;
+    }
+    return this.getAlignedRegionValue(
+      this.root,
+      0,
+      0,
+      0,
+      SparseVoxelOctree.ROOT_SIZE,
+      x,
+      y,
+      z,
+      size,
+    );
+  }
+
   *values(): IterableIterator<VoxelEntry> {
     yield* this.iterateNode(this.root, 0, 0, 0, SparseVoxelOctree.ROOT_SIZE);
   }
@@ -276,6 +312,31 @@ export class SparseVoxelOctree {
     }
   }
 
+  private forEachLeafNode(
+    node: OctreeNode,
+    ox: number,
+    oy: number,
+    oz: number,
+    size: number,
+    callback: (x: number, y: number, z: number, size: number, value: NodeValue) => void,
+  ): void {
+    if (!node.children) {
+      if (!node.value) return;
+      callback(ox, oy, oz, size, node.value);
+      return;
+    }
+
+    const half = size / 2;
+    for (let idx = 0; idx < node.children.length; idx++) {
+      const child = node.children[idx];
+      if (!child) continue;
+      const childOx = ox + (idx & 1 ? half : 0);
+      const childOy = oy + (idx & 2 ? half : 0);
+      const childOz = oz + (idx & 4 ? half : 0);
+      this.forEachLeafNode(child, childOx, childOy, childOz, half, callback);
+    }
+  }
+
   private forEachNode(
     node: OctreeNode,
     ox: number,
@@ -310,6 +371,52 @@ export class SparseVoxelOctree {
       const childOz = oz + (idx & 4 ? half : 0);
       this.forEachNode(child, childOx, childOy, childOz, half, callback);
     }
+  }
+
+  private getAlignedRegionValue(
+    node: OctreeNode | null,
+    ox: number,
+    oy: number,
+    oz: number,
+    size: number,
+    rx: number,
+    ry: number,
+    rz: number,
+    rsize: number,
+  ): NodeValue | null | undefined {
+    if (!node) return null;
+    if (!node.children) return node.value;
+
+    if (rsize === size) {
+      let firstValue: NodeValue | null = null;
+      let initialized = false;
+      const half = size / 2;
+      for (let idx = 0; idx < 8; idx++) {
+        const child = node.children[idx];
+        const childOx = ox + (idx & 1 ? half : 0);
+        const childOy = oy + (idx & 2 ? half : 0);
+        const childOz = oz + (idx & 4 ? half : 0);
+        const childValue = child
+          ? this.getAlignedRegionValue(child, childOx, childOy, childOz, half, childOx, childOy, childOz, half)
+          : null;
+        if (childValue === undefined) return undefined;
+        if (!initialized) {
+          firstValue = childValue;
+          initialized = true;
+        } else if (!SparseVoxelOctree.valuesEqual(firstValue, childValue)) {
+          return undefined;
+        }
+      }
+      return firstValue;
+    }
+
+    const half = size / 2;
+    const idx = (rx >= ox + half ? 1 : 0) + (ry >= oy + half ? 2 : 0) + (rz >= oz + half ? 4 : 0);
+    const child = node.children[idx];
+    const childOx = ox + (idx & 1 ? half : 0);
+    const childOy = oy + (idx & 2 ? half : 0);
+    const childOz = oz + (idx & 4 ? half : 0);
+    return this.getAlignedRegionValue(child, childOx, childOy, childOz, half, rx, ry, rz, rsize);
   }
 
   private cloneNode(node: OctreeNode): OctreeNode {

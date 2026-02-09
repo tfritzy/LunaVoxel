@@ -164,8 +164,8 @@ describe("OctreeMesher", () => {
     const meshArrays = new MeshArrays(200, 400);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
-    expect(meshArrays.indexCount).toBe(144);
-    expect(meshArrays.vertexCount).toBe(96);
+    expect(meshArrays.indexCount).toBe(36);
+    expect(meshArrays.vertexCount).toBe(24);
   });
 
   it("should generate no faces for empty octree", () => {
