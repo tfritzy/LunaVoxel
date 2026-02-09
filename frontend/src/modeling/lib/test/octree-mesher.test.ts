@@ -85,6 +85,21 @@ describe("SparseVoxelOctree", () => {
     expect(entry.invisible).toBe(false);
     expect(entry.ignoreRaycast).toBe(true);
   });
+
+  it("should collapse uniform regions into larger nodes", () => {
+    const octree = new SparseVoxelOctree();
+    for (let x = 0; x < 4; x++) {
+      for (let y = 0; y < 4; y++) {
+        for (let z = 0; z < 4; z++) {
+          octree.set(x, y, z, 2);
+        }
+      }
+    }
+
+    expect(octree.size).toBe(64);
+    expect(octree.nodeCount).toBeLessThan(octree.size);
+    expect(octree.get(3, 3, 3)?.blockType).toBe(2);
+  });
 });
 
 describe("OctreeMesher", () => {
