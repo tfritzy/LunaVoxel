@@ -242,6 +242,21 @@ export class OctreeMesher {
       if (value.blockType <= 0) return;
       const mapping = blockAtlasMappings[value.blockType - 1];
       const aoVal = value.invisible ? 0.0 : 1.0;
+      if (size === 1) {
+        if (ox < 0 || oy < 0 || oz < 0 || ox >= dimX || oy >= dimY || oz >= dimZ) return;
+        if (globalOccupancy[ox][oy][oz] !== OCCUPIED) return;
+        for (let faceDir = 0; faceDir < 6; faceDir++) {
+          const dir = DIRECTION_OFFSETS[faceDir];
+          const nx = ox + dir[0];
+          const ny = oy + dir[1];
+          const nz = oz + dir[2];
+          if (nx >= 0 && nx < dimX && ny >= 0 && ny < dimY && nz >= 0 && nz < dimZ) {
+            if (globalOccupancy[nx][ny][nz] > 0) continue;
+          }
+          emitFace(ox, oy, oz, size, faceDir, mapping, aoVal);
+        }
+        return;
+      }
       for (let faceDir = 0; faceDir < 6; faceDir++) {
         emitFacePatch(ox, oy, oz, size, faceDir, mapping, aoVal);
       }
