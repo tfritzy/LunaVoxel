@@ -53,23 +53,39 @@ export class SparseVoxelOctree {
 
     if (!this.isInBounds(x, y, z)) return;
 
-    const existing = this.get(x, y, z);
     const nextValue: NodeValue = { blockType, invisible, ignoreRaycast };
-    if (existing) {
-      if (SparseVoxelOctree.valuesEqual(nextValue, existing)) return;
-    } else {
+    const previous = this.setNode(
+      this.root,
+      0,
+      0,
+      0,
+      SparseVoxelOctree.ROOT_SIZE,
+      x,
+      y,
+      z,
+      nextValue,
+    );
+    if (!previous) {
       this.voxelCount += 1;
     }
-
-    this.setNode(this.root, 0, 0, 0, SparseVoxelOctree.ROOT_SIZE, x, y, z, nextValue);
   }
 
   delete(x: number, y: number, z: number): void {
     if (!this.isInBounds(x, y, z)) return;
-    const existing = this.get(x, y, z);
-    if (!existing) return;
-    this.voxelCount -= 1;
-    this.setNode(this.root, 0, 0, 0, SparseVoxelOctree.ROOT_SIZE, x, y, z, null);
+    const previous = this.setNode(
+      this.root,
+      0,
+      0,
+      0,
+      SparseVoxelOctree.ROOT_SIZE,
+      x,
+      y,
+      z,
+      null,
+    );
+    if (previous) {
+      this.voxelCount -= 1;
+    }
   }
 
   get size(): number {
@@ -83,6 +99,10 @@ export class SparseVoxelOctree {
   clear(): void {
     this.root = new OctreeNode();
     this.voxelCount = 0;
+  }
+
+  forEachVoxel(callback: (x: number, y: number, z: number, value: NodeValue) => void): void {
+    this.forEachNode(this.root, 0, 0, 0, SparseVoxelOctree.ROOT_SIZE, callback);
   }
 
   *values(): IterableIterator<VoxelEntry> {
@@ -152,18 +172,22 @@ export class SparseVoxelOctree {
     y: number,
     z: number,
     value: NodeValue | null,
-  ): void {
+  ): NodeValue | null {
     if (size === 1) {
+      const previous = node.value;
       node.value = value ? { ...value } : null;
       node.children = null;
-      return;
+      return previous;
     }
 
     const half = size / 2;
     if (node.children === null) {
+      if (!node.value && !value) {
+        return null;
+      }
       if (node.value) {
-        if (value && SparseVoxelOctree.valuesEqual(node.value, value)) return;
-        const childValue = { ...node.value };
+        if (value && SparseVoxelOctree.valuesEqual(node.value, value)) return node.value;
+        const childValue = node.value;
         node.children = Array.from({ length: 8 }, () => new OctreeNode(childValue));
         node.value = null;
       } else {
@@ -182,8 +206,9 @@ export class SparseVoxelOctree {
       node.children[idx] = child;
     }
 
-    this.setNode(child, childOx, childOy, childOz, half, x, y, z, value);
+    const previous = this.setNode(child, childOx, childOy, childOz, half, x, y, z, value);
     this.tryCollapse(node);
+    return previous;
   }
 
   private tryCollapse(node: OctreeNode): void {
@@ -248,6 +273,42 @@ export class SparseVoxelOctree {
       const childOy = oy + (idx & 2 ? half : 0);
       const childOz = oz + (idx & 4 ? half : 0);
       yield* this.iterateNode(child, childOx, childOy, childOz, half);
+    }
+  }
+
+  private forEachNode(
+    node: OctreeNode,
+    ox: number,
+    oy: number,
+    oz: number,
+    size: number,
+    callback: (x: number, y: number, z: number, value: NodeValue) => void,
+  ): void {
+    if (!node.children) {
+      if (!node.value) return;
+      if (size === 1) {
+        callback(ox, oy, oz, node.value);
+        return;
+      }
+      const value = node.value;
+      for (let x = ox; x < ox + size; x++) {
+        for (let y = oy; y < oy + size; y++) {
+          for (let z = oz; z < oz + size; z++) {
+            callback(x, y, z, value);
+          }
+        }
+      }
+      return;
+    }
+
+    const half = size / 2;
+    for (let idx = 0; idx < node.children.length; idx++) {
+      const child = node.children[idx];
+      if (!child) continue;
+      const childOx = ox + (idx & 1 ? half : 0);
+      const childOy = oy + (idx & 2 ? half : 0);
+      const childOz = oz + (idx & 4 ? half : 0);
+      this.forEachNode(child, childOx, childOy, childOz, half, callback);
     }
   }
 

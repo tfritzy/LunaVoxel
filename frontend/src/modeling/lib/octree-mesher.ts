@@ -50,13 +50,12 @@ export class OctreeMesher {
     const dimY = dimX > 0 ? globalOccupancy[0].length : 0;
     const dimZ = dimY > 0 ? globalOccupancy[0][0].length : 0;
 
-    for (const entry of octree.values()) {
-      if (entry.blockType <= 0) continue;
-      const ex = entry.x, ey = entry.y, ez = entry.z;
-      if (ex < dimX && ey < dimY && ez < dimZ && globalOccupancy[ex][ey][ez] === 0) {
-        globalOccupancy[ex][ey][ez] = 2;
+    octree.forEachVoxel((x, y, z, value) => {
+      void value;
+      if (x < dimX && y < dimY && z < dimZ && globalOccupancy[x][y][z] === 0) {
+        globalOccupancy[x][y][z] = 2;
       }
-    }
+    });
 
     const vertices = meshArrays.vertices;
     const normalsArr = meshArrays.normals;
@@ -67,16 +66,12 @@ export class OctreeMesher {
     let vertexCount = 0;
     let indexCount = 0;
 
-    for (const entry of octree.values()) {
-      if (entry.blockType <= 0) continue;
+    octree.forEachVoxel((x, y, z, value) => {
+      if (x >= dimX || y >= dimY || z >= dimZ) return;
+      if (globalOccupancy[x][y][z] !== 2) return;
 
-      const x = entry.x, y = entry.y, z = entry.z;
-
-      if (x >= dimX || y >= dimY || z >= dimZ) continue;
-      if (globalOccupancy[x][y][z] !== 2) continue;
-
-      const aoVal = entry.invisible ? 0.0 : 1.0;
-      const mapping = blockAtlasMappings[entry.blockType - 1];
+      const aoVal = value.invisible ? 0.0 : 1.0;
+      const mapping = blockAtlasMappings[value.blockType - 1];
       const baseX = x + 0.5;
       const baseY = y + 0.5;
       const baseZ = z + 0.5;
@@ -149,7 +144,7 @@ export class OctreeMesher {
         vertexCount += 4;
         indexCount += 6;
       }
-    }
+    });
 
     meshArrays.vertexCount = vertexCount;
     meshArrays.indexCount = indexCount;
