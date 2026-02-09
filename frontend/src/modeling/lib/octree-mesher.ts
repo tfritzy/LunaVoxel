@@ -34,6 +34,15 @@ for (let f = 0; f < 6; f++) {
   }
 }
 
+interface VoxelFace {
+  x: number;
+  y: number;
+  z: number;
+  blockType: number;
+  textureIndex: number;
+  aoVal: number;
+}
+
 export class OctreeMesher {
   buildMesh(
     octree: SparseVoxelOctree,
@@ -67,6 +76,9 @@ export class OctreeMesher {
     let vertexCount = 0;
     let indexCount = 0;
 
+    // Collect visible faces by direction for greedy meshing
+    const facesByDirection: VoxelFace[][] = [[], [], [], [], [], []];
+
     for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
 
@@ -77,9 +89,6 @@ export class OctreeMesher {
 
       const aoVal = entry.invisible ? 0.0 : 1.0;
       const mapping = blockAtlasMappings[entry.blockType - 1];
-      const baseX = x + 0.5;
-      const baseY = y + 0.5;
-      const baseZ = z + 0.5;
 
       for (let faceDir = 0; faceDir < 6; faceDir++) {
         const dir = DIRECTION_OFFSETS[faceDir];
@@ -91,63 +100,215 @@ export class OctreeMesher {
           if (globalOccupancy[nx][ny][nz] > 0) continue;
         }
 
-        const textureCoords = getTexCoordsCached(mapping[faceDir], textureWidth);
-        const fvBase = faceDir * 12;
-        const fnBase = faceDir * 3;
-        const n0 = FACE_NORMALS[fnBase];
-        const n1 = FACE_NORMALS[fnBase + 1];
-        const n2 = FACE_NORMALS[fnBase + 2];
+        facesByDirection[faceDir].push({
+          x, y, z,
+          blockType: entry.blockType,
+          textureIndex: mapping[faceDir],
+          aoVal
+        });
+      }
+    }
 
-        const vOff3 = vertexCount * 3;
-        const vOff2 = vertexCount * 2;
-        const u = textureCoords[0];
-        const v = textureCoords[1];
+    // Greedy mesh each direction
+    for (let faceDir = 0; faceDir < 6; faceDir++) {
+      const faces = facesByDirection[faceDir];
+      if (faces.length === 0) continue;
 
-        // v0
-        vertices[vOff3] = baseX + FACE_VERTS[fvBase];
-        vertices[vOff3 + 1] = baseY + FACE_VERTS[fvBase + 1];
-        vertices[vOff3 + 2] = baseZ + FACE_VERTS[fvBase + 2];
-        normalsArr[vOff3] = n0; normalsArr[vOff3 + 1] = n1; normalsArr[vOff3 + 2] = n2;
-        uvsArr[vOff2] = u; uvsArr[vOff2 + 1] = v;
-        aoArr[vertexCount] = aoVal;
-        isSelectedArr[vertexCount] = 0;
+      const fnBase = faceDir * 3;
+      const n0 = FACE_NORMALS[fnBase];
+      const n1 = FACE_NORMALS[fnBase + 1];
+      const n2 = FACE_NORMALS[fnBase + 2];
 
-        // v1
-        vertices[vOff3 + 3] = baseX + FACE_VERTS[fvBase + 3];
-        vertices[vOff3 + 4] = baseY + FACE_VERTS[fvBase + 4];
-        vertices[vOff3 + 5] = baseZ + FACE_VERTS[fvBase + 5];
-        normalsArr[vOff3 + 3] = n0; normalsArr[vOff3 + 4] = n1; normalsArr[vOff3 + 5] = n2;
-        uvsArr[vOff2 + 2] = u; uvsArr[vOff2 + 3] = v;
-        aoArr[vertexCount + 1] = aoVal;
-        isSelectedArr[vertexCount + 1] = 0;
+      // Determine the axes for this face direction
+      let u_axis: 'x' | 'y' | 'z', v_axis: 'x' | 'y' | 'z', w_axis: 'x' | 'y' | 'z';
+      if (faceDir < 2) { // +X or -X
+        u_axis = 'y'; v_axis = 'z'; w_axis = 'x';
+      } else if (faceDir < 4) { // +Y or -Y
+        u_axis = 'x'; v_axis = 'z'; w_axis = 'y';
+      } else { // +Z or -Z
+        u_axis = 'x'; v_axis = 'y'; w_axis = 'z';
+      }
 
-        // v2
-        vertices[vOff3 + 6] = baseX + FACE_VERTS[fvBase + 6];
-        vertices[vOff3 + 7] = baseY + FACE_VERTS[fvBase + 7];
-        vertices[vOff3 + 8] = baseZ + FACE_VERTS[fvBase + 8];
-        normalsArr[vOff3 + 6] = n0; normalsArr[vOff3 + 7] = n1; normalsArr[vOff3 + 8] = n2;
-        uvsArr[vOff2 + 4] = u; uvsArr[vOff2 + 5] = v;
-        aoArr[vertexCount + 2] = aoVal;
-        isSelectedArr[vertexCount + 2] = 0;
+      // Build a map for quick lookup
+      const faceMap = new Map<string, VoxelFace>();
+      let minU = Infinity, maxU = -Infinity;
+      let minV = Infinity, maxV = -Infinity;
+      let minW = Infinity, maxW = -Infinity;
 
-        // v3
-        vertices[vOff3 + 9] = baseX + FACE_VERTS[fvBase + 9];
-        vertices[vOff3 + 10] = baseY + FACE_VERTS[fvBase + 10];
-        vertices[vOff3 + 11] = baseZ + FACE_VERTS[fvBase + 11];
-        normalsArr[vOff3 + 9] = n0; normalsArr[vOff3 + 10] = n1; normalsArr[vOff3 + 11] = n2;
-        uvsArr[vOff2 + 6] = u; uvsArr[vOff2 + 7] = v;
-        aoArr[vertexCount + 3] = aoVal;
-        isSelectedArr[vertexCount + 3] = 0;
+      for (const face of faces) {
+        const u = face[u_axis];
+        const v = face[v_axis];
+        const w = face[w_axis];
+        const key = `${u},${v},${w}`;
+        faceMap.set(key, face);
+        minU = Math.min(minU, u);
+        maxU = Math.max(maxU, u);
+        minV = Math.min(minV, v);
+        maxV = Math.max(maxV, v);
+        minW = Math.min(minW, w);
+        maxW = Math.max(maxW, w);
+      }
 
-        indicesArr[indexCount] = vertexCount;
-        indicesArr[indexCount + 1] = vertexCount + 1;
-        indicesArr[indexCount + 2] = vertexCount + 2;
-        indicesArr[indexCount + 3] = vertexCount;
-        indicesArr[indexCount + 4] = vertexCount + 2;
-        indicesArr[indexCount + 5] = vertexCount + 3;
+      // Greedy meshing: for each W plane
+      for (let w = minW; w <= maxW; w++) {
+        const mask = new Array((maxU - minU + 1) * (maxV - minV + 1)).fill(null);
+        
+        // Fill mask for this plane
+        for (let u = minU; u <= maxU; u++) {
+          for (let v = minV; v <= maxV; v++) {
+            const voxelCoords = { x: 0, y: 0, z: 0 };
+            voxelCoords[u_axis] = u;
+            voxelCoords[v_axis] = v;
+            voxelCoords[w_axis] = w;
+            const key = `${u},${v},${w}`;
+            const face = faceMap.get(key);
+            if (face) {
+              const maskIdx = (u - minU) + (v - minV) * (maxU - minU + 1);
+              mask[maskIdx] = face;
+            }
+          }
+        }
 
-        vertexCount += 4;
-        indexCount += 6;
+        // Generate quads from mask
+        for (let u = minU; u <= maxU; u++) {
+          for (let v = minV; v <= maxV; v++) {
+            const maskIdx = (u - minU) + (v - minV) * (maxU - minU + 1);
+            const face = mask[maskIdx];
+            if (!face) continue;
+
+            // Compute width (along u axis)
+            let width = 1;
+            for (let uu = u + 1; uu <= maxU; uu++) {
+              const nextIdx = (uu - minU) + (v - minV) * (maxU - minU + 1);
+              const nextFace = mask[nextIdx];
+              if (!nextFace || 
+                  nextFace.blockType !== face.blockType ||
+                  nextFace.textureIndex !== face.textureIndex ||
+                  nextFace.aoVal !== face.aoVal) {
+                break;
+              }
+              width++;
+            }
+
+            // Compute height (along v axis)
+            let height = 1;
+            let done = false;
+            for (let vv = v + 1; vv <= maxV && !done; vv++) {
+              for (let uu = u; uu < u + width; uu++) {
+                const nextIdx = (uu - minU) + (vv - minV) * (maxU - minU + 1);
+                const nextFace = mask[nextIdx];
+                if (!nextFace || 
+                    nextFace.blockType !== face.blockType ||
+                    nextFace.textureIndex !== face.textureIndex ||
+                    nextFace.aoVal !== face.aoVal) {
+                  done = true;
+                  break;
+                }
+              }
+              if (!done) height++;
+            }
+
+            // Clear the processed faces from mask
+            for (let vv = v; vv < v + height; vv++) {
+              for (let uu = u; uu < u + width; uu++) {
+                const idx = (uu - minU) + (vv - minV) * (maxU - minU + 1);
+                mask[idx] = null;
+              }
+            }
+
+            // Add merged quad
+            const x = face.x;
+            const y = face.y;
+            const z = face.z;
+            
+            const textureCoords = getTexCoordsCached(face.textureIndex, textureWidth);
+            const texU = textureCoords[0];
+            const texV = textureCoords[1];
+
+            // Generate vertices for the merged quad
+            const vOff3 = vertexCount * 3;
+            const vOff2 = vertexCount * 2;
+
+            const fvBase = faceDir * 12;
+            const baseX = x + 0.5;
+            const baseY = y + 0.5;
+            const baseZ = z + 0.5;
+
+            // Scale vertices to match quad size
+            const v0 = [FACE_VERTS[fvBase], FACE_VERTS[fvBase + 1], FACE_VERTS[fvBase + 2]];
+            const v1 = [FACE_VERTS[fvBase + 3], FACE_VERTS[fvBase + 4], FACE_VERTS[fvBase + 5]];
+            const v2 = [FACE_VERTS[fvBase + 6], FACE_VERTS[fvBase + 7], FACE_VERTS[fvBase + 8]];
+            const v3 = [FACE_VERTS[fvBase + 9], FACE_VERTS[fvBase + 10], FACE_VERTS[fvBase + 11]];
+
+            // Apply width and height scaling based on face direction
+            const axisToIdx = (axis: 'x' | 'y' | 'z') => axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+            const u_idx = axisToIdx(u_axis);
+            const v_idx = axisToIdx(v_axis);
+            
+            v1[u_idx] += width - 1;
+            v2[u_idx] += width - 1;
+            v2[v_idx] += height - 1;
+            v3[v_idx] += height - 1;
+
+            // v0
+            vertices[vOff3] = baseX + v0[0];
+            vertices[vOff3 + 1] = baseY + v0[1];
+            vertices[vOff3 + 2] = baseZ + v0[2];
+            normalsArr[vOff3] = n0;
+            normalsArr[vOff3 + 1] = n1;
+            normalsArr[vOff3 + 2] = n2;
+            uvsArr[vOff2] = texU;
+            uvsArr[vOff2 + 1] = texV;
+            aoArr[vertexCount] = face.aoVal;
+            isSelectedArr[vertexCount] = 0;
+
+            // v1
+            vertices[vOff3 + 3] = baseX + v1[0];
+            vertices[vOff3 + 4] = baseY + v1[1];
+            vertices[vOff3 + 5] = baseZ + v1[2];
+            normalsArr[vOff3 + 3] = n0;
+            normalsArr[vOff3 + 4] = n1;
+            normalsArr[vOff3 + 5] = n2;
+            uvsArr[vOff2 + 2] = texU;
+            uvsArr[vOff2 + 3] = texV;
+            aoArr[vertexCount + 1] = face.aoVal;
+            isSelectedArr[vertexCount + 1] = 0;
+
+            // v2
+            vertices[vOff3 + 6] = baseX + v2[0];
+            vertices[vOff3 + 7] = baseY + v2[1];
+            vertices[vOff3 + 8] = baseZ + v2[2];
+            normalsArr[vOff3 + 6] = n0;
+            normalsArr[vOff3 + 7] = n1;
+            normalsArr[vOff3 + 8] = n2;
+            uvsArr[vOff2 + 4] = texU;
+            uvsArr[vOff2 + 5] = texV;
+            aoArr[vertexCount + 2] = face.aoVal;
+            isSelectedArr[vertexCount + 2] = 0;
+
+            // v3
+            vertices[vOff3 + 9] = baseX + v3[0];
+            vertices[vOff3 + 10] = baseY + v3[1];
+            vertices[vOff3 + 11] = baseZ + v3[2];
+            normalsArr[vOff3 + 9] = n0;
+            normalsArr[vOff3 + 10] = n1;
+            normalsArr[vOff3 + 11] = n2;
+            uvsArr[vOff2 + 6] = texU;
+            uvsArr[vOff2 + 7] = texV;
+            aoArr[vertexCount + 3] = face.aoVal;
+            isSelectedArr[vertexCount + 3] = 0;
+
+            indicesArr[indexCount] = vertexCount;
+            indicesArr[indexCount + 1] = vertexCount + 1;
+            indicesArr[indexCount + 2] = vertexCount + 2;
+            indicesArr[indexCount + 3] = vertexCount;
+            indicesArr[indexCount + 4] = vertexCount + 2;
+            indicesArr[indexCount + 5] = vertexCount + 3;
+
+            vertexCount += 4;
+            indexCount += 6;
+          }
+        }
       }
     }
 

@@ -111,8 +111,8 @@ describe("OctreeMesher", () => {
     const meshArrays = new MeshArrays(100, 200);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
-    expect(meshArrays.vertexCount).toBe(40);
-    expect(meshArrays.indexCount).toBe(60);
+    expect(meshArrays.vertexCount).toBe(24);
+    expect(meshArrays.indexCount).toBe(36);
   });
 
   it("should cull all interior faces for a 2x2x2 solid cube", () => {
@@ -126,8 +126,8 @@ describe("OctreeMesher", () => {
     const meshArrays = new MeshArrays(200, 400);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
-    expect(meshArrays.indexCount).toBe(144);
-    expect(meshArrays.vertexCount).toBe(96);
+    expect(meshArrays.indexCount).toBe(36);
+    expect(meshArrays.vertexCount).toBe(24);
   });
 
   it("should generate no faces for empty octree", () => {
@@ -149,8 +149,8 @@ describe("OctreeMesher", () => {
     const meshArrays = new MeshArrays(100, 200);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
-    expect(meshArrays.vertexCount).toBe(40);
-    expect(meshArrays.indexCount).toBe(60);
+    expect(meshArrays.vertexCount).toBe(24);
+    expect(meshArrays.indexCount).toBe(36);
   });
 
   it("should generate faces for invisible block with ao=0", () => {
