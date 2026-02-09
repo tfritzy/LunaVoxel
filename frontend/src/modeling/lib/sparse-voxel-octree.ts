@@ -50,7 +50,7 @@ export class SparseVoxelOctree {
   clone(): SparseVoxelOctree {
     const copy = new SparseVoxelOctree();
     for (const v of this.data.values()) {
-      copy.data.set(SparseVoxelOctree.key(v.x, v.y, v.z), { x: v.x, y: v.y, z: v.z, blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
+      copy.data.set(SparseVoxelOctree.key(v.x, v.y, v.z), { ...v });
     }
     return copy;
   }
@@ -58,7 +58,7 @@ export class SparseVoxelOctree {
   mergeFrom(other: SparseVoxelOctree): void {
     for (const v of other.data.values()) {
       if (v.blockType !== 0) {
-        this.data.set(SparseVoxelOctree.key(v.x, v.y, v.z), { x: v.x, y: v.y, z: v.z, blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
+        this.data.set(SparseVoxelOctree.key(v.x, v.y, v.z), { ...v });
       }
     }
   }
