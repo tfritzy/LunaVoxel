@@ -6,7 +6,7 @@ import type {
   ProjectBlocks,
   Vector3,
 } from "./types";
-import { SparseVoxelOctree, BLOCK_TYPE_MASK } from "@/modeling/lib/sparse-voxel-octree";
+import { SparseVoxelOctree } from "@/modeling/lib/sparse-voxel-octree";
 
 export type GlobalState = {
   project: Project;
@@ -175,12 +175,11 @@ const reducers: Reducers = {
       current.blocks.faceColors.splice(zeroBasedIndex, 1);
 
       for (const octree of current.layerOctrees.values()) {
-        for (const [key, value] of octree.entries()) {
-          const bt = value & BLOCK_TYPE_MASK;
-          if (bt === blockIndex) {
+        for (const [key, entry] of octree.entries()) {
+          if (entry.blockType === blockIndex) {
             octree.setByKey(key, replacementBlockType);
-          } else if (bt > blockIndex) {
-            octree.setByKey(key, bt - 1);
+          } else if (entry.blockType > blockIndex) {
+            octree.setByKey(key, entry.blockType - 1);
           }
         }
       }

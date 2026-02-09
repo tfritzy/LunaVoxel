@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode, Layer, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { AtlasData } from "@/lib/useAtlas";
-import { SparseVoxelOctree, BLOCK_TYPE_MASK, INVISIBLE_FLAG } from "./sparse-voxel-octree";
+import { SparseVoxelOctree } from "./sparse-voxel-octree";
 import { OctreeMesher } from "./octree-mesher";
 import { MeshArrays } from "./mesh-arrays";
 import { createVoxelMaterial } from "./shader";
@@ -13,6 +13,25 @@ interface LayerMesh {
   material: THREE.ShaderMaterial;
   meshArrays: MeshArrays;
   mesher: OctreeMesher;
+}
+
+export function allocateOccupancy(dims: Vector3): Uint8Array[][] {
+  const occ: Uint8Array[][] = new Array(dims.x);
+  for (let x = 0; x < dims.x; x++) {
+    occ[x] = new Array(dims.y);
+    for (let y = 0; y < dims.y; y++) {
+      occ[x][y] = new Uint8Array(dims.z);
+    }
+  }
+  return occ;
+}
+
+export function clearOccupancy(occ: Uint8Array[][], dims: Vector3): void {
+  for (let x = 0; x < dims.x; x++) {
+    for (let y = 0; y < dims.y; y++) {
+      occ[x][y].fill(0);
+    }
+  }
 }
 
 export class OctreeManager {
@@ -26,9 +45,7 @@ export class OctreeManager {
   private previewTree: SparseVoxelOctree = new SparseVoxelOctree();
   private previewLayerId: string | null = null;
 
-  private globalOccupancy: Uint8Array;
-  private globalStrideX: number;
-  private globalStrideY: number;
+  private globalOccupancy: Uint8Array[][];
 
   private atlasData: AtlasData | undefined;
   private unsubscribe?: () => void;
@@ -44,9 +61,7 @@ export class OctreeManager {
     this.stateStore = stateStore;
     this.projectId = projectId;
 
-    this.globalStrideY = dimensions.z;
-    this.globalStrideX = dimensions.y * dimensions.z;
-    this.globalOccupancy = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+    this.globalOccupancy = allocateOccupancy(dimensions);
 
     this.syncLayers();
     this.unsubscribe = this.stateStore.subscribe(this.onStateChange);
@@ -81,10 +96,12 @@ export class OctreeManager {
     this.remesh();
   };
 
-  public setPreview(
+  public setPreviewRect(
     mode: BlockModificationMode,
     layerIndex: number,
-    positions: { x: number; y: number; z: number; value: number }[]
+    start: Vector3,
+    end: Vector3,
+    blockType: number,
   ): void {
     const layer = this.getLayer(layerIndex);
     if (!layer) return;
@@ -99,26 +116,37 @@ export class OctreeManager {
       this.previewTree.mergeFrom(layerOctree);
     }
 
+    const dims = this.dimensions;
+    const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
+    const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
+    const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
+    const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
+    const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
+    const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
+
     switch (mode.tag) {
       case "Attach":
-        for (const pos of positions) {
-          this.previewTree.set(pos.x, pos.y, pos.z, pos.value);
-        }
+        for (let x = minX; x <= maxX; x++)
+          for (let y = minY; y <= maxY; y++)
+            for (let z = minZ; z <= maxZ; z++)
+              this.previewTree.set(x, y, z, blockType);
         break;
       case "Paint":
-        for (const pos of positions) {
-          if (this.previewTree.has(pos.x, pos.y, pos.z)) {
-            this.previewTree.set(pos.x, pos.y, pos.z, pos.value);
-          }
-        }
+        for (let x = minX; x <= maxX; x++)
+          for (let y = minY; y <= maxY; y++)
+            for (let z = minZ; z <= maxZ; z++)
+              if (this.previewTree.has(x, y, z))
+                this.previewTree.set(x, y, z, blockType);
         break;
       case "Erase":
-        for (const pos of positions) {
-          if (this.previewTree.has(pos.x, pos.y, pos.z)) {
-            const bt = SparseVoxelOctree.blockType(this.previewTree.get(pos.x, pos.y, pos.z));
-            this.previewTree.set(pos.x, pos.y, pos.z, bt | INVISIBLE_FLAG);
-          }
-        }
+        for (let x = minX; x <= maxX; x++)
+          for (let y = minY; y <= maxY; y++)
+            for (let z = minZ; z <= maxZ; z++) {
+              const existing = this.previewTree.get(x, y, z);
+              if (existing) {
+                this.previewTree.set(x, y, z, existing.blockType, true);
+              }
+            }
         break;
     }
 
@@ -139,7 +167,8 @@ export class OctreeManager {
     const current = this.stateStore.getState();
     const octree = current.layerOctrees.get(_layer.id);
     if (!octree) return 0;
-    return SparseVoxelOctree.blockType(octree.get(x, y, z)) || 0;
+    const entry = octree.get(x, y, z);
+    return entry ? entry.blockType : 0;
   }
 
   public getLayerMeshes(): Map<string, THREE.Mesh> {
@@ -164,7 +193,7 @@ export class OctreeManager {
     const blockAtlasMappings = this.atlasData.blockAtlasMappings;
     const current = this.stateStore.getState();
 
-    this.globalOccupancy.fill(0);
+    clearOccupancy(this.globalOccupancy, this.dimensions);
 
     const activeLayerIds = new Set<string>();
 
@@ -199,8 +228,6 @@ export class OctreeManager {
         blockAtlasMappings,
         lm.meshArrays,
         this.globalOccupancy,
-        this.globalStrideX,
-        this.globalStrideY,
       );
       this.applyMeshArrays(lm.geometry, lm.meshArrays);
       lm.mesh.visible = lm.meshArrays.vertexCount > 0;

@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
-import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
@@ -25,22 +24,13 @@ export class RectTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    const bounds = calculateRectBounds(
-      event.startGridPosition, 
-      event.currentGridPosition, 
-      context.dimensions
+    context.projectManager.octreeManager.setPreviewRect(
+      context.mode,
+      context.selectedLayer,
+      event.startGridPosition,
+      event.currentGridPosition,
+      context.selectedBlock,
     );
-
-    const positions: { x: number; y: number; z: number; value: number }[] = [];
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          positions.push({ x, y, z, value: context.selectedBlock });
-        }
-      }
-    }
-
-    context.projectManager.octreeManager.setPreview(context.mode, context.selectedLayer, positions);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {

@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { SparseVoxelOctree, INVISIBLE_FLAG } from "../sparse-voxel-octree";
+import { SparseVoxelOctree } from "../sparse-voxel-octree";
 import { OctreeMesher } from "../octree-mesher";
 import { MeshArrays } from "../mesh-arrays";
+import { allocateOccupancy, clearOccupancy } from "../octree-manager";
 
 function createBlockAtlasMappings(numBlocks: number): number[][] {
   const mappings: number[][] = [];
@@ -11,19 +12,27 @@ function createBlockAtlasMappings(numBlocks: number): number[][] {
   return mappings;
 }
 
+const TEST_DIMS = { x: 128, y: 128, z: 128 };
+
+function makeOccupancy(dims = TEST_DIMS): Uint8Array[][] {
+  return allocateOccupancy(dims);
+}
+
 describe("SparseVoxelOctree", () => {
   it("should set and get values", () => {
     const octree = new SparseVoxelOctree();
     octree.set(1, 2, 3, 5);
-    expect(octree.get(1, 2, 3)).toBe(5);
-    expect(octree.get(0, 0, 0)).toBe(0);
+    const entry = octree.get(1, 2, 3);
+    expect(entry).not.toBeNull();
+    expect(entry!.blockType).toBe(5);
+    expect(octree.get(0, 0, 0)).toBeNull();
   });
 
   it("should delete values", () => {
     const octree = new SparseVoxelOctree();
     octree.set(1, 2, 3, 5);
     octree.delete(1, 2, 3);
-    expect(octree.get(1, 2, 3)).toBe(0);
+    expect(octree.get(1, 2, 3)).toBeNull();
     expect(octree.size).toBe(0);
   });
 
@@ -40,9 +49,9 @@ describe("SparseVoxelOctree", () => {
     const octree = new SparseVoxelOctree();
     octree.set(1, 2, 3, 5);
     const clone = octree.clone();
-    expect(clone.get(1, 2, 3)).toBe(5);
+    expect(clone.get(1, 2, 3)!.blockType).toBe(5);
     clone.set(1, 2, 3, 10);
-    expect(octree.get(1, 2, 3)).toBe(5);
+    expect(octree.get(1, 2, 3)!.blockType).toBe(5);
   });
 
   it("should merge correctly", () => {
@@ -52,22 +61,26 @@ describe("SparseVoxelOctree", () => {
     b.set(1, 0, 0, 2);
     b.set(0, 0, 0, 3);
     a.mergeFrom(b);
-    expect(a.get(0, 0, 0)).toBe(3);
-    expect(a.get(1, 0, 0)).toBe(2);
+    expect(a.get(0, 0, 0)!.blockType).toBe(3);
+    expect(a.get(1, 0, 0)!.blockType).toBe(2);
   });
 
   it("should support invisible flag", () => {
-    const value = SparseVoxelOctree.makeValue(5, true, false);
-    expect(SparseVoxelOctree.blockType(value)).toBe(5);
-    expect(SparseVoxelOctree.isInvisible(value)).toBe(true);
-    expect(SparseVoxelOctree.isIgnoreRaycast(value)).toBe(false);
+    const octree = new SparseVoxelOctree();
+    octree.set(1, 2, 3, 5, true, false);
+    const entry = octree.get(1, 2, 3)!;
+    expect(entry.blockType).toBe(5);
+    expect(entry.invisible).toBe(true);
+    expect(entry.ignoreRaycast).toBe(false);
   });
 
   it("should support ignoreRaycast flag", () => {
-    const value = SparseVoxelOctree.makeValue(3, false, true);
-    expect(SparseVoxelOctree.blockType(value)).toBe(3);
-    expect(SparseVoxelOctree.isInvisible(value)).toBe(false);
-    expect(SparseVoxelOctree.isIgnoreRaycast(value)).toBe(true);
+    const octree = new SparseVoxelOctree();
+    octree.set(1, 2, 3, 3, false, true);
+    const entry = octree.get(1, 2, 3)!;
+    expect(entry.blockType).toBe(3);
+    expect(entry.invisible).toBe(false);
+    expect(entry.ignoreRaycast).toBe(true);
   });
 });
 
@@ -78,8 +91,9 @@ describe("OctreeMesher", () => {
     const octree = new SparseVoxelOctree();
     octree.set(0, 0, 0, 1);
 
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(24, 36);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(24);
     expect(meshArrays.indexCount).toBe(36);
@@ -90,8 +104,9 @@ describe("OctreeMesher", () => {
     octree.set(0, 0, 0, 1);
     octree.set(1, 0, 0, 1);
 
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
@@ -104,8 +119,9 @@ describe("OctreeMesher", () => {
         for (let z = 0; z < 2; z++)
           octree.set(x, y, z, 1);
 
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(200, 400);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.indexCount).toBe(144);
     expect(meshArrays.vertexCount).toBe(96);
@@ -113,8 +129,9 @@ describe("OctreeMesher", () => {
 
   it("should generate no faces for empty octree", () => {
     const octree = new SparseVoxelOctree();
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(24, 36);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(0);
     expect(meshArrays.indexCount).toBe(0);
@@ -125,8 +142,9 @@ describe("OctreeMesher", () => {
     octree.set(0, 0, 0, 1);
     octree.set(1, 0, 0, 1);
 
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
@@ -134,10 +152,11 @@ describe("OctreeMesher", () => {
 
   it("should generate faces for invisible block with ao=0", () => {
     const octree = new SparseVoxelOctree();
-    octree.set(0, 0, 0, 1 | INVISIBLE_FLAG);
+    octree.set(0, 0, 0, 1, true);
 
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(24, 36);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(24);
     expect(meshArrays.indexCount).toBe(36);
@@ -149,10 +168,11 @@ describe("OctreeMesher", () => {
   it("should cull faces between normal blocks and invisible blocks", () => {
     const octree = new SparseVoxelOctree();
     octree.set(0, 0, 0, 1);
-    octree.set(1, 0, 0, 1 | INVISIBLE_FLAG);
+    octree.set(1, 0, 0, 1, true);
 
+    const occ = makeOccupancy();
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
@@ -163,13 +183,12 @@ describe("OctreeMesher", () => {
     octree.set(0, 0, 0, 1);
     octree.set(1, 0, 0, 1);
 
-    const globalOccupancy = new Uint8Array(8 * 8 * 8);
-    const gStrideX = 8 * 8;
-    const gStrideY = 8;
-    globalOccupancy[0 * gStrideX + 0 * gStrideY + 0] = 1;
+    const dims = { x: 8, y: 8, z: 8 };
+    const occ = makeOccupancy(dims);
+    occ[0][0][0] = 1;
 
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, globalOccupancy, gStrideX, gStrideY);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
 
     expect(meshArrays.vertexCount).toBe(20);
     expect(meshArrays.indexCount).toBe(30);
@@ -185,13 +204,15 @@ describe("OctreeMesher", () => {
 
       const maxFaces = 64 * 64 * 6 * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const dims = { x: 66, y: 66, z: 66 };
 
       const iterations = 5;
       const durations: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
+        const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
         durations.push(performance.now() - start);
       }
 
@@ -215,13 +236,15 @@ describe("OctreeMesher", () => {
 
       const maxFaces = octree.size * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const dims = { x: 66, y: 66, z: 66 };
 
       const iterations = 5;
       const durations: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
+        const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
         durations.push(performance.now() - start);
       }
 
@@ -244,13 +267,15 @@ describe("OctreeMesher", () => {
 
       const maxFaces = 128 * 128 * 6 * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const dims = { x: 130, y: 130, z: 130 };
 
       const iterations = 3;
       const durations: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
+        const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
         durations.push(performance.now() - start);
       }
 
@@ -274,13 +299,15 @@ describe("OctreeMesher", () => {
 
       const maxFaces = octree.size * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const dims = { x: 130, y: 130, z: 130 };
 
       const iterations = 3;
       const durations: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
+        const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
         durations.push(performance.now() - start);
       }
 
@@ -315,19 +342,16 @@ describe("OctreeMesher", () => {
       const meshArrays2 = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const mesher1 = new OctreeMesher();
       const mesher2 = new OctreeMesher();
-
-      const globalOcc = new Uint8Array(64 * 64 * 64);
-      const gStrideX = 64 * 64;
-      const gStrideY = 64;
+      const dims = { x: 66, y: 66, z: 66 };
 
       const iterations = 5;
       const durations: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
-        globalOcc.fill(0);
+        const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher1.buildMesh(layer2, 4, createBlockAtlasMappings(3), meshArrays1, globalOcc, gStrideX, gStrideY);
-        mesher2.buildMesh(layer1, 4, createBlockAtlasMappings(3), meshArrays2, globalOcc, gStrideX, gStrideY);
+        mesher1.buildMesh(layer2, 4, createBlockAtlasMappings(3), meshArrays1, occ);
+        mesher2.buildMesh(layer1, 4, createBlockAtlasMappings(3), meshArrays2, occ);
         durations.push(performance.now() - start);
       }
 

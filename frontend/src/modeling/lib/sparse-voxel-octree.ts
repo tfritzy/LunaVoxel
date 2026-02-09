@@ -1,9 +1,11 @@
-export const BLOCK_TYPE_MASK = 0xff;
-export const INVISIBLE_FLAG = 0x100;
-export const IGNORE_RAYCAST_FLAG = 0x200;
+export interface VoxelEntry {
+  blockType: number;
+  invisible: boolean;
+  ignoreRaycast: boolean;
+}
 
 export class SparseVoxelOctree {
-  private data: Map<number, number> = new Map();
+  private data: Map<number, VoxelEntry> = new Map();
 
   static packKey(x: number, y: number, z: number): number {
     return x | (y << 10) | (z << 20);
@@ -13,42 +15,19 @@ export class SparseVoxelOctree {
     return [key & 0x3ff, (key >> 10) & 0x3ff, (key >> 20) & 0x3ff];
   }
 
-  static blockType(value: number): number {
-    return value & BLOCK_TYPE_MASK;
-  }
-
-  static isInvisible(value: number): boolean {
-    return (value & INVISIBLE_FLAG) !== 0;
-  }
-
-  static isIgnoreRaycast(value: number): boolean {
-    return (value & IGNORE_RAYCAST_FLAG) !== 0;
-  }
-
-  static makeValue(
-    blockType: number,
-    invisible: boolean = false,
-    ignoreRaycast: boolean = false,
-  ): number {
-    let v = blockType & BLOCK_TYPE_MASK;
-    if (invisible) v |= INVISIBLE_FLAG;
-    if (ignoreRaycast) v |= IGNORE_RAYCAST_FLAG;
-    return v;
-  }
-
-  get(x: number, y: number, z: number): number {
-    return this.data.get(SparseVoxelOctree.packKey(x, y, z)) ?? 0;
+  get(x: number, y: number, z: number): VoxelEntry | null {
+    return this.data.get(SparseVoxelOctree.packKey(x, y, z)) ?? null;
   }
 
   has(x: number, y: number, z: number): boolean {
     return this.data.has(SparseVoxelOctree.packKey(x, y, z));
   }
 
-  set(x: number, y: number, z: number, value: number): void {
-    if ((value & BLOCK_TYPE_MASK) === 0) {
+  set(x: number, y: number, z: number, blockType: number, invisible = false, ignoreRaycast = false): void {
+    if (blockType === 0) {
       this.data.delete(SparseVoxelOctree.packKey(x, y, z));
     } else {
-      this.data.set(SparseVoxelOctree.packKey(x, y, z), value);
+      this.data.set(SparseVoxelOctree.packKey(x, y, z), { blockType, invisible, ignoreRaycast });
     }
   }
 
@@ -64,7 +43,7 @@ export class SparseVoxelOctree {
     this.data.clear();
   }
 
-  entries(): IterableIterator<[number, number]> {
+  entries(): IterableIterator<[number, VoxelEntry]> {
     return this.data.entries();
   }
 
@@ -75,32 +54,24 @@ export class SparseVoxelOctree {
   clone(): SparseVoxelOctree {
     const copy = new SparseVoxelOctree();
     for (const [k, v] of this.data) {
-      copy.data.set(k, v);
+      copy.data.set(k, { blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
     }
     return copy;
   }
 
   mergeFrom(other: SparseVoxelOctree): void {
     for (const [k, v] of other.data) {
-      if ((v & BLOCK_TYPE_MASK) !== 0) {
-        this.data.set(k, v);
+      if (v.blockType !== 0) {
+        this.data.set(k, { blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
       }
     }
   }
 
-  hasKey(key: number): boolean {
-    return this.data.has(key);
-  }
-
-  getByKey(key: number): number {
-    return this.data.get(key) ?? 0;
-  }
-
-  setByKey(key: number, value: number): void {
-    if ((value & BLOCK_TYPE_MASK) === 0) {
+  setByKey(key: number, blockType: number, invisible = false, ignoreRaycast = false): void {
+    if (blockType === 0) {
       this.data.delete(key);
     } else {
-      this.data.set(key, value);
+      this.data.set(key, { blockType, invisible, ignoreRaycast });
     }
   }
 }

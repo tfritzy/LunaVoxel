@@ -13,7 +13,6 @@ describe("Tool Interface", () => {
   let mockContext: ToolContext;
   let lastPreviewMode: string = "";
   let lastPreviewLayerIndex: number = -1;
-  let lastPreviewPositions: { x: number; y: number; z: number; value: number }[] = [];
   let clearPreviewCalled = false;
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
   const attachMode: BlockModificationMode = { tag: "Attach" };
@@ -23,7 +22,6 @@ describe("Tool Interface", () => {
   beforeEach(() => {
     lastPreviewMode = "";
     lastPreviewLayerIndex = -1;
-    lastPreviewPositions = [];
     clearPreviewCalled = false;
     const camera = new THREE.PerspectiveCamera();
     camera.position.set(10, 10, 10);
@@ -54,10 +52,9 @@ describe("Tool Interface", () => {
       projectManager: {
         getBlockAtPosition: () => 1,
         octreeManager: {
-          setPreview: (mode: BlockModificationMode, layerIndex: number, positions: { x: number; y: number; z: number; value: number }[]) => {
+          setPreviewRect: (mode: BlockModificationMode, layerIndex: number) => {
             lastPreviewMode = mode.tag;
             lastPreviewLayerIndex = layerIndex;
-            lastPreviewPositions = positions;
           },
           clearPreview: () => {
             clearPreviewCalled = true;
@@ -141,11 +138,7 @@ describe("Tool Interface", () => {
       });
       
       expect(lastPreviewMode).toBe("Attach");
-      expect(lastPreviewPositions.length).toBeGreaterThan(0);
-      const hasBlock = lastPreviewPositions.some(
-        (p) => p.x === 1 && p.y === 2 && p.z === 3
-      );
-      expect(hasBlock).toBe(true);
+      expect(lastPreviewLayerIndex).toBe(0);
     });
   });
 
