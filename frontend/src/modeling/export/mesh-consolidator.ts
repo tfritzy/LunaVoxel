@@ -1,4 +1,4 @@
-import { ChunkManager } from "../lib/chunk-manager";
+import { OctreeManager } from "../lib/octree-manager";
 
 export interface ConsolidatedMesh {
   vertices: number[];
@@ -8,14 +8,14 @@ export interface ConsolidatedMesh {
 }
 
 export class MeshConsolidator {
-  private chunkManager: ChunkManager;
+  private octreeManager: OctreeManager;
   private worldDimensions: { x: number; y: number; z: number };
 
   constructor(
-    chunkManager: ChunkManager,
+    octreeManager: OctreeManager,
     worldDimensions: { x: number; y: number; z: number }
   ) {
-    this.chunkManager = chunkManager;
+    this.octreeManager = octreeManager;
     this.worldDimensions = worldDimensions;
   }
 
@@ -25,36 +25,25 @@ export class MeshConsolidator {
     const uvs: number[] = [];
     const indices: number[] = [];
 
-    let vertexOffset = 0;
-
     const centerOffset = {
       x: this.worldDimensions.x / 2,
       y: 0,
       z: this.worldDimensions.z / 2,
     };
 
-    for (const chunk of this.chunkManager.getChunks()) {
-      const chunkMesh = chunk.getMesh();
-      if (!chunkMesh || !chunkMesh.geometry) continue;
+    const layerMeshes = this.octreeManager.getLayerMeshes();
+    for (const mesh of layerMeshes.values()) {
+      if (!mesh || !mesh.geometry || !mesh.visible) continue;
 
-      const geometry = chunkMesh.geometry;
-
+      const geometry = mesh.geometry;
       const positionAttribute = geometry.getAttribute("position");
       const normalAttribute = geometry.getAttribute("normal");
       const uvAttribute = geometry.getAttribute("uv");
       const indexAttribute = geometry.getIndex();
 
-      if (
-        !positionAttribute ||
-        !normalAttribute ||
-        !uvAttribute ||
-        !indexAttribute
-      ) {
-        continue;
-      }
+      if (!positionAttribute || !normalAttribute || !uvAttribute || !indexAttribute) continue;
 
-      const chunkWorldOffset = chunk.minPos;
-
+      const baseVertex = vertices.length / 3;
       const positionArray = positionAttribute.array as Float32Array;
       const normalArray = normalAttribute.array as Float32Array;
       const uvArray = uvAttribute.array as Float32Array;
@@ -62,9 +51,9 @@ export class MeshConsolidator {
 
       for (let i = 0; i < positionArray.length; i += 3) {
         vertices.push(
-          positionArray[i] + chunkWorldOffset.x - centerOffset.x,
-          positionArray[i + 1] + chunkWorldOffset.y - centerOffset.y,
-          positionArray[i + 2] + chunkWorldOffset.z - centerOffset.z
+          positionArray[i] - centerOffset.x,
+          positionArray[i + 1] - centerOffset.y,
+          positionArray[i + 2] - centerOffset.z
         );
       }
 
@@ -77,17 +66,10 @@ export class MeshConsolidator {
       }
 
       for (let i = 0; i < indexArray.length; i++) {
-        indices.push(indexArray[i] + vertexOffset);
+        indices.push(indexArray[i] + baseVertex);
       }
-
-      vertexOffset += positionArray.length / 3;
     }
 
-    return {
-      vertices,
-      normals,
-      uvs,
-      indices,
-    };
+    return { vertices, normals, uvs, indices };
   }
 }

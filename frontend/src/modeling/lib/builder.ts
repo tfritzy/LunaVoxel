@@ -4,7 +4,6 @@ import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import { VoxelFrame } from "./voxel-frame";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
@@ -12,7 +11,6 @@ import { MoveSelectionTool } from "./tools/move-selection-tool";
 import type { Tool } from "./tool-interface";
 
 export const Builder = class {
-  private previewFrame: VoxelFrame;
   private stateStore: StateStore;
   private projectId: string;
   private dimensions: Vector3;
@@ -34,7 +32,6 @@ export const Builder = class {
     projectId: string;
     dimensions: Vector3;
     projectManager: ProjectManager;
-    previewFrame: VoxelFrame;
     selectedBlock: number;
     selectedLayer: number;
     setSelectedBlockInParent: (index: number) => void;
@@ -81,7 +78,6 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
-    this.previewFrame = new VoxelFrame({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
@@ -89,7 +85,6 @@ export const Builder = class {
       projectId: this.projectId,
       dimensions: this.dimensions,
       projectManager: this.projectManager,
-      previewFrame: this.previewFrame,
       selectedBlock: this.selectedBlock,
       selectedLayer: this.selectedLayer,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
@@ -107,8 +102,7 @@ export const Builder = class {
 
   cancelCurrentOperation(): void {
     if (this.isMouseDown) {
-      this.previewFrame.clear();
-      this.projectManager.chunkManager.setPreview(this.previewFrame);
+      this.projectManager.octreeManager.clearPreview();
     }
     this.isMouseDown = false;
     this.startPosition = null;
