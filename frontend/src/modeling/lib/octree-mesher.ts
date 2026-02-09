@@ -20,6 +20,8 @@ const DIRECTION_OFFSETS: [number, number, number][] = [
   [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
 ];
 
+const axisToIdx = (axis: 'x' | 'y' | 'z') => axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+
 const FACE_VERTS = new Float32Array(72);
 const FACE_NORMALS = new Float32Array(18);
 for (let f = 0; f < 6; f++) {
@@ -150,20 +152,20 @@ export class OctreeMesher {
       }
 
       // Greedy meshing: for each W plane
+      const maskWidth = maxU - minU + 1;
+      const maskHeight = maxV - minV + 1;
+      const mask = new Array(maskWidth * maskHeight);
+      
       for (let w = minW; w <= maxW; w++) {
-        const mask = new Array((maxU - minU + 1) * (maxV - minV + 1)).fill(null);
+        mask.fill(null);
         
         // Fill mask for this plane
         for (let u = minU; u <= maxU; u++) {
           for (let v = minV; v <= maxV; v++) {
-            const voxelCoords = { x: 0, y: 0, z: 0 };
-            voxelCoords[u_axis] = u;
-            voxelCoords[v_axis] = v;
-            voxelCoords[w_axis] = w;
             const key = `${u},${v},${w}`;
             const face = faceMap.get(key);
             if (face) {
-              const maskIdx = (u - minU) + (v - minV) * (maxU - minU + 1);
+              const maskIdx = (u - minU) + (v - minV) * maskWidth;
               mask[maskIdx] = face;
             }
           }
@@ -172,14 +174,14 @@ export class OctreeMesher {
         // Generate quads from mask
         for (let u = minU; u <= maxU; u++) {
           for (let v = minV; v <= maxV; v++) {
-            const maskIdx = (u - minU) + (v - minV) * (maxU - minU + 1);
+            const maskIdx = (u - minU) + (v - minV) * maskWidth;
             const face = mask[maskIdx];
             if (!face) continue;
 
             // Compute width (along u axis)
             let width = 1;
             for (let uu = u + 1; uu <= maxU; uu++) {
-              const nextIdx = (uu - minU) + (v - minV) * (maxU - minU + 1);
+              const nextIdx = (uu - minU) + (v - minV) * maskWidth;
               const nextFace = mask[nextIdx];
               if (!nextFace || 
                   nextFace.blockType !== face.blockType ||
@@ -195,7 +197,7 @@ export class OctreeMesher {
             let done = false;
             for (let vv = v + 1; vv <= maxV && !done; vv++) {
               for (let uu = u; uu < u + width; uu++) {
-                const nextIdx = (uu - minU) + (vv - minV) * (maxU - minU + 1);
+                const nextIdx = (uu - minU) + (vv - minV) * maskWidth;
                 const nextFace = mask[nextIdx];
                 if (!nextFace || 
                     nextFace.blockType !== face.blockType ||
@@ -211,7 +213,7 @@ export class OctreeMesher {
             // Clear the processed faces from mask
             for (let vv = v; vv < v + height; vv++) {
               for (let uu = u; uu < u + width; uu++) {
-                const idx = (uu - minU) + (vv - minV) * (maxU - minU + 1);
+                const idx = (uu - minU) + (vv - minV) * maskWidth;
                 mask[idx] = null;
               }
             }
