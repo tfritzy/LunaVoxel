@@ -243,7 +243,6 @@ export class OctreeMesher {
             const v3 = [FACE_VERTS[fvBase + 9], FACE_VERTS[fvBase + 10], FACE_VERTS[fvBase + 11]];
 
             // Apply width and height scaling based on face direction
-            const axisToIdx = (axis: 'x' | 'y' | 'z') => axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
             const u_idx = axisToIdx(u_axis);
             const v_idx = axisToIdx(v_axis);
             
