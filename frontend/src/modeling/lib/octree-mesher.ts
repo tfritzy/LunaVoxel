@@ -51,7 +51,7 @@ export class OctreeMesher {
     const dimZ = dimY > 0 ? globalOccupancy[0][0].length : 0;
 
     octree.forEachVoxel((x, y, z, value) => {
-      void value;
+      if (value.blockType <= 0) return;
       if (x < dimX && y < dimY && z < dimZ && globalOccupancy[x][y][z] === 0) {
         globalOccupancy[x][y][z] = 2;
       }
