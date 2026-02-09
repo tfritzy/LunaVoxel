@@ -3,6 +3,10 @@ import { getTextureCoordinates } from "./texture-coords";
 import { faces } from "./voxel-constants";
 import { MeshArrays } from "./mesh-arrays";
 
+const DIRECTION_OFFSETS: [number, number, number][] = [
+  [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+];
+
 export class OctreeMesher {
   private occupancy: Uint8Array | null = null;
   private occSizeX = 0;
@@ -57,14 +61,16 @@ export class OctreeMesher {
       occ[occIdx] = (value & BLOCK_TYPE_MASK) > 0 ? 1 : 0;
     }
 
-    if (globalOccupancy && globalStrideX !== undefined && globalStrideY !== undefined) {
+    const useGlobalOcc = globalOccupancy !== undefined && globalStrideX !== undefined && globalStrideY !== undefined;
+
+    if (useGlobalOcc) {
       for (const [key, value] of octree.entries()) {
         if ((value & BLOCK_TYPE_MASK) === 0) continue;
         const x = key & 0x3ff;
         const y = (key >> 10) & 0x3ff;
         const z = (key >> 20) & 0x3ff;
-        const gIdx = x * globalStrideX + y * globalStrideY + z;
-        if (globalOccupancy[gIdx]) {
+        const gIdx = x * globalStrideX! + y * globalStrideY! + z;
+        if (globalOccupancy![gIdx]) {
           const occIdx = (x + 1) * strideX + (y + 1) * strideY + (z + 1);
           occ[occIdx] = 0;
         }
@@ -97,13 +103,14 @@ export class OctreeMesher {
 
       for (let faceDir = 0; faceDir < 6; faceDir++) {
         const neighborOcc = occ[occIdx + neighborOffsets[faceDir]];
-        if (globalOccupancy && globalStrideX !== undefined && globalStrideY !== undefined) {
-          const nx = x + (faceDir === 0 ? 1 : faceDir === 1 ? -1 : 0);
-          const ny = y + (faceDir === 2 ? 1 : faceDir === 3 ? -1 : 0);
-          const nz = z + (faceDir === 4 ? 1 : faceDir === 5 ? -1 : 0);
+        if (useGlobalOcc) {
+          const dir = DIRECTION_OFFSETS[faceDir];
+          const nx = x + dir[0];
+          const ny = y + dir[1];
+          const nz = z + dir[2];
           if (nx >= 0 && ny >= 0 && nz >= 0) {
-            const gNeighborIdx = nx * globalStrideX + ny * globalStrideY + nz;
-            if (globalOccupancy[gNeighborIdx] || neighborOcc) continue;
+            const gNeighborIdx = nx * globalStrideX! + ny * globalStrideY! + nz;
+            if (globalOccupancy![gNeighborIdx] || neighborOcc) continue;
           } else {
             if (neighborOcc) continue;
           }
@@ -159,9 +166,9 @@ export class OctreeMesher {
         indexCount += 6;
       }
 
-      if ((value & BLOCK_TYPE_MASK) > 0 && globalOccupancy && globalStrideX !== undefined && globalStrideY !== undefined) {
-        const gIdx = x * globalStrideX + y * globalStrideY + z;
-        globalOccupancy[gIdx] = 1;
+      if ((value & BLOCK_TYPE_MASK) > 0 && useGlobalOcc) {
+        const gIdx = x * globalStrideX! + y * globalStrideY! + z;
+        globalOccupancy![gIdx] = 1;
       }
     }
 
