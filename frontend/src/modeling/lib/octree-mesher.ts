@@ -102,10 +102,9 @@ export class OctreeMesher {
       oz: number,
       size: number,
       faceDir: number,
-      value: { blockType: number; invisible: boolean },
+      mapping: number[],
+      aoVal: number,
     ) => {
-      const aoVal = value.invisible ? 0.0 : 1.0;
-      const mapping = blockAtlasMappings[value.blockType - 1];
       const half = size / 2;
       const baseX = ox + half;
       const baseY = oy + half;
@@ -177,7 +176,8 @@ export class OctreeMesher {
       oz: number,
       size: number,
       faceDir: number,
-      value: { blockType: number; invisible: boolean },
+      mapping: number[],
+      aoVal: number,
     ) => {
       if (size === 1) {
         if (ox < 0 || oy < 0 || oz < 0 || ox >= dimX || oy >= dimY || oz >= dimZ) return;
@@ -189,7 +189,7 @@ export class OctreeMesher {
         if (nx >= 0 && nx < dimX && ny >= 0 && ny < dimY && nz >= 0 && nz < dimZ) {
           if (globalOccupancy[nx][ny][nz] > 0) return;
         }
-        emitFace(ox, oy, oz, size, faceDir, value);
+        emitFace(ox, oy, oz, size, faceDir, mapping, aoVal);
         return;
       }
 
@@ -216,32 +216,34 @@ export class OctreeMesher {
         if (faceDir < 2) {
           for (let y = 0; y <= 1; y++) {
             for (let z = 0; z <= 1; z++) {
-              emitFacePatch(ox, oy + y * half, oz + z * half, half, faceDir, value);
+              emitFacePatch(ox, oy + y * half, oz + z * half, half, faceDir, mapping, aoVal);
             }
           }
         } else if (faceDir < 4) {
           for (let x = 0; x <= 1; x++) {
             for (let z = 0; z <= 1; z++) {
-              emitFacePatch(ox + x * half, oy, oz + z * half, half, faceDir, value);
+              emitFacePatch(ox + x * half, oy, oz + z * half, half, faceDir, mapping, aoVal);
             }
           }
         } else {
           for (let x = 0; x <= 1; x++) {
             for (let y = 0; y <= 1; y++) {
-              emitFacePatch(ox + x * half, oy + y * half, oz, half, faceDir, value);
+              emitFacePatch(ox + x * half, oy + y * half, oz, half, faceDir, mapping, aoVal);
             }
           }
         }
         return;
       }
 
-      emitFace(ox, oy, oz, size, faceDir, value);
+      emitFace(ox, oy, oz, size, faceDir, mapping, aoVal);
     };
 
     octree.forEachLeaf((ox, oy, oz, size, value) => {
       if (value.blockType <= 0) return;
+      const mapping = blockAtlasMappings[value.blockType - 1];
+      const aoVal = value.invisible ? 0.0 : 1.0;
       for (let faceDir = 0; faceDir < 6; faceDir++) {
-        emitFacePatch(ox, oy, oz, size, faceDir, value);
+        emitFacePatch(ox, oy, oz, size, faceDir, mapping, aoVal);
       }
     });
 
