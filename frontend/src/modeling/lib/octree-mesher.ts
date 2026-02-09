@@ -23,11 +23,9 @@ export class OctreeMesher {
     const dimY = dimX > 0 ? globalOccupancy[0].length : 0;
     const dimZ = dimY > 0 ? globalOccupancy[0][0].length : 0;
 
-    for (const [key, entry] of octree.entries()) {
+    for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
-      const x = key & 0x3ff;
-      const y = (key >> 10) & 0x3ff;
-      const z = (key >> 20) & 0x3ff;
+      const { x, y, z } = entry;
       if (x < dimX && y < dimY && z < dimZ && globalOccupancy[x][y][z] === 0) {
         globalOccupancy[x][y][z] = 2;
       }
@@ -42,12 +40,10 @@ export class OctreeMesher {
     let vertexCount = 0;
     let indexCount = 0;
 
-    for (const [key, entry] of octree.entries()) {
+    for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
 
-      const x = key & 0x3ff;
-      const y = (key >> 10) & 0x3ff;
-      const z = (key >> 20) & 0x3ff;
+      const { x, y, z } = entry;
 
       if (x >= dimX || y >= dimY || z >= dimZ) continue;
       if (globalOccupancy[x][y][z] !== 2) continue;

@@ -25,6 +25,9 @@ describe("SparseVoxelOctree", () => {
     const entry = octree.get(1, 2, 3);
     expect(entry).not.toBeNull();
     expect(entry!.blockType).toBe(5);
+    expect(entry!.x).toBe(1);
+    expect(entry!.y).toBe(2);
+    expect(entry!.z).toBe(3);
     expect(octree.get(0, 0, 0)).toBeNull();
   });
 

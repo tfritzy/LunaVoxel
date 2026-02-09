@@ -175,11 +175,11 @@ const reducers: Reducers = {
       current.blocks.faceColors.splice(zeroBasedIndex, 1);
 
       for (const octree of current.layerOctrees.values()) {
-        for (const [key, entry] of octree.entries()) {
+        for (const entry of octree.values()) {
           if (entry.blockType === blockIndex) {
-            octree.setByKey(key, replacementBlockType);
+            octree.set(entry.x, entry.y, entry.z, replacementBlockType);
           } else if (entry.blockType > blockIndex) {
-            octree.setByKey(key, entry.blockType - 1);
+            octree.set(entry.x, entry.y, entry.z, entry.blockType - 1);
           }
         }
       }

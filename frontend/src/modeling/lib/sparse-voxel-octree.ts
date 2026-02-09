@@ -1,4 +1,7 @@
 export interface VoxelEntry {
+  x: number;
+  y: number;
+  z: number;
   blockType: number;
   invisible: boolean;
   ignoreRaycast: boolean;
@@ -7,32 +10,29 @@ export interface VoxelEntry {
 export class SparseVoxelOctree {
   private data: Map<number, VoxelEntry> = new Map();
 
-  static packKey(x: number, y: number, z: number): number {
+  private static key(x: number, y: number, z: number): number {
     return x | (y << 10) | (z << 20);
   }
 
-  static unpackKey(key: number): [number, number, number] {
-    return [key & 0x3ff, (key >> 10) & 0x3ff, (key >> 20) & 0x3ff];
-  }
-
   get(x: number, y: number, z: number): VoxelEntry | null {
-    return this.data.get(SparseVoxelOctree.packKey(x, y, z)) ?? null;
+    return this.data.get(SparseVoxelOctree.key(x, y, z)) ?? null;
   }
 
   has(x: number, y: number, z: number): boolean {
-    return this.data.has(SparseVoxelOctree.packKey(x, y, z));
+    return this.data.has(SparseVoxelOctree.key(x, y, z));
   }
 
   set(x: number, y: number, z: number, blockType: number, invisible = false, ignoreRaycast = false): void {
+    const k = SparseVoxelOctree.key(x, y, z);
     if (blockType === 0) {
-      this.data.delete(SparseVoxelOctree.packKey(x, y, z));
+      this.data.delete(k);
     } else {
-      this.data.set(SparseVoxelOctree.packKey(x, y, z), { blockType, invisible, ignoreRaycast });
+      this.data.set(k, { x, y, z, blockType, invisible, ignoreRaycast });
     }
   }
 
   delete(x: number, y: number, z: number): void {
-    this.data.delete(SparseVoxelOctree.packKey(x, y, z));
+    this.data.delete(SparseVoxelOctree.key(x, y, z));
   }
 
   get size(): number {
@@ -43,35 +43,23 @@ export class SparseVoxelOctree {
     this.data.clear();
   }
 
-  entries(): IterableIterator<[number, VoxelEntry]> {
-    return this.data.entries();
-  }
-
-  keys(): IterableIterator<number> {
-    return this.data.keys();
+  values(): IterableIterator<VoxelEntry> {
+    return this.data.values();
   }
 
   clone(): SparseVoxelOctree {
     const copy = new SparseVoxelOctree();
-    for (const [k, v] of this.data) {
-      copy.data.set(k, { blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
+    for (const v of this.data.values()) {
+      copy.data.set(SparseVoxelOctree.key(v.x, v.y, v.z), { x: v.x, y: v.y, z: v.z, blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
     }
     return copy;
   }
 
   mergeFrom(other: SparseVoxelOctree): void {
-    for (const [k, v] of other.data) {
+    for (const v of other.data.values()) {
       if (v.blockType !== 0) {
-        this.data.set(k, { blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
+        this.data.set(SparseVoxelOctree.key(v.x, v.y, v.z), { x: v.x, y: v.y, z: v.z, blockType: v.blockType, invisible: v.invisible, ignoreRaycast: v.ignoreRaycast });
       }
-    }
-  }
-
-  setByKey(key: number, blockType: number, invisible = false, ignoreRaycast = false): void {
-    if (blockType === 0) {
-      this.data.delete(key);
-    } else {
-      this.data.set(key, { blockType, invisible, ignoreRaycast });
     }
   }
 }
