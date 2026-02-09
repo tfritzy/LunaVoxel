@@ -177,6 +177,20 @@ export class OctreeMesher {
       faceDir: number,
       value: { blockType: number; invisible: boolean },
     ) => {
+      if (size === 1) {
+        if (ox >= dimX || oy >= dimY || oz >= dimZ) return;
+        if (globalOccupancy[ox][oy][oz] !== 2) return;
+        const dir = DIRECTION_OFFSETS[faceDir];
+        const nx = ox + dir[0];
+        const ny = oy + dir[1];
+        const nz = oz + dir[2];
+        if (nx >= 0 && nx < dimX && ny >= 0 && ny < dimY && nz >= 0 && nz < dimZ) {
+          if (globalOccupancy[nx][ny][nz] > 0) return;
+        }
+        emitFace(ox, oy, oz, size, faceDir, value);
+        return;
+      }
+
       const occupancyState = getOccupancyState(ox, oy, oz, size);
       if (occupancyState === 0) return;
 
