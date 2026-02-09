@@ -163,13 +163,11 @@ export class SparseVoxelOctree {
     if (node.children === null) {
       if (node.value) {
         if (value && SparseVoxelOctree.valuesEqual(node.value, value)) return;
-        node.children = new Array(8);
-        for (let i = 0; i < 8; i++) {
-          node.children[i] = new OctreeNode({ ...node.value });
-        }
+        const childValue = { ...node.value };
+        node.children = Array.from({ length: 8 }, () => new OctreeNode(childValue));
         node.value = null;
       } else {
-        node.children = new Array(8).fill(null);
+        node.children = Array.from({ length: 8 }, () => null);
       }
     }
 
@@ -227,7 +225,7 @@ export class SparseVoxelOctree {
     size: number,
   ): IterableIterator<VoxelEntry> {
     if (!node.children) {
-      if (!node.value || node.value.blockType <= 0) return;
+      if (!node.value) return;
       if (size === 1) {
         yield { x: ox, y: oy, z: oz, ...node.value };
         return;

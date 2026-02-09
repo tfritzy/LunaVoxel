@@ -86,6 +86,15 @@ describe("SparseVoxelOctree", () => {
     expect(entry.ignoreRaycast).toBe(true);
   });
 
+  it("should track node counts as data changes", () => {
+    const octree = new SparseVoxelOctree();
+    expect(octree.nodeCount).toBe(1);
+    octree.set(0, 0, 0, 1);
+    expect(octree.nodeCount).toBeGreaterThan(1);
+    octree.clear();
+    expect(octree.nodeCount).toBe(1);
+  });
+
   it("should collapse uniform regions into larger nodes", () => {
     const octree = new SparseVoxelOctree();
     for (let x = 0; x < 4; x++) {
@@ -99,6 +108,20 @@ describe("SparseVoxelOctree", () => {
     expect(octree.size).toBe(64);
     expect(octree.nodeCount).toBeLessThan(octree.size);
     expect(octree.get(3, 3, 3)?.blockType).toBe(2);
+  });
+
+  it("should ignore out-of-bounds coordinates", () => {
+    const octree = new SparseVoxelOctree();
+    octree.set(-1, 0, 0, 1);
+    octree.set(0, -1, 0, 1);
+    octree.set(0, 0, -1, 1);
+    octree.set(1024, 0, 0, 1);
+    octree.set(0, 1024, 0, 1);
+    octree.set(0, 0, 1024, 1);
+
+    expect(octree.size).toBe(0);
+    expect(octree.get(-1, 0, 0)).toBeNull();
+    expect(octree.get(1024, 0, 0)).toBeNull();
   });
 });
 
