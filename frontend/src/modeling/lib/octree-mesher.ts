@@ -1,11 +1,38 @@
 import { SparseVoxelOctree } from "./sparse-voxel-octree";
-import { getTextureCoordinates } from "./texture-coords";
 import { faces } from "./voxel-constants";
 import { MeshArrays } from "./mesh-arrays";
+
+const texCoordsCache: Map<number, Float64Array> = new Map();
+function getTexCoordsCached(textureIndex: number, textureWidth: number): Float64Array {
+  const cacheKey = textureIndex * 10000 + textureWidth;
+  let coords = texCoordsCache.get(cacheKey);
+  if (coords) return coords;
+  const textureSize = 1.0 / textureWidth;
+  const halfPixel = textureSize * 0.5;
+  const u = (textureIndex % textureWidth) * textureSize + halfPixel;
+  const v = 1.0 - (Math.floor(textureIndex / textureWidth) * textureSize + halfPixel);
+  coords = new Float64Array([u, v, u, v, u, v, u, v]);
+  texCoordsCache.set(cacheKey, coords);
+  return coords;
+}
 
 const DIRECTION_OFFSETS: [number, number, number][] = [
   [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
 ];
+
+const FACE_VERTS = new Float32Array(72);
+const FACE_NORMALS = new Float32Array(18);
+for (let f = 0; f < 6; f++) {
+  const fd = faces[f];
+  FACE_NORMALS[f * 3] = fd.normal[0];
+  FACE_NORMALS[f * 3 + 1] = fd.normal[1];
+  FACE_NORMALS[f * 3 + 2] = fd.normal[2];
+  for (let v = 0; v < 4; v++) {
+    FACE_VERTS[f * 12 + v * 3] = fd.vertices[v][0];
+    FACE_VERTS[f * 12 + v * 3 + 1] = fd.vertices[v][1];
+    FACE_VERTS[f * 12 + v * 3 + 2] = fd.vertices[v][2];
+  }
+}
 
 export class OctreeMesher {
   buildMesh(
@@ -25,9 +52,9 @@ export class OctreeMesher {
 
     for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
-      const { x, y, z } = entry;
-      if (x < dimX && y < dimY && z < dimZ && globalOccupancy[x][y][z] === 0) {
-        globalOccupancy[x][y][z] = 2;
+      const ex = entry.x, ey = entry.y, ez = entry.z;
+      if (ex < dimX && ey < dimY && ez < dimZ && globalOccupancy[ex][ey][ez] === 0) {
+        globalOccupancy[ex][ey][ez] = 2;
       }
     }
 
@@ -43,10 +70,16 @@ export class OctreeMesher {
     for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
 
-      const { x, y, z } = entry;
+      const x = entry.x, y = entry.y, z = entry.z;
 
       if (x >= dimX || y >= dimY || z >= dimZ) continue;
       if (globalOccupancy[x][y][z] !== 2) continue;
+
+      const aoVal = entry.invisible ? 0.0 : 1.0;
+      const mapping = blockAtlasMappings[entry.blockType - 1];
+      const baseX = x + 0.5;
+      const baseY = y + 0.5;
+      const baseZ = z + 0.5;
 
       for (let faceDir = 0; faceDir < 6; faceDir++) {
         const dir = DIRECTION_OFFSETS[faceDir];
@@ -58,41 +91,53 @@ export class OctreeMesher {
           if (globalOccupancy[nx][ny][nz] > 0) continue;
         }
 
-        const textureIndex = blockAtlasMappings[entry.blockType - 1][faceDir];
-        const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
-        const faceData = faces[faceDir];
-        const normal = faceData.normal;
-        const faceVertices = faceData.vertices;
-
-        const n0 = normal[0];
-        const n1 = normal[1];
-        const n2 = normal[2];
-
-        const baseX = x + 0.5;
-        const baseY = y + 0.5;
-        const baseZ = z + 0.5;
+        const textureCoords = getTexCoordsCached(mapping[faceDir], textureWidth);
+        const fvBase = faceDir * 12;
+        const fnBase = faceDir * 3;
+        const n0 = FACE_NORMALS[fnBase];
+        const n1 = FACE_NORMALS[fnBase + 1];
+        const n2 = FACE_NORMALS[fnBase + 2];
 
         const vOff3 = vertexCount * 3;
         const vOff2 = vertexCount * 2;
+        const u = textureCoords[0];
+        const v = textureCoords[1];
 
-        for (let vi = 0; vi < 4; vi++) {
-          const fv = faceVertices[vi];
-          const off3 = vOff3 + vi * 3;
-          vertices[off3] = baseX + fv[0];
-          vertices[off3 + 1] = baseY + fv[1];
-          vertices[off3 + 2] = baseZ + fv[2];
+        // v0
+        vertices[vOff3] = baseX + FACE_VERTS[fvBase];
+        vertices[vOff3 + 1] = baseY + FACE_VERTS[fvBase + 1];
+        vertices[vOff3 + 2] = baseZ + FACE_VERTS[fvBase + 2];
+        normalsArr[vOff3] = n0; normalsArr[vOff3 + 1] = n1; normalsArr[vOff3 + 2] = n2;
+        uvsArr[vOff2] = u; uvsArr[vOff2 + 1] = v;
+        aoArr[vertexCount] = aoVal;
+        isSelectedArr[vertexCount] = 0;
 
-          normalsArr[off3] = n0;
-          normalsArr[off3 + 1] = n1;
-          normalsArr[off3 + 2] = n2;
+        // v1
+        vertices[vOff3 + 3] = baseX + FACE_VERTS[fvBase + 3];
+        vertices[vOff3 + 4] = baseY + FACE_VERTS[fvBase + 4];
+        vertices[vOff3 + 5] = baseZ + FACE_VERTS[fvBase + 5];
+        normalsArr[vOff3 + 3] = n0; normalsArr[vOff3 + 4] = n1; normalsArr[vOff3 + 5] = n2;
+        uvsArr[vOff2 + 2] = u; uvsArr[vOff2 + 3] = v;
+        aoArr[vertexCount + 1] = aoVal;
+        isSelectedArr[vertexCount + 1] = 0;
 
-          const off2 = vOff2 + vi * 2;
-          uvsArr[off2] = textureCoords[vi * 2];
-          uvsArr[off2 + 1] = textureCoords[vi * 2 + 1];
+        // v2
+        vertices[vOff3 + 6] = baseX + FACE_VERTS[fvBase + 6];
+        vertices[vOff3 + 7] = baseY + FACE_VERTS[fvBase + 7];
+        vertices[vOff3 + 8] = baseZ + FACE_VERTS[fvBase + 8];
+        normalsArr[vOff3 + 6] = n0; normalsArr[vOff3 + 7] = n1; normalsArr[vOff3 + 8] = n2;
+        uvsArr[vOff2 + 4] = u; uvsArr[vOff2 + 5] = v;
+        aoArr[vertexCount + 2] = aoVal;
+        isSelectedArr[vertexCount + 2] = 0;
 
-          aoArr[vertexCount + vi] = entry.invisible ? 0.0 : 1.0;
-          isSelectedArr[vertexCount + vi] = 0;
-        }
+        // v3
+        vertices[vOff3 + 9] = baseX + FACE_VERTS[fvBase + 9];
+        vertices[vOff3 + 10] = baseY + FACE_VERTS[fvBase + 10];
+        vertices[vOff3 + 11] = baseZ + FACE_VERTS[fvBase + 11];
+        normalsArr[vOff3 + 9] = n0; normalsArr[vOff3 + 10] = n1; normalsArr[vOff3 + 11] = n2;
+        uvsArr[vOff2 + 6] = u; uvsArr[vOff2 + 7] = v;
+        aoArr[vertexCount + 3] = aoVal;
+        isSelectedArr[vertexCount + 3] = 0;
 
         indicesArr[indexCount] = vertexCount;
         indicesArr[indexCount + 1] = vertexCount + 1;
