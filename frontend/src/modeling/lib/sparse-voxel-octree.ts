@@ -181,10 +181,10 @@ export class SparseVoxelOctree {
     }
 
     const half = size / 2;
+    if (!value && !node.value && node.children === null) {
+      return null;
+    }
     if (node.children === null) {
-      if (!node.value && !value) {
-        return null;
-      }
       if (node.value) {
         if (value && SparseVoxelOctree.valuesEqual(node.value, value)) return node.value;
         const childValue = { ...node.value };

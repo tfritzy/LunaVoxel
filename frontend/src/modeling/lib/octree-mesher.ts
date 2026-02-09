@@ -67,6 +67,7 @@ export class OctreeMesher {
     let indexCount = 0;
 
     octree.forEachVoxel((x, y, z, value) => {
+      if (value.blockType <= 0) return;
       if (x >= dimX || y >= dimY || z >= dimZ) return;
       if (globalOccupancy[x][y][z] !== 2) return;
 
