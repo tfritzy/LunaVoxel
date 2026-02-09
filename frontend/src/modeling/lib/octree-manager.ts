@@ -2,11 +2,18 @@ import * as THREE from "three";
 import type { BlockModificationMode, Layer, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { AtlasData } from "@/lib/useAtlas";
-import { SparseVoxelOctree, ERASE_PREVIEW_BLOCK } from "./sparse-voxel-octree";
+import { SparseVoxelOctree, BLOCK_TYPE_MASK, INVISIBLE_FLAG } from "./sparse-voxel-octree";
 import { OctreeMesher } from "./octree-mesher";
 import { MeshArrays } from "./mesh-arrays";
 import { createVoxelMaterial } from "./shader";
-import { layers } from "./layers";
+
+interface LayerMesh {
+  mesh: THREE.Mesh;
+  geometry: THREE.BufferGeometry;
+  material: THREE.ShaderMaterial;
+  meshArrays: MeshArrays;
+  mesher: OctreeMesher;
+}
 
 export class OctreeManager {
   private scene: THREE.Scene;
@@ -15,21 +22,14 @@ export class OctreeManager {
   private projectId: string;
   private layers: Layer[] = [];
 
-  private renderTree: SparseVoxelOctree = new SparseVoxelOctree();
-  private addTree: SparseVoxelOctree = new SparseVoxelOctree();
+  private layerMeshes: Map<string, LayerMesh> = new Map();
+  private previewTree: SparseVoxelOctree = new SparseVoxelOctree();
+  private previewLayerId: string | null = null;
 
-  private mesh: THREE.Mesh | null = null;
-  private geometry: THREE.BufferGeometry | null = null;
-  private material: THREE.ShaderMaterial | null = null;
-  private meshArrays: MeshArrays;
+  private globalOccupancy: Uint8Array;
+  private globalStrideX: number;
+  private globalStrideY: number;
 
-  private addMesh: THREE.Mesh | null = null;
-  private addGeometry: THREE.BufferGeometry | null = null;
-  private addMaterial: THREE.ShaderMaterial | null = null;
-  private addMeshArrays: MeshArrays;
-
-  private mesher: OctreeMesher = new OctreeMesher();
-  private addMesher: OctreeMesher = new OctreeMesher();
   private atlasData: AtlasData | undefined;
   private unsubscribe?: () => void;
 
@@ -44,35 +44,26 @@ export class OctreeManager {
     this.stateStore = stateStore;
     this.projectId = projectId;
 
-    const maxVoxels = dimensions.x * dimensions.y * dimensions.z;
-    const maxFaces = maxVoxels * 6;
-    this.meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-    this.addMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+    this.globalStrideY = dimensions.z;
+    this.globalStrideX = dimensions.y * dimensions.z;
+    this.globalOccupancy = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
 
-    this.syncFromState();
+    this.syncLayers();
     this.unsubscribe = this.stateStore.subscribe(this.onStateChange);
   }
 
   private onStateChange = () => {
-    this.syncFromState();
-    this.addTree.clear();
+    this.syncLayers();
+    this.previewTree.clear();
+    this.previewLayerId = null;
     this.remesh();
   };
 
-  private syncFromState(): void {
+  private syncLayers(): void {
     const current = this.stateStore.getState();
     this.layers = current.layers
       .filter((layer) => layer.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
-
-    this.renderTree.clear();
-    for (const layer of this.layers) {
-      if (!layer.visible) continue;
-      const octree = current.layerOctrees.get(layer.id);
-      if (octree) {
-        this.renderTree.mergeFrom(octree);
-      }
-    }
   }
 
   public getLayer(layerIndex: number): Layer | undefined {
@@ -82,13 +73,9 @@ export class OctreeManager {
   setTextureAtlas = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
 
-    if (this.material) {
-      this.material.uniforms.map.value = atlasData.texture;
-      this.material.needsUpdate = true;
-    }
-    if (this.addMaterial) {
-      this.addMaterial.uniforms.map.value = atlasData.texture;
-      this.addMaterial.needsUpdate = true;
+    for (const lm of this.layerMeshes.values()) {
+      lm.material.uniforms.map.value = atlasData.texture;
+      lm.material.needsUpdate = true;
     }
 
     this.remesh();
@@ -96,28 +83,40 @@ export class OctreeManager {
 
   public setPreview(
     mode: BlockModificationMode,
+    layerIndex: number,
     positions: { x: number; y: number; z: number; value: number }[]
   ): void {
-    this.syncFromState();
-    this.addTree.clear();
+    const layer = this.getLayer(layerIndex);
+    if (!layer) return;
+
+    const current = this.stateStore.getState();
+    const layerOctree = current.layerOctrees.get(layer.id);
+
+    this.previewTree.clear();
+    this.previewLayerId = layer.id;
+
+    if (layerOctree) {
+      this.previewTree.mergeFrom(layerOctree);
+    }
 
     switch (mode.tag) {
       case "Attach":
         for (const pos of positions) {
-          this.addTree.set(pos.x, pos.y, pos.z, pos.value);
+          this.previewTree.set(pos.x, pos.y, pos.z, pos.value);
         }
         break;
       case "Paint":
         for (const pos of positions) {
-          if (this.renderTree.has(pos.x, pos.y, pos.z)) {
-            this.renderTree.set(pos.x, pos.y, pos.z, pos.value);
+          if (this.previewTree.has(pos.x, pos.y, pos.z)) {
+            this.previewTree.set(pos.x, pos.y, pos.z, pos.value);
           }
         }
         break;
       case "Erase":
         for (const pos of positions) {
-          if (this.renderTree.has(pos.x, pos.y, pos.z)) {
-            this.renderTree.set(pos.x, pos.y, pos.z, ERASE_PREVIEW_BLOCK);
+          if (this.previewTree.has(pos.x, pos.y, pos.z)) {
+            const bt = SparseVoxelOctree.blockType(this.previewTree.get(pos.x, pos.y, pos.z));
+            this.previewTree.set(pos.x, pos.y, pos.z, bt | INVISIBLE_FLAG);
           }
         }
         break;
@@ -127,8 +126,8 @@ export class OctreeManager {
   }
 
   public clearPreview(): void {
-    this.syncFromState();
-    this.addTree.clear();
+    this.previewTree.clear();
+    this.previewLayerId = null;
     this.remesh();
   }
 
@@ -140,15 +139,22 @@ export class OctreeManager {
     const current = this.stateStore.getState();
     const octree = current.layerOctrees.get(_layer.id);
     if (!octree) return 0;
-    return octree.get(x, y, z) || 0;
+    return SparseVoxelOctree.blockType(octree.get(x, y, z)) || 0;
   }
 
-  public getRenderTree(): SparseVoxelOctree {
-    return this.renderTree;
+  public getLayerMeshes(): Map<string, THREE.Mesh> {
+    const result = new Map<string, THREE.Mesh>();
+    for (const [id, lm] of this.layerMeshes) {
+      result.set(id, lm.mesh);
+    }
+    return result;
   }
 
   public getMesh(): THREE.Mesh | null {
-    return this.mesh;
+    for (const lm of this.layerMeshes.values()) {
+      if (lm.mesh.visible) return lm.mesh;
+    }
+    return null;
   }
 
   private remesh(): void {
@@ -156,53 +162,82 @@ export class OctreeManager {
 
     const textureWidth = this.atlasData.texture?.image?.width ?? 4;
     const blockAtlasMappings = this.atlasData.blockAtlasMappings;
+    const current = this.stateStore.getState();
 
-    this.mesher.buildMesh(
-      this.renderTree,
-      textureWidth,
-      blockAtlasMappings,
-      this.meshArrays,
-    );
-    this.updateMainMesh();
+    this.globalOccupancy.fill(0);
 
-    this.addMesher.buildMesh(
-      this.addTree,
-      textureWidth,
-      blockAtlasMappings,
-      this.addMeshArrays,
-    );
-    this.updateAddMesh();
-  }
+    const activeLayerIds = new Set<string>();
 
-  private updateMainMesh(): void {
-    if (!this.atlasData) return;
+    const sortedLayers = [...this.layers].sort((a, b) => b.index - a.index);
 
-    if (!this.geometry) {
-      this.geometry = new THREE.BufferGeometry();
-      this.material = createVoxelMaterial(this.atlasData.texture);
-      this.mesh = new THREE.Mesh(this.geometry, this.material);
-      this.mesh.castShadow = true;
-      this.mesh.receiveShadow = true;
-      this.mesh.layers.set(layers.raycast);
-      this.scene.add(this.mesh);
+    for (const layer of sortedLayers) {
+      activeLayerIds.add(layer.id);
+
+      if (!layer.visible) {
+        const lm = this.layerMeshes.get(layer.id);
+        if (lm) lm.mesh.visible = false;
+        continue;
+      }
+
+      let octree: SparseVoxelOctree;
+      if (this.previewLayerId === layer.id && this.previewTree.size > 0) {
+        octree = this.previewTree;
+      } else {
+        const stateOctree = current.layerOctrees.get(layer.id);
+        if (!stateOctree || stateOctree.size === 0) {
+          const lm = this.layerMeshes.get(layer.id);
+          if (lm) lm.mesh.visible = false;
+          continue;
+        }
+        octree = stateOctree;
+      }
+
+      const lm = this.getOrCreateLayerMesh(layer.id);
+      lm.mesher.buildMesh(
+        octree,
+        textureWidth,
+        blockAtlasMappings,
+        lm.meshArrays,
+        this.globalOccupancy,
+        this.globalStrideX,
+        this.globalStrideY,
+      );
+      this.applyMeshArrays(lm.geometry, lm.meshArrays);
+      lm.mesh.visible = lm.meshArrays.vertexCount > 0;
     }
 
-    this.applyMeshArrays(this.mesh!.geometry, this.meshArrays);
+    for (const [id, lm] of this.layerMeshes) {
+      if (!activeLayerIds.has(id)) {
+        this.scene.remove(lm.mesh);
+        lm.geometry.dispose();
+        lm.material.dispose();
+        this.layerMeshes.delete(id);
+      }
+    }
   }
 
-  private updateAddMesh(): void {
-    if (!this.atlasData) return;
+  private getOrCreateLayerMesh(layerId: string): LayerMesh {
+    let lm = this.layerMeshes.get(layerId);
+    if (lm) return lm;
 
-    if (!this.addGeometry) {
-      this.addGeometry = new THREE.BufferGeometry();
-      this.addMaterial = createVoxelMaterial(this.atlasData.texture);
-      this.addMesh = new THREE.Mesh(this.addGeometry, this.addMaterial);
-      this.addMesh.layers.set(layers.ghost);
-      this.scene.add(this.addMesh);
-    }
+    const maxVoxels = this.dimensions.x * this.dimensions.y * this.dimensions.z;
+    const maxFaces = maxVoxels * 6;
+    const geometry = new THREE.BufferGeometry();
+    const material = createVoxelMaterial(this.atlasData?.texture ?? null);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
 
-    this.addMesh!.visible = this.addTree.size > 0;
-    this.applyMeshArrays(this.addMesh!.geometry, this.addMeshArrays);
+    lm = {
+      mesh,
+      geometry,
+      material,
+      meshArrays: new MeshArrays(maxFaces * 4, maxFaces * 6),
+      mesher: new OctreeMesher(),
+    };
+    this.layerMeshes.set(layerId, lm);
+    return lm;
   }
 
   private applyMeshArrays(geometry: THREE.BufferGeometry, meshArrays: MeshArrays): void {
@@ -250,23 +285,12 @@ export class OctreeManager {
     this.unsubscribe?.();
     this.unsubscribe = undefined;
 
-    if (this.mesh) {
-      this.scene.remove(this.mesh);
-      this.mesh.geometry.dispose();
-      (this.mesh.material as THREE.Material).dispose();
-      this.mesh = null;
+    for (const lm of this.layerMeshes.values()) {
+      this.scene.remove(lm.mesh);
+      lm.geometry.dispose();
+      lm.material.dispose();
     }
-    if (this.addMesh) {
-      this.scene.remove(this.addMesh);
-      this.addMesh.geometry.dispose();
-      (this.addMesh.material as THREE.Material).dispose();
-      this.addMesh = null;
-    }
-    this.geometry = null;
-    this.material = null;
-    this.addGeometry = null;
-    this.addMaterial = null;
-    this.renderTree.clear();
-    this.addTree.clear();
+    this.layerMeshes.clear();
+    this.previewTree.clear();
   };
 }

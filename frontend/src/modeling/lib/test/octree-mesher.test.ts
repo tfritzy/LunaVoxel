@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SparseVoxelOctree, ERASE_PREVIEW_BLOCK } from "../sparse-voxel-octree";
+import { SparseVoxelOctree, INVISIBLE_FLAG } from "../sparse-voxel-octree";
 import { OctreeMesher } from "../octree-mesher";
 import { MeshArrays } from "../mesh-arrays";
 
@@ -54,6 +54,20 @@ describe("SparseVoxelOctree", () => {
     a.mergeFrom(b);
     expect(a.get(0, 0, 0)).toBe(3);
     expect(a.get(1, 0, 0)).toBe(2);
+  });
+
+  it("should support invisible flag", () => {
+    const value = SparseVoxelOctree.makeValue(5, true, false);
+    expect(SparseVoxelOctree.blockType(value)).toBe(5);
+    expect(SparseVoxelOctree.isInvisible(value)).toBe(true);
+    expect(SparseVoxelOctree.isIgnoreRaycast(value)).toBe(false);
+  });
+
+  it("should support ignoreRaycast flag", () => {
+    const value = SparseVoxelOctree.makeValue(3, false, true);
+    expect(SparseVoxelOctree.blockType(value)).toBe(3);
+    expect(SparseVoxelOctree.isInvisible(value)).toBe(false);
+    expect(SparseVoxelOctree.isIgnoreRaycast(value)).toBe(true);
   });
 });
 
@@ -118,9 +132,9 @@ describe("OctreeMesher", () => {
     expect(meshArrays.indexCount).toBe(60);
   });
 
-  it("should generate faces for ERASE_PREVIEW_BLOCK with ao=0", () => {
+  it("should generate faces for invisible block with ao=0", () => {
     const octree = new SparseVoxelOctree();
-    octree.set(0, 0, 0, ERASE_PREVIEW_BLOCK);
+    octree.set(0, 0, 0, 1 | INVISIBLE_FLAG);
 
     const meshArrays = new MeshArrays(24, 36);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
@@ -132,16 +146,33 @@ describe("OctreeMesher", () => {
     }
   });
 
-  it("should cull faces between normal blocks and ERASE_PREVIEW_BLOCK", () => {
+  it("should cull faces between normal blocks and invisible blocks", () => {
     const octree = new SparseVoxelOctree();
     octree.set(0, 0, 0, 1);
-    octree.set(1, 0, 0, ERASE_PREVIEW_BLOCK);
+    octree.set(1, 0, 0, 1 | INVISIBLE_FLAG);
 
     const meshArrays = new MeshArrays(100, 200);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
+  });
+
+  it("should respect global occupancy mask to skip already-rendered positions", () => {
+    const octree = new SparseVoxelOctree();
+    octree.set(0, 0, 0, 1);
+    octree.set(1, 0, 0, 1);
+
+    const globalOccupancy = new Uint8Array(8 * 8 * 8);
+    const gStrideX = 8 * 8;
+    const gStrideY = 8;
+    globalOccupancy[0 * gStrideX + 0 * gStrideY + 0] = 1;
+
+    const meshArrays = new MeshArrays(100, 200);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, globalOccupancy, gStrideX, gStrideY);
+
+    expect(meshArrays.vertexCount).toBe(20);
+    expect(meshArrays.indexCount).toBe(30);
   });
 
   describe("Benchmarks", () => {
@@ -263,7 +294,7 @@ describe("OctreeMesher", () => {
       console.log(`  Vertices: ${meshArrays.vertexCount}, Indices: ${meshArrays.indexCount}`);
     }, 120000);
 
-    it("64x64 multi-layer merge scenario (benchmark)", () => {
+    it("64x64 multi-layer with occupancy mask (benchmark)", () => {
       const layer1 = new SparseVoxelOctree();
       const layer2 = new SparseVoxelOctree();
       for (let x = 0; x < 64; x++) {
@@ -280,30 +311,30 @@ describe("OctreeMesher", () => {
       }
 
       const maxFaces = (layer1.size + layer2.size) * 6;
-      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const meshArrays1 = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const meshArrays2 = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const mesher1 = new OctreeMesher();
+      const mesher2 = new OctreeMesher();
+
+      const globalOcc = new Uint8Array(64 * 64 * 64);
+      const gStrideX = 64 * 64;
+      const gStrideY = 64;
 
       const iterations = 5;
-      const setupDurations: number[] = [];
-      const meshDurations: number[] = [];
+      const durations: number[] = [];
 
       for (let i = 0; i < iterations; i++) {
-        const setupStart = performance.now();
-        const rt = layer1.clone();
-        rt.mergeFrom(layer2);
-        setupDurations.push(performance.now() - setupStart);
-
-        const meshStart = performance.now();
-        mesher.buildMesh(rt, 4, createBlockAtlasMappings(3), meshArrays);
-        meshDurations.push(performance.now() - meshStart);
+        globalOcc.fill(0);
+        const start = performance.now();
+        mesher1.buildMesh(layer2, 4, createBlockAtlasMappings(3), meshArrays1, globalOcc, gStrideX, gStrideY);
+        mesher2.buildMesh(layer1, 4, createBlockAtlasMappings(3), meshArrays2, globalOcc, gStrideX, gStrideY);
+        durations.push(performance.now() - start);
       }
 
-      const setupAvg = setupDurations.reduce((a, b) => a + b, 0) / setupDurations.length;
-      const meshAvg = meshDurations.reduce((a, b) => a + b, 0) / meshDurations.length;
-      console.log(`64x64 multi-layer merge:`);
-      console.log(`  Setup avg: ${setupAvg.toFixed(2)}ms`);
-      console.log(`  Mesh avg: ${meshAvg.toFixed(2)}ms`);
-      console.log(`  Total avg: ${(setupAvg + meshAvg).toFixed(2)}ms`);
-      console.log(`  Vertices: ${meshArrays.vertexCount}, Indices: ${meshArrays.indexCount}`);
+      const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+      console.log(`64x64 multi-layer with occupancy mask:`);
+      console.log(`  Average: ${avg.toFixed(2)}ms`);
+      console.log(`  Layer 1: Vertices: ${meshArrays2.vertexCount}, Layer 2: Vertices: ${meshArrays1.vertexCount}`);
     }, 120000);
   });
 });

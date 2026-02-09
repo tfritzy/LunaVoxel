@@ -40,7 +40,7 @@ export class RectTool implements Tool {
       }
     }
 
-    context.projectManager.octreeManager.setPreview(context.mode, positions);
+    context.projectManager.octreeManager.setPreview(context.mode, context.selectedLayer, positions);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {

@@ -12,6 +12,7 @@ import * as THREE from "three";
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
   let lastPreviewMode: string = "";
+  let lastPreviewLayerIndex: number = -1;
   let lastPreviewPositions: { x: number; y: number; z: number; value: number }[] = [];
   let clearPreviewCalled = false;
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
@@ -21,6 +22,7 @@ describe("Tool Interface", () => {
 
   beforeEach(() => {
     lastPreviewMode = "";
+    lastPreviewLayerIndex = -1;
     lastPreviewPositions = [];
     clearPreviewCalled = false;
     const camera = new THREE.PerspectiveCamera();
@@ -52,8 +54,9 @@ describe("Tool Interface", () => {
       projectManager: {
         getBlockAtPosition: () => 1,
         octreeManager: {
-          setPreview: (mode: BlockModificationMode, positions: { x: number; y: number; z: number; value: number }[]) => {
+          setPreview: (mode: BlockModificationMode, layerIndex: number, positions: { x: number; y: number; z: number; value: number }[]) => {
             lastPreviewMode = mode.tag;
+            lastPreviewLayerIndex = layerIndex;
             lastPreviewPositions = positions;
           },
           clearPreview: () => {
