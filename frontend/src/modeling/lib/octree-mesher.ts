@@ -20,6 +20,8 @@ const DIRECTION_OFFSETS: [number, number, number][] = [
   [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
 ];
 
+const OCCUPIED = 2;
+
 const FACE_VERTS = new Float32Array(72);
 const FACE_NORMALS = new Float32Array(18);
 for (let f = 0; f < 6; f++) {
@@ -62,7 +64,7 @@ export class OctreeMesher {
     octree.forEachVoxel((x, y, z, value) => {
       if (value.blockType <= 0) return;
       if (x < dimX && y < dimY && z < dimZ && globalOccupancy[x][y][z] === 0) {
-        globalOccupancy[x][y][z] = 2;
+        globalOccupancy[x][y][z] = OCCUPIED;
       }
     });
 
@@ -80,7 +82,7 @@ export class OctreeMesher {
       for (let x = Math.max(0, ox); x < maxX; x++) {
         for (let y = Math.max(0, oy); y < maxY; y++) {
           for (let z = Math.max(0, oz); z < maxZ; z++) {
-            if (globalOccupancy[x][y][z] === 2) {
+            if (globalOccupancy[x][y][z] === OCCUPIED) {
               hasVisible = true;
             } else {
               hasHidden = true;
@@ -178,8 +180,8 @@ export class OctreeMesher {
       value: { blockType: number; invisible: boolean },
     ) => {
       if (size === 1) {
-        if (ox >= dimX || oy >= dimY || oz >= dimZ) return;
-        if (globalOccupancy[ox][oy][oz] !== 2) return;
+        if (ox < 0 || oy < 0 || oz < 0 || ox >= dimX || oy >= dimY || oz >= dimZ) return;
+        if (globalOccupancy[ox][oy][oz] !== OCCUPIED) return;
         const dir = DIRECTION_OFFSETS[faceDir];
         const nx = ox + dir[0];
         const ny = oy + dir[1];
