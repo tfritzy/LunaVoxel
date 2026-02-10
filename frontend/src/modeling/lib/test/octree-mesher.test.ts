@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { SparseVoxelOctree } from "../sparse-voxel-octree";
 import { OctreeMesher } from "../octree-mesher";
 import { MeshArrays } from "../mesh-arrays";
-import { allocateOccupancy, clearOccupancy } from "../octree-manager";
+import { allocateOccupancy, clearOccupancy, occupancyIndex } from "../octree-manager";
 
 function createBlockAtlasMappings(numBlocks: number): number[][] {
   const mappings: number[][] = [];
@@ -188,9 +188,7 @@ describe("OctreeMesher", () => {
 
     const dims = { x: 8, y: 8, z: 8 };
     const occ = makeOccupancy(dims);
-    const paddedDimZ = dims.z + 2;
-    const paddedStrideX = (dims.y + 2) * paddedDimZ;
-    occ[1 * paddedStrideX + 1 * paddedDimZ + 1] = 1;
+    occ[occupancyIndex(0, 0, 0, dims)] = 1;
 
     const meshArrays = new MeshArrays(100, 200);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);

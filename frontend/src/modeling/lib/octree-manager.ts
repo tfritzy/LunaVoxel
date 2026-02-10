@@ -19,6 +19,11 @@ export function allocateOccupancy(dims: Vector3): Uint8Array {
   return new Uint8Array((dims.x + 2) * (dims.y + 2) * (dims.z + 2));
 }
 
+export function occupancyIndex(x: number, y: number, z: number, dims: Vector3): number {
+  const paddedDimZ = dims.z + 2;
+  return (x + 1) * (dims.y + 2) * paddedDimZ + (y + 1) * paddedDimZ + (z + 1);
+}
+
 export function clearOccupancy(occ: Uint8Array): void {
   occ.fill(0);
 }
