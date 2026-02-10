@@ -41,12 +41,12 @@ varying vec3 vCameraPositionLocal;
 
 struct RayHit {
   bool hit;
-  vec3 position;
+  ivec3 voxelPos;
   vec3 normal;
   int blockType;
 };
 
-vec3 getVoxelUV(vec3 pos, vec3 normal, int blockType) {
+vec2 getTextureUV(int blockType, vec3 normal) {
   int faceIndex;
   if (normal.x > 0.5) faceIndex = 0;
   else if (normal.x < -0.5) faceIndex = 1;
@@ -58,20 +58,15 @@ vec3 getVoxelUV(vec3 pos, vec3 normal, int blockType) {
   int textureIndex = blockMappings[(blockType - 1) * 6 + faceIndex];
   
   float texSize = 1.0 / atlasWidth;
+  float halfPixel = texSize * 0.5;
   
-  vec2 localUV;
-  if (abs(normal.x) > 0.5) {
-    localUV = fract(pos.zy);
-  } else if (abs(normal.y) > 0.5) {
-    localUV = fract(pos.xz);
-  } else {
-    localUV = fract(pos.xy);
-  }
+  float col = mod(float(textureIndex), atlasWidth);
+  float row = floor(float(textureIndex) / atlasWidth);
   
-  float texX = float(textureIndex) * texSize;
-  vec2 atlasUV = vec2(texX + localUV.x * texSize, localUV.y);
+  float u = col * texSize + halfPixel;
+  float v = 1.0 - (row * texSize + halfPixel);
   
-  return vec3(atlasUV, float(textureIndex));
+  return vec2(u, v);
 }
 
 float getDarknessFactor(vec3 normal) {
@@ -81,15 +76,25 @@ float getDarknessFactor(vec3 normal) {
   return 0.8;
 }
 
+int getBlockType(ivec3 pos) {
+  if (pos.x < 0 || pos.x >= int(worldSize.x) ||
+      pos.y < 0 || pos.y >= int(worldSize.y) ||
+      pos.z < 0 || pos.z >= int(worldSize.z)) {
+    return 0;
+  }
+  float voxelValue = texelFetch(voxelData, pos, 0).r * 255.0;
+  return int(voxelValue + 0.5);
+}
+
 RayHit raycastVoxels(vec3 rayOrigin, vec3 rayDir) {
   RayHit result;
   result.hit = false;
-  result.position = vec3(0.0);
+  result.voxelPos = ivec3(0);
   result.normal = vec3(0.0);
   result.blockType = 0;
   
-  float epsilon = 0.0001;
-  vec3 invDir = 1.0 / (rayDir + vec3(epsilon));
+  vec3 safeRayDir = rayDir + vec3(1e-6) * sign(rayDir + vec3(1e-10));
+  vec3 invDir = 1.0 / safeRayDir;
   
   vec3 t0 = (vec3(0.0) - rayOrigin) * invDir;
   vec3 t1 = (worldSize - rayOrigin) * invDir;
@@ -104,29 +109,28 @@ RayHit raycastVoxels(vec3 rayOrigin, vec3 rayDir) {
     return result;
   }
   
-  float t = max(tEntry + epsilon, 0.0);
+  float t = max(tEntry, 0.0) + 0.001;
   vec3 pos = rayOrigin + rayDir * t;
   
-  ivec3 mapPos = ivec3(floor(pos));
+  ivec3 mapPos = ivec3(floor(clamp(pos, vec3(0.0), worldSize - 0.001)));
   
-  vec3 deltaDist = abs(invDir);
+  ivec3 rayStep = ivec3(sign(rayDir));
   
-  ivec3 step = ivec3(sign(rayDir));
+  vec3 tDelta = abs(1.0 / rayDir);
   
-  vec3 sideDist = (sign(rayDir) * (vec3(mapPos) - pos) + sign(rayDir) * 0.5 + 0.5) * deltaDist;
+  vec3 tMaxAxis;
+  tMaxAxis.x = (rayStep.x > 0) ? (float(mapPos.x + 1) - pos.x) * tDelta.x : (pos.x - float(mapPos.x)) * tDelta.x;
+  tMaxAxis.y = (rayStep.y > 0) ? (float(mapPos.y + 1) - pos.y) * tDelta.y : (pos.y - float(mapPos.y)) * tDelta.y;
+  tMaxAxis.z = (rayStep.z > 0) ? (float(mapPos.z + 1) - pos.z) * tDelta.z : (pos.z - float(mapPos.z)) * tDelta.z;
+  
+  int stepAxis = 0;
+  if (tEntry == tMin.x) stepAxis = 0;
+  else if (tEntry == tMin.y) stepAxis = 1;
+  else stepAxis = 2;
   
   int maxSteps = int(worldSize.x + worldSize.y + worldSize.z) * 2;
   
-  ivec3 lastMask = ivec3(0);
-  if (tMin.x >= tMin.y && tMin.x >= tMin.z) {
-    lastMask = ivec3(1, 0, 0);
-  } else if (tMin.y >= tMin.z) {
-    lastMask = ivec3(0, 1, 0);
-  } else {
-    lastMask = ivec3(0, 0, 1);
-  }
-  
-  for (int i = 0; i < 1024; i++) {
+  for (int i = 0; i < 512; i++) {
     if (i >= maxSteps) break;
     
     if (mapPos.x < 0 || mapPos.x >= int(worldSize.x) ||
@@ -135,41 +139,43 @@ RayHit raycastVoxels(vec3 rayOrigin, vec3 rayDir) {
       break;
     }
     
-    vec3 texCoord = (vec3(mapPos) + 0.5) / worldSize;
-    float voxelValue = texture(voxelData, texCoord).r * 255.0;
-    int blockType = int(voxelValue + 0.5);
+    int blockType = getBlockType(mapPos);
     
     if (blockType > 0) {
       result.hit = true;
-      result.position = pos;
+      result.voxelPos = mapPos;
       result.blockType = blockType;
-      result.normal = -vec3(lastMask) * vec3(step);
+      
+      if (stepAxis == 0) {
+        result.normal = vec3(-float(rayStep.x), 0.0, 0.0);
+      } else if (stepAxis == 1) {
+        result.normal = vec3(0.0, -float(rayStep.y), 0.0);
+      } else {
+        result.normal = vec3(0.0, 0.0, -float(rayStep.z));
+      }
+      
       return result;
     }
     
-    if (sideDist.x < sideDist.y) {
-      if (sideDist.x < sideDist.z) {
-        pos = rayOrigin + rayDir * sideDist.x;
-        sideDist.x += deltaDist.x;
-        mapPos.x += step.x;
-        lastMask = ivec3(1, 0, 0);
+    if (tMaxAxis.x < tMaxAxis.y) {
+      if (tMaxAxis.x < tMaxAxis.z) {
+        tMaxAxis.x += tDelta.x;
+        mapPos.x += rayStep.x;
+        stepAxis = 0;
       } else {
-        pos = rayOrigin + rayDir * sideDist.z;
-        sideDist.z += deltaDist.z;
-        mapPos.z += step.z;
-        lastMask = ivec3(0, 0, 1);
+        tMaxAxis.z += tDelta.z;
+        mapPos.z += rayStep.z;
+        stepAxis = 2;
       }
     } else {
-      if (sideDist.y < sideDist.z) {
-        pos = rayOrigin + rayDir * sideDist.y;
-        sideDist.y += deltaDist.y;
-        mapPos.y += step.y;
-        lastMask = ivec3(0, 1, 0);
+      if (tMaxAxis.y < tMaxAxis.z) {
+        tMaxAxis.y += tDelta.y;
+        mapPos.y += rayStep.y;
+        stepAxis = 1;
       } else {
-        pos = rayOrigin + rayDir * sideDist.z;
-        sideDist.z += deltaDist.z;
-        mapPos.z += step.z;
-        lastMask = ivec3(0, 0, 1);
+        tMaxAxis.z += tDelta.z;
+        mapPos.z += rayStep.z;
+        stepAxis = 2;
       }
     }
   }
@@ -186,14 +192,12 @@ void main() {
     discard;
   }
   
-  vec3 uvData = getVoxelUV(hit.position, hit.normal, hit.blockType);
-  vec4 textureColor = texture2D(textureAtlas, uvData.xy);
+  vec2 uv = getTextureUV(hit.blockType, hit.normal);
+  vec4 textureColor = texture2D(textureAtlas, uv);
   
   float darknessFactor = getDarknessFactor(hit.normal);
   
-  vec3 finalColor = textureColor.rgb * darknessFactor;
-  
-  gl_FragColor = vec4(finalColor, textureColor.a);
+  gl_FragColor = vec4(textureColor.rgb * darknessFactor, textureColor.a);
 }
 `;
 
@@ -239,7 +243,9 @@ export class WorldRaymarcher implements IChunkManager {
   private layerData: Map<string, { layerIndex: number; voxels: Uint8Array; minPos: Vector3; size: Vector3 }> = new Map();
 
   private getWorldIndex(x: number, y: number, z: number): number {
-    return x + y * this.dimensions.x + z * this.dimensions.x * this.dimensions.y;
+    // Data layout for 3D texture: z * width * height + y * width + x
+    // This matches how texelFetch(tex, ivec3(x,y,z), 0) accesses the data
+    return z * this.dimensions.x * this.dimensions.y + y * this.dimensions.x + x;
   }
 
   constructor(
