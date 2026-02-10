@@ -4,7 +4,7 @@ import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
-import { RaycastChunkManager } from "./raycast-chunk-manager";
+import { WorldRaymarcher } from "./world-raymarcher";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
@@ -36,7 +36,7 @@ export class ProjectManager {
     this.renderMode = RENDER_MODE;
     
     if (this.renderMode === "raycast") {
-      this.chunkManager = new RaycastChunkManager(
+      this.chunkManager = new WorldRaymarcher(
         scene,
         project.dimensions,
         stateStore,
