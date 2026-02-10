@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode, Vector3 } from "@/state/types";
+import type { BlockModificationMode, ChunkData, Vector3 } from "@/state/types";
 import {
   isBlockPresent,
 } from "./voxel-data-utils";
@@ -31,7 +31,7 @@ interface MeshData {
 }
 
 export type LayerChunk = {
-  chunkData: import("@/state/types").ChunkData;
+  chunkData: ChunkData;
 };
 
 export class Chunk {
@@ -107,7 +107,7 @@ export class Chunk {
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  public setLayerChunk(layerIndex: number, chunkData: import("@/state/types").ChunkData | null): void {
+  public setLayerChunk(layerIndex: number, chunkData: ChunkData | null): void {
     if (chunkData === null) {
       this.layerChunks[layerIndex] = null;
       return;
