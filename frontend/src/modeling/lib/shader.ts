@@ -55,11 +55,6 @@ float calculateGridLine(vec3 gridPos, float lineWidth) {
 void main() {
   vec4 textureColor = texture2D(map, vUv);
  
-  if (vAO < 0.01) {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-    return;
-  }
-
   vec3 normal = normalize(vNormal);
  
   float darknessFactor = 1.0;
@@ -102,6 +97,5 @@ export const createVoxelMaterial = (
     vertexShader,
     fragmentShader,
     side: THREE.FrontSide,
-    transparent: true,
   });
 };
