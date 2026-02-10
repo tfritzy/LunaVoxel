@@ -96,7 +96,7 @@ export class Chunk {
       voxelData[x] = [];
       for (let y = 0; y < size.y; y++) {
         const bufferOffset = x * size.y * size.z + y * size.z;
-        voxelData[x][y] = this.blocksToRender.subarray(
+        voxelData[x][y] = this.renderedBlocks.subarray(
           bufferOffset,
           bufferOffset + size.z
         );
@@ -472,8 +472,8 @@ export class Chunk {
       this.updatePreviewState(this.blocksToRender);
 
       if (this.atlasData && this.needsRender()) {
-        this.updateMeshes(this.getMode(), this.atlasData);
         this.renderedBlocks.set(this.blocksToRender);
+        this.updateMeshes(this.getMode(), this.atlasData);
 
         if (this.previewFrame.isEmpty()) {
           this.renderedPreviewFrame = null;
