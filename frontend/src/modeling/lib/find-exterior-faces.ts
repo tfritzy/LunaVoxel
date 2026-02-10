@@ -1,4 +1,4 @@
-import type { BlockModificationMode, Vector3 } from "@/state/types";
+import type { Vector3 } from "@/state/types";
 import { faces, INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
@@ -50,8 +50,7 @@ export class ExteriorFacesFinder {
     previewMeshArrays: MeshArrays,
     previewFrame: VoxelFrame,
     selectionFrame: FlatVoxelFrame,
-    previewOccludes: boolean,
-    buildMode?: BlockModificationMode
+    previewOccludes: boolean
   ): void {
     meshArrays.reset();
     previewMeshArrays.reset();
@@ -77,7 +76,6 @@ export class ExteriorFacesFinder {
     const previewData = previewFrame.data;
     const previewEmpty = previewFrame.isEmpty();
     const maxDim = this.maxDim;
-    const isEraseMode = buildMode?.tag === "Erase";
 
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3;
@@ -144,12 +142,11 @@ export class ExteriorFacesFinder {
               const neighborValue = neighborInBounds ? voxelData[nx * strideX + ny * dimZ + nz] : 0;
               const neighborVisible = neighborValue !== 0 && neighborValue !== INVISIBLE_VOXEL_MARKER;
               const neighborIsPreview = !previewEmpty && neighborInBounds && previewData[nx][ny][nz] !== 0;
-              const neighborIsSolid = neighborValue !== 0;
 
               const maskIdx = iv * maxDim + iu;
 
               if (blockIsPreview) {
-                const shouldRenderFace = !neighborIsPreview && (isEraseMode ? !neighborIsSolid : true);
+                const shouldRenderFace = !neighborIsPreview;
 
                 if (shouldRenderFace) {
                   const textureIndex =

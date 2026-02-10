@@ -418,8 +418,7 @@ export class Chunk {
       this.meshes.preview.meshArrays,
       this.previewFrame,
       this.mergedSelectionFrame,
-      buildMode.tag !== "Erase",
-      buildMode
+      buildMode.tag !== "Erase"
     );
 
     this.updateMainMesh(atlasData);
