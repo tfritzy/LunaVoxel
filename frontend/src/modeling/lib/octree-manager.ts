@@ -16,7 +16,7 @@ interface LayerMesh {
 }
 
 export function allocateOccupancy(dims: Vector3): Uint8Array {
-  return new Uint8Array(dims.x * dims.y * dims.z);
+  return new Uint8Array((dims.x + 2) * (dims.y + 2) * (dims.z + 2));
 }
 
 export function clearOccupancy(occ: Uint8Array): void {

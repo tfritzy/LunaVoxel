@@ -188,7 +188,9 @@ describe("OctreeMesher", () => {
 
     const dims = { x: 8, y: 8, z: 8 };
     const occ = makeOccupancy(dims);
-    occ[0] = 1;
+    const paddedDimZ = dims.z + 2;
+    const paddedStrideX = (dims.y + 2) * paddedDimZ;
+    occ[1 * paddedStrideX + 1 * paddedDimZ + 1] = 1;
 
     const meshArrays = new MeshArrays(100, 200);
     mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);

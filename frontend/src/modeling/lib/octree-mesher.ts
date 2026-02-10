@@ -16,9 +16,9 @@ function getTexCoordsCached(textureIndex: number, textureWidth: number): Float64
   return coords;
 }
 
-const DIRECTION_OFFSETS: [number, number, number][] = [
-  [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
-];
+const DIRECTION_OFFSETS_FLAT = new Int8Array([
+  1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1,
+]);
 
 const FACE_VERTS = new Float32Array(72);
 const FACE_NORMALS = new Float32Array(18);
@@ -48,13 +48,15 @@ export class OctreeMesher {
     if (octree.size === 0) return;
 
     const dimX = dims.x, dimY = dims.y, dimZ = dims.z;
-    const strideX = dimY * dimZ;
+    const paddedDimY = dimY + 2;
+    const paddedDimZ = dimZ + 2;
+    const strideX = paddedDimY * paddedDimZ;
 
     for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
       const ex = entry.x, ey = entry.y, ez = entry.z;
-      if (ex < dimX && ey < dimY && ez < dimZ && globalOccupancy[ex * strideX + ey * dimZ + ez] === 0) {
-        globalOccupancy[ex * strideX + ey * dimZ + ez] = 2;
+      if (ex < dimX && ey < dimY && ez < dimZ && globalOccupancy[(ex + 1) * strideX + (ey + 1) * paddedDimZ + (ez + 1)] === 0) {
+        globalOccupancy[(ex + 1) * strideX + (ey + 1) * paddedDimZ + (ez + 1)] = 2;
       }
     }
 
@@ -73,7 +75,7 @@ export class OctreeMesher {
       const x = entry.x, y = entry.y, z = entry.z;
 
       if (x >= dimX || y >= dimY || z >= dimZ) continue;
-      if (globalOccupancy[x * strideX + y * dimZ + z] !== 2) continue;
+      if (globalOccupancy[(x + 1) * strideX + (y + 1) * paddedDimZ + (z + 1)] !== 2) continue;
 
       const aoVal = entry.invisible ? 0.0 : 1.0;
       const mapping = blockAtlasMappings[entry.blockType - 1];
@@ -82,14 +84,12 @@ export class OctreeMesher {
       const baseZ = z + 0.5;
 
       for (let faceDir = 0; faceDir < 6; faceDir++) {
-        const dir = DIRECTION_OFFSETS[faceDir];
-        const nx = x + dir[0];
-        const ny = y + dir[1];
-        const nz = z + dir[2];
+        const dBase = faceDir * 3;
+        const nx = x + DIRECTION_OFFSETS_FLAT[dBase];
+        const ny = y + DIRECTION_OFFSETS_FLAT[dBase + 1];
+        const nz = z + DIRECTION_OFFSETS_FLAT[dBase + 2];
 
-        if (nx >= 0 && nx < dimX && ny >= 0 && ny < dimY && nz >= 0 && nz < dimZ) {
-          if (globalOccupancy[nx * strideX + ny * dimZ + nz] > 0) continue;
-        }
+        if (globalOccupancy[(nx + 1) * strideX + (ny + 1) * paddedDimZ + (nz + 1)] > 0) continue;
 
         const textureCoords = getTexCoordsCached(mapping[faceDir], textureWidth);
         const fvBase = faceDir * 12;
