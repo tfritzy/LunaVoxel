@@ -1,16 +1,16 @@
 import * as THREE from "three";
-import type { Project } from "@/state/types";
+import type { BlockModificationMode, Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
-import { OctreeManager } from "./octree-manager";
+import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 
 export class ProjectManager {
   public builder;
-  public octreeManager;
+  public chunkManager;
   private cursorManager: CursorManager;
   private stateStore: StateStore;
   private project: Project;
@@ -27,11 +27,12 @@ export class ProjectManager {
   ) {
     this.stateStore = stateStore;
     this.project = project;
-    this.octreeManager = new OctreeManager(
+    this.chunkManager = new ChunkManager(
       scene,
       project.dimensions,
       stateStore,
       project.id,
+      () => this.builder.getMode()
     );
     this.cursorManager = new CursorManager(scene);
     this.editHistory = new EditHistory(stateStore, project.id);
@@ -82,7 +83,7 @@ export class ProjectManager {
 
   public export = (type: ExportType): void => {
     const exporter = new ModelExporter(
-      this.octreeManager,
+      this.chunkManager,
       this.project,
       this.atlasData
     );
@@ -105,7 +106,7 @@ export class ProjectManager {
   setAtlasData = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     if (atlasData) {
-      this.octreeManager.setTextureAtlas(atlasData);
+      this.chunkManager.setTextureAtlas(atlasData);
     }
   };
 
@@ -113,19 +114,40 @@ export class ProjectManager {
     this.builder.setSelectedBlock(block, () => {});
   };
 
+  public applyOptimisticRectEdit = (
+    layerIndex: number,
+    mode: BlockModificationMode,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    blockType: number,
+    rotation: number
+  ) => {
+    const layer = this.chunkManager.getLayer(layerIndex);
+    if (!layer) return;
+
+    this.chunkManager.applyOptimisticRect(
+      layer,
+      mode,
+      start,
+      end,
+      blockType,
+      rotation
+    );
+  };
+
   public getBlockAtPosition(
     position: THREE.Vector3,
     layerIndex: number
   ): number | null {
-    const layer = this.octreeManager.getLayer(layerIndex);
+    const layer = this.chunkManager.getLayer(layerIndex);
     if (!layer) return null;
 
-    return this.octreeManager.getBlockAtPosition(position, layer);
+    return this.chunkManager.getBlockAtPosition(position, layer);
   }
 
   dispose(): void {
     this.builder.dispose();
-    this.octreeManager.dispose();
+    this.chunkManager.dispose();
     this.cursorManager.dispose();
     window.removeEventListener("keydown", this.keydownHandler);
   }

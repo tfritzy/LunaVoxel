@@ -1,4 +1,4 @@
-import { OctreeManager } from "../lib/octree-manager";
+import { ChunkManager } from "../lib/chunk-manager";
 import type { Project } from "@/state/types";
 import { MeshConsolidator } from "./mesh-consolidator";
 import { OBJExporter } from "./obj-exporter";
@@ -15,16 +15,16 @@ import { AtlasData } from "@/lib/useAtlas";
 export type ExportType = "GLTF" | "OBJ" | "STL";
 
 export class ModelExporter {
-  private octreeManager: OctreeManager;
+  private chunkManager: ChunkManager;
   private project: Project;
   private atlasData: AtlasData | null;
 
   constructor(
-    octreeManager: OctreeManager,
+    chunkManager: ChunkManager,
     project: Project,
     atlasData: AtlasData | null
   ) {
-    this.octreeManager = octreeManager;
+    this.chunkManager = chunkManager;
     this.project = project;
     this.atlasData = atlasData;
   }
@@ -120,7 +120,7 @@ export class ModelExporter {
     };
 
     const consolidator = new MeshConsolidator(
-      this.octreeManager,
+      this.chunkManager,
       worldDimensions
     );
     const consolidatedMesh = consolidator.consolidateAllChunks();

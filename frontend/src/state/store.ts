@@ -1,18 +1,19 @@
 import { useSyncExternalStore } from "react";
+import { CHUNK_SIZE } from "./constants";
 import type {
   BlockModificationMode,
+  ChunkData,
   Layer,
   Project,
   ProjectBlocks,
   Vector3,
 } from "./types";
-import { SparseVoxelOctree } from "@/modeling/lib/sparse-voxel-octree";
 
 export type GlobalState = {
   project: Project;
   layers: Layer[];
   blocks: ProjectBlocks;
-  layerOctrees: Map<string, SparseVoxelOctree>;
+  chunks: Map<string, ChunkData>;
 };
 
 export type Reducers = {
@@ -63,6 +64,30 @@ export type StateStore = {
 const createId = () =>
   `layer_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 
+export const getChunkKey = (layerId: string, minPos: Vector3) =>
+  `${layerId}:${minPos.x},${minPos.y},${minPos.z}`;
+
+const createChunkData = (
+  project: Project,
+  layerId: string,
+  minPos: Vector3
+): ChunkData => {
+  const size = {
+    x: Math.min(CHUNK_SIZE, project.dimensions.x - minPos.x),
+    y: Math.min(CHUNK_SIZE, project.dimensions.y - minPos.y),
+    z: Math.min(CHUNK_SIZE, project.dimensions.z - minPos.z),
+  };
+  const voxels = new Uint8Array(size.x * size.y * size.z);
+  return {
+    key: getChunkKey(layerId, minPos),
+    projectId: project.id,
+    layerId,
+    minPos,
+    size,
+    voxels,
+  };
+};
+
 const createInitialState = (): GlobalState => {
   const projectId = "local-project";
   const project: Project = {
@@ -92,13 +117,27 @@ const createInitialState = (): GlobalState => {
     ],
   };
 
-  const layerOctrees = new Map<string, SparseVoxelOctree>();
-  const octree = new SparseVoxelOctree();
+  const chunks = new Map<string, ChunkData>();
+  const seedChunk = createChunkData(project, layerId, { x: 0, y: 0, z: 0 });
+
+  const setVoxel = (x: number, y: number, z: number, value: number) => {
+    if (
+      x < 0 ||
+      y < 0 ||
+      z < 0 ||
+      x >= seedChunk.size.x ||
+      y >= seedChunk.size.y ||
+      z >= seedChunk.size.z
+    )
+      return;
+    const index = x * seedChunk.size.y * seedChunk.size.z + y * seedChunk.size.z + z;
+    seedChunk.voxels[index] = value;
+  };
 
   for (let x = 10; x <= 14; x++) {
     for (let y = 0; y <= 3; y++) {
       for (let z = 10; z <= 14; z++) {
-        octree.set(x, y, z, 1);
+        setVoxel(x, y, z, 1);
       }
     }
   }
@@ -106,14 +145,14 @@ const createInitialState = (): GlobalState => {
   for (let x = 11; x <= 13; x++) {
     for (let y = 4; y <= 6; y++) {
       for (let z = 11; z <= 13; z++) {
-        octree.set(x, y, z, 2);
+        setVoxel(x, y, z, 2);
       }
     }
   }
 
-  layerOctrees.set(layerId, octree);
+  chunks.set(seedChunk.key, seedChunk);
 
-  return { project, layers, blocks, layerOctrees };
+  return { project, layers, blocks, chunks };
 };
 
 let state = createInitialState();
@@ -135,13 +174,43 @@ const updateState = (mutator: (current: GlobalState) => void) => {
 const getLayerByIndex = (layerIndex: number) =>
   state.layers.find((layer) => layer.index === layerIndex);
 
-const getOrCreateOctree = (layerId: string) => {
-  let octree = state.layerOctrees.get(layerId);
-  if (!octree) {
-    octree = new SparseVoxelOctree();
-    state.layerOctrees.set(layerId, octree);
+
+const getOrCreateChunk = (layerId: string, minPos: Vector3) => {
+  const key = getChunkKey(layerId, minPos);
+  let chunk = state.chunks.get(key);
+  if (!chunk) {
+    chunk = createChunkData(state.project, layerId, minPos);
+    state.chunks.set(key, chunk);
   }
-  return octree;
+  return chunk;
+};
+
+const applyBlockAt = (
+  chunk: ChunkData,
+  mode: BlockModificationMode,
+  localX: number,
+  localY: number,
+  localZ: number,
+  blockType: number
+) => {
+  const index =
+    localX * chunk.size.y * chunk.size.z +
+    localY * chunk.size.z +
+    localZ;
+
+  switch (mode.tag) {
+    case "Attach":
+      chunk.voxels[index] = blockType;
+      break;
+    case "Erase":
+      chunk.voxels[index] = 0;
+      break;
+    case "Paint":
+      if (chunk.voxels[index] !== 0) {
+        chunk.voxels[index] = blockType;
+      }
+      break;
+  }
 };
 
 const reducers: Reducers = {
@@ -174,12 +243,13 @@ const reducers: Reducers = {
 
       current.blocks.faceColors.splice(zeroBasedIndex, 1);
 
-      for (const octree of current.layerOctrees.values()) {
-        for (const entry of octree.values()) {
-          if (entry.blockType === blockIndex) {
-            octree.set(entry.x, entry.y, entry.z, replacementBlockType);
-          } else if (entry.blockType > blockIndex) {
-            octree.set(entry.x, entry.y, entry.z, entry.blockType - 1);
+      for (const chunk of current.chunks.values()) {
+        for (let i = 0; i < chunk.voxels.length; i++) {
+          const value = chunk.voxels[i];
+          if (value === blockIndex) {
+            chunk.voxels[i] = replacementBlockType;
+          } else if (value > blockIndex) {
+            chunk.voxels[i] = value - 1;
           }
         }
       }
@@ -189,16 +259,14 @@ const reducers: Reducers = {
     void _projectId;
     updateState((current) => {
       const nextIndex = current.layers.length;
-      const newLayer: Layer = {
+      current.layers.push({
         id: createId(),
         projectId: current.project.id,
         index: nextIndex,
         name: `Layer ${nextIndex + 1}`,
         visible: true,
         locked: false,
-      };
-      current.layers.push(newLayer);
-      current.layerOctrees.set(newLayer.id, new SparseVoxelOctree());
+      });
     });
   },
   deleteLayer: (layerId) => {
@@ -209,7 +277,11 @@ const reducers: Reducers = {
         .filter((layer) => layer.id !== layerId)
         .map((layer, index) => ({ ...layer, index }));
 
-      current.layerOctrees.delete(layerId);
+      for (const [key, chunk] of current.chunks.entries()) {
+        if (chunk.layerId === layerId) {
+          current.chunks.delete(key);
+        }
+      }
     });
   },
   toggleLayerVisibility: (layerId) => {
@@ -263,7 +335,6 @@ const reducers: Reducers = {
       const layer = getLayerByIndex(layerIndex);
       if (!layer || layer.locked) return;
 
-      const octree = getOrCreateOctree(layer.id);
       const dims = current.project.dimensions;
       const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
       const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
@@ -272,21 +343,40 @@ const reducers: Reducers = {
       const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
       const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
 
-      for (let x = minX; x <= maxX; x++) {
-        for (let y = minY; y <= maxY; y++) {
-          for (let z = minZ; z <= maxZ; z++) {
-            switch (mode.tag) {
-              case "Attach":
-                octree.set(x, y, z, blockType);
-                break;
-              case "Erase":
-                octree.delete(x, y, z);
-                break;
-              case "Paint":
-                if (octree.has(x, y, z)) {
-                  octree.set(x, y, z, blockType);
+      for (
+        let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
+        chunkX <= maxX;
+        chunkX += CHUNK_SIZE
+      ) {
+        for (
+          let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
+          chunkY <= maxY;
+          chunkY += CHUNK_SIZE
+        ) {
+          for (
+            let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
+            chunkZ <= maxZ;
+            chunkZ += CHUNK_SIZE
+          ) {
+            const chunk = getOrCreateChunk(layer.id, {
+              x: chunkX,
+              y: chunkY,
+              z: chunkZ,
+            });
+
+            const localMinX = Math.max(0, minX - chunkX);
+            const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
+            const localMinY = Math.max(0, minY - chunkY);
+            const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
+            const localMinZ = Math.max(0, minZ - chunkZ);
+            const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
+
+            for (let x = localMinX; x <= localMaxX; x++) {
+              for (let y = localMinY; y <= localMaxY; y++) {
+                for (let z = localMinZ; z <= localMaxZ; z++) {
+                  applyBlockAt(chunk, mode, x, y, z, blockType);
                 }
-                break;
+              }
             }
           }
         }
