@@ -66,7 +66,7 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // Place a block next to the center block in Y direction
-      setVoxel(voxelData, 1, 2, 1, 1); // +Y neighbor
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y neighbor
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1, // center position
@@ -90,8 +90,8 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // Place blocks on two sides
-      setVoxel(voxelData, 1, 2, 1, 1); // +Y neighbor
-      setVoxel(voxelData, 1, 1, 2, 1); // +Z neighbor
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y neighbor
+      setVoxel(voxelData, 1, 1, 2, 1, dimensions); // +Z neighbor
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1, // center position
@@ -115,7 +115,7 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // Place a block at diagonal corner
-      setVoxel(voxelData, 1, 2, 2, 1); // +Y, +Z corner
+      setVoxel(voxelData, 1, 2, 2, 1, dimensions); // +Y, +Z corner
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1, // center position
@@ -140,8 +140,8 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // Place blocks to form an inner corner
-      setVoxel(voxelData, 1, 2, 1, 1); // +Y side
-      setVoxel(voxelData, 1, 1, 2, 1); // +Z side
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
+      setVoxel(voxelData, 1, 1, 2, 1, dimensions); // +Z side
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1, // center position
@@ -164,8 +164,8 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // Only place the two side blocks, not the corner
-      setVoxel(voxelData, 1, 2, 1, 1); // +Y side
-      setVoxel(voxelData, 1, 1, 2, 1); // +Z side
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
+      setVoxel(voxelData, 1, 1, 2, 1, dimensions); // +Z side
       // No corner block at (1, 2, 2)
 
       const mask = calculateAmbientOcclusion(
@@ -238,7 +238,7 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // One real block, one preview block
-      setVoxel(voxelData, 1, 2, 1, 1); // +Y side (real)
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side (real)
       previewFrame.set(1, 1, 2, 1); // +Z side (preview)
 
       const mask = calculateAmbientOcclusion(
@@ -287,9 +287,9 @@ describe("calculateAmbientOcclusion", () => {
       // Create a specific occlusion pattern for face 0 (+X)
       // For face 0, tangents are u=Y, v=Z
       // Place blocks to create varied occlusion
-      setVoxel(voxelData, 2, 1, 2, 1); // -Y side
-      setVoxel(voxelData, 2, 3, 2, 1); // +Y side
-      setVoxel(voxelData, 2, 2, 3, 1); // +Z side
+      setVoxel(voxelData, 2, 1, 2, 1, dimensions); // -Y side
+      setVoxel(voxelData, 2, 3, 2, 1, dimensions); // +Y side
+      setVoxel(voxelData, 2, 2, 3, 1, dimensions); // +Z side
 
       const mask = calculateAmbientOcclusion(
         2, 2, 2,
@@ -318,8 +318,8 @@ describe("calculateAmbientOcclusion", () => {
       const previewFrame = new VoxelFrame(dimensions);
 
       // Create symmetric pattern around center block: blocks at +Y and -Y
-      setVoxel(voxelData, 2, 3, 2, 1); // +Y
-      setVoxel(voxelData, 2, 1, 2, 1); // -Y
+      setVoxel(voxelData, 2, 3, 2, 1, dimensions); // +Y
+      setVoxel(voxelData, 2, 1, 2, 1, dimensions); // -Y
 
       const mask1 = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions, previewFrame, false);
       const corners1 = unpackOcclusionMask(mask1);
@@ -345,7 +345,7 @@ describe("calculateAmbientOcclusion", () => {
         for (let y = 0; y < 3; y++) {
           for (let z = 0; z < 3; z++) {
             if (x !== 1 || y !== 1 || z !== 1) {
-              setVoxel(voxelData, x, y, z, 1);
+              setVoxel(voxelData, x, y, z, 1, dimensions);
             }
           }
         }
@@ -368,7 +368,7 @@ describe("calculateAmbientOcclusion", () => {
         for (let y = 0; y < 5; y++) {
           for (let z = 0; z < 5; z++) {
             if ((x + y + z) % 2 === 0) {
-              setVoxel(voxelData, x, y, z, 1);
+              setVoxel(voxelData, x, y, z, 1, dimensions);
             }
           }
         }
