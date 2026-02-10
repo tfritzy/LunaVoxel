@@ -49,7 +49,7 @@ export class ExteriorFacesFinder {
   }
 
   public findExteriorFaces(
-    voxelData: Uint8Array[][],
+    voxelData: ReadonlyArray<ReadonlyArray<Uint8Array>>,
     textureWidth: number,
     blockAtlasMappings: number[][],
     dimensions: Vector3,

@@ -42,7 +42,7 @@ export const calculateAmbientOcclusion = (
   ny: number,
   nz: number,
   faceDir: number,
-  voxelData: Uint8Array[][],
+  voxelData: ReadonlyArray<ReadonlyArray<Uint8Array>>,
   dimensions: Vector3,
   previewFrame: VoxelFrame,
   previewOccludes: boolean
