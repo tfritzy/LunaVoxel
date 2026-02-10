@@ -30,15 +30,11 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type LayerChunk = {
-  voxels: Uint8Array;
-};
-
 export class Chunk {
   private scene: THREE.Scene;
   public readonly minPos: Vector3;
   public readonly size: Vector3;
-  private layerChunks: (LayerChunk | null)[];
+  private layerChunks: (Uint8Array | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
@@ -99,7 +95,11 @@ export class Chunk {
     for (let x = 0; x < size.x; x++) {
       this.voxelData[x] = [];
       for (let y = 0; y < size.y; y++) {
-        this.voxelData[x][y] = new Uint8Array(size.z);
+        const offset = x * size.y * size.z + y * size.z;
+        this.voxelData[x][y] = this.blocksToRender.subarray(
+          offset,
+          offset + size.z
+        );
       }
     }
 
@@ -112,13 +112,11 @@ export class Chunk {
       this.layerChunks[layerIndex] = null;
       return;
     }
-    this.layerChunks[layerIndex] = {
-      voxels,
-    };
+    this.layerChunks[layerIndex] = voxels;
     this.update();
   }
 
-  public getLayerChunk(layerIndex: number): LayerChunk | null {
+  public getLayerChunk(layerIndex: number): Uint8Array | null {
     return this.layerChunks[layerIndex] || null;
   }
 
@@ -147,14 +145,14 @@ export class Chunk {
 
           switch (mode.tag) {
             case "Attach":
-              layerChunk.voxels[index] = blockType;
+              layerChunk[index] = blockType;
               break;
             case "Erase":
-              layerChunk.voxels[index] = 0;
+              layerChunk[index] = 0;
               break;
             case "Paint":
-              if (layerChunk.voxels[index] !== 0) {
-                layerChunk.voxels[index] = blockType;
+              if (layerChunk[index] !== 0) {
+                layerChunk[index] = blockType;
               }
               break;
           }
@@ -163,18 +161,6 @@ export class Chunk {
     }
 
     this.update();
-  }
-
-  private copyChunkData(blocks: Uint8Array): void {
-    for (let x = 0; x < this.size.x; x++) {
-      for (let y = 0; y < this.size.y; y++) {
-        for (let z = 0; z < this.size.z; z++) {
-          const blockIndex =
-            x * this.size.y * this.size.z + y * this.size.z + z;
-          this.voxelData[x][y][z] = blocks[blockIndex];
-        }
-      }
-    }
   }
 
   public setTextureAtlas = (atlasData: AtlasData) => {
@@ -251,12 +237,12 @@ export class Chunk {
   }
 
   private addLayerChunkToBlocks(
-    layerChunk: LayerChunk,
+    layerChunk: Uint8Array,
     blocks: Uint8Array
   ): void {
-    for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (layerChunk.voxels[i] > 0) {
-        blocks[i] = layerChunk.voxels[i];
+    for (let i = 0; i < blocks.length && i < layerChunk.length; i++) {
+      if (layerChunk[i] > 0) {
+        blocks[i] = layerChunk[i];
         this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
@@ -485,7 +471,6 @@ export class Chunk {
       this.updatePreviewState(this.blocksToRender);
 
       if (this.atlasData && this.needsRender()) {
-        this.copyChunkData(this.blocksToRender);
         this.updateMeshes(this.getMode(), this.atlasData);
         this.renderedBlocks.set(this.blocksToRender);
 

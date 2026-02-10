@@ -204,7 +204,7 @@ export class ChunkManager {
     
     const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
     
-    return layerChunk.voxels[index] || 0;
+    return layerChunk[index] || 0;
   }
 
   public getChunks(): Chunk[] {
