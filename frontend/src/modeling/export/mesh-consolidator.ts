@@ -1,4 +1,4 @@
-import { ChunkManager } from "../lib/chunk-manager";
+import { IChunkManager } from "../lib/chunk-interface";
 
 export interface ConsolidatedMesh {
   vertices: number[];
@@ -8,11 +8,11 @@ export interface ConsolidatedMesh {
 }
 
 export class MeshConsolidator {
-  private chunkManager: ChunkManager;
+  private chunkManager: IChunkManager;
   private worldDimensions: { x: number; y: number; z: number };
 
   constructor(
-    chunkManager: ChunkManager,
+    chunkManager: IChunkManager,
     worldDimensions: { x: number; y: number; z: number }
   ) {
     this.chunkManager = chunkManager;

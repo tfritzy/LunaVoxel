@@ -4,19 +4,25 @@ import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
+import { RaycastChunkManager } from "./raycast-chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { EditHistory } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
+import { IChunkManager } from "./chunk-interface";
+
+export type RenderMode = "mesh" | "raycast";
+const RENDER_MODE: RenderMode = "raycast";
 
 export class ProjectManager {
   public builder;
-  public chunkManager;
+  public chunkManager: IChunkManager;
   private cursorManager: CursorManager;
   private stateStore: StateStore;
   private project: Project;
   private atlasData: AtlasData | null = null;
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
+  private renderMode: RenderMode;
 
   constructor(
     scene: THREE.Scene,
@@ -27,13 +33,25 @@ export class ProjectManager {
   ) {
     this.stateStore = stateStore;
     this.project = project;
-    this.chunkManager = new ChunkManager(
-      scene,
-      project.dimensions,
-      stateStore,
-      project.id,
-      () => this.builder.getMode()
-    );
+    this.renderMode = RENDER_MODE;
+    
+    if (this.renderMode === "raycast") {
+      this.chunkManager = new RaycastChunkManager(
+        scene,
+        project.dimensions,
+        stateStore,
+        project.id,
+        () => this.builder.getMode()
+      );
+    } else {
+      this.chunkManager = new ChunkManager(
+        scene,
+        project.dimensions,
+        stateStore,
+        project.id,
+        () => this.builder.getMode()
+      );
+    }
     this.cursorManager = new CursorManager(scene);
     this.editHistory = new EditHistory(stateStore, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
