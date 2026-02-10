@@ -111,6 +111,15 @@ RayHit raycastVoxels(vec3 rayOrigin, vec3 rayDir) {
   
   int maxSteps = int(chunkSize.x + chunkSize.y + chunkSize.z) * 2;
   
+  ivec3 lastMask = ivec3(0);
+  if (tMin.x >= tMin.y && tMin.x >= tMin.z) {
+    lastMask = ivec3(1, 0, 0);
+  } else if (tMin.y >= tMin.z) {
+    lastMask = ivec3(0, 1, 0);
+  } else {
+    lastMask = ivec3(0, 0, 1);
+  }
+  
   for (int i = 0; i < 512; i++) {
     if (i >= maxSteps) break;
     
@@ -128,38 +137,33 @@ RayHit raycastVoxels(vec3 rayOrigin, vec3 rayDir) {
       result.hit = true;
       result.position = pos;
       result.blockType = blockType;
-      
-      float minSide = min(min(sideDist.x, sideDist.y), sideDist.z);
-      if (sideDist.x <= minSide - epsilon) {
-        result.normal = vec3(-float(step.x), 0.0, 0.0);
-      } else if (sideDist.y <= minSide - epsilon) {
-        result.normal = vec3(0.0, -float(step.y), 0.0);
-      } else {
-        result.normal = vec3(0.0, 0.0, -float(step.z));
-      }
-      
+      result.normal = -vec3(lastMask) * vec3(step);
       return result;
     }
     
     if (sideDist.x < sideDist.y) {
       if (sideDist.x < sideDist.z) {
+        pos = rayOrigin + rayDir * sideDist.x;
         sideDist.x += deltaDist.x;
         mapPos.x += step.x;
-        pos = rayOrigin + rayDir * (sideDist.x - deltaDist.x);
+        lastMask = ivec3(1, 0, 0);
       } else {
+        pos = rayOrigin + rayDir * sideDist.z;
         sideDist.z += deltaDist.z;
         mapPos.z += step.z;
-        pos = rayOrigin + rayDir * (sideDist.z - deltaDist.z);
+        lastMask = ivec3(0, 0, 1);
       }
     } else {
       if (sideDist.y < sideDist.z) {
+        pos = rayOrigin + rayDir * sideDist.y;
         sideDist.y += deltaDist.y;
         mapPos.y += step.y;
-        pos = rayOrigin + rayDir * (sideDist.y - deltaDist.y);
+        lastMask = ivec3(0, 1, 0);
       } else {
+        pos = rayOrigin + rayDir * sideDist.z;
         sideDist.z += deltaDist.z;
         mapPos.z += step.z;
-        pos = rayOrigin + rayDir * (sideDist.z - deltaDist.z);
+        lastMask = ivec3(0, 0, 1);
       }
     }
   }
