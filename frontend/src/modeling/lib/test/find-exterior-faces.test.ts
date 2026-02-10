@@ -5,6 +5,7 @@ import { VoxelFrame } from "../voxel-frame";
 import { FlatVoxelFrame } from "../flat-voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
+import { INVISIBLE_VOXEL_MARKER } from "../voxel-constants";
 
 /**
  * Helper function to create block atlas mappings
@@ -371,6 +372,101 @@ describe("ExteriorFacesFinder", () => {
 
       expect(previewMeshArrays2.indexCount).toBe(realMeshArrays.indexCount);
       expect(previewMeshArrays2.vertexCount).toBe(realMeshArrays.vertexCount);
+    });
+  });
+
+  describe("Invisible voxel tests", () => {
+    it("should not render faces for invisible voxels", () => {
+      const dimensions: Vector3 = { x: 1, y: 1, z: 1 };
+      const voxelData = createVoxelData(dimensions);
+      setVoxel(voxelData, 0, 0, 0, INVISIBLE_VOXEL_MARKER, dimensions);
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
+
+      finder.findExteriorFaces(
+        voxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        meshArrays,
+        previewMeshArrays,
+        previewFrame,
+        selectionFrame,
+        true
+      );
+
+      expect(meshArrays.indexCount).toBe(0);
+      expect(meshArrays.vertexCount).toBe(0);
+    });
+
+    it("should render faces toward invisible voxels from visible neighbors", () => {
+      const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
+      const voxelData = createVoxelData(dimensions);
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions);
+      setVoxel(voxelData, 1, 0, 0, INVISIBLE_VOXEL_MARKER, dimensions);
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
+
+      finder.findExteriorFaces(
+        voxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        meshArrays,
+        previewMeshArrays,
+        previewFrame,
+        selectionFrame,
+        true
+      );
+
+      expect(meshArrays.indexCount).toBe(36);
+      expect(meshArrays.vertexCount).toBe(24);
+    });
+
+    it("should render interior faces when surrounded by invisible voxels", () => {
+      const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
+      const voxelData = createVoxelData(dimensions);
+
+      for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+          for (let z = 0; z < 3; z++) {
+            if (x === 1 && y === 1 && z === 1) {
+              setVoxel(voxelData, x, y, z, 1, dimensions);
+            } else {
+              setVoxel(voxelData, x, y, z, INVISIBLE_VOXEL_MARKER, dimensions);
+            }
+          }
+        }
+      }
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const previewFrame = new VoxelFrame(dimensions);
+      const selectionFrame = new FlatVoxelFrame(dimensions);
+
+      finder.findExteriorFaces(
+        voxelData,
+        4,
+        createBlockAtlasMappings(2),
+        dimensions,
+        meshArrays,
+        previewMeshArrays,
+        previewFrame,
+        selectionFrame,
+        true
+      );
+
+      expect(meshArrays.indexCount).toBe(36);
+      expect(meshArrays.vertexCount).toBe(24);
     });
   });
 

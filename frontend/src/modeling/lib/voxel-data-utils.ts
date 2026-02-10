@@ -1,4 +1,5 @@
 import LZ4 from "lz4js";
+import { INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
 
 /**
  * In the new format, voxels are simply block indices where 0 means empty.
@@ -13,9 +14,23 @@ export const getBlockType = (blockValue: number): number => {
 };
 
 /**
- * Check if a block is present (non-zero)
+ * Check if a block is present (non-zero and not invisible marker)
  */
 export const isBlockPresent = (blockValue: number): boolean => {
+  return blockValue !== 0 && blockValue !== INVISIBLE_VOXEL_MARKER;
+};
+
+/**
+ * Check if a block is visible (present and not marked as invisible)
+ */
+export const isBlockVisible = (blockValue: number): boolean => {
+  return blockValue !== 0 && blockValue !== INVISIBLE_VOXEL_MARKER;
+};
+
+/**
+ * Check if a block is solid (present for collision purposes, including invisible voxels)
+ */
+export const isBlockSolid = (blockValue: number): boolean => {
   return blockValue !== 0;
 };
 

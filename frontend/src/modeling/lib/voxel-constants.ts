@@ -1,3 +1,5 @@
+export const INVISIBLE_VOXEL_MARKER = 255;
+
 export const faces = [
   {
     vertices: [

@@ -1,5 +1,5 @@
-import type { Vector3 } from "@/state/types";
-import { faces } from "./voxel-constants";
+import type { BlockModificationMode, Vector3 } from "@/state/types";
+import { faces, INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 import {
@@ -50,7 +50,8 @@ export class ExteriorFacesFinder {
     previewMeshArrays: MeshArrays,
     previewFrame: VoxelFrame,
     selectionFrame: FlatVoxelFrame,
-    previewOccludes: boolean
+    previewOccludes: boolean,
+    buildMode?: BlockModificationMode
   ): void {
     meshArrays.reset();
     previewMeshArrays.reset();
@@ -76,6 +77,7 @@ export class ExteriorFacesFinder {
     const previewData = previewFrame.data;
     const previewEmpty = previewFrame.isEmpty();
     const maxDim = this.maxDim;
+    const isEraseMode = buildMode?.tag === "Erase";
 
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3;
@@ -110,6 +112,7 @@ export class ExteriorFacesFinder {
               const voxelIndex = x * strideX + y * dimZ + z;
               const blockValue = voxelData[voxelIndex];
               const blockPresent = blockValue !== 0;
+              const blockVisible = blockValue !== 0 && blockValue !== INVISIBLE_VOXEL_MARKER;
               const previewBlockValue = previewEmpty ? 0 : previewData[x][y][z];
               const blockIsPreview = previewBlockValue !== 0;
               const selectionBlockValue = selectionFrame.get(x, y, z);
@@ -120,7 +123,7 @@ export class ExteriorFacesFinder {
               }
 
               const blockType = Math.max(
-                blockIsPreview ? previewBlockValue : blockValue,
+                blockIsPreview ? previewBlockValue : (blockVisible ? blockValue : 0),
                 1
               );
 
@@ -136,12 +139,14 @@ export class ExteriorFacesFinder {
                     : isNeighborInBounds(axis, dir, nz, dimZ);
 
               const neighborValue = neighborInBounds ? voxelData[nx * strideX + ny * dimZ + nz] : 0;
+              const neighborVisible = neighborValue !== 0 && neighborValue !== INVISIBLE_VOXEL_MARKER;
               const neighborIsPreview = !previewEmpty && neighborInBounds && previewData[nx][ny][nz] !== 0;
+              const neighborIsSolid = neighborValue !== 0;
 
               const maskIdx = iv * maxDim + iu;
 
               if (blockIsPreview) {
-                const shouldRenderFace = !neighborIsPreview;
+                const shouldRenderFace = !neighborIsPreview && (isEraseMode ? !neighborIsSolid : true);
 
                 if (shouldRenderFace) {
                   const textureIndex =
@@ -184,9 +189,9 @@ export class ExteriorFacesFinder {
                   this.isSelectedMask[maskIdx] = 1;
                   hasRealFaces = true;
                 }
-              } else if (blockPresent) {
+              } else if (blockVisible) {
                 const shouldRenderFace =
-                  neighborValue === 0 || neighborIsPreview;
+                  !neighborVisible || neighborIsPreview;
 
                 if (shouldRenderFace) {
                   const textureIndex =

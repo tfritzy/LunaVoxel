@@ -10,6 +10,7 @@ import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
 import { layers } from "./layers";
+import { INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
 
 type SelectionFrameData = {
   minPos: Vector3;
@@ -285,23 +286,18 @@ export class Chunk {
       }
     } else if (buildMode.tag === "Erase") {
       for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const previewBlockValue = this.previewFrame.get(
-          Math.floor(voxelIndex / sizeYZ),
-          Math.floor((voxelIndex % sizeYZ) / sizeZ),
-          voxelIndex % sizeZ
-        );
+        const x = Math.floor(voxelIndex / sizeYZ);
+        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
+        const z = voxelIndex % sizeZ;
+
+        const previewBlockValue = this.previewFrame.get(x, y, z);
 
         if (previewBlockValue !== 0) {
           const realBlockValue = blocks[voxelIndex];
-          const newValue = isBlockPresent(realBlockValue) ? realBlockValue : 0;
-          if (newValue !== previewBlockValue) {
-            this.previewFrame.set(
-              Math.floor(voxelIndex / sizeYZ),
-              Math.floor((voxelIndex % sizeYZ) / sizeZ),
-              voxelIndex % sizeZ,
-              newValue
-            );
+          if (isBlockPresent(realBlockValue)) {
+            blocks[voxelIndex] = INVISIBLE_VOXEL_MARKER;
           }
+          this.previewFrame.set(x, y, z, 0);
         }
       }
     } else if (buildMode.tag === "Paint") {
@@ -422,7 +418,8 @@ export class Chunk {
       this.meshes.preview.meshArrays,
       this.previewFrame,
       this.mergedSelectionFrame,
-      buildMode.tag !== "Erase"
+      buildMode.tag !== "Erase",
+      buildMode
     );
 
     this.updateMainMesh(atlasData);
