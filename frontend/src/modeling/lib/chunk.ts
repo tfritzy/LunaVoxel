@@ -49,7 +49,7 @@ export class Chunk {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
-  private voxelData: ReadonlyArray<ReadonlyArray<Uint8Array>>;
+  private voxelData: Uint8Array[][];
   private facesFinder: ExteriorFacesFinder;
 
   constructor(
