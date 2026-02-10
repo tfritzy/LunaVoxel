@@ -21,11 +21,9 @@ export const isBlockPresent = (blockValue: number): boolean => {
 };
 
 /**
- * Check if a block is visible (present and not marked as invisible)
+ * Check if a block is visible (alias for isBlockPresent - used in mesh generation context)
  */
-export const isBlockVisible = (blockValue: number): boolean => {
-  return blockValue !== 0 && blockValue !== INVISIBLE_VOXEL_MARKER;
-};
+export const isBlockVisible = isBlockPresent;
 
 /**
  * Check if a block is solid (present for collision purposes, including invisible voxels)

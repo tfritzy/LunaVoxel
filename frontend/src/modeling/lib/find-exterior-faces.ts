@@ -122,10 +122,13 @@ export class ExteriorFacesFinder {
                 continue;
               }
 
-              const blockType = Math.max(
-                blockIsPreview ? previewBlockValue : (blockVisible ? blockValue : 0),
-                1
-              );
+              let effectiveBlockValue = 0;
+              if (blockIsPreview) {
+                effectiveBlockValue = previewBlockValue;
+              } else if (blockVisible) {
+                effectiveBlockValue = blockValue;
+              }
+              const blockType = Math.max(effectiveBlockValue, 1);
 
               const nx = x + (axis === 0 ? dir : 0);
               const ny = y + (axis === 1 ? dir : 0);
