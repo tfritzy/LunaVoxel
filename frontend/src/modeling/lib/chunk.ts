@@ -53,7 +53,7 @@ export class Chunk {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
-  private voxelData: Uint8Array[][];
+  private voxelData: Uint8Array;
   private facesFinder: ExteriorFacesFinder;
 
   constructor(
@@ -95,13 +95,7 @@ export class Chunk {
       },
     };
 
-    this.voxelData = [];
-    for (let x = 0; x < size.x; x++) {
-      this.voxelData[x] = [];
-      for (let y = 0; y < size.y; y++) {
-        this.voxelData[x][y] = new Uint8Array(size.z);
-      }
-    }
+    this.voxelData = new Uint8Array(totalVoxels);
 
     const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
@@ -166,15 +160,7 @@ export class Chunk {
   }
 
   private copyChunkData(blocks: Uint8Array): void {
-    for (let x = 0; x < this.size.x; x++) {
-      for (let y = 0; y < this.size.y; y++) {
-        for (let z = 0; z < this.size.z; z++) {
-          const blockIndex =
-            x * this.size.y * this.size.z + y * this.size.z + z;
-          this.voxelData[x][y][z] = blocks[blockIndex];
-        }
-      }
-    }
+    this.voxelData.set(blocks);
   }
 
   public setTextureAtlas = (atlasData: AtlasData) => {

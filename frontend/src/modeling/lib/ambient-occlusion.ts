@@ -33,21 +33,31 @@ export const FACE_TANGENTS: {
   5: { u: [1, 0, 0], v: [0, 1, 0] }, // -Z face: check X and Y directions
 };
 
-/**
- * Calculates ambient occlusion for a face
- * @returns packed occlusion mask with 2 bits per corner
- */
+function isOccluderAt(
+  x: number, y: number, z: number,
+  voxelData: Uint8Array,
+  dimX: number, dimY: number, dimZ: number,
+  strideX: number,
+  previewFrame: VoxelFrame,
+  previewOccludes: boolean
+): boolean {
+  if (x < 0 || x >= dimX || y < 0 || y >= dimY || z < 0 || z >= dimZ) {
+    return false;
+  }
+  if (voxelData[x * strideX + y * dimZ + z] > 0) return true;
+  return previewOccludes && previewFrame.isSet(x, y, z);
+}
+
 export const calculateAmbientOcclusion = (
   nx: number,
   ny: number,
   nz: number,
   faceDir: number,
-  voxelData: Uint8Array[][],
+  voxelData: Uint8Array,
   dimensions: Vector3,
   previewFrame: VoxelFrame,
   previewOccludes: boolean
 ): number => {
-  // Get tangent vectors directly from the flat array for better performance
   const offset = faceDir * 6;
   const u0 = FACE_TANGENTS_FLAT[offset];
   const u1 = FACE_TANGENTS_FLAT[offset + 1];
@@ -56,60 +66,25 @@ export const calculateAmbientOcclusion = (
   const v1 = FACE_TANGENTS_FLAT[offset + 4];
   const v2 = FACE_TANGENTS_FLAT[offset + 5];
 
-  // Check if the voxel is far enough from edges to skip bounds checking
-  const canSkipBoundsCheck = 
-    nx > 0 && nx < dimensions.x - 1 &&
-    ny > 0 && ny < dimensions.y - 1 &&
-    nz > 0 && nz < dimensions.z - 1;
+  const dimX = dimensions.x;
+  const dimY = dimensions.y;
+  const dimZ = dimensions.z;
+  const strideX = dimY * dimZ;
 
-  const isOccluder = (x: number, y: number, z: number): boolean => {
-    if (!canSkipBoundsCheck) {
-      if (
-        x < 0 ||
-        x >= dimensions.x ||
-        y < 0 ||
-        y >= dimensions.y ||
-        z < 0 ||
-        z >= dimensions.z
-      ) {
-        return false;
-      }
-    }
-    
-    const val = voxelData[x][y][z];
-    if (val > 0) return true;
+  const side1_neg = isOccluderAt(nx - u0, ny - u1, nz - u2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const side1_pos = isOccluderAt(nx + u0, ny + u1, nz + u2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const side2_neg = isOccluderAt(nx - v0, ny - v1, nz - v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const side2_pos = isOccluderAt(nx + v0, ny + v1, nz + v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
 
-    return previewOccludes && previewFrame.isSet(x, y, z);
-  };
+  const corner_nn = isOccluderAt(nx - u0 - v0, ny - u1 - v1, nz - u2 - v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const corner_pn = isOccluderAt(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const corner_np = isOccluderAt(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const corner_pp = isOccluderAt(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
 
-  const side1_neg = isOccluder(nx - u0, ny - u1, nz - u2);
-  const side1_pos = isOccluder(nx + u0, ny + u1, nz + u2);
-  const side2_neg = isOccluder(nx - v0, ny - v1, nz - v2);
-  const side2_pos = isOccluder(nx + v0, ny + v1, nz + v2);
+  const occ00 = (side1_neg && side2_neg) ? 3 : ((side1_neg ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_nn ? 1 : 0));
+  const occ10 = (side1_pos && side2_neg) ? 3 : ((side1_pos ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_pn ? 1 : 0));
+  const occ11 = (side1_pos && side2_pos) ? 3 : ((side1_pos ? 1 : 0) + (side2_pos ? 1 : 0) + (corner_pp ? 1 : 0));
+  const occ01 = (side1_neg && side2_pos) ? 3 : ((side1_neg ? 1 : 0) + (side2_pos ? 1 : 0) + (corner_np ? 1 : 0));
 
-  const corner_nn = isOccluder(nx - u0 - v0, ny - u1 - v1, nz - u2 - v2);
-  const corner_pn = isOccluder(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2);
-  const corner_np = isOccluder(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2);
-  const corner_pp = isOccluder(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2);
-
-  const calculateOcclusion = (s1: boolean, s2: boolean, c: boolean): number => {
-    if (s1 && s2) {
-      return 3; // Inner corner case
-    }
-    return (s1 ? 1 : 0) + (s2 ? 1 : 0) + (c ? 1 : 0);
-  };
-
-  const occ00 = calculateOcclusion(side1_neg, side2_neg, corner_nn);
-  const occ10 = calculateOcclusion(side1_pos, side2_neg, corner_pn);
-  const occ11 = calculateOcclusion(side1_pos, side2_pos, corner_pp);
-  const occ01 = calculateOcclusion(side1_neg, side2_pos, corner_np);
-
-  // Pack occlusion values directly (2 bits per corner)
-  let occluderMask = 0;
-  occluderMask |= occ00 << 0;
-  occluderMask |= occ10 << 2;
-  occluderMask |= occ11 << 4;
-  occluderMask |= occ01 << 6;
-
-  return occluderMask;
+  return occ00 | (occ10 << 2) | (occ11 << 4) | (occ01 << 6);
 };

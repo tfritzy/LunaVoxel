@@ -6,7 +6,6 @@ import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
-import { getBlockType, isBlockPresent } from "./voxel-data-utils";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
 
@@ -22,34 +21,28 @@ function isNeighborInBounds(
 }
 
 export class ExteriorFacesFinder {
-  private realMask: Int16Array[];
-  private previewMask: Int16Array[];
-  private selectionMask: Int16Array[];
-  private processed: Uint8Array[];
-  private aoMask: Uint8Array[];
-  private isSelectedMask: Uint8Array[];
+  private realMask: Int16Array;
+  private previewMask: Int16Array;
+  private selectionMask: Int16Array;
+  private processed: Uint8Array;
+  private aoMask: Uint8Array;
+  private isSelectedMask: Uint8Array;
   private maskSize: number;
+  private maxDim: number;
 
   constructor(maxDimension: number) {
     this.maskSize = maxDimension ** 2;
-    this.realMask = new Array(maxDimension);
-    this.previewMask = new Array(maxDimension);
-    this.selectionMask = new Array(maxDimension);
-    this.processed = new Array(maxDimension);
-    this.aoMask = new Array(maxDimension);
-    this.isSelectedMask = new Array(maxDimension);
-    for (let i = 0; i < maxDimension; i++) {
-      this.realMask[i] = new Int16Array(maxDimension);
-      this.previewMask[i] = new Int16Array(maxDimension);
-      this.selectionMask[i] = new Int16Array(maxDimension);
-      this.processed[i] = new Uint8Array(maxDimension);
-      this.aoMask[i] = new Uint8Array(maxDimension);
-      this.isSelectedMask[i] = new Uint8Array(maxDimension);
-    }
+    this.maxDim = maxDimension;
+    this.realMask = new Int16Array(this.maskSize);
+    this.previewMask = new Int16Array(this.maskSize);
+    this.selectionMask = new Int16Array(this.maskSize);
+    this.processed = new Uint8Array(this.maskSize);
+    this.aoMask = new Uint8Array(this.maskSize);
+    this.isSelectedMask = new Uint8Array(this.maskSize);
   }
 
   public findExteriorFaces(
-    voxelData: Uint8Array[][],
+    voxelData: Uint8Array,
     textureWidth: number,
     blockAtlasMappings: number[][],
     dimensions: Vector3,
@@ -67,43 +60,42 @@ export class ExteriorFacesFinder {
 
     if (currentMaskSize > this.maskSize) {
       this.maskSize = currentMaskSize;
-      this.realMask = new Array(maxDimension);
-      this.previewMask = new Array(maxDimension);
-      this.selectionMask = new Array(maxDimension);
-      this.processed = new Array(maxDimension);
-      this.aoMask = new Array(maxDimension);
-      this.isSelectedMask = new Array(maxDimension);
-      for (let i = 0; i < maxDimension; i++) {
-        this.realMask[i] = new Int16Array(maxDimension);
-        this.previewMask[i] = new Int16Array(maxDimension);
-        this.selectionMask[i] = new Int16Array(maxDimension);
-        this.processed[i] = new Uint8Array(maxDimension);
-        this.aoMask[i] = new Uint8Array(maxDimension);
-        this.isSelectedMask[i] = new Uint8Array(maxDimension);
-      }
+      this.maxDim = maxDimension;
+      this.realMask = new Int16Array(currentMaskSize);
+      this.previewMask = new Int16Array(currentMaskSize);
+      this.selectionMask = new Int16Array(currentMaskSize);
+      this.processed = new Uint8Array(currentMaskSize);
+      this.aoMask = new Uint8Array(currentMaskSize);
+      this.isSelectedMask = new Uint8Array(currentMaskSize);
     }
+
+    const dimX = dimensions.x;
+    const dimY = dimensions.y;
+    const dimZ = dimensions.z;
+    const strideX = dimY * dimZ;
+    const previewData = previewFrame.data;
+    const previewEmpty = previewFrame.isEmpty();
+    const maxDim = this.maxDim;
 
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3;
       const v = (axis + 2) % 3;
 
-      const axisSize =
-        axis === 0 ? dimensions.x : axis === 1 ? dimensions.y : dimensions.z;
-      const uSize =
-        u === 0 ? dimensions.x : u === 1 ? dimensions.y : dimensions.z;
-      const vSize =
-        v === 0 ? dimensions.x : v === 1 ? dimensions.y : dimensions.z;
+      const axisSize = axis === 0 ? dimX : axis === 1 ? dimY : dimZ;
+      const uSize = u === 0 ? dimX : u === 1 ? dimY : dimZ;
+      const vSize = v === 0 ? dimX : v === 1 ? dimY : dimZ;
 
       for (let dir = -1; dir <= 1; dir += 2) {
         const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
 
         for (let d = 0; d < axisSize; d++) {
           for (let iv = 0; iv < vSize; iv++) {
-            this.realMask[iv].fill(-1, 0, uSize);
-            this.previewMask[iv].fill(-1, 0, uSize);
-            this.selectionMask[iv].fill(-1, 0, uSize);
-            this.aoMask[iv].fill(0, 0, uSize);
-            this.isSelectedMask[iv].fill(0, 0, uSize);
+            const rowOffset = iv * maxDim;
+            this.realMask.fill(-1, rowOffset, rowOffset + uSize);
+            this.previewMask.fill(-1, rowOffset, rowOffset + uSize);
+            this.selectionMask.fill(-1, rowOffset, rowOffset + uSize);
+            this.aoMask.fill(0, rowOffset, rowOffset + uSize);
+            this.isSelectedMask.fill(0, rowOffset, rowOffset + uSize);
           }
 
           let hasRealFaces = false;
@@ -115,20 +107,20 @@ export class ExteriorFacesFinder {
               const y = axis === 1 ? d : u === 1 ? iu : iv;
               const z = axis === 2 ? d : u === 2 ? iu : iv;
 
-              const blockValue = voxelData[x][y][z];
-              const blockPresent = isBlockPresent(blockValue);
-              const previewBlockValue = previewFrame.get(x, y, z);
+              const voxelIndex = x * strideX + y * dimZ + z;
+              const blockValue = voxelData[voxelIndex];
+              const blockPresent = blockValue !== 0;
+              const previewBlockValue = previewEmpty ? 0 : previewData[x][y][z];
               const blockIsPreview = previewBlockValue !== 0;
               const selectionBlockValue = selectionFrame.get(x, y, z);
               const blockIsSelected = selectionBlockValue !== 0;
 
-              // Early continue for empty voxels
               if (!blockPresent && !blockIsPreview && !blockIsSelected) {
                 continue;
               }
 
               const blockType = Math.max(
-                getBlockType(blockIsPreview ? previewBlockValue : blockValue),
+                blockIsPreview ? previewBlockValue : blockValue,
                 1
               );
 
@@ -138,13 +130,15 @@ export class ExteriorFacesFinder {
 
               const neighborInBounds =
                 axis === 0
-                  ? isNeighborInBounds(axis, dir, nx, dimensions.x)
+                  ? isNeighborInBounds(axis, dir, nx, dimX)
                   : axis === 1
-                    ? isNeighborInBounds(axis, dir, ny, dimensions.y)
-                    : isNeighborInBounds(axis, dir, nz, dimensions.z);
+                    ? isNeighborInBounds(axis, dir, ny, dimY)
+                    : isNeighborInBounds(axis, dir, nz, dimZ);
 
-              const neighborValue = neighborInBounds ? voxelData[nx][ny][nz] : 0;
-              const neighborIsPreview = neighborInBounds && previewFrame.get(nx, ny, nz) !== 0;
+              const neighborValue = neighborInBounds ? voxelData[nx * strideX + ny * dimZ + nz] : 0;
+              const neighborIsPreview = !previewEmpty && neighborInBounds && previewData[nx][ny][nz] !== 0;
+
+              const maskIdx = iv * maxDim + iu;
 
               if (blockIsPreview) {
                 const shouldRenderFace = !neighborIsPreview;
@@ -153,7 +147,7 @@ export class ExteriorFacesFinder {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
 
-                  this.aoMask[iv][iu] = calculateAmbientOcclusion(
+                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
                     ny,
                     nz,
@@ -164,7 +158,7 @@ export class ExteriorFacesFinder {
                     previewOccludes
                   );
 
-                  this.previewMask[iv][iu] = textureIndex;
+                  this.previewMask[maskIdx] = textureIndex;
                   hasPreviewFaces = true;
                 }
               } else if (blockIsSelected) {
@@ -175,7 +169,7 @@ export class ExteriorFacesFinder {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
                   
-                  this.aoMask[iv][iu] = calculateAmbientOcclusion(
+                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
                     ny,
                     nz,
@@ -186,19 +180,19 @@ export class ExteriorFacesFinder {
                     previewOccludes
                   );
                   
-                  this.realMask[iv][iu] = textureIndex;
-                  this.isSelectedMask[iv][iu] = 1;
+                  this.realMask[maskIdx] = textureIndex;
+                  this.isSelectedMask[maskIdx] = 1;
                   hasRealFaces = true;
                 }
               } else if (blockPresent) {
                 const shouldRenderFace =
-                  !isBlockPresent(neighborValue) || neighborIsPreview;
+                  neighborValue === 0 || neighborIsPreview;
 
                 if (shouldRenderFace) {
                   const textureIndex =
                     blockAtlasMappings[blockType - 1][faceDir];
 
-                  this.aoMask[iv][iu] = calculateAmbientOcclusion(
+                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
                     ny,
                     nz,
@@ -209,7 +203,7 @@ export class ExteriorFacesFinder {
                     previewOccludes
                   );
 
-                  this.realMask[iv][iu] = textureIndex;
+                  this.realMask[maskIdx] = textureIndex;
                   hasRealFaces = true;
                 }
               }
@@ -258,10 +252,10 @@ export class ExteriorFacesFinder {
   }
 
   private generateGreedyMesh(
-    mask: Int16Array[],
-    aoMask: Uint8Array[],
-    isSelectedMask: Uint8Array[],
-    processed: Uint8Array[],
+    mask: Int16Array,
+    aoMask: Uint8Array,
+    isSelectedMask: Uint8Array,
+    processed: Uint8Array,
     width: number,
     height: number,
     depth: number,
@@ -273,27 +267,33 @@ export class ExteriorFacesFinder {
     textureWidth: number,
     meshArrays: MeshArrays
   ): void {
+    const stride = this.maxDim;
     for (let iv = 0; iv < height; iv++) {
-      processed[iv].fill(0, 0, width);
+      const rowOffset = iv * stride;
+      processed.fill(0, rowOffset, rowOffset + width);
     }
 
     for (let j = 0; j < height; j++) {
+      const jOffset = j * stride;
       for (let i = 0; i < width; ) {
-        if (processed[j][i] || mask[j][i] < 0) {
+        const ji = jOffset + i;
+        if (processed[ji] || mask[ji] < 0) {
           i++;
           continue;
         }
 
-        const textureIndex = mask[j][i];
-        const isSelected = isSelectedMask[j][i];
+        const textureIndex = mask[ji];
+        const isSelected = isSelectedMask[ji];
+        const aoVal = aoMask[ji];
         let quadWidth = 1;
         if (!DISABLE_GREEDY_MESHING) {
           while (i + quadWidth < width) {
+            const idx = jOffset + i + quadWidth;
             if (
-              processed[j][i + quadWidth] ||
-              mask[j][i + quadWidth] !== textureIndex ||
-              aoMask[j][i + quadWidth] !== aoMask[j][i] ||
-              isSelectedMask[j][i + quadWidth] !== isSelected
+              processed[idx] ||
+              mask[idx] !== textureIndex ||
+              aoMask[idx] !== aoVal ||
+              isSelectedMask[idx] !== isSelected
             )
               break;
             quadWidth++;
@@ -303,12 +303,14 @@ export class ExteriorFacesFinder {
         let quadHeight = 1;
         if (!DISABLE_GREEDY_MESHING) {
           outer: while (j + quadHeight < height) {
+            const rowOff = (j + quadHeight) * stride;
             for (let w = 0; w < quadWidth; w++) {
+              const idx = rowOff + i + w;
               if (
-                processed[j + quadHeight][i + w] ||
-                mask[j + quadHeight][i + w] !== textureIndex ||
-                aoMask[j + quadHeight][i + w] !== aoMask[j][i] ||
-                isSelectedMask[j + quadHeight][i + w] !== isSelected
+                processed[idx] ||
+                mask[idx] !== textureIndex ||
+                aoMask[idx] !== aoVal ||
+                isSelectedMask[idx] !== isSelected
               )
                 break outer;
             }
@@ -319,8 +321,9 @@ export class ExteriorFacesFinder {
         const endI = i + quadWidth;
         const endJ = j + quadHeight;
         for (let jj = j; jj < endJ; jj++) {
+          const rowOff = jj * stride;
           for (let ii = i; ii < endI; ii++) {
-            processed[jj][ii] = 1;
+            processed[rowOff + ii] = 1;
           }
         }
 
@@ -337,12 +340,9 @@ export class ExteriorFacesFinder {
 
         const startVertexIndex = meshArrays.vertexCount;
 
-        // Calculate and push vertices directly
         for (let vi = 0; vi < 4; vi++) {
-          // Determine vertex coordinates based on vi and dir
           let actualVi = vi;
           if (dir < 0 && (vi === 1 || vi === 3)) {
-            // Swap vertices 1 and 3 when dir < 0
             actualVi = vi === 1 ? 3 : 1;
           }
 
@@ -359,7 +359,7 @@ export class ExteriorFacesFinder {
             } else if (actualVi === 2) {
               vy = y + (u === 1 ? quadWidth : v === 1 ? quadHeight : 0);
               vz = z + (u === 2 ? quadWidth : v === 2 ? quadHeight : 0);
-            } else { // actualVi === 3
+            } else {
               vy = y + (v === 1 ? quadHeight : 0);
               vz = z + (v === 2 ? quadHeight : 0);
             }
@@ -374,11 +374,11 @@ export class ExteriorFacesFinder {
             } else if (actualVi === 2) {
               vx = x + (u === 0 ? quadWidth : v === 0 ? quadHeight : 0);
               vz = z + (u === 2 ? quadWidth : v === 2 ? quadHeight : 0);
-            } else { // actualVi === 3
+            } else {
               vx = x + (v === 0 ? quadHeight : 0);
               vz = z + (v === 2 ? quadHeight : 0);
             }
-          } else { // axis === 2
+          } else {
             vz = z + faceOffset;
             if (actualVi === 0) {
               vx = x;
@@ -389,7 +389,7 @@ export class ExteriorFacesFinder {
             } else if (actualVi === 2) {
               vx = x + (u === 0 ? quadWidth : v === 0 ? quadHeight : 0);
               vy = y + (u === 1 ? quadWidth : v === 1 ? quadHeight : 0);
-            } else { // actualVi === 3
+            } else {
               vx = x + (v === 0 ? quadHeight : 0);
               vy = y + (v === 1 ? quadHeight : 0);
             }
@@ -399,16 +399,12 @@ export class ExteriorFacesFinder {
           meshArrays.pushNormal(normal[0], normal[1], normal[2]);
           meshArrays.pushUV(textureCoords[vi * 2], textureCoords[vi * 2 + 1]);
 
-          const packedAO = aoMask[j][i];
+          const packedAO = aoVal;
 
-          // Faces 1, 2, 5 use swapped pattern [0, 3, 2, 1]
-          // Faces 0, 3, 4 use standard pattern [0, 1, 2, 3]
           let aoCornerIndex: number;
           if (faceDir === 1 || faceDir === 2 || faceDir === 5) {
-            // Swapped pattern for these faces
             aoCornerIndex = vi === 1 ? 3 : vi === 3 ? 1 : vi;
           } else {
-            // Standard pattern - direct mapping
             aoCornerIndex = vi;
           }
 

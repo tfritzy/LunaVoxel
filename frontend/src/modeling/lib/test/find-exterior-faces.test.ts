@@ -30,7 +30,7 @@ describe("ExteriorFacesFinder", () => {
     it("should find 6 faces for a single block", () => {
       const dimensions: Vector3 = { x: 1, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      setVoxel(voxelData, 0, 0, 0, 1); // Single block
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions); // Single block
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -64,7 +64,7 @@ describe("ExteriorFacesFinder", () => {
       for (let x = 0; x < 2; x++) {
         for (let y = 0; y < 2; y++) {
           for (let z = 0; z < 2; z++) {
-            setVoxel(voxelData, x, y, z, 1);
+            setVoxel(voxelData, x, y, z, 1, dimensions);
           }
         }
       }
@@ -108,7 +108,7 @@ describe("ExteriorFacesFinder", () => {
             // Create a hole in the center of one face (z === 0, x === 1, y === 1)
             const isHole = z === 0 && x === 1 && y === 1;
             if (isOnSurface && !isHole) {
-              setVoxel(voxelData, x, y, z, 1);
+              setVoxel(voxelData, x, y, z, 1, dimensions);
             }
           }
         }
@@ -176,8 +176,8 @@ describe("ExteriorFacesFinder", () => {
     it("should find correct faces for two adjacent blocks", () => {
       const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      setVoxel(voxelData, 0, 0, 0, 1);
-      setVoxel(voxelData, 1, 0, 0, 1);
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions);
+      setVoxel(voxelData, 1, 0, 0, 1, dimensions);
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -207,7 +207,7 @@ describe("ExteriorFacesFinder", () => {
     it("should handle preview blocks correctly", () => {
       const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      setVoxel(voxelData, 0, 0, 0, 1); // Real block
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions); // Real block
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -245,7 +245,7 @@ describe("ExteriorFacesFinder", () => {
     it("should mark selection faces with isSelected attribute", () => {
       const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      setVoxel(voxelData, 0, 0, 0, 1); // Real block
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions); // Real block
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -282,7 +282,7 @@ describe("ExteriorFacesFinder", () => {
     it("should not mark non-selected faces with isSelected attribute", () => {
       const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      setVoxel(voxelData, 0, 0, 0, 1); // Real block without selection
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions); // Real block without selection
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -320,7 +320,7 @@ describe("ExteriorFacesFinder", () => {
       for (let x = 0; x < 8; x++) {
         for (let y = 0; y < 8; y++) {
           for (let z = 0; z < 8; z++) {
-            setVoxel(realVoxelData, x, y, z, 1);
+            setVoxel(realVoxelData, x, y, z, 1, dimensions);
           }
         }
       }
@@ -391,7 +391,7 @@ describe("ExteriorFacesFinder", () => {
         for (let y = 0; y < dimensions.y; y++) {
           for (let z = 0; z < dimensions.z; z++) {
             if ((x + y + z) % 2 === 0) {
-              setVoxel(voxelData, x, y, z, 1); // Real blocks
+              setVoxel(voxelData, x, y, z, 1, dimensions); // Real blocks
             } else {
               previewFrame.set(x, y, z, 1); // Preview blocks
             }
@@ -450,7 +450,7 @@ describe("ExteriorFacesFinder", () => {
       for (let x = 0; x < dimensions.x; x++) {
         for (let y = 0; y < dimensions.y; y++) {
           for (let z = 0; z < dimensions.z; z++) {
-            setVoxel(voxelData, x, y, z, 1);
+            setVoxel(voxelData, x, y, z, 1, dimensions);
           }
         }
       }

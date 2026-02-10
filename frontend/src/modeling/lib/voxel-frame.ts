@@ -3,7 +3,7 @@ import type { Vector3 } from "@/state/types";
 export class VoxelFrame {
   private dimensions: Vector3;
   private minPos: Vector3;
-  private data: Uint8Array[][]; // 3D array for direct access: data[x][y][z]
+  public data: Uint8Array[][]; // 3D array for direct access: data[x][y][z]
   private empty: boolean = true; // Track whether any voxels are set
 
   constructor(dimensions: Vector3, minPos?: Vector3) {
