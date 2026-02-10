@@ -31,7 +31,7 @@ interface MeshData {
 }
 
 export type LayerChunk = {
-  voxels: Uint8Array;
+  chunkData: import("@/state/types").ChunkData;
 };
 
 export class Chunk {
@@ -107,13 +107,13 @@ export class Chunk {
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  public setLayerChunk(layerIndex: number, voxels: Uint8Array | null): void {
-    if (voxels === null) {
+  public setLayerChunk(layerIndex: number, chunkData: import("@/state/types").ChunkData | null): void {
+    if (chunkData === null) {
       this.layerChunks[layerIndex] = null;
       return;
     }
     this.layerChunks[layerIndex] = {
-      voxels,
+      chunkData,
     };
     this.update();
   }
@@ -147,14 +147,14 @@ export class Chunk {
 
           switch (mode.tag) {
             case "Attach":
-              layerChunk.voxels[index] = blockType;
+              layerChunk.chunkData.voxels[index] = blockType;
               break;
             case "Erase":
-              layerChunk.voxels[index] = 0;
+              layerChunk.chunkData.voxels[index] = 0;
               break;
             case "Paint":
-              if (layerChunk.voxels[index] !== 0) {
-                layerChunk.voxels[index] = blockType;
+              if (layerChunk.chunkData.voxels[index] !== 0) {
+                layerChunk.chunkData.voxels[index] = blockType;
               }
               break;
           }
@@ -254,9 +254,9 @@ export class Chunk {
     layerChunk: LayerChunk,
     blocks: Uint8Array
   ): void {
-    for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (layerChunk.voxels[i] > 0) {
-        blocks[i] = layerChunk.voxels[i];
+    for (let i = 0; i < blocks.length && i < layerChunk.chunkData.voxels.length; i++) {
+      if (layerChunk.chunkData.voxels[i] > 0) {
+        blocks[i] = layerChunk.chunkData.voxels[i];
         this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }

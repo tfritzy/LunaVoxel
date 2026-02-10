@@ -105,7 +105,7 @@ export class ChunkManager {
       if (layerIndex === undefined) continue;
 
       const chunk = this.getOrCreateChunk(chunkData.minPos);
-      chunk.setLayerChunk(layerIndex, chunkData.voxels);
+      chunk.setLayerChunk(layerIndex, chunkData);
       const key = this.getChunkKey(chunkData.minPos);
       if (!nextChunkLayers.has(key)) {
         nextChunkLayers.set(key, new Set());
@@ -204,7 +204,7 @@ export class ChunkManager {
     
     const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
     
-    return layerChunk.voxels[index] || 0;
+    return layerChunk.chunkData.voxels[index] || 0;
   }
 
   public getChunks(): Chunk[] {
