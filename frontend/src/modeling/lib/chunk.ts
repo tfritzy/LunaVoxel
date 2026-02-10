@@ -95,10 +95,10 @@ export class Chunk {
     for (let x = 0; x < size.x; x++) {
       this.voxelData[x] = [];
       for (let y = 0; y < size.y; y++) {
-        const offset = x * size.y * size.z + y * size.z;
+        const bufferOffset = x * size.y * size.z + y * size.z;
         this.voxelData[x][y] = this.blocksToRender.subarray(
-          offset,
-          offset + size.z
+          bufferOffset,
+          bufferOffset + size.z
         );
       }
     }
