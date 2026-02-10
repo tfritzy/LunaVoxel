@@ -49,7 +49,7 @@ export class Chunk {
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshes: Record<MeshType, MeshData>;
-  private voxelData: Uint8Array[][];
+  private voxelDataView: Uint8Array[][];
   private facesFinder: ExteriorFacesFinder;
 
   constructor(
@@ -91,18 +91,17 @@ export class Chunk {
       },
     };
 
-    const voxelData: Uint8Array[][] = [];
+    this.voxelDataView = [];
     for (let x = 0; x < size.x; x++) {
-      voxelData[x] = [];
+      this.voxelDataView[x] = [];
       for (let y = 0; y < size.y; y++) {
         const bufferOffset = x * size.y * size.z + y * size.z;
-        voxelData[x][y] = this.blocksToRender.subarray(
+        this.voxelDataView[x][y] = this.blocksToRender.subarray(
           bufferOffset,
           bufferOffset + size.z
         );
       }
     }
-    this.voxelData = voxelData;
 
     const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
@@ -415,7 +414,7 @@ export class Chunk {
 
   private updateMeshes = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
     this.facesFinder.findExteriorFaces(
-      this.voxelData,
+      this.voxelDataView,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,
       this.size,
