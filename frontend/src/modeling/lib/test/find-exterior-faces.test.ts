@@ -35,7 +35,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -45,7 +44,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -72,7 +70,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -82,7 +79,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -117,7 +113,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -127,7 +122,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -153,7 +147,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -163,7 +156,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -182,7 +174,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -192,7 +183,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -212,7 +202,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -225,22 +214,18 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
       );
 
-      // Real block should have all 6 faces visible since preview blocks
-      // are rendered separately and don't occlude the real mesh
-      expect(meshArrays.indexCount).toBe(36); // 6 faces * 6 indices
-      expect(meshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices
-
-      // Preview block should also have all 6 faces visible  
-      // The condition is: !isBlockPresent(neighborValue) || !neighborIsPreview
-      // Since the neighbor is a real block (not preview), the preview renders its face
-      expect(previewMeshArrays.indexCount).toBe(36); // 6 faces * 6 indices
-      expect(previewMeshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices
+      // Real block and preview block are adjacent
+      // Greedy meshing combines exterior faces of the 2x1x1 shape into 6 faces
+      // Plus the real block renders a face toward the preview block (because shouldRenderFace uses neighborIsPreview)
+      // Plus the preview block renders a face toward the real block (because shouldRenderFace = !neighborIsPreview and neighbor is real)
+      // Total: 6 exterior + 2 interior = 8 faces
+      expect(meshArrays.indexCount).toBe(48); // 8 faces * 6 indices
+      expect(meshArrays.vertexCount).toBe(32); // 8 faces * 4 vertices
     });
 
     it("should mark selection faces with isSelected attribute", () => {
@@ -250,7 +235,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -263,7 +247,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -287,7 +270,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -297,7 +279,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -328,7 +309,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const realMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const realPreviewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const realPreviewFrame = new VoxelFrame(dimensions);
       const realSelectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -338,7 +318,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         realMeshArrays,
-        realPreviewMeshArrays,
         realPreviewFrame,
         realSelectionFrame,
         true
@@ -346,7 +325,6 @@ describe("ExteriorFacesFinder", () => {
 
       const previewVoxelData = createVoxelData(dimensions);
       const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays2 = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const previewSelectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -364,14 +342,13 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         previewMeshArrays,
-        previewMeshArrays2,
         previewFrame,
         previewSelectionFrame,
         true
       );
 
-      expect(previewMeshArrays2.indexCount).toBe(realMeshArrays.indexCount);
-      expect(previewMeshArrays2.vertexCount).toBe(realMeshArrays.vertexCount);
+      expect(previewMeshArrays.indexCount).toBe(realMeshArrays.indexCount);
+      expect(previewMeshArrays.vertexCount).toBe(realMeshArrays.vertexCount);
     });
   });
 
@@ -383,7 +360,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -393,7 +369,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -411,7 +386,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -421,7 +395,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -449,7 +422,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -459,7 +431,6 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMappings(2),
         dimensions,
         meshArrays,
-        previewMeshArrays,
         previewFrame,
         selectionFrame,
         true
@@ -478,7 +449,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -507,7 +477,6 @@ describe("ExteriorFacesFinder", () => {
           createBlockAtlasMappings(2),
           dimensions,
           meshArrays,
-          previewMeshArrays,
           previewFrame,
           selectionFrame,
           true
@@ -525,8 +494,7 @@ describe("ExteriorFacesFinder", () => {
       console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
-      console.log(`  Real blocks: ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
-      console.log(`  Preview blocks: ${previewMeshArrays.vertexCount} vertices and ${previewMeshArrays.indexCount} indices`);
+      console.log(`  Generated ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
 
       // This is a benchmark test - no assertions, just timing
     }, 120000); // 120 second timeout for benchmark
@@ -538,7 +506,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -563,7 +530,6 @@ describe("ExteriorFacesFinder", () => {
           createBlockAtlasMappings(2),
           dimensions,
           meshArrays,
-          previewMeshArrays,
           previewFrame,
           selectionFrame,
           true
@@ -593,7 +559,6 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const previewMeshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const previewFrame = new VoxelFrame(dimensions);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
@@ -618,7 +583,6 @@ describe("ExteriorFacesFinder", () => {
           createBlockAtlasMappings(2),
           dimensions,
           meshArrays,
-          previewMeshArrays,
           previewFrame,
           selectionFrame,
           true
@@ -636,7 +600,7 @@ describe("ExteriorFacesFinder", () => {
       console.log(`  Average: ${avgDuration.toFixed(2)}ms`);
       console.log(`  Min: ${minDuration.toFixed(2)}ms`);
       console.log(`  Max: ${maxDuration.toFixed(2)}ms`);
-      console.log(`  Generated ${previewMeshArrays.vertexCount} vertices and ${previewMeshArrays.indexCount} indices`);
+      console.log(`  Generated ${meshArrays.vertexCount} vertices and ${meshArrays.indexCount} indices`);
 
       // This is a benchmark test - no assertions, just timing
     }, 120000); // 120 second timeout for benchmark

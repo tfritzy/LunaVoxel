@@ -9,7 +9,6 @@ import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
-import { layers } from "./layers";
 import { INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
 
 type SelectionFrameData = {
@@ -23,8 +22,6 @@ export type SelectionData = {
   frame: SelectionFrameData;
   offset: Vector3;
 };
-
-type MeshType = "main" | "preview";
 
 interface MeshData {
   mesh: THREE.Mesh | null;
@@ -53,7 +50,7 @@ export class Chunk {
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
-  private meshes: Record<MeshType, MeshData>;
+  private meshData: MeshData;
   private voxelData: Uint8Array;
   private facesFinder: ExteriorFacesFinder;
 
@@ -85,15 +82,9 @@ export class Chunk {
     const maxVertices = maxFaces * 4;
     const maxIndices = maxFaces * 6;
 
-    this.meshes = {
-      main: {
-        mesh: null,
-        meshArrays: new MeshArrays(maxVertices, maxIndices),
-      },
-      preview: {
-        mesh: null,
-        meshArrays: new MeshArrays(maxVertices, maxIndices),
-      },
+    this.meshData = {
+      mesh: null,
+      meshArrays: new MeshArrays(maxVertices, maxIndices),
     };
 
     this.voxelData = new Uint8Array(totalVoxels);
@@ -172,19 +163,17 @@ export class Chunk {
       this.material.needsUpdate = true;
     }
 
-    Object.values(this.meshes).forEach((meshData) => {
-      if (meshData.mesh?.material) {
-        (meshData.mesh.material as THREE.ShaderMaterial).uniforms.map.value =
-          atlasData.texture;
-        (meshData.mesh.material as THREE.ShaderMaterial).needsUpdate = true;
-      }
-    });
+    if (this.meshData.mesh?.material) {
+      (this.meshData.mesh.material as THREE.ShaderMaterial).uniforms.map.value =
+        atlasData.texture;
+      (this.meshData.mesh.material as THREE.ShaderMaterial).needsUpdate = true;
+    }
 
     this.update();
   };
 
   public getMesh(): THREE.Mesh | null {
-    return this.meshes.main.mesh;
+    return this.meshData.mesh;
   }
 
   public clearPreviewData()
@@ -314,11 +303,10 @@ export class Chunk {
     }
   }
 
-  private updateMeshGeometry(meshType: MeshType, meshArrays: MeshArrays): void {
-    const meshData = this.meshes[meshType];
-    if (!meshData.mesh) return;
+  private updateMeshGeometry(meshArrays: MeshArrays): void {
+    if (!this.meshData.mesh) return;
 
-    const geometry = meshData.mesh.geometry;
+    const geometry = this.meshData.mesh.geometry;
 
     geometry.setAttribute(
       "position",
@@ -362,67 +350,39 @@ export class Chunk {
     geometry.boundingSphere = new THREE.Sphere(center, radius);
   }
 
-  private updateMainMesh = (atlasData: AtlasData): void => {
+  private updateMesh = (atlasData: AtlasData): void => {
     if (!this.geometry) {
       this.geometry = new THREE.BufferGeometry();
       this.material = createVoxelMaterial(atlasData.texture);
-      this.meshes.main.mesh = new THREE.Mesh(this.geometry, this.material);
-      this.meshes.main.mesh.castShadow = true;
-      this.meshes.main.mesh.receiveShadow = true;
+      this.meshData.mesh = new THREE.Mesh(this.geometry, this.material);
+      this.meshData.mesh.castShadow = true;
+      this.meshData.mesh.receiveShadow = true;
 
-      this.meshes.main.mesh.position.set(
+      this.meshData.mesh.position.set(
         this.minPos.x,
         this.minPos.y,
         this.minPos.z
       );
 
-      this.scene.add(this.meshes.main.mesh);
+      this.scene.add(this.meshData.mesh);
     }
 
-    this.updateMeshGeometry("main", this.meshes.main.meshArrays);
+    this.updateMeshGeometry(this.meshData.meshArrays);
   };
 
-  private updatePreviewMesh = (): void => {
-    if (!this.meshes.preview.mesh && this.atlasData) {
-      const geometry = new THREE.BufferGeometry();
-      const material = createVoxelMaterial(this.atlasData.texture, 1);
-      this.meshes.preview.mesh = new THREE.Mesh(geometry, material);
-
-      this.meshes.preview.mesh.position.set(
-        this.minPos.x,
-        this.minPos.y,
-        this.minPos.z
-      );
-
-      this.scene.add(this.meshes.preview.mesh);
-    }
-
-    const mode = this.getMode();
-    console.log("Mode for preview mesh", mode);
-    this.meshes.preview.mesh!.visible =
-      mode.tag === "Attach" || mode.tag === "Paint";
-    this.meshes.preview.mesh!.layers.set(
-      mode.tag === "Attach" ? layers.ghost : layers.raycast
-    );
-
-    this.updateMeshGeometry("preview", this.meshes.preview.meshArrays);
-  };
-
-  private updateMeshes = (buildMode: BlockModificationMode, atlasData: AtlasData) => {
+  private updateMeshes = (atlasData: AtlasData) => {
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,
       this.size,
-      this.meshes.main.meshArrays,
-      this.meshes.preview.meshArrays,
+      this.meshData.meshArrays,
       this.previewFrame,
       this.mergedSelectionFrame,
-      buildMode.tag !== "Erase"
+      this.getMode().tag !== "Erase"
     );
 
-    this.updateMainMesh(atlasData);
-    this.updatePreviewMesh();
+    this.updateMesh(atlasData);
   };
 
   private needsRender(): boolean {
@@ -468,7 +428,7 @@ export class Chunk {
 
       if (this.atlasData && this.needsRender()) {
         this.copyChunkData(this.blocksToRender);
-        this.updateMeshes(this.getMode(), this.atlasData);
+        this.updateMeshes(this.atlasData);
         this.renderedBlocks.set(this.blocksToRender);
 
         if (this.previewFrame.isEmpty()) {
@@ -493,13 +453,11 @@ export class Chunk {
       this.material = null;
     }
 
-    Object.values(this.meshes).forEach((meshData) => {
-      if (meshData.mesh) {
-        this.scene.remove(meshData.mesh);
-        meshData.mesh.geometry.dispose();
-        (meshData.mesh.material as THREE.Material).dispose();
-        meshData.mesh = null;
-      }
-    });
+    if (this.meshData.mesh) {
+      this.scene.remove(this.meshData.mesh);
+      this.meshData.mesh.geometry.dispose();
+      (this.meshData.mesh.material as THREE.Material).dispose();
+      this.meshData.mesh = null;
+    }
   };
 }
