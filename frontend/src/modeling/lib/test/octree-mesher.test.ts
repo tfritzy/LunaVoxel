@@ -14,7 +14,7 @@ function createBlockAtlasMappings(numBlocks: number): number[][] {
 
 const TEST_DIMS = { x: 128, y: 128, z: 128 };
 
-function makeOccupancy(dims = TEST_DIMS): Uint8Array[][] {
+function makeOccupancy(dims = TEST_DIMS): Uint8Array {
   return allocateOccupancy(dims);
 }
 
@@ -96,7 +96,7 @@ describe("OctreeMesher", () => {
 
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(24, 36);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.vertexCount).toBe(24);
     expect(meshArrays.indexCount).toBe(36);
@@ -109,7 +109,7 @@ describe("OctreeMesher", () => {
 
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
@@ -124,7 +124,7 @@ describe("OctreeMesher", () => {
 
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(200, 400);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.indexCount).toBe(144);
     expect(meshArrays.vertexCount).toBe(96);
@@ -134,7 +134,7 @@ describe("OctreeMesher", () => {
     const octree = new SparseVoxelOctree();
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(24, 36);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.vertexCount).toBe(0);
     expect(meshArrays.indexCount).toBe(0);
@@ -147,7 +147,7 @@ describe("OctreeMesher", () => {
 
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
@@ -159,7 +159,7 @@ describe("OctreeMesher", () => {
 
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(24, 36);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.vertexCount).toBe(24);
     expect(meshArrays.indexCount).toBe(36);
@@ -175,7 +175,7 @@ describe("OctreeMesher", () => {
 
     const occ = makeOccupancy();
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, TEST_DIMS);
 
     expect(meshArrays.vertexCount).toBe(40);
     expect(meshArrays.indexCount).toBe(60);
@@ -188,10 +188,10 @@ describe("OctreeMesher", () => {
 
     const dims = { x: 8, y: 8, z: 8 };
     const occ = makeOccupancy(dims);
-    occ[0][0][0] = 1;
+    occ[0] = 1;
 
     const meshArrays = new MeshArrays(100, 200);
-    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+    mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);
 
     expect(meshArrays.vertexCount).toBe(20);
     expect(meshArrays.indexCount).toBe(30);
@@ -215,7 +215,7 @@ describe("OctreeMesher", () => {
       for (let i = 0; i < iterations; i++) {
         const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);
         durations.push(performance.now() - start);
       }
 
@@ -247,7 +247,7 @@ describe("OctreeMesher", () => {
       for (let i = 0; i < iterations; i++) {
         const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);
         durations.push(performance.now() - start);
       }
 
@@ -278,7 +278,7 @@ describe("OctreeMesher", () => {
       for (let i = 0; i < iterations; i++) {
         const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);
         durations.push(performance.now() - start);
       }
 
@@ -310,7 +310,7 @@ describe("OctreeMesher", () => {
       for (let i = 0; i < iterations; i++) {
         const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ);
+        mesher.buildMesh(octree, 4, createBlockAtlasMappings(2), meshArrays, occ, dims);
         durations.push(performance.now() - start);
       }
 
@@ -353,8 +353,8 @@ describe("OctreeMesher", () => {
       for (let i = 0; i < iterations; i++) {
         const occ = makeOccupancy(dims);
         const start = performance.now();
-        mesher1.buildMesh(layer2, 4, createBlockAtlasMappings(3), meshArrays1, occ);
-        mesher2.buildMesh(layer1, 4, createBlockAtlasMappings(3), meshArrays2, occ);
+        mesher1.buildMesh(layer2, 4, createBlockAtlasMappings(3), meshArrays1, occ, dims);
+        mesher2.buildMesh(layer1, 4, createBlockAtlasMappings(3), meshArrays2, occ, dims);
         durations.push(performance.now() - start);
       }
 

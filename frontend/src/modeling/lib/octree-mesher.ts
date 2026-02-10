@@ -40,21 +40,21 @@ export class OctreeMesher {
     textureWidth: number,
     blockAtlasMappings: number[][],
     meshArrays: MeshArrays,
-    globalOccupancy: Uint8Array[][],
+    globalOccupancy: Uint8Array,
+    dims: { x: number; y: number; z: number },
   ): void {
     meshArrays.reset();
 
     if (octree.size === 0) return;
 
-    const dimX = globalOccupancy.length;
-    const dimY = dimX > 0 ? globalOccupancy[0].length : 0;
-    const dimZ = dimY > 0 ? globalOccupancy[0][0].length : 0;
+    const dimX = dims.x, dimY = dims.y, dimZ = dims.z;
+    const strideX = dimY * dimZ;
 
     for (const entry of octree.values()) {
       if (entry.blockType <= 0) continue;
       const ex = entry.x, ey = entry.y, ez = entry.z;
-      if (ex < dimX && ey < dimY && ez < dimZ && globalOccupancy[ex][ey][ez] === 0) {
-        globalOccupancy[ex][ey][ez] = 2;
+      if (ex < dimX && ey < dimY && ez < dimZ && globalOccupancy[ex * strideX + ey * dimZ + ez] === 0) {
+        globalOccupancy[ex * strideX + ey * dimZ + ez] = 2;
       }
     }
 
@@ -73,7 +73,7 @@ export class OctreeMesher {
       const x = entry.x, y = entry.y, z = entry.z;
 
       if (x >= dimX || y >= dimY || z >= dimZ) continue;
-      if (globalOccupancy[x][y][z] !== 2) continue;
+      if (globalOccupancy[x * strideX + y * dimZ + z] !== 2) continue;
 
       const aoVal = entry.invisible ? 0.0 : 1.0;
       const mapping = blockAtlasMappings[entry.blockType - 1];
@@ -88,7 +88,7 @@ export class OctreeMesher {
         const nz = z + dir[2];
 
         if (nx >= 0 && nx < dimX && ny >= 0 && ny < dimY && nz >= 0 && nz < dimZ) {
-          if (globalOccupancy[nx][ny][nz] > 0) continue;
+          if (globalOccupancy[nx * strideX + ny * dimZ + nz] > 0) continue;
         }
 
         const textureCoords = getTexCoordsCached(mapping[faceDir], textureWidth);

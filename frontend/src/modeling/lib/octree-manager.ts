@@ -15,23 +15,12 @@ interface LayerMesh {
   mesher: OctreeMesher;
 }
 
-export function allocateOccupancy(dims: Vector3): Uint8Array[][] {
-  const occ: Uint8Array[][] = new Array(dims.x);
-  for (let x = 0; x < dims.x; x++) {
-    occ[x] = new Array(dims.y);
-    for (let y = 0; y < dims.y; y++) {
-      occ[x][y] = new Uint8Array(dims.z);
-    }
-  }
-  return occ;
+export function allocateOccupancy(dims: Vector3): Uint8Array {
+  return new Uint8Array(dims.x * dims.y * dims.z);
 }
 
-export function clearOccupancy(occ: Uint8Array[][], dims: Vector3): void {
-  for (let x = 0; x < dims.x; x++) {
-    for (let y = 0; y < dims.y; y++) {
-      occ[x][y].fill(0);
-    }
-  }
+export function clearOccupancy(occ: Uint8Array): void {
+  occ.fill(0);
 }
 
 export class OctreeManager {
@@ -45,7 +34,7 @@ export class OctreeManager {
   private previewTree: SparseVoxelOctree = new SparseVoxelOctree();
   private previewLayerId: string | null = null;
 
-  private globalOccupancy: Uint8Array[][];
+  private globalOccupancy: Uint8Array;
 
   private atlasData: AtlasData | undefined;
   private unsubscribe?: () => void;
@@ -193,7 +182,7 @@ export class OctreeManager {
     const blockAtlasMappings = this.atlasData.blockAtlasMappings;
     const current = this.stateStore.getState();
 
-    clearOccupancy(this.globalOccupancy, this.dimensions);
+    clearOccupancy(this.globalOccupancy);
 
     const activeLayerIds = new Set<string>();
 
@@ -228,6 +217,7 @@ export class OctreeManager {
         blockAtlasMappings,
         lm.meshArrays,
         this.globalOccupancy,
+        this.dimensions,
       );
       this.applyMeshArrays(lm.geometry, lm.meshArrays);
       lm.mesh.visible = lm.meshArrays.vertexCount > 0;
