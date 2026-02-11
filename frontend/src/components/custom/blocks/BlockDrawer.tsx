@@ -15,6 +15,7 @@ const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
 const DEFAULT_DISPLAY_COLOR = "#ffffff";
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 const HexagonGrid = memo(
   ({
@@ -164,16 +165,20 @@ export const BlockDrawer = ({
       : null;
   const normalizedFaceColors = faceColors ?? [];
   const faceColorCount = normalizedFaceColors.length;
-  const displayColor =
+  const singleColor =
     faceColorCount > 0 && new Set(normalizedFaceColors).size === 1
       ? normalizedFaceColors[0]
+      : null;
+  const displayColor =
+    singleColor && HEX_COLOR_RE.test(singleColor)
+      ? singleColor
       : DEFAULT_DISPLAY_COLOR;
 
   const handleColorChange = useCallback(
     (color: string) => {
-      if (faceColorCount === 0 || selectedBlock < 1) return;
+      if (faceColorCount === 0 || selectedBlock <= 0) return;
       const normalizedColor = color.startsWith("#") ? color : `#${color}`;
-      if (!/^#[0-9a-fA-F]{6}$/.test(normalizedColor)) return;
+      if (!HEX_COLOR_RE.test(normalizedColor)) return;
       const colorValue = parseInt(normalizedColor.slice(1), 16);
       if (Number.isNaN(colorValue)) return;
       stateStore.reducers.updateBlock(
