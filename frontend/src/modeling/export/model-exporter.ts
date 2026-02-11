@@ -50,7 +50,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = this.sanitizeFilename(this.project.name);
+      const projectName = "lunavoxel_export";
       const exporter = new OBJExporter(consolidatedMesh, projectName);
 
       const objContent = exporter.generateOBJ();
@@ -71,7 +71,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = this.sanitizeFilename(this.project.name);
+      const projectName = "lunavoxel_export";
       let textureDataUri: string | undefined;
 
       if (this.atlasData?.texture) {
@@ -99,7 +99,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = this.sanitizeFilename(this.project.name);
+      const projectName = "lunavoxel_export";
       const exporter = new STLExporter(consolidatedMesh, projectName);
 
       const stlContent = exporter.generateSTL();
@@ -144,15 +144,5 @@ export class ModelExporter {
         console.error("Failed to export texture atlas:", error);
       }
     }
-  }
-
-  private sanitizeFilename(filename: string): string {
-    return (
-      filename
-        .replace(/[^a-z0-9]/gi, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_|_$/g, "")
-        .toLowerCase() || "lunavoxel_export"
-    );
   }
 }
