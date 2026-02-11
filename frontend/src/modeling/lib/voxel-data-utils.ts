@@ -1,10 +1,16 @@
 import LZ4 from "lz4js";
-import { BLOCK_TYPE_MASK, NON_RAYCASTABLE_BIT } from "./voxel-constants";
+import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "./voxel-constants";
 
 /**
  * Voxel format (8 bits):
  * - Bits 0-6: Block type (0-127, where 0 = empty)
- * - Bit 7: Non-raycastable flag (1 = invisible for raycasting, 0 = normal)
+ * - Bit 7: Raycastable flag (1 = raycastable, 0 = not raycastable)
+ * 
+ * This means:
+ * - 0x00 (0): Empty, not raycastable (default)
+ * - 0x81 (129): Block type 1, raycastable (normal solid block)
+ * - 0x01 (1): Block type 1, not raycastable (preview attach block)
+ * - 0x80 (128): Block type 0, raycastable (erase preview - invisible but raycastable)
  */
 
 /**
@@ -22,7 +28,7 @@ export const isBlockPresent = (blockValue: number): boolean => {
 };
 
 /**
- * Check if a block is visible (has a block type and is raycastable)
+ * Check if a block is visible (has a block type)
  */
 export const isBlockVisible = (blockValue: number): boolean => {
   return (blockValue & BLOCK_TYPE_MASK) !== 0;
@@ -36,16 +42,23 @@ export const isBlockSolid = (blockValue: number): boolean => {
 };
 
 /**
- * Set the non-raycastable flag on a voxel value
+ * Check if a block is raycastable (bit 7 is set)
  */
-export const setNonRaycastable = (blockValue: number): number => {
-  return blockValue | NON_RAYCASTABLE_BIT;
+export const isBlockRaycastable = (blockValue: number): boolean => {
+  return (blockValue & RAYCASTABLE_BIT) !== 0;
 };
 
 /**
- * Clear the non-raycastable flag (make it raycastable)
+ * Set the raycastable flag on a voxel value
  */
-export const clearNonRaycastable = (blockValue: number): number => {
+export const setRaycastable = (blockValue: number): number => {
+  return blockValue | RAYCASTABLE_BIT;
+};
+
+/**
+ * Clear the raycastable flag
+ */
+export const clearRaycastable = (blockValue: number): number => {
   return blockValue & BLOCK_TYPE_MASK;
 };
 

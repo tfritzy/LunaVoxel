@@ -4,7 +4,7 @@ import { MeshArrays } from "../mesh-arrays";
 import { FlatVoxelFrame } from "../flat-voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
-import { NON_RAYCASTABLE_BIT } from "../voxel-constants";
+import { RAYCASTABLE_BIT } from "../voxel-constants";
 
 /**
  * Helper function to create block atlas mappings
@@ -298,11 +298,10 @@ describe("ExteriorFacesFinder", () => {
   });
 
   describe("Non-raycastable voxel tests", () => {
-    it("should not render faces for non-raycastable voxels with zero block type", () => {
+    it("should not render faces for raycastable-only voxels with zero block type (erase preview)", () => {
       const dimensions: Vector3 = { x: 1, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      // Set a non-raycastable voxel with no block type (just the bit set)
-      setVoxel(voxelData, 0, 0, 0, NON_RAYCASTABLE_BIT, dimensions);
+      setVoxel(voxelData, 0, 0, 0, RAYCASTABLE_BIT, dimensions);
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -317,16 +316,15 @@ describe("ExteriorFacesFinder", () => {
         selectionFrame
       );
 
-      // Non-raycastable voxel with no block type should not render
       expect(meshArrays.indexCount).toBe(0);
       expect(meshArrays.vertexCount).toBe(0);
     });
 
-    it("should render faces toward non-raycastable voxels from visible neighbors", () => {
+    it("should render faces toward raycastable-only voxels from visible neighbors", () => {
       const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
-      setVoxel(voxelData, 0, 0, 0, 1, dimensions); // Normal block
-      setVoxel(voxelData, 1, 0, 0, NON_RAYCASTABLE_BIT, dimensions); // Non-raycastable with no block type
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions);
+      setVoxel(voxelData, 1, 0, 0, RAYCASTABLE_BIT, dimensions);
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
@@ -341,12 +339,11 @@ describe("ExteriorFacesFinder", () => {
         selectionFrame
       );
 
-      // Only the normal block should render with all 6 faces
       expect(meshArrays.indexCount).toBe(36);
       expect(meshArrays.vertexCount).toBe(24);
     });
 
-    it("should render interior faces when surrounded by non-raycastable voxels", () => {
+    it("should render interior faces when surrounded by raycastable-only voxels (erase preview)", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
 
@@ -354,9 +351,9 @@ describe("ExteriorFacesFinder", () => {
         for (let y = 0; y < 3; y++) {
           for (let z = 0; z < 3; z++) {
             if (x === 1 && y === 1 && z === 1) {
-              setVoxel(voxelData, x, y, z, 1, dimensions); // Center block is visible
+              setVoxel(voxelData, x, y, z, 1, dimensions);
             } else {
-              setVoxel(voxelData, x, y, z, NON_RAYCASTABLE_BIT, dimensions); // Surrounding are non-raycastable
+              setVoxel(voxelData, x, y, z, RAYCASTABLE_BIT, dimensions);
             }
           }
         }
@@ -375,7 +372,6 @@ describe("ExteriorFacesFinder", () => {
         selectionFrame
       );
 
-      // Center block should render all 6 faces
       expect(meshArrays.indexCount).toBe(36);
       expect(meshArrays.vertexCount).toBe(24);
     });
@@ -493,11 +489,11 @@ describe("ExteriorFacesFinder", () => {
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
       const selectionFrame = new FlatVoxelFrame(dimensions);
 
-      // Fill entire cube with blocks that have the non-raycastable bit set but still have block type
+      // Fill entire cube with blocks that have block type but not raycastable (preview attach)
       for (let x = 0; x < dimensions.x; x++) {
         for (let y = 0; y < dimensions.y; y++) {
           for (let z = 0; z < dimensions.z; z++) {
-            setVoxel(voxelData, x, y, z, 1 | NON_RAYCASTABLE_BIT, dimensions);
+            setVoxel(voxelData, x, y, z, 1, dimensions);
           }
         }
       }

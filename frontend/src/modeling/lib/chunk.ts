@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import {
   isBlockPresent,
-  setNonRaycastable,
+  setRaycastable,
   getBlockType,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
@@ -11,7 +11,7 @@ import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
-import { NON_RAYCASTABLE_BIT } from "./voxel-constants";
+import { RAYCASTABLE_BIT } from "./voxel-constants";
 
 type SelectionFrameData = {
   minPos: Vector3;
@@ -234,7 +234,7 @@ export class Chunk {
   ): void {
     for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
       if (layerChunk.voxels[i] > 0) {
-        blocks[i] = layerChunk.voxels[i];
+        blocks[i] = setRaycastable(layerChunk.voxels[i]);
         this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
@@ -273,7 +273,7 @@ export class Chunk {
         const previewBlockValue = this.previewFrame.get(x, y, z);
         if (previewBlockValue !== 0) {
           if (!isBlockPresent(blocks[voxelIndex])) {
-            blocks[voxelIndex] = setNonRaycastable(previewBlockValue);
+            blocks[voxelIndex] = previewBlockValue;
           }
         }
       }
@@ -287,7 +287,7 @@ export class Chunk {
         if (previewBlockValue !== 0) {
           const realBlockValue = blocks[voxelIndex];
           if (isBlockPresent(realBlockValue)) {
-            blocks[voxelIndex] = NON_RAYCASTABLE_BIT;
+            blocks[voxelIndex] = RAYCASTABLE_BIT;
           }
         }
       }
@@ -299,7 +299,7 @@ export class Chunk {
 
         const previewBlockValue = this.previewFrame.get(x, y, z);
         if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
-          blocks[voxelIndex] = previewBlockValue;
+          blocks[voxelIndex] = setRaycastable(previewBlockValue);
         }
       }
     }

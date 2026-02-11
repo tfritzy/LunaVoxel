@@ -1,5 +1,5 @@
 export const BLOCK_TYPE_MASK = 0x7F;
-export const NON_RAYCASTABLE_BIT = 0x80;
+export const RAYCASTABLE_BIT = 0x80;
 
 export const faces = [
   {
