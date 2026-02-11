@@ -1,5 +1,6 @@
 import type { Vector3 } from "@/state/types";
-import { faces, getBlockType, isBlockVisible } from "./voxel-constants";
+import { faces } from "./voxel-constants";
+import { getBlockType, isBlockVisible } from "./voxel-data-utils";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 import {
