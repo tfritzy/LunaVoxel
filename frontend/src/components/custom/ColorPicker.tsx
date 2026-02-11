@@ -59,7 +59,7 @@ export const ColorPicker = ({
 
   return (
     <div className={`relative w-full`}>
-      <div className="w-full aspect-square">
+      <div className="w-full h-48">
         <HexColorPicker
           color={color}
           onChange={handleColorChange}
