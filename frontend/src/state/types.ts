@@ -10,7 +10,6 @@ export type BlockModificationMode = {
 
 export type Project = {
   id: string;
-  name: string;
   dimensions: Vector3;
 };
 

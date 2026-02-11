@@ -17,7 +17,6 @@ export type GlobalState = {
 };
 
 export type Reducers = {
-  updateProjectName: (projectId: string, name: string) => void;
   addBlock: (projectId: string, faceColors: number[]) => void;
   updateBlock: (projectId: string, index: number, faceColors: number[]) => void;
   deleteBlock: (
@@ -92,7 +91,6 @@ const createInitialState = (): GlobalState => {
   const projectId = "local-project";
   const project: Project = {
     id: projectId,
-    name: "Local Project",
     dimensions: { x: 64, y: 64, z: 64 },
   };
 
@@ -214,12 +212,6 @@ const applyBlockAt = (
 };
 
 const reducers: Reducers = {
-  updateProjectName: (_projectId, name) => {
-    void _projectId;
-    updateState((current) => {
-      current.project.name = name;
-    });
-  },
   addBlock: (_projectId, faceColors) => {
     void _projectId;
     updateState((current) => {

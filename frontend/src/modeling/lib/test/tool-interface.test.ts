@@ -24,7 +24,6 @@ describe("Tool Interface", () => {
     camera.updateMatrixWorld();
 
     const reducers: Reducers = {
-      updateProjectName: () => {},
       addBlock: () => {},
       updateBlock: () => {},
       deleteBlock: () => {},
