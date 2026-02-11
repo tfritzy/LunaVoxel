@@ -6,7 +6,8 @@ import { BlockModal } from "./BlockModal";
 import { DeleteBlockModal } from "./DeleteBlockModal";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
-import { Block3DPreview } from "./Block3dPreview";
+import { ColorPicker } from "@/components/custom/ColorPicker";
+import { stateStore } from "@/state/store";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
@@ -161,6 +162,19 @@ export const BlockDrawer = ({
           .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
 
+  const handleColorChange = useCallback(
+    (color: string) => {
+      if (!faceColors) return;
+      const colorValue = parseInt(color.replace("#", ""), 16);
+      stateStore.reducers.updateBlock(
+        projectId,
+        selectedBlock - 1,
+        Array(6).fill(colorValue)
+      );
+    },
+    [faceColors, projectId, selectedBlock]
+  );
+
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
       <div className="mb-4">
@@ -194,8 +208,8 @@ export const BlockDrawer = ({
               </Button>
             </div>
             <div className="bg-muted/30 rounded-lg border border-border">
-              <div className="h-48 flex items-center justify-center">
-                <Block3DPreview faceColors={faceColors} camRadius={4} />
+              <div className="p-3">
+                <ColorPicker color={faceColors[0]} onChange={handleColorChange} />
               </div>
             </div>
           </div>
