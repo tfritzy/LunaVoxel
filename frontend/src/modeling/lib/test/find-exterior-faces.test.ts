@@ -8,13 +8,12 @@ import type { Vector3 } from "@/state/types";
 
 /**
  * Helper function to create block atlas mappings
- * Each block type has 6 face texture indices (one for each face direction)
+ * Each block type maps to a single texture index
  */
-function createBlockAtlasMappings(numBlocks: number): number[][] {
-  const mappings: number[][] = [];
+function createBlockAtlasMappings(numBlocks: number): number[] {
+  const mappings: number[] = [];
   for (let i = 0; i < numBlocks; i++) {
-    // All faces use the same texture for simplicity
-    mappings.push([i, i, i, i, i, i]);
+    mappings.push(i);
   }
   return mappings;
 }

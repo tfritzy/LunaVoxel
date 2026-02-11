@@ -11,7 +11,7 @@ describe("Chunk selection rendering", () => {
   const minPos: Vector3 = { x: 0, y: 0, z: 0 };
   const mockAtlasData: AtlasData = {
     texture: null as unknown as THREE.Texture,
-    blockAtlasMappings: [[0, 1, 2, 3, 4, 5]],
+    blockAtlasMappings: [0],
     colors: [0xffffff, 0x000000, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00],
   };
 

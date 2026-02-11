@@ -44,7 +44,7 @@ export class ExteriorFacesFinder {
   public findExteriorFaces(
     voxelData: Uint8Array,
     textureWidth: number,
-    blockAtlasMappings: number[][],
+    blockAtlasMappings: number[],
     dimensions: Vector3,
     meshArrays: MeshArrays,
     previewMeshArrays: MeshArrays,
@@ -144,8 +144,7 @@ export class ExteriorFacesFinder {
                 const shouldRenderFace = !neighborIsPreview;
 
                 if (shouldRenderFace) {
-                  const textureIndex =
-                    blockAtlasMappings[blockType - 1][faceDir];
+                  const textureIndex = blockAtlasMappings[blockType - 1];
 
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
@@ -166,8 +165,7 @@ export class ExteriorFacesFinder {
                 const shouldRenderSelectionFace = !neighborIsSelected;
 
                 if (shouldRenderSelectionFace) {
-                  const textureIndex =
-                    blockAtlasMappings[blockType - 1][faceDir];
+                  const textureIndex = blockAtlasMappings[blockType - 1];
                   
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
@@ -189,8 +187,7 @@ export class ExteriorFacesFinder {
                   neighborValue === 0 || neighborIsPreview;
 
                 if (shouldRenderFace) {
-                  const textureIndex =
-                    blockAtlasMappings[blockType - 1][faceDir];
+                  const textureIndex = blockAtlasMappings[blockType - 1];
 
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,

@@ -126,7 +126,7 @@ export const BlockDrawer = ({
 
   const blockAtlasIndex =
     selectedBlock <= atlasData.blockAtlasMappings.length
-      ? atlasData.blockAtlasMappings[selectedBlock - 1]?.[0]
+      ? atlasData.blockAtlasMappings[selectedBlock - 1]
       : null;
   const displayColor =
     typeof blockAtlasIndex === "number" &&
