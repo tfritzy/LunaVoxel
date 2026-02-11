@@ -91,50 +91,37 @@ export class ExteriorFacesFinder {
               const y = axis === 1 ? d : u === 1 ? iu : iv;
               const z = axis === 2 ? d : u === 2 ? iu : iv;
 
-              const voxelIndex = x * strideX + y * dimZ + z;
-              const blockValue = voxelData[voxelIndex];
+              const blockValue = voxelData[x * strideX + y * dimZ + z];
               const blockType = blockValue & 0x7F;
               const blockVisible = blockType !== 0;
-              const selectionBlockValue = selectionFrame.get(x, y, z);
-              const blockIsSelected = selectionBlockValue !== 0;
+              const blockIsSelected = selectionFrame.isSet(x, y, z);
 
               if (!blockVisible && !blockIsSelected) {
                 continue;
               }
 
-              const effectiveBlockType = blockVisible ? blockType : Math.max(selectionBlockValue & 0x7F, 1);
-
               const nx = x + (axis === 0 ? dir : 0);
               const ny = y + (axis === 1 ? dir : 0);
               const nz = z + (axis === 2 ? dir : 0);
 
-              const neighborInBounds =
-                axis === 0
-                  ? isNeighborInBounds(axis, dir, nx, dimX)
-                  : axis === 1
-                    ? isNeighborInBounds(axis, dir, ny, dimY)
-                    : isNeighborInBounds(axis, dir, nz, dimZ);
-
-              const neighborValue = neighborInBounds ? voxelData[nx * strideX + ny * dimZ + nz] : 0;
-              const neighborVisible = (neighborValue & 0x7F) !== 0;
-
               const maskIdx = iv * maxDim + iu;
 
               if (blockIsSelected && !blockVisible) {
+                const neighborInBounds =
+                  axis === 0
+                    ? isNeighborInBounds(axis, dir, nx, dimX)
+                    : axis === 1
+                      ? isNeighborInBounds(axis, dir, ny, dimY)
+                      : isNeighborInBounds(axis, dir, nz, dimZ);
                 const neighborIsSelected = neighborInBounds && selectionFrame.isSet(nx, ny, nz);
-                const shouldRenderSelectionFace = !neighborIsSelected;
 
-                if (shouldRenderSelectionFace) {
+                if (!neighborIsSelected) {
+                  const selectionBlockType = selectionFrame.get(x, y, z) & 0x7F;
                   const textureIndex =
-                    blockAtlasMappings[effectiveBlockType - 1][faceDir];
+                    blockAtlasMappings[Math.max(selectionBlockType, 1) - 1][faceDir];
                   
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
-                    nx,
-                    ny,
-                    nz,
-                    faceDir,
-                    voxelData,
-                    dimensions
+                    nx, ny, nz, faceDir, voxelData, dimensions
                   );
                   
                   this.mask[maskIdx] = textureIndex;
@@ -142,19 +129,19 @@ export class ExteriorFacesFinder {
                   hasFaces = true;
                 }
               } else if (blockVisible) {
-                const shouldRenderFace = !neighborVisible;
+                const neighborInBounds =
+                  axis === 0
+                    ? isNeighborInBounds(axis, dir, nx, dimX)
+                    : axis === 1
+                      ? isNeighborInBounds(axis, dir, ny, dimY)
+                      : isNeighborInBounds(axis, dir, nz, dimZ);
+                const neighborVisible = neighborInBounds && (voxelData[nx * strideX + ny * dimZ + nz] & 0x7F) !== 0;
 
-                if (shouldRenderFace) {
-                  const textureIndex =
-                    blockAtlasMappings[effectiveBlockType - 1][faceDir];
+                if (!neighborVisible) {
+                  const textureIndex = blockAtlasMappings[blockType - 1][faceDir];
 
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
-                    nx,
-                    ny,
-                    nz,
-                    faceDir,
-                    voxelData,
-                    dimensions
+                    nx, ny, nz, faceDir, voxelData, dimensions
                   );
 
                   this.mask[maskIdx] = textureIndex;
