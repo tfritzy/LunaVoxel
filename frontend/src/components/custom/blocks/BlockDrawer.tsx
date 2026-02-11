@@ -161,6 +161,8 @@ export const BlockDrawer = ({
           .map((face) => atlasData.colors[face])
           .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
+  const displayColor =
+    faceColors && new Set(faceColors).size === 1 ? faceColors[0] : "#ffffff";
 
   const handleColorChange = useCallback(
     (color: string) => {
@@ -169,7 +171,7 @@ export const BlockDrawer = ({
       stateStore.reducers.updateBlock(
         projectId,
         selectedBlock - 1,
-        Array(6).fill(colorValue)
+        Array(faceColors.length).fill(colorValue)
       );
     },
     [faceColors, projectId, selectedBlock]
@@ -209,7 +211,7 @@ export const BlockDrawer = ({
             </div>
             <div className="bg-muted/30 rounded-lg border border-border">
               <div className="p-3">
-                <ColorPicker color={faceColors[0]} onChange={handleColorChange} />
+                <ColorPicker color={displayColor} onChange={handleColorChange} />
               </div>
             </div>
           </div>
