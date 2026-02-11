@@ -183,7 +183,7 @@ export const BlockDrawer = ({
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
-            <div>
+            <div className="bg-muted/30 rounded-lg p-3">
               <ColorPicker color={displayColor} onChange={handleColorChange} />
             </div>
           </div>
