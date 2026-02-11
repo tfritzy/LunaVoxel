@@ -50,16 +50,16 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = "model";
-      const exporter = new OBJExporter(consolidatedMesh, projectName);
+      const filename = "model";
+      const exporter = new OBJExporter(consolidatedMesh, filename);
 
       const objContent = exporter.generateOBJ();
       const mtlContent = exporter.generateMTL();
 
-      downloadFile(objContent, `${projectName}.obj`, "text/plain");
-      downloadFile(mtlContent, `${projectName}.mtl`, "text/plain");
+      downloadFile(objContent, `${filename}.obj`, "text/plain");
+      downloadFile(mtlContent, `${filename}.mtl`, "text/plain");
 
-      this.exportTexture(projectName);
+      this.exportTexture(filename);
       toast.success("Export successful");
     } catch {
       toast.error("Sorry, export failed.");
@@ -71,7 +71,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = "model";
+      const filename = "model";
       let textureDataUri: string | undefined;
 
       if (this.atlasData?.texture) {
@@ -83,10 +83,10 @@ export class ModelExporter {
         }
       }
 
-      const exporter = new GLTFExporter(consolidatedMesh, projectName);
+      const exporter = new GLTFExporter(consolidatedMesh, filename);
       const gltfContent = exporter.generateGLTF(textureDataUri);
 
-      downloadFile(gltfContent, `${projectName}.gltf`, "application/json");
+      downloadFile(gltfContent, `${filename}.gltf`, "application/json");
 
       toast.success("Export successful");
     } catch {
@@ -99,12 +99,12 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = "model";
-      const exporter = new STLExporter(consolidatedMesh, projectName);
+      const filename = "model";
+      const exporter = new STLExporter(consolidatedMesh, filename);
 
       const stlContent = exporter.generateSTL();
 
-      downloadFile(stlContent, `${projectName}.stl`, "text/plain");
+      downloadFile(stlContent, `${filename}.stl`, "text/plain");
 
       toast.success("Export successful");
     } catch {
@@ -135,11 +135,11 @@ export class ModelExporter {
     return consolidatedMesh;
   }
 
-  private exportTexture(projectName: string): void {
+  private exportTexture(filename: string): void {
     if (this.atlasData?.texture) {
       try {
         const canvas = extractTextureAtlasImage(this.atlasData?.texture);
-        downloadImageFromCanvas(canvas, `${projectName}_texture.png`);
+        downloadImageFromCanvas(canvas, `${filename}_texture.png`);
       } catch (error) {
         console.error("Failed to export texture atlas:", error);
       }
