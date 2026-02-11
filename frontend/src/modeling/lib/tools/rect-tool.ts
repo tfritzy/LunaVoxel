@@ -4,6 +4,8 @@ import type { ToolType } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
+import { setRaycastable } from "../voxel-data-utils";
+import { RAYCASTABLE_BIT } from "../voxel-constants";
 
 export class RectTool implements Tool {
   getType(): ToolType {
@@ -17,6 +19,17 @@ export class RectTool implements Tool {
   ): THREE.Vector3 {
     const direction = mode.tag === "Attach" ? "above" : "under";
     return calculateGridPositionWithMode(intersectionPoint, normal, direction);
+  }
+
+  private getPreviewBlockValue(mode: BlockModificationMode, selectedBlock: number): number {
+    switch (mode.tag) {
+      case "Attach":
+        return selectedBlock;
+      case "Paint":
+        return setRaycastable(selectedBlock);
+      case "Erase":
+        return RAYCASTABLE_BIT;
+    }
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
@@ -45,10 +58,11 @@ export class RectTool implements Tool {
     context.previewFrame.clear();
     context.previewFrame.resize(frameSize, frameMinPos);
 
+    const previewValue = this.getPreviewBlockValue(context.mode, context.selectedBlock);
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          context.previewFrame.set(x, y, z, context.selectedBlock);
+          context.previewFrame.set(x, y, z, previewValue);
         }
       }
     }

@@ -8,6 +8,7 @@ import type {
   ProjectBlocks,
   Vector3,
 } from "./types";
+import { setRaycastable } from "@/modeling/lib/voxel-data-utils";
 
 export type GlobalState = {
   project: Project;
@@ -200,14 +201,14 @@ const applyBlockAt = (
 
   switch (mode.tag) {
     case "Attach":
-      chunk.voxels[index] = blockType;
+      chunk.voxels[index] = setRaycastable(blockType);
       break;
     case "Erase":
       chunk.voxels[index] = 0;
       break;
     case "Paint":
       if (chunk.voxels[index] !== 0) {
-        chunk.voxels[index] = blockType;
+        chunk.voxels[index] = setRaycastable(blockType);
       }
       break;
   }
