@@ -1,5 +1,4 @@
 import type { Vector3 } from "@/state/types";
-import { isBlockVisible } from "./voxel-data-utils";
 
 /**
  * Defines the final AO value based on the number of occluders.
@@ -42,7 +41,7 @@ function isOccluderAt(
   if (x < 0 || x >= dimX || y < 0 || y >= dimY || z < 0 || z >= dimZ) {
     return false;
   }
-  return isBlockVisible(voxelData[x * strideX + y * dimZ + z]);
+  return (voxelData[x * strideX + y * dimZ + z] & 0x7F) !== 0;
 }
 
 export const calculateAmbientOcclusion = (

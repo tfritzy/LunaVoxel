@@ -1,6 +1,5 @@
 import type { Vector3 } from "@/state/types";
 import { faces } from "./voxel-constants";
-import { getBlockType, isBlockVisible } from "./voxel-data-utils";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 import {
@@ -94,8 +93,8 @@ export class ExteriorFacesFinder {
 
               const voxelIndex = x * strideX + y * dimZ + z;
               const blockValue = voxelData[voxelIndex];
-              const blockType = getBlockType(blockValue);
-              const blockVisible = isBlockVisible(blockValue);
+              const blockType = blockValue & 0x7F;
+              const blockVisible = blockType !== 0;
               const selectionBlockValue = selectionFrame.get(x, y, z);
               const blockIsSelected = selectionBlockValue !== 0;
 
@@ -103,7 +102,7 @@ export class ExteriorFacesFinder {
                 continue;
               }
 
-              const effectiveBlockType = blockVisible ? blockType : Math.max(getBlockType(selectionBlockValue), 1);
+              const effectiveBlockType = blockVisible ? blockType : Math.max(selectionBlockValue & 0x7F, 1);
 
               const nx = x + (axis === 0 ? dir : 0);
               const ny = y + (axis === 1 ? dir : 0);
@@ -117,7 +116,7 @@ export class ExteriorFacesFinder {
                     : isNeighborInBounds(axis, dir, nz, dimZ);
 
               const neighborValue = neighborInBounds ? voxelData[nx * strideX + ny * dimZ + nz] : 0;
-              const neighborVisible = isBlockVisible(neighborValue);
+              const neighborVisible = (neighborValue & 0x7F) !== 0;
 
               const maskIdx = iv * maxDim + iu;
 
