@@ -162,16 +162,19 @@ export const BlockDrawer = ({
           .map((face) => atlasData.colors[face])
           .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
-  const faceColorCount = faceColors?.length ?? 0;
+  const normalizedFaceColors = faceColors ?? [];
+  const faceColorCount = normalizedFaceColors.length;
   const displayColor =
-    faceColorCount > 0 && faceColors && new Set(faceColors).size === 1
-      ? faceColors[0]
+    faceColorCount > 0 && new Set(normalizedFaceColors).size === 1
+      ? normalizedFaceColors[0]
       : DEFAULT_DISPLAY_COLOR;
 
   const handleColorChange = useCallback(
     (color: string) => {
       if (faceColorCount === 0 || selectedBlock < 1) return;
-      const colorValue = parseInt(color.replace("#", ""), 16);
+      const normalizedColor = color.startsWith("#") ? color : `#${color}`;
+      if (!/^#[0-9a-fA-F]{6}$/.test(normalizedColor)) return;
+      const colorValue = parseInt(normalizedColor.slice(1), 16);
       if (Number.isNaN(colorValue)) return;
       stateStore.reducers.updateBlock(
         projectId,
