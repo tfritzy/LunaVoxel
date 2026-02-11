@@ -164,11 +164,11 @@ export const BlockDrawer = ({
           .map((face) => atlasData.colors[face])
           .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
-  const normalizedFaceColors = faceColors ?? [];
+  const normalizedFaceColors = useMemo(() => faceColors ?? [], [faceColors]);
   const faceColorCount = normalizedFaceColors.length;
   const uniqueColorCount = useMemo(
-    () => new Set(faceColors ?? []).size,
-    [faceColors]
+    () => new Set(normalizedFaceColors).size,
+    [normalizedFaceColors]
   );
   const singleColor =
     faceColorCount > 0 && uniqueColorCount === 1 ? normalizedFaceColors[0] : null;
@@ -183,7 +183,6 @@ export const BlockDrawer = ({
       const normalizedColor = color.startsWith("#") ? color : `#${color}`;
       if (!isValidHexColor(normalizedColor)) return;
       const colorValue = parseInt(normalizedColor.slice(1), 16);
-      if (Number.isNaN(colorValue)) return;
       const updatedFaceColors = Array.from(
         { length: faceColorCount },
         () => colorValue
