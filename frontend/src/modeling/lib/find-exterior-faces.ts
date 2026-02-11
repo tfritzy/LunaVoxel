@@ -1,12 +1,11 @@
 import type { Vector3 } from "@/state/types";
-import { faces, INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
+import { faces, getBlockType, isBlockVisible } from "./voxel-constants";
 import { getTextureCoordinates } from "./texture-coords";
 import { MeshArrays } from "./mesh-arrays";
 import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
-import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
@@ -43,9 +42,7 @@ export class ExteriorFacesFinder {
     blockAtlasMappings: number[][],
     dimensions: Vector3,
     meshArrays: MeshArrays,
-    previewFrame: VoxelFrame,
-    selectionFrame: FlatVoxelFrame,
-    previewOccludes: boolean
+    selectionFrame: FlatVoxelFrame
   ): void {
     meshArrays.reset();
 
@@ -65,8 +62,6 @@ export class ExteriorFacesFinder {
     const dimY = dimensions.y;
     const dimZ = dimensions.z;
     const strideX = dimY * dimZ;
-    const previewData = previewFrame.data;
-    const previewEmpty = previewFrame.isEmpty();
     const maxDim = this.maxDim;
 
     for (let axis = 0; axis < 3; axis++) {
@@ -98,24 +93,16 @@ export class ExteriorFacesFinder {
 
               const voxelIndex = x * strideX + y * dimZ + z;
               const blockValue = voxelData[voxelIndex];
-              const blockPresent = blockValue !== 0;
-              const blockVisible = blockValue !== 0 && blockValue !== INVISIBLE_VOXEL_MARKER;
-              const previewBlockValue = previewEmpty ? 0 : previewData[x][y][z];
-              const blockIsPreview = previewBlockValue !== 0;
+              const blockType = getBlockType(blockValue);
+              const blockVisible = isBlockVisible(blockValue);
               const selectionBlockValue = selectionFrame.get(x, y, z);
               const blockIsSelected = selectionBlockValue !== 0;
 
-              if (!blockPresent && !blockIsPreview && !blockIsSelected) {
+              if (!blockVisible && !blockIsSelected) {
                 continue;
               }
 
-              let effectiveBlockValue = 0;
-              if (blockIsPreview) {
-                effectiveBlockValue = previewBlockValue;
-              } else if (blockVisible) {
-                effectiveBlockValue = blockValue;
-              }
-              const blockType = Math.max(effectiveBlockValue, 1);
+              const effectiveBlockType = blockVisible ? blockType : Math.max(getBlockType(selectionBlockValue), 1);
 
               const nx = x + (axis === 0 ? dir : 0);
               const ny = y + (axis === 1 ? dir : 0);
@@ -129,39 +116,17 @@ export class ExteriorFacesFinder {
                     : isNeighborInBounds(axis, dir, nz, dimZ);
 
               const neighborValue = neighborInBounds ? voxelData[nx * strideX + ny * dimZ + nz] : 0;
-              const neighborVisible = neighborValue !== 0 && neighborValue !== INVISIBLE_VOXEL_MARKER;
-              const neighborIsPreview = !previewEmpty && neighborInBounds && previewData[nx][ny][nz] !== 0;
+              const neighborVisible = isBlockVisible(neighborValue);
 
               const maskIdx = iv * maxDim + iu;
 
-              if (blockIsPreview) {
-                const shouldRenderFace = !neighborIsPreview;
-
-                if (shouldRenderFace) {
-                  const textureIndex =
-                    blockAtlasMappings[blockType - 1][faceDir];
-
-                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
-                    nx,
-                    ny,
-                    nz,
-                    faceDir,
-                    voxelData,
-                    dimensions,
-                    previewFrame,
-                    previewOccludes
-                  );
-
-                  this.mask[maskIdx] = textureIndex;
-                  hasFaces = true;
-                }
-              } else if (blockIsSelected) {
+              if (blockIsSelected && !blockVisible) {
                 const neighborIsSelected = neighborInBounds && selectionFrame.isSet(nx, ny, nz);
                 const shouldRenderSelectionFace = !neighborIsSelected;
 
                 if (shouldRenderSelectionFace) {
                   const textureIndex =
-                    blockAtlasMappings[blockType - 1][faceDir];
+                    blockAtlasMappings[effectiveBlockType - 1][faceDir];
                   
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
@@ -169,9 +134,7 @@ export class ExteriorFacesFinder {
                     nz,
                     faceDir,
                     voxelData,
-                    dimensions,
-                    previewFrame,
-                    previewOccludes
+                    dimensions
                   );
                   
                   this.mask[maskIdx] = textureIndex;
@@ -179,12 +142,11 @@ export class ExteriorFacesFinder {
                   hasFaces = true;
                 }
               } else if (blockVisible) {
-                const shouldRenderFace =
-                  !neighborVisible || neighborIsPreview;
+                const shouldRenderFace = !neighborVisible;
 
                 if (shouldRenderFace) {
                   const textureIndex =
-                    blockAtlasMappings[blockType - 1][faceDir];
+                    blockAtlasMappings[effectiveBlockType - 1][faceDir];
 
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx,
@@ -192,12 +154,13 @@ export class ExteriorFacesFinder {
                     nz,
                     faceDir,
                     voxelData,
-                    dimensions,
-                    previewFrame,
-                    previewOccludes
+                    dimensions
                   );
 
                   this.mask[maskIdx] = textureIndex;
+                  if (blockIsSelected) {
+                    this.isSelectedMask[maskIdx] = 1;
+                  }
                   hasFaces = true;
                 }
               }

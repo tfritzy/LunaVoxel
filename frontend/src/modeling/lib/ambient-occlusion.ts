@@ -1,5 +1,5 @@
-import { VoxelFrame } from "./voxel-frame";
 import type { Vector3 } from "@/state/types";
+import { isBlockSolid } from "./voxel-data-utils";
 
 /**
  * Defines the final AO value based on the number of occluders.
@@ -37,15 +37,12 @@ function isOccluderAt(
   x: number, y: number, z: number,
   voxelData: Uint8Array,
   dimX: number, dimY: number, dimZ: number,
-  strideX: number,
-  previewFrame: VoxelFrame,
-  previewOccludes: boolean
+  strideX: number
 ): boolean {
   if (x < 0 || x >= dimX || y < 0 || y >= dimY || z < 0 || z >= dimZ) {
     return false;
   }
-  if (voxelData[x * strideX + y * dimZ + z] > 0) return true;
-  return previewOccludes && previewFrame.isSet(x, y, z);
+  return isBlockSolid(voxelData[x * strideX + y * dimZ + z]);
 }
 
 export const calculateAmbientOcclusion = (
@@ -54,9 +51,7 @@ export const calculateAmbientOcclusion = (
   nz: number,
   faceDir: number,
   voxelData: Uint8Array,
-  dimensions: Vector3,
-  previewFrame: VoxelFrame,
-  previewOccludes: boolean
+  dimensions: Vector3
 ): number => {
   const offset = faceDir * 6;
   const u0 = FACE_TANGENTS_FLAT[offset];
@@ -71,15 +66,15 @@ export const calculateAmbientOcclusion = (
   const dimZ = dimensions.z;
   const strideX = dimY * dimZ;
 
-  const side1_neg = isOccluderAt(nx - u0, ny - u1, nz - u2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
-  const side1_pos = isOccluderAt(nx + u0, ny + u1, nz + u2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
-  const side2_neg = isOccluderAt(nx - v0, ny - v1, nz - v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
-  const side2_pos = isOccluderAt(nx + v0, ny + v1, nz + v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const side1_neg = isOccluderAt(nx - u0, ny - u1, nz - u2, voxelData, dimX, dimY, dimZ, strideX);
+  const side1_pos = isOccluderAt(nx + u0, ny + u1, nz + u2, voxelData, dimX, dimY, dimZ, strideX);
+  const side2_neg = isOccluderAt(nx - v0, ny - v1, nz - v2, voxelData, dimX, dimY, dimZ, strideX);
+  const side2_pos = isOccluderAt(nx + v0, ny + v1, nz + v2, voxelData, dimX, dimY, dimZ, strideX);
 
-  const corner_nn = isOccluderAt(nx - u0 - v0, ny - u1 - v1, nz - u2 - v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
-  const corner_pn = isOccluderAt(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
-  const corner_np = isOccluderAt(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
-  const corner_pp = isOccluderAt(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2, voxelData, dimX, dimY, dimZ, strideX, previewFrame, previewOccludes);
+  const corner_nn = isOccluderAt(nx - u0 - v0, ny - u1 - v1, nz - u2 - v2, voxelData, dimX, dimY, dimZ, strideX);
+  const corner_pn = isOccluderAt(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2, voxelData, dimX, dimY, dimZ, strideX);
+  const corner_np = isOccluderAt(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2, voxelData, dimX, dimY, dimZ, strideX);
+  const corner_pp = isOccluderAt(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2, voxelData, dimX, dimY, dimZ, strideX);
 
   const occ00 = (side1_neg && side2_neg) ? 3 : ((side1_neg ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_nn ? 1 : 0));
   const occ10 = (side1_pos && side2_neg) ? 3 : ((side1_pos ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_pn ? 1 : 0));

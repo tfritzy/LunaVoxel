@@ -1,35 +1,52 @@
 import LZ4 from "lz4js";
-import { INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
+import { BLOCK_TYPE_MASK, NON_RAYCASTABLE_BIT } from "./voxel-constants";
 
 /**
- * In the new format, voxels are simply block indices where 0 means empty.
- * No more bit packing for preview, selection, rotation, or version.
+ * Voxel format (8 bits):
+ * - Bits 0-6: Block type (0-127, where 0 = empty)
+ * - Bit 7: Non-raycastable flag (1 = invisible for raycasting, 0 = normal)
  */
 
 /**
- * Get the block type (which is now just the voxel value itself)
+ * Get the block type (bits 0-6)
  */
 export const getBlockType = (blockValue: number): number => {
-  return blockValue;
+  return blockValue & BLOCK_TYPE_MASK;
 };
 
 /**
- * Check if a block is present (non-zero and not invisible marker)
+ * Check if a block is present (has a non-zero block type)
  */
 export const isBlockPresent = (blockValue: number): boolean => {
-  return blockValue !== 0 && blockValue !== INVISIBLE_VOXEL_MARKER;
+  return (blockValue & BLOCK_TYPE_MASK) !== 0;
 };
 
 /**
- * Check if a block is visible (alias for isBlockPresent - used in mesh generation context)
+ * Check if a block is visible (has a block type and is raycastable)
  */
-export const isBlockVisible = isBlockPresent;
+export const isBlockVisible = (blockValue: number): boolean => {
+  return (blockValue & BLOCK_TYPE_MASK) !== 0;
+};
 
 /**
- * Check if a block is solid (present for collision purposes, including invisible voxels)
+ * Check if a block is solid (present for collision/occlusion purposes)
  */
 export const isBlockSolid = (blockValue: number): boolean => {
-  return blockValue !== 0;
+  return (blockValue & BLOCK_TYPE_MASK) !== 0;
+};
+
+/**
+ * Set the non-raycastable flag on a voxel value
+ */
+export const setNonRaycastable = (blockValue: number): number => {
+  return blockValue | NON_RAYCASTABLE_BIT;
+};
+
+/**
+ * Clear the non-raycastable flag (make it raycastable)
+ */
+export const clearNonRaycastable = (blockValue: number): number => {
+  return blockValue & BLOCK_TYPE_MASK;
 };
 
 const countRuns = (data: number[]): number => {

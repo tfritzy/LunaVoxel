@@ -2,6 +2,8 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import {
   isBlockPresent,
+  setNonRaycastable,
+  getBlockType,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
@@ -9,7 +11,7 @@ import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
-import { INVISIBLE_VOXEL_MARKER } from "./voxel-constants";
+import { NON_RAYCASTABLE_BIT } from "./voxel-constants";
 
 type SelectionFrameData = {
   minPos: Vector3;
@@ -254,7 +256,7 @@ export class Chunk {
     }
   }
 
-  private updatePreviewState(blocks: Uint8Array): void {
+  private mergePreviewIntoVoxelData(blocks: Uint8Array): void {
     if (this.previewFrame.isEmpty()) return;
 
     const buildMode = this.getMode();
@@ -269,8 +271,10 @@ export class Chunk {
         const z = voxelIndex % sizeZ;
 
         const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
-          this.previewFrame.set(x, y, z, 0);
+        if (previewBlockValue !== 0) {
+          if (!isBlockPresent(blocks[voxelIndex])) {
+            blocks[voxelIndex] = setNonRaycastable(previewBlockValue);
+          }
         }
       }
     } else if (buildMode.tag === "Erase") {
@@ -280,13 +284,11 @@ export class Chunk {
         const z = voxelIndex % sizeZ;
 
         const previewBlockValue = this.previewFrame.get(x, y, z);
-
         if (previewBlockValue !== 0) {
           const realBlockValue = blocks[voxelIndex];
           if (isBlockPresent(realBlockValue)) {
-            blocks[voxelIndex] = INVISIBLE_VOXEL_MARKER;
+            blocks[voxelIndex] = NON_RAYCASTABLE_BIT;
           }
-          this.previewFrame.set(x, y, z, 0);
         }
       }
     } else if (buildMode.tag === "Paint") {
@@ -296,8 +298,8 @@ export class Chunk {
         const z = voxelIndex % sizeZ;
 
         const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0 && !isBlockPresent(blocks[voxelIndex])) {
-          this.previewFrame.set(x, y, z, 0);
+        if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
+          blocks[voxelIndex] = previewBlockValue;
         }
       }
     }
@@ -377,9 +379,7 @@ export class Chunk {
       atlasData.blockAtlasMappings,
       this.size,
       this.meshData.meshArrays,
-      this.previewFrame,
-      this.mergedSelectionFrame,
-      this.getMode().tag !== "Erase"
+      this.mergedSelectionFrame
     );
 
     this.updateMesh(atlasData);
@@ -424,7 +424,7 @@ export class Chunk {
         this.applySelectionForLayer(layerIndex, this.blocksToRender);
       }
 
-      this.updatePreviewState(this.blocksToRender);
+      this.mergePreviewIntoVoxelData(this.blocksToRender);
 
       if (this.atlasData && this.needsRender()) {
         this.copyChunkData(this.blocksToRender);

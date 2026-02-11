@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { calculateAmbientOcclusion } from "../ambient-occlusion";
-import { VoxelFrame } from "../voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
 
@@ -22,16 +21,13 @@ describe("calculateAmbientOcclusion", () => {
     it("should return zero occlusion for isolated block", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Single block in center with no neighbors
       const mask = calculateAmbientOcclusion(
         1, 1, 1, // center position
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       // All corners should have 0 occluders
@@ -42,16 +38,13 @@ describe("calculateAmbientOcclusion", () => {
     it("should return zero occlusion for block at corner with no neighbors", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Block at corner with no neighbors
       const mask = calculateAmbientOcclusion(
         0, 0, 0, // corner position
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -63,7 +56,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should detect side neighbor occlusion", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Place a block next to the center block in Y direction
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y neighbor
@@ -72,9 +64,7 @@ describe("calculateAmbientOcclusion", () => {
         1, 1, 1, // center position
         0, // +X face (checks Y and Z tangents)
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -87,7 +77,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should detect multiple side neighbors", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Place blocks on two sides
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y neighbor
@@ -97,9 +86,7 @@ describe("calculateAmbientOcclusion", () => {
         1, 1, 1, // center position
         0, // +X face (tangents are Y and Z)
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -112,7 +99,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should detect corner neighbor occlusion", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Place a block at diagonal corner
       setVoxel(voxelData, 1, 2, 2, 1, dimensions); // +Y, +Z corner
@@ -121,9 +107,7 @@ describe("calculateAmbientOcclusion", () => {
         1, 1, 1, // center position
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -137,7 +121,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should detect inner corner (both sides and corner)", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Place blocks to form an inner corner
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
@@ -147,9 +130,7 @@ describe("calculateAmbientOcclusion", () => {
         1, 1, 1, // center position
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -161,7 +142,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should return 3 for inner corner even without diagonal block", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Only place the two side blocks, not the corner
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
@@ -172,9 +152,7 @@ describe("calculateAmbientOcclusion", () => {
         1, 1, 1, // center position
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -183,75 +161,61 @@ describe("calculateAmbientOcclusion", () => {
     });
   });
 
-
-
-  describe("Preview frame occlusion", () => {
-    it("should not count preview blocks when previewOccludes is false", () => {
+  describe("Voxel data occlusion", () => {
+    it("should not count blocks with zero block type", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
-
-      // Place preview blocks around center
-      previewFrame.set(1, 2, 1, 1);
-      previewFrame.set(1, 1, 2, 1);
+      // No blocks set - all zeros
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1,
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false // preview doesn't occlude
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
-      // No occlusion since previewOccludes is false
+      // No occlusion since all blocks are empty
       expect(corners).toEqual([0, 0, 0, 0]);
     });
 
-    it("should count preview blocks when previewOccludes is true", () => {
+    it("should count blocks with valid block type", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
-      // Place preview blocks around center
-      previewFrame.set(1, 2, 1, 1);
-      previewFrame.set(1, 1, 2, 1);
+      // Place blocks around center
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions);
+      setVoxel(voxelData, 1, 1, 2, 1, dimensions);
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1,
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        true // preview occludes
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
-      // Should have occlusion from preview blocks
+      // Should have occlusion from blocks
       expect(corners).toEqual([0, 1, 3, 1]);
     });
 
-    it("should combine voxel data and preview frame occlusion", () => {
+    it("should combine multiple voxel occlusions", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
-      // One real block, one preview block
-      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side (real)
-      previewFrame.set(1, 1, 2, 1); // +Z side (preview)
+      // Two blocks in different positions
+      setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
+      setVoxel(voxelData, 1, 1, 2, 2, dimensions); // +Z side (different block type)
 
       const mask = calculateAmbientOcclusion(
         1, 1, 1,
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        true // preview occludes
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
-      // Should have inner corner occlusion from both sources
+      // Should have inner corner occlusion from both blocks
       expect(corners).toEqual([0, 1, 3, 1]);
     });
   });
@@ -260,16 +224,13 @@ describe("calculateAmbientOcclusion", () => {
     it("should treat out-of-bounds checks as non-occluding", () => {
       const dimensions: Vector3 = { x: 2, y: 2, z: 2 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Block at edge looking outward - out of bounds should not occlude
       const mask = calculateAmbientOcclusion(
         0, 0, 0,
         1, // -X face (looking outside the world)
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -282,7 +243,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should correctly pack different corner values", () => {
       const dimensions: Vector3 = { x: 4, y: 4, z: 4 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Create a specific occlusion pattern for face 0 (+X)
       // For face 0, tangents are u=Y, v=Z
@@ -295,9 +255,7 @@ describe("calculateAmbientOcclusion", () => {
         2, 2, 2,
         0, // +X face
         voxelData,
-        dimensions,
-        previewFrame,
-        false
+        dimensions
       );
 
       const corners = unpackOcclusionMask(mask);
@@ -315,13 +273,12 @@ describe("calculateAmbientOcclusion", () => {
     it("should produce symmetric results for symmetric voxel configurations", () => {
       const dimensions: Vector3 = { x: 5, y: 5, z: 5 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Create symmetric pattern around center block: blocks at +Y and -Y
       setVoxel(voxelData, 2, 3, 2, 1, dimensions); // +Y
       setVoxel(voxelData, 2, 1, 2, 1, dimensions); // -Y
 
-      const mask1 = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions, previewFrame, false);
+      const mask1 = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions);
       const corners1 = unpackOcclusionMask(mask1);
 
       // For face 0 (+X), with symmetric blocks at ±Y:
@@ -338,7 +295,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should handle fully surrounded block", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Surround center block completely
       for (let x = 0; x < 3; x++) {
@@ -351,7 +307,7 @@ describe("calculateAmbientOcclusion", () => {
         }
       }
 
-      const mask = calculateAmbientOcclusion(1, 1, 1, 0, voxelData, dimensions, previewFrame, false);
+      const mask = calculateAmbientOcclusion(1, 1, 1, 0, voxelData, dimensions);
       const corners = unpackOcclusionMask(mask);
 
       // All corners should have maximum occlusion
@@ -361,7 +317,6 @@ describe("calculateAmbientOcclusion", () => {
     it("should handle alternating pattern", () => {
       const dimensions: Vector3 = { x: 5, y: 5, z: 5 };
       const voxelData = createVoxelData(dimensions);
-      const previewFrame = new VoxelFrame(dimensions);
 
       // Create checkerboard pattern
       for (let x = 0; x < 5; x++) {
@@ -375,7 +330,7 @@ describe("calculateAmbientOcclusion", () => {
       }
 
       // Test center block which has alternating neighbors
-      const mask = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions, previewFrame, false);
+      const mask = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions);
       
       expect(mask).toBeDefined();
       const corners = unpackOcclusionMask(mask);
