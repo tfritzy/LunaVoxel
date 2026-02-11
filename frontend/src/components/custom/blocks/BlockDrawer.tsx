@@ -14,6 +14,7 @@ const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
+const DEFAULT_DISPLAY_COLOR = "#ffffff";
 
 const HexagonGrid = memo(
   ({
@@ -161,20 +162,24 @@ export const BlockDrawer = ({
           .map((face) => atlasData.colors[face])
           .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
+  const faceColorCount = faceColors?.length ?? 0;
   const displayColor =
-    faceColors && new Set(faceColors).size === 1 ? faceColors[0] : "#ffffff";
+    faceColors && new Set(faceColors).size === 1
+      ? faceColors[0]
+      : DEFAULT_DISPLAY_COLOR;
 
   const handleColorChange = useCallback(
     (color: string) => {
-      if (!faceColors) return;
+      if (faceColorCount === 0 || selectedBlock <= 0) return;
       const colorValue = parseInt(color.replace("#", ""), 16);
+      if (Number.isNaN(colorValue)) return;
       stateStore.reducers.updateBlock(
         projectId,
         selectedBlock - 1,
-        Array(faceColors.length).fill(colorValue)
+        Array(faceColorCount).fill(colorValue)
       );
     },
-    [faceColors, projectId, selectedBlock]
+    [faceColorCount, projectId, selectedBlock]
   );
 
   return (
