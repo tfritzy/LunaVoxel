@@ -21,31 +21,17 @@ export const getBlockType = (blockValue: number): number => {
 };
 
 /**
- * Check if a block is present (has a non-zero block type)
- */
-export const isBlockPresent = (blockValue: number): boolean => {
-  return (blockValue & BLOCK_TYPE_MASK) !== 0;
-};
-
-/**
- * Check if a block is visible (has a block type)
+ * Check if a block is visible (has a non-zero block type, not just raycastable flag)
  */
 export const isBlockVisible = (blockValue: number): boolean => {
-  return (blockValue & BLOCK_TYPE_MASK) !== 0;
+  return blockValue !== 0 && blockValue !== RAYCASTABLE_BIT;
 };
 
 /**
- * Check if a block is solid (present for collision/occlusion purposes)
- */
-export const isBlockSolid = (blockValue: number): boolean => {
-  return (blockValue & BLOCK_TYPE_MASK) !== 0;
-};
-
-/**
- * Check if a block is raycastable (bit 7 is set)
+ * Check if a block is raycastable (value > 127, meaning bit 7 is set)
  */
 export const isBlockRaycastable = (blockValue: number): boolean => {
-  return (blockValue & RAYCASTABLE_BIT) !== 0;
+  return blockValue > 127;
 };
 
 /**

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import {
-  isBlockPresent,
+  isBlockVisible,
   setRaycastable,
   getBlockType,
 } from "./voxel-data-utils";
@@ -272,7 +272,7 @@ export class Chunk {
 
         const previewBlockValue = this.previewFrame.get(x, y, z);
         if (previewBlockValue !== 0) {
-          if (!isBlockPresent(blocks[voxelIndex])) {
+          if (!isBlockVisible(blocks[voxelIndex])) {
             blocks[voxelIndex] = previewBlockValue;
           }
         }
@@ -286,7 +286,7 @@ export class Chunk {
         const previewBlockValue = this.previewFrame.get(x, y, z);
         if (previewBlockValue !== 0) {
           const realBlockValue = blocks[voxelIndex];
-          if (isBlockPresent(realBlockValue)) {
+          if (isBlockVisible(realBlockValue)) {
             blocks[voxelIndex] = RAYCASTABLE_BIT;
           }
         }
@@ -298,7 +298,7 @@ export class Chunk {
         const z = voxelIndex % sizeZ;
 
         const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0 && isBlockPresent(blocks[voxelIndex])) {
+        if (previewBlockValue !== 0 && isBlockVisible(blocks[voxelIndex])) {
           blocks[voxelIndex] = setRaycastable(previewBlockValue);
         }
       }
