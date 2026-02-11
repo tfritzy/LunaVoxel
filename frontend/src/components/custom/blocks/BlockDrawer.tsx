@@ -163,7 +163,7 @@ export const BlockDrawer = ({
   );
 
   return (
-    <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-72">
+    <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Blocks</h2>
       </div>
@@ -183,7 +183,7 @@ export const BlockDrawer = ({
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
-            <div className="bg-muted/30 rounded-lg p-3">
+            <div className="bg-muted/30 p-3 w-full">
               <ColorPicker color={displayColor} onChange={handleColorChange} />
             </div>
           </div>

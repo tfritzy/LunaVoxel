@@ -58,7 +58,7 @@ export const ColorPicker = ({
   const backgroundColor = isValidHex(inputValue) ? inputValue : color;
 
   return (
-    <div className={`relative`}>
+    <div className={`relative w-full`}>
       <div className="w-full aspect-square">
         <HexColorPicker color={color} onChange={handleColorChange} />
       </div>
