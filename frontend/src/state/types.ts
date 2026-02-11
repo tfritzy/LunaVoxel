@@ -29,7 +29,7 @@ export type Layer = {
 
 export type ProjectBlocks = {
   projectId: string;
-  faceColors: number[][];
+  faceColors: number[];
 };
 
 export type ChunkData = {

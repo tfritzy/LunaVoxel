@@ -29,16 +29,13 @@ export const useAtlas = (): AtlasData => {
     const blockAtlasMappings: number[][] = [];
 
     for (let i = 0; i < blocks.faceColors.length; i++) {
-      const blockAtlasIndexes: number[] = [];
-      for (let j = 0; j < blocks.faceColors[i].length; j++) {
-        const color = blocks.faceColors[i][j];
-        if (!colorMap.has(color)) {
-          colorMap.set(color, colors.length);
-          colors.push(color);
-        }
-        blockAtlasIndexes.push(colorMap.get(color)!);
+      const color = blocks.faceColors[i];
+      if (!colorMap.has(color)) {
+        colorMap.set(color, colors.length);
+        colors.push(color);
       }
-      blockAtlasMappings.push(blockAtlasIndexes);
+      const atlasIndex = colorMap.get(color)!;
+      blockAtlasMappings.push(Array(6).fill(atlasIndex));
     }
 
     if (!colors.length) {

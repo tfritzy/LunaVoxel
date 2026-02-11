@@ -124,42 +124,31 @@ export const BlockDrawer = ({
     setDeletingBlockIndex(selectedBlock);
   }, [selectedBlock]);
 
-  const faceColors =
+  const blockAtlasIndex =
     selectedBlock <= atlasData.blockAtlasMappings.length
-      ? atlasData.blockAtlasMappings[selectedBlock - 1]
-          .map((face) => atlasData.colors[face])
-          .map((c) => `#${c.toString(16).padStart(6, "0")}`)
+      ? atlasData.blockAtlasMappings[selectedBlock - 1]?.[0]
       : null;
-  const normalizedFaceColors = useMemo(() => faceColors ?? [], [faceColors]);
-  const faceColorCount = normalizedFaceColors.length;
-  const uniqueColorCount = useMemo(
-    () => new Set(normalizedFaceColors).size,
-    [normalizedFaceColors]
-  );
-  const singleColor =
-    faceColorCount > 0 && uniqueColorCount === 1 ? normalizedFaceColors[0] : null;
   const displayColor =
-    singleColor && isValidHexColor(singleColor)
-      ? singleColor
+    typeof blockAtlasIndex === "number" &&
+    typeof atlasData.colors[blockAtlasIndex] === "number"
+      ? `#${atlasData.colors[blockAtlasIndex]
+          .toString(16)
+          .padStart(6, "0")}`
       : DEFAULT_DISPLAY_COLOR;
 
   const handleColorChange = useCallback(
     (color: string) => {
-      if (faceColorCount === 0 || selectedBlock < 1) return;
+      if (selectedBlock < 1) return;
       const normalizedColor = color.startsWith("#") ? color : `#${color}`;
       if (!isValidHexColor(normalizedColor)) return;
       const colorValue = parseInt(normalizedColor.slice(1), 16);
-      const updatedFaceColors = Array.from(
-        { length: faceColorCount },
-        () => colorValue
-      );
       stateStore.reducers.updateBlock(
         projectId,
         selectedBlock - 1,
-        updatedFaceColors
+        colorValue
       );
     },
-    [faceColorCount, projectId, selectedBlock]
+    [projectId, selectedBlock]
   );
 
   return (
@@ -176,7 +165,7 @@ export const BlockDrawer = ({
             atlasData={atlasData}
           />
         </div>
-        {faceColors && (
+        {typeof blockAtlasIndex === "number" && (
           <div className="">
             <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={handleDelete}>
