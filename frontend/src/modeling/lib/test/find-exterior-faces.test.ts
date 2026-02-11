@@ -297,8 +297,8 @@ describe("ExteriorFacesFinder", () => {
     });
   });
 
-  describe("Non-raycastable voxel tests", () => {
-    it("should not render faces for raycastable-only voxels with zero block type (erase preview)", () => {
+  describe("Preview voxel tests", () => {
+    it("should not render faces for erase preview (raycastable-only with zero block type)", () => {
       const dimensions: Vector3 = { x: 1, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
       setVoxel(voxelData, 0, 0, 0, RAYCASTABLE_BIT, dimensions);
@@ -320,7 +320,7 @@ describe("ExteriorFacesFinder", () => {
       expect(meshArrays.vertexCount).toBe(0);
     });
 
-    it("should render faces toward raycastable-only voxels from visible neighbors", () => {
+    it("should render faces for attach preview toward erase preview", () => {
       const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
       const voxelData = createVoxelData(dimensions);
       setVoxel(voxelData, 0, 0, 0, 1, dimensions);
@@ -343,7 +343,7 @@ describe("ExteriorFacesFinder", () => {
       expect(meshArrays.vertexCount).toBe(24);
     });
 
-    it("should render interior faces when surrounded by raycastable-only voxels (erase preview)", () => {
+    it("should render interior faces for attach preview surrounded by erase preview", () => {
       const dimensions: Vector3 = { x: 3, y: 3, z: 3 };
       const voxelData = createVoxelData(dimensions);
 
