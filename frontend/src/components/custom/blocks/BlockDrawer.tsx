@@ -178,7 +178,7 @@ export const BlockDrawer = ({
         </div>
         {faceColors && (
           <div className="">
-            <div className="flex justify-end mb-2">
+            <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={handleDelete}>
                 <Trash2 className="w-4 h-4" />
               </Button>
