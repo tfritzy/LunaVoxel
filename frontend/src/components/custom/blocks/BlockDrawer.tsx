@@ -165,10 +165,12 @@ export const BlockDrawer = ({
       : null;
   const normalizedFaceColors = faceColors ?? [];
   const faceColorCount = normalizedFaceColors.length;
+  const uniqueColorCount = useMemo(
+    () => new Set(faceColors ?? []).size,
+    [faceColors]
+  );
   const singleColor =
-    faceColorCount > 0 && new Set(normalizedFaceColors).size === 1
-      ? normalizedFaceColors[0]
-      : null;
+    faceColorCount > 0 && uniqueColorCount === 1 ? normalizedFaceColors[0] : null;
   const displayColor =
     singleColor && HEX_COLOR_RE.test(singleColor)
       ? singleColor
@@ -176,7 +178,7 @@ export const BlockDrawer = ({
 
   const handleColorChange = useCallback(
     (color: string) => {
-      if (faceColorCount === 0 || selectedBlock <= 0) return;
+      if (faceColorCount === 0 || selectedBlock < 1) return;
       const normalizedColor = color.startsWith("#") ? color : `#${color}`;
       if (!HEX_COLOR_RE.test(normalizedColor)) return;
       const colorValue = parseInt(normalizedColor.slice(1), 16);
@@ -184,7 +186,7 @@ export const BlockDrawer = ({
       stateStore.reducers.updateBlock(
         projectId,
         selectedBlock - 1,
-        Array(faceColorCount).fill(colorValue)
+        Array.from({ length: faceColorCount }, () => colorValue)
       );
     },
     [faceColorCount, projectId, selectedBlock]
