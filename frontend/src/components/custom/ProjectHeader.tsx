@@ -1,6 +1,5 @@
 import { FileDropdown } from "./FileDropdown";
 import { EditDropdown } from "./EditDropdown";
-import { Logo } from "./Logo";
 import { useCallback } from "react";
 import { ExportType } from "@/modeling/export/model-exporter";
 
@@ -26,16 +25,13 @@ export function ProjectHeader({
     <>
       <nav className="h-14 w-full bg-background border-b border-border relative z-10">
         <div className="w-full h-full flex items-center px-4">
-          <div className="flex items-center gap-4 pl-2">
-            <Logo />
-            <div className="flex items-center">
-              <FileDropdown
-                onExport={handleExport}
-              />
-              {onUndo && onRedo && (
-                <EditDropdown onUndo={onUndo} onRedo={onRedo} />
-              )}
-            </div>
+          <div className="flex items-center pl-2">
+            <FileDropdown
+              onExport={handleExport}
+            />
+            {onUndo && onRedo && (
+              <EditDropdown onUndo={onUndo} onRedo={onRedo} />
+            )}
           </div>
         </div>
       </nav>
