@@ -4,7 +4,6 @@ import type { ToolType } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
-import { setRaycastable } from "../voxel-data-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 
 export class RectTool implements Tool {
@@ -26,7 +25,7 @@ export class RectTool implements Tool {
       case "Attach":
         return selectedBlock;
       case "Paint":
-        return setRaycastable(selectedBlock);
+        return selectedBlock | RAYCASTABLE_BIT;
       case "Erase":
         return RAYCASTABLE_BIT;
     }
