@@ -50,7 +50,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = "lunavoxel_export";
+      const projectName = "model";
       const exporter = new OBJExporter(consolidatedMesh, projectName);
 
       const objContent = exporter.generateOBJ();
@@ -71,7 +71,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = "lunavoxel_export";
+      const projectName = "model";
       let textureDataUri: string | undefined;
 
       if (this.atlasData?.texture) {
@@ -99,7 +99,7 @@ export class ModelExporter {
       const consolidatedMesh = this.getConsolidatedMesh();
       if (!consolidatedMesh) return;
 
-      const projectName = "lunavoxel_export";
+      const projectName = "model";
       const exporter = new STLExporter(consolidatedMesh, projectName);
 
       const stlContent = exporter.generateSTL();

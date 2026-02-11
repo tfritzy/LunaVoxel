@@ -1,6 +1,6 @@
 export function Logo() {
   return (
-    <div className="w-10 h-10">
+    <div className="w-8 h-8">
       <img src="/logo.svg" />
     </div>
   );
