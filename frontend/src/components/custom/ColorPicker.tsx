@@ -59,7 +59,13 @@ export const ColorPicker = ({
 
   return (
     <div className={`relative`}>
-      <HexColorPicker color={color} onChange={handleColorChange} />
+      <div className="w-full aspect-square">
+        <HexColorPicker
+          color={color}
+          onChange={handleColorChange}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
       <input
         type="text"
         value={inputValue}
