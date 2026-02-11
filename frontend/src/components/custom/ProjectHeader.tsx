@@ -25,7 +25,7 @@ export function ProjectHeader({
     <>
       <nav className="h-14 w-full bg-background border-b border-border relative z-10">
         <div className="w-full h-full flex items-center px-4">
-          <div className="flex items-center pl-2">
+          <div className="flex items-center">
             <FileDropdown
               onExport={handleExport}
             />
