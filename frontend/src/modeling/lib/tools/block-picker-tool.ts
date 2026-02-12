@@ -31,7 +31,7 @@ export class BlockPickerTool implements Tool {
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     const blockType = context.projectManager.getBlockAtPosition(
       event.currentGridPosition,
-      context.selectedLayer
+      context.selectedObject
     );
     if (blockType !== null && blockType !== 0) {
       context.setSelectedBlockInParent(blockType);

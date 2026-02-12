@@ -17,7 +17,7 @@ type SelectionFrameData = {
 };
 
 export type SelectionData = {
-  layer: number;
+  object: number;
   frame: SelectionFrameData;
   offset: Vector3;
 };
@@ -27,7 +27,7 @@ interface MeshData {
   meshArrays: MeshArrays;
 }
 
-export type LayerChunk = {
+export type ObjectChunk = {
   voxels: Uint8Array;
 };
 
@@ -35,7 +35,7 @@ export class Chunk {
   private scene: THREE.Scene;
   public readonly minPos: Vector3;
   public readonly size: Vector3;
-  private layerChunks: (LayerChunk | null)[];
+  private objectChunks: (ObjectChunk | null)[];
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
@@ -44,7 +44,7 @@ export class Chunk {
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
-  private getLayerVisible: (layerIndex: number) => boolean;
+  private getObjectVisible: (objectIndex: number) => boolean;
 
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
@@ -57,19 +57,19 @@ export class Chunk {
     scene: THREE.Scene,
     minPos: Vector3,
     size: Vector3,
-    maxLayers: number,
+    maxObjects: number,
     atlasData: AtlasData | undefined,
     getMode: () => BlockModificationMode,
-    getLayerVisible: (layerIndex: number) => boolean
+    getObjectVisible: (objectIndex: number) => boolean
   ) {
     this.scene = scene;
     this.minPos = minPos;
     this.size = size;
     this.atlasData = atlasData;
     this.getMode = getMode;
-    this.getLayerVisible = getLayerVisible;
+    this.getObjectVisible = getObjectVisible;
 
-    this.layerChunks = new Array(maxLayers).fill(null);
+    this.objectChunks = new Array(maxObjects).fill(null);
 
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
@@ -92,19 +92,19 @@ export class Chunk {
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
   }
 
-  public setLayerChunk(layerIndex: number, voxels: Uint8Array | null): void {
+  public setObjectChunk(objectIndex: number, voxels: Uint8Array | null): void {
     if (voxels === null) {
-      this.layerChunks[layerIndex] = null;
+      this.objectChunks[objectIndex] = null;
       return;
     }
-    this.layerChunks[layerIndex] = {
+    this.objectChunks[objectIndex] = {
       voxels,
     };
     this.update();
   }
 
-  public getLayerChunk(layerIndex: number): LayerChunk | null {
-    return this.layerChunks[layerIndex] || null;
+  public getObjectChunk(objectIndex: number): ObjectChunk | null {
+    return this.objectChunks[objectIndex] || null;
   }
 
   public getVoxelAt(localX: number, localY: number, localZ: number): number {
@@ -118,11 +118,11 @@ export class Chunk {
   }
 
   public isEmpty(): boolean {
-    return this.layerChunks.every((chunk) => chunk === null);
+    return this.objectChunks.every((chunk) => chunk === null);
   }
 
   public applyOptimisticRect(
-    layerIndex: number,
+    objectIndex: number,
     mode: { tag: string },
     localMinX: number,
     localMaxX: number,
@@ -132,8 +132,8 @@ export class Chunk {
     localMaxZ: number,
     blockType: number
   ): void {
-    const layerChunk = this.layerChunks[layerIndex];
-    if (!layerChunk) return;
+    const objectChunk = this.objectChunks[objectIndex];
+    if (!objectChunk) return;
 
     for (let x = localMinX; x <= localMaxX; x++) {
       for (let y = localMinY; y <= localMaxY; y++) {
@@ -142,14 +142,14 @@ export class Chunk {
 
           switch (mode.tag) {
             case "Attach":
-              layerChunk.voxels[index] = blockType;
+              objectChunk.voxels[index] = blockType;
               break;
             case "Erase":
-              layerChunk.voxels[index] = 0;
+              objectChunk.voxels[index] = 0;
               break;
             case "Paint":
-              if (layerChunk.voxels[index] !== 0) {
-                layerChunk.voxels[index] = blockType;
+              if (objectChunk.voxels[index] !== 0) {
+                objectChunk.voxels[index] = blockType;
               }
               break;
           }
@@ -235,21 +235,21 @@ export class Chunk {
     blocks.fill(0);
   }
 
-  private addLayerChunkToBlocks(
-    layerChunk: LayerChunk,
+  private addObjectChunkToBlocks(
+    objectChunk: ObjectChunk,
     blocks: Uint8Array
   ): void {
-    for (let i = 0; i < blocks.length && i < layerChunk.voxels.length; i++) {
-      if (layerChunk.voxels[i] > 0) {
-        blocks[i] = layerChunk.voxels[i];
+    for (let i = 0; i < blocks.length && i < objectChunk.voxels.length; i++) {
+      if (objectChunk.voxels[i] > 0) {
+        blocks[i] = objectChunk.voxels[i];
         this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
   }
 
-  private applySelectionForLayer(layerIndex: number, blocks: Uint8Array): void {
+  private applySelectionForObject(objectIndex: number, blocks: Uint8Array): void {
     for (const selectionData of this.selectionFrames.values()) {
-      if (selectionData.layer !== layerIndex) continue;
+      if (selectionData.object !== objectIndex) continue;
       
       const selectionVoxels = selectionData.frame.voxelData;
       
@@ -419,16 +419,16 @@ export class Chunk {
       this.clearBlocks(this.blocksToRender);
       this.mergedSelectionFrame.clear();
 
-      for (let layerIndex = 0; layerIndex < this.layerChunks.length; layerIndex++) {
-        const chunk = this.layerChunks[layerIndex];
+      for (let objectIndex = 0; objectIndex < this.objectChunks.length; objectIndex++) {
+        const chunk = this.objectChunks[objectIndex];
         
-        if (!this.getLayerVisible(layerIndex)) continue;
+        if (!this.getObjectVisible(objectIndex)) continue;
 
         if (chunk) {
-          this.addLayerChunkToBlocks(chunk, this.blocksToRender);
+          this.addObjectChunkToBlocks(chunk, this.blocksToRender);
         }
         
-        this.applySelectionForLayer(layerIndex, this.blocksToRender);
+        this.applySelectionForObject(objectIndex, this.blocksToRender);
       }
 
       this.mergePreviewIntoVoxelData(this.blocksToRender);

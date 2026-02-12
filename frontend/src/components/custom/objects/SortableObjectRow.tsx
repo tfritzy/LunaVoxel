@@ -1,25 +1,25 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { LayerRow } from "./LayerRow";
-import type { Layer } from "@/state/types";
+import { ObjectRow } from "./ObjectRow";
+import type { VoxelObject } from "@/state/types";
 
-interface SortableLayerRowProps {
-  layer: Layer;
+interface SortableObjectRowProps {
+  object: VoxelObject;
   isSelected: boolean;
   onSelect: () => void;
-  onDelete: (layer: Layer) => void;
-  onToggleVisibility: (layer: Layer) => void;
-  onToggleLocked: (layer: Layer) => void;
+  onDelete: (object: VoxelObject) => void;
+  onToggleVisibility: (object: VoxelObject) => void;
+  onToggleLocked: (object: VoxelObject) => void;
 }
 
-export const SortableLayerRow = ({
-  layer,
+export const SortableObjectRow = ({
+  object,
   isSelected,
   onSelect,
   onDelete,
   onToggleVisibility,
   onToggleLocked,
-}: SortableLayerRowProps) => {
+}: SortableObjectRowProps) => {
   const {
     attributes,
     listeners,
@@ -27,7 +27,7 @@ export const SortableLayerRow = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: layer.id });
+  } = useSortable({ id: object.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -37,8 +37,8 @@ export const SortableLayerRow = ({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LayerRow
-        layer={layer}
+      <ObjectRow
+        object={object}
         isSelected={isSelected}
         onSelect={onSelect}
         onDelete={onDelete}

@@ -22,7 +22,7 @@ interface ProjectLayoutProps {
   onToolChange: (tool: ToolType) => void;
   onModeChange: (mode: BlockModificationMode) => void;
   onExport: (format: ExportType) => void;
-  onSelectLayer?: (layerIndex: number) => void;
+  onSelectObject?: (objectIndex: number) => void;
   onUndo: () => void;
   onRedo: () => void;
   children: React.ReactNode;
@@ -38,7 +38,7 @@ export const ProjectLayout = ({
   onToolChange,
   onModeChange,
   onExport,
-  onSelectLayer,
+  onSelectObject,
   onUndo,
   onRedo,
   children,
@@ -70,7 +70,7 @@ export const ProjectLayout = ({
           />
         </div>
 
-        <RightSideDrawer onSelectLayer={onSelectLayer} projectId={projectId} />
+        <RightSideDrawer onSelectObject={onSelectObject} projectId={projectId} />
       </div>
     </div>
   );

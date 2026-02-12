@@ -3,7 +3,7 @@ import type { StateStore } from "@/state/store";
 type HistoryEntry = {
   beforeDiff: Uint8Array;
   afterDiff: Uint8Array;
-  layer: number;
+  object: number;
   isUndone: boolean;
 };
 
@@ -18,7 +18,7 @@ export class EditHistory {
     this.stateStore = stateStore;
   }
 
-  addEntry(previous: Uint8Array, updated: Uint8Array, layer: number) {
+  addEntry(previous: Uint8Array, updated: Uint8Array, object: number) {
     const headIndex = this.entries.findLastIndex((e) => !e.isUndone);
     this.entries.length = headIndex + 1;
 
@@ -32,7 +32,7 @@ export class EditHistory {
     this.entries.push({
       beforeDiff: previous,
       afterDiff: updated,
-      layer: layer,
+      object: object,
       isUndone: false,
     });
   }
@@ -48,7 +48,7 @@ export class EditHistory {
       this.projectId,
       head.beforeDiff,
       head.afterDiff,
-      head.layer
+      head.object
     );
   }
 
@@ -63,7 +63,7 @@ export class EditHistory {
       this.projectId,
       firstUndone.afterDiff,
       firstUndone.beforeDiff,
-      firstUndone.layer
+      firstUndone.object
     );
   }
 }
