@@ -1,22 +1,51 @@
 import LZ4 from "lz4js";
+import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "./voxel-constants";
 
 /**
- * In the new format, voxels are simply block indices where 0 means empty.
- * No more bit packing for preview, selection, rotation, or version.
+ * Voxel format (8 bits):
+ * - Bits 0-6: Block type (0-127, where 0 = empty)
+ * - Bit 7: Raycastable flag (1 = raycastable, 0 = not raycastable)
+ * 
+ * This means:
+ * - 0x00 (0): Empty, not raycastable (default)
+ * - 0x81 (129): Block type 1, raycastable (normal solid block)
+ * - 0x01 (1): Block type 1, not raycastable (preview attach block)
+ * - 0x80 (128): Block type 0, raycastable (erase preview - invisible but raycastable)
  */
 
 /**
- * Get the block type (which is now just the voxel value itself)
+ * Get the block type (bits 0-6)
  */
 export const getBlockType = (blockValue: number): number => {
-  return blockValue;
+  return blockValue & BLOCK_TYPE_MASK;
 };
 
 /**
- * Check if a block is present (non-zero)
+ * Check if a block is visible (has a non-zero block type, not just raycastable flag)
  */
-export const isBlockPresent = (blockValue: number): boolean => {
-  return blockValue !== 0;
+export const isBlockVisible = (blockValue: number): boolean => {
+  return blockValue !== 0 && blockValue !== RAYCASTABLE_BIT;
+};
+
+/**
+ * Check if a block is raycastable (value > 127, meaning bit 7 is set)
+ */
+export const isBlockRaycastable = (blockValue: number): boolean => {
+  return blockValue > 127;
+};
+
+/**
+ * Set the raycastable flag on a voxel value
+ */
+export const setRaycastable = (blockValue: number): number => {
+  return blockValue | RAYCASTABLE_BIT;
+};
+
+/**
+ * Clear the raycastable flag
+ */
+export const clearRaycastable = (blockValue: number): number => {
+  return blockValue & BLOCK_TYPE_MASK;
 };
 
 const countRuns = (data: number[]): number => {
