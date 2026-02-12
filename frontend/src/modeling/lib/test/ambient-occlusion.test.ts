@@ -16,6 +16,19 @@ function unpackOcclusionMask(mask: number): number[] {
   ];
 }
 
+function calcAO(
+  nx: number, ny: number, nz: number,
+  faceDir: number,
+  voxelData: Uint8Array,
+  dimensions: Vector3
+): number {
+  const dimX = dimensions.x;
+  const dimY = dimensions.y;
+  const dimZ = dimensions.z;
+  const strideX = dimY * dimZ;
+  return calculateAmbientOcclusion(nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX);
+}
+
 describe("calculateAmbientOcclusion", () => {
   describe("No occlusion cases", () => {
     it("should return zero occlusion for isolated block", () => {
@@ -23,7 +36,7 @@ describe("calculateAmbientOcclusion", () => {
       const voxelData = createVoxelData(dimensions);
 
       // Single block in center with no neighbors
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1, // center position
         0, // +X face
         voxelData,
@@ -40,7 +53,7 @@ describe("calculateAmbientOcclusion", () => {
       const voxelData = createVoxelData(dimensions);
 
       // Block at corner with no neighbors
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         0, 0, 0, // corner position
         0, // +X face
         voxelData,
@@ -60,7 +73,7 @@ describe("calculateAmbientOcclusion", () => {
       // Place a block next to the center block in Y direction
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y neighbor
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1, // center position
         0, // +X face (checks Y and Z tangents)
         voxelData,
@@ -82,7 +95,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y neighbor
       setVoxel(voxelData, 1, 1, 2, 1, dimensions); // +Z neighbor
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1, // center position
         0, // +X face (tangents are Y and Z)
         voxelData,
@@ -103,7 +116,7 @@ describe("calculateAmbientOcclusion", () => {
       // Place a block at diagonal corner
       setVoxel(voxelData, 1, 2, 2, 1, dimensions); // +Y, +Z corner
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1, // center position
         0, // +X face
         voxelData,
@@ -126,7 +139,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
       setVoxel(voxelData, 1, 1, 2, 1, dimensions); // +Z side
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1, // center position
         0, // +X face
         voxelData,
@@ -148,7 +161,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 1, 1, 2, 1, dimensions); // +Z side
       // No corner block at (1, 2, 2)
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1, // center position
         0, // +X face
         voxelData,
@@ -167,7 +180,7 @@ describe("calculateAmbientOcclusion", () => {
       const voxelData = createVoxelData(dimensions);
       // No blocks set - all zeros
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1,
         0, // +X face
         voxelData,
@@ -187,7 +200,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 1, 2, 1, 1, dimensions);
       setVoxel(voxelData, 1, 1, 2, 1, dimensions);
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1,
         0, // +X face
         voxelData,
@@ -207,7 +220,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 1, 2, 1, 1, dimensions); // +Y side
       setVoxel(voxelData, 1, 1, 2, 2, dimensions); // +Z side (different block type)
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         1, 1, 1,
         0, // +X face
         voxelData,
@@ -226,7 +239,7 @@ describe("calculateAmbientOcclusion", () => {
       const voxelData = createVoxelData(dimensions);
 
       // Block at edge looking outward - out of bounds should not occlude
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         0, 0, 0,
         1, // -X face (looking outside the world)
         voxelData,
@@ -251,7 +264,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 2, 3, 2, 1, dimensions); // +Y side
       setVoxel(voxelData, 2, 2, 3, 1, dimensions); // +Z side
 
-      const mask = calculateAmbientOcclusion(
+      const mask = calcAO(
         2, 2, 2,
         0, // +X face
         voxelData,
@@ -278,7 +291,7 @@ describe("calculateAmbientOcclusion", () => {
       setVoxel(voxelData, 2, 3, 2, 1, dimensions); // +Y
       setVoxel(voxelData, 2, 1, 2, 1, dimensions); // -Y
 
-      const mask1 = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions);
+      const mask1 = calcAO(2, 2, 2, 0, voxelData, dimensions);
       const corners1 = unpackOcclusionMask(mask1);
 
       // For face 0 (+X), with symmetric blocks at ±Y:
@@ -307,7 +320,7 @@ describe("calculateAmbientOcclusion", () => {
         }
       }
 
-      const mask = calculateAmbientOcclusion(1, 1, 1, 0, voxelData, dimensions);
+      const mask = calcAO(1, 1, 1, 0, voxelData, dimensions);
       const corners = unpackOcclusionMask(mask);
 
       // All corners should have maximum occlusion
@@ -330,7 +343,7 @@ describe("calculateAmbientOcclusion", () => {
       }
 
       // Test center block which has alternating neighbors
-      const mask = calculateAmbientOcclusion(2, 2, 2, 0, voxelData, dimensions);
+      const mask = calcAO(2, 2, 2, 0, voxelData, dimensions);
       
       expect(mask).toBeDefined();
       const corners = unpackOcclusionMask(mask);

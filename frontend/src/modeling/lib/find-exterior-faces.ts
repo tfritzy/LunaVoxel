@@ -10,14 +10,7 @@ import { FlatVoxelFrame } from "./flat-voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
-function isNeighborInBounds(
-  axis: number,
-  dir: number,
-  neighborCoord: number,
-  maxCoord: number
-): boolean {
-  return dir > 0 ? neighborCoord < maxCoord : neighborCoord >= 0;
-}
+
 
 export class ExteriorFacesFinder {
   private mask: Int16Array;
@@ -63,6 +56,7 @@ export class ExteriorFacesFinder {
     const dimZ = dimensions.z;
     const strideX = dimY * dimZ;
     const maxDim = this.maxDim;
+    const selectionEmpty = selectionFrame.isEmpty();
 
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3;
@@ -74,6 +68,17 @@ export class ExteriorFacesFinder {
 
       for (let dir = -1; dir <= 1; dir += 2) {
         const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
+        const dx = axis === 0 ? dir : 0;
+        const dy = axis === 1 ? dir : 0;
+        const dz = axis === 2 ? dir : 0;
+        const neighborMax = axis === 0 ? dimX : axis === 1 ? dimY : dimZ;
+        
+        const xIsDepth = axis === 0;
+        const yIsDepth = axis === 1;
+        const zIsDepth = axis === 2;
+        const xIsUAxis = !xIsDepth && u === 0;
+        const yIsUAxis = !yIsDepth && u === 1;
+        const zIsUAxis = !zIsDepth && u === 2;
 
         for (let d = 0; d < axisSize; d++) {
           for (let iv = 0; iv < vSize; iv++) {
@@ -87,32 +92,28 @@ export class ExteriorFacesFinder {
 
           for (let iu = 0; iu < uSize; iu++) {
             for (let iv = 0; iv < vSize; iv++) {
-              const x = axis === 0 ? d : u === 0 ? iu : iv;
-              const y = axis === 1 ? d : u === 1 ? iu : iv;
-              const z = axis === 2 ? d : u === 2 ? iu : iv;
+              const x = xIsDepth ? d : xIsUAxis ? iu : iv;
+              const y = yIsDepth ? d : yIsUAxis ? iu : iv;
+              const z = zIsDepth ? d : zIsUAxis ? iu : iv;
 
               const blockValue = voxelData[x * strideX + y * dimZ + z];
               const blockType = blockValue & 0x7F;
               const blockVisible = blockType !== 0;
-              const blockIsSelected = selectionFrame.isSet(x, y, z);
+              const blockIsSelected = !selectionEmpty && selectionFrame.isSet(x, y, z);
 
               if (!blockVisible && !blockIsSelected) {
                 continue;
               }
 
-              const nx = x + (axis === 0 ? dir : 0);
-              const ny = y + (axis === 1 ? dir : 0);
-              const nz = z + (axis === 2 ? dir : 0);
+              const nx = x + dx;
+              const ny = y + dy;
+              const nz = z + dz;
 
               const maskIdx = iv * maxDim + iu;
 
               if (blockIsSelected && !blockVisible) {
-                const neighborInBounds =
-                  axis === 0
-                    ? isNeighborInBounds(axis, dir, nx, dimX)
-                    : axis === 1
-                      ? isNeighborInBounds(axis, dir, ny, dimY)
-                      : isNeighborInBounds(axis, dir, nz, dimZ);
+                const neighborCoord = xIsDepth ? nx : yIsDepth ? ny : nz;
+                const neighborInBounds = dir > 0 ? neighborCoord < neighborMax : neighborCoord >= 0;
                 const neighborIsSelected = neighborInBounds && selectionFrame.isSet(nx, ny, nz);
 
                 if (!neighborIsSelected) {
@@ -121,7 +122,7 @@ export class ExteriorFacesFinder {
                     blockAtlasMappings[Math.max(selectionBlockType, 1) - 1][faceDir];
                   
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
-                    nx, ny, nz, faceDir, voxelData, dimensions
+                    nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX
                   );
                   
                   this.mask[maskIdx] = textureIndex;
@@ -129,19 +130,15 @@ export class ExteriorFacesFinder {
                   hasFaces = true;
                 }
               } else if (blockVisible) {
-                const neighborInBounds =
-                  axis === 0
-                    ? isNeighborInBounds(axis, dir, nx, dimX)
-                    : axis === 1
-                      ? isNeighborInBounds(axis, dir, ny, dimY)
-                      : isNeighborInBounds(axis, dir, nz, dimZ);
+                const neighborCoord = xIsDepth ? nx : yIsDepth ? ny : nz;
+                const neighborInBounds = dir > 0 ? neighborCoord < neighborMax : neighborCoord >= 0;
                 const neighborVisible = neighborInBounds && (voxelData[nx * strideX + ny * dimZ + nz] & 0x7F) !== 0;
 
                 if (!neighborVisible) {
                   const textureIndex = blockAtlasMappings[blockType - 1][faceDir];
 
                   this.aoMask[maskIdx] = calculateAmbientOcclusion(
-                    nx, ny, nz, faceDir, voxelData, dimensions
+                    nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX
                   );
 
                   this.mask[maskIdx] = textureIndex;
@@ -194,6 +191,10 @@ export class ExteriorFacesFinder {
     meshArrays: MeshArrays
   ): void {
     const stride = this.maxDim;
+    const faceData = faces[faceDir];
+    const normal = faceData.normal;
+    const faceOffset = dir > 0 ? 1 : 0;
+    
     for (let iv = 0; iv < height; iv++) {
       const rowOffset = iv * stride;
       processed.fill(0, rowOffset, rowOffset + width);
@@ -257,12 +258,7 @@ export class ExteriorFacesFinder {
         const y = axis === 1 ? depth : u === 1 ? i : v === 1 ? j : 0;
         const z = axis === 2 ? depth : u === 2 ? i : v === 2 ? j : 0;
 
-        const faceOffset = dir > 0 ? 1 : 0;
-
         const textureCoords = getTextureCoordinates(textureIndex, textureWidth);
-
-        const faceData = faces[faceDir];
-        const normal = faceData.normal;
 
         const startVertexIndex = meshArrays.vertexCount;
 
