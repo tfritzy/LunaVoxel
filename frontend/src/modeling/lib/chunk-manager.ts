@@ -5,6 +5,7 @@ import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
 import { Chunk } from "./chunk";
+import { isBlockVisible } from "./voxel-data-utils";
 
 export class ChunkManager {
   private scene: THREE.Scene;
@@ -17,6 +18,7 @@ export class ChunkManager {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
+  private currentPreviewFrame: VoxelFrame | null = null;
   private unsubscribe?: () => void;
   private readonly maxLayers = 10;
 
@@ -144,6 +146,8 @@ export class ChunkManager {
   };
 
   setPreview = (previewFrame: VoxelFrame) => {
+    this.currentPreviewFrame = previewFrame.isEmpty() ? null : previewFrame;
+    
     const frameMinPos = previewFrame.getMinPos();
     const frameMaxPos = previewFrame.getMaxPos();
     
@@ -216,27 +220,51 @@ export class ChunkManager {
     const key = this.getChunkKey(chunkMinPos);
     const chunk = this.chunks.get(key);
     
-    if (!chunk) return 0;
+    let baseBlockValue = 0;
     
-    const localX = x - chunkMinPos.x;
-    const localY = y - chunkMinPos.y;
-    const localZ = z - chunkMinPos.z;
-    
-    for (const layer of this.layers) {
-      if (!this.layerVisibilityMap.get(layer.index)) continue;
+    if (chunk) {
+      const localX = x - chunkMinPos.x;
+      const localY = y - chunkMinPos.y;
+      const localZ = z - chunkMinPos.z;
       
-      const layerChunk = chunk.getLayerChunk(layer.index);
-      if (!layerChunk) continue;
-      
-      const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
-      const blockValue = layerChunk.voxels[index];
-      
-      if (blockValue > 0) {
-        return blockValue;
+      for (const layer of this.layers) {
+        if (!this.layerVisibilityMap.get(layer.index)) continue;
+        
+        const layerChunk = chunk.getLayerChunk(layer.index);
+        if (!layerChunk) continue;
+        
+        const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
+        const blockValue = layerChunk.voxels[index];
+        
+        if (blockValue > 0) {
+          baseBlockValue = blockValue;
+          break;
+        }
       }
     }
     
-    return 0;
+    if (this.currentPreviewFrame) {
+      const previewBlockValue = this.currentPreviewFrame.get(x, y, z);
+      if (previewBlockValue !== 0) {
+        const buildMode = this.getMode();
+        
+        if (buildMode.tag === "Attach") {
+          if (!isBlockVisible(baseBlockValue)) {
+            return previewBlockValue;
+          }
+        } else if (buildMode.tag === "Erase") {
+          if (isBlockVisible(baseBlockValue)) {
+            return previewBlockValue;
+          }
+        } else if (buildMode.tag === "Paint") {
+          if (isBlockVisible(baseBlockValue)) {
+            return previewBlockValue;
+          }
+        }
+      }
+    }
+    
+    return baseBlockValue;
   }
 
   public applyOptimisticRect(
