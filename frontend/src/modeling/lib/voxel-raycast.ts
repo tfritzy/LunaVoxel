@@ -58,19 +58,22 @@ export function performRaycast(
 
   let lastStepAxis = -1;
 
+  const isInsideBounds = (px: number, py: number, pz: number): boolean => {
+    return px >= 0 && px < dimensions.x &&
+           py >= 0 && py < dimensions.y &&
+           pz >= 0 && pz < dimensions.z;
+  };
+
+  let wasInsideBounds = isInsideBounds(x, y, z);
+
   const maxIterations = Math.ceil(maxDistance) * 3 + dimensions.x + dimensions.y + dimensions.z;
   for (let i = 0; i < maxIterations; i++) {
     const minT = Math.min(tMaxX, tMaxY, tMaxZ);
     if (minT > maxDistance) break;
 
-    if (
-      x >= 0 &&
-      x < dimensions.x &&
-      y >= 0 &&
-      y < dimensions.y &&
-      z >= 0 &&
-      z < dimensions.z
-    ) {
+    const currentlyInsideBounds = isInsideBounds(x, y, z);
+
+    if (currentlyInsideBounds) {
       const blockValue = getVoxel(x, y, z);
       if (isBlockRaycastable(blockValue)) {
         const normal = new THREE.Vector3(0, 0, 0);
@@ -99,7 +102,24 @@ export function performRaycast(
           blockValue,
         };
       }
+    } else if (wasInsideBounds && !currentlyInsideBounds) {
+      const normal = new THREE.Vector3(0, 0, 0);
+      if (lastStepAxis === 0) normal.x = -stepX;
+      else if (lastStepAxis === 1) normal.y = -stepY;
+      else if (lastStepAxis === 2) normal.z = -stepZ;
+
+      const boundaryX = x < 0 ? 0 : (x >= dimensions.x ? dimensions.x - 1 : x);
+      const boundaryY = y < 0 ? 0 : (y >= dimensions.y ? dimensions.y - 1 : y);
+      const boundaryZ = z < 0 ? 0 : (z >= dimensions.z ? dimensions.z - 1 : z);
+
+      return {
+        gridPosition: new THREE.Vector3(boundaryX, boundaryY, boundaryZ),
+        normal,
+        blockValue: 0x80,
+      };
     }
+
+    wasInsideBounds = currentlyInsideBounds;
 
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {

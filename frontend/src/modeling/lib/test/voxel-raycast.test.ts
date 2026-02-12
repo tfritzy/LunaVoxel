@@ -145,7 +145,7 @@ describe("voxel-raycast", () => {
       expect(result!.normal.z).toBe(-1);
     });
 
-    it("should NOT hit a voxel without raycastable bit set", () => {
+    it("should NOT hit a voxel without raycastable bit set, but should hit boundary", () => {
       const grid = createVoxelGrid();
       grid[5][8][8] = 1;
 
@@ -159,7 +159,12 @@ describe("voxel-raycast", () => {
         getVoxel(grid)
       );
 
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      expect(result!.gridPosition.x).toBe(15);
+      expect(result!.gridPosition.y).toBe(8);
+      expect(result!.gridPosition.z).toBe(8);
+      expect(result!.normal.x).toBe(-1);
+      expect(result!.blockValue).toBe(0x80);
     });
 
     it("should hit the first raycastable voxel when multiple are in path", () => {
