@@ -115,7 +115,7 @@ export class Chunk {
       return 0;
     }
     const index = localX * this.size.y * this.size.z + localY * this.size.z + localZ;
-    return this.renderedBlocks[index];
+    return this.blocksToRender[index];
   }
 
   public isEmpty(): boolean {
