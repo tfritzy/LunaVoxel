@@ -9,10 +9,10 @@ export class MagicSelectTool implements Tool {
   }
 
   calculateGridPosition(
-    intersectionPoint: THREE.Vector3,
+    gridPosition: THREE.Vector3,
     normal: THREE.Vector3
   ): THREE.Vector3 {
-    return calculateGridPositionWithMode(intersectionPoint, normal, "under");
+    return calculateGridPositionWithMode(gridPosition, normal, "under");
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {

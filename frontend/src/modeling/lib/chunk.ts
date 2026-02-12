@@ -107,6 +107,16 @@ export class Chunk {
     return this.layerChunks[layerIndex] || null;
   }
 
+  public getVoxelAt(localX: number, localY: number, localZ: number): number {
+    if (localX < 0 || localX >= this.size.x ||
+        localY < 0 || localY >= this.size.y ||
+        localZ < 0 || localZ >= this.size.z) {
+      return 0;
+    }
+    const index = localX * this.size.y * this.size.z + localY * this.size.z + localZ;
+    return this.blocksToRender[index];
+  }
+
   public isEmpty(): boolean {
     return this.layerChunks.every((chunk) => chunk === null);
   }

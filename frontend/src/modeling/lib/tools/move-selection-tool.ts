@@ -13,12 +13,12 @@ export class MoveSelectionTool implements Tool {
   }
 
   calculateGridPosition(
-    intersectionPoint: THREE.Vector3,
+    gridPosition: THREE.Vector3,
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
     void mode;
-    return calculateGridPositionWithMode(intersectionPoint, normal, "under");
+    return calculateGridPositionWithMode(gridPosition, normal, "under");
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {

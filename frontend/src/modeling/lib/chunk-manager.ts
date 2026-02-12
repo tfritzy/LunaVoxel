@@ -211,6 +211,20 @@ export class ChunkManager {
     return Array.from(this.chunks.values());
   }
 
+  public getVoxelAtWorldPos(x: number, y: number, z: number): number {
+    const chunkMinPos = this.getChunkMinPos({ x, y, z });
+    const key = this.getChunkKey(chunkMinPos);
+    const chunk = this.chunks.get(key);
+    
+    if (!chunk) return 0;
+    
+    const localX = x - chunkMinPos.x;
+    const localY = y - chunkMinPos.y;
+    const localZ = z - chunkMinPos.z;
+    
+    return chunk.getVoxelAt(localX, localY, localZ);
+  }
+
   public applyOptimisticRect(
     layer: Layer,
     mode: BlockModificationMode,

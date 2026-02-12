@@ -12,12 +12,12 @@ export class RectTool implements Tool {
   }
 
   calculateGridPosition(
-    intersectionPoint: THREE.Vector3,
+    gridPosition: THREE.Vector3,
     normal: THREE.Vector3,
     mode: BlockModificationMode
   ): THREE.Vector3 {
     const direction = mode.tag === "Attach" ? "above" : "under";
-    return calculateGridPositionWithMode(intersectionPoint, normal, direction);
+    return calculateGridPositionWithMode(gridPosition, normal, direction);
   }
 
   private getPreviewBlockValue(mode: BlockModificationMode, selectedBlock: number): number {
