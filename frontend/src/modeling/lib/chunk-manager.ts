@@ -211,6 +211,34 @@ export class ChunkManager {
     return Array.from(this.chunks.values());
   }
 
+  public getVoxelAtWorldPos(x: number, y: number, z: number): number {
+    const chunkMinPos = this.getChunkMinPos({ x, y, z });
+    const key = this.getChunkKey(chunkMinPos);
+    const chunk = this.chunks.get(key);
+    
+    if (!chunk) return 0;
+    
+    const localX = x - chunkMinPos.x;
+    const localY = y - chunkMinPos.y;
+    const localZ = z - chunkMinPos.z;
+    
+    for (const layer of this.layers) {
+      if (!this.layerVisibilityMap.get(layer.index)) continue;
+      
+      const layerChunk = chunk.getLayerChunk(layer.index);
+      if (!layerChunk) continue;
+      
+      const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
+      const blockValue = layerChunk.voxels[index];
+      
+      if (blockValue > 0) {
+        return blockValue;
+      }
+    }
+    
+    return 0;
+  }
+
   public applyOptimisticRect(
     layer: Layer,
     mode: BlockModificationMode,
