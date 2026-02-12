@@ -147,7 +147,6 @@ export class ChunkManager {
 
   setPreview = (previewFrame: VoxelFrame) => {
     this.currentPreviewFrame = previewFrame.isEmpty() ? null : previewFrame;
-    
     const frameMinPos = previewFrame.getMinPos();
     const frameMaxPos = previewFrame.getMaxPos();
     
@@ -252,11 +251,7 @@ export class ChunkManager {
           if (!isBlockVisible(baseBlockValue)) {
             return previewBlockValue;
           }
-        } else if (buildMode.tag === "Erase") {
-          if (isBlockVisible(baseBlockValue)) {
-            return previewBlockValue;
-          }
-        } else if (buildMode.tag === "Paint") {
+        } else if (buildMode.tag === "Erase" || buildMode.tag === "Paint") {
           if (isBlockVisible(baseBlockValue)) {
             return previewBlockValue;
           }
