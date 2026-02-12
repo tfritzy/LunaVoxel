@@ -109,7 +109,7 @@ const createInitialState = (): GlobalState => {
 
   const blocks: ProjectBlocks = {
     projectId,
-    faceColors: [
+    blockColors: [
       0xff6b6b,
       0xffd166,
       0x4dabf7,
@@ -216,25 +216,25 @@ const reducers: Reducers = {
   addBlock: (_projectId, color) => {
     void _projectId;
     updateState((current) => {
-      current.blocks.faceColors.push(color);
+      current.blocks.blockColors.push(color);
     });
   },
   updateBlock: (_projectId, index, color) => {
     void _projectId;
     updateState((current) => {
-      if (index < 0 || index >= current.blocks.faceColors.length) return;
-      current.blocks.faceColors[index] = color;
+      if (index < 0 || index >= current.blocks.blockColors.length) return;
+      current.blocks.blockColors[index] = color;
     });
   },
   deleteBlock: (_projectId, blockIndex, replacementBlockType) => {
     void _projectId;
     updateState((current) => {
       const zeroBasedIndex = blockIndex - 1;
-      if (zeroBasedIndex < 0 || zeroBasedIndex >= current.blocks.faceColors.length) {
+      if (zeroBasedIndex < 0 || zeroBasedIndex >= current.blocks.blockColors.length) {
         return;
       }
 
-      current.blocks.faceColors.splice(zeroBasedIndex, 1);
+      current.blocks.blockColors.splice(zeroBasedIndex, 1);
 
       for (const chunk of current.chunks.values()) {
         for (let i = 0; i < chunk.voxels.length; i++) {

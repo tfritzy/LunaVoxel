@@ -20,7 +20,7 @@ export const useAtlas = (): AtlasData => {
       textureRef.current = null;
     }
 
-    if (!blocks.faceColors.length) {
+    if (!blocks.blockColors.length) {
       return { blockAtlasMappings: [], colors: [], texture: null };
     }
 
@@ -28,8 +28,8 @@ export const useAtlas = (): AtlasData => {
     const colorMap = new Map<number, number>();
     const blockAtlasMappings: number[] = [];
 
-    for (let i = 0; i < blocks.faceColors.length; i++) {
-      const color = blocks.faceColors[i];
+    for (let i = 0; i < blocks.blockColors.length; i++) {
+      const color = blocks.blockColors[i];
       if (!colorMap.has(color)) {
         colorMap.set(color, colors.length);
         colors.push(color);
