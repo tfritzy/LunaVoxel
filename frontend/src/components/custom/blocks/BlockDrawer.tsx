@@ -6,6 +6,7 @@ import { DeleteBlockModal } from "./DeleteBlockModal";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
 import { ColorPicker } from "@/components/custom/ColorPicker";
+import { normalizeHex } from "@/lib/color-utils";
 import { stateStore } from "@/state/store";
 
 const BLOCK_WIDTH = "3em";
@@ -14,22 +15,6 @@ const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
 const DEFAULT_DISPLAY_COLOR = "#ffffff";
-
-const normalizeHex = (value: string): string | null => {
-  const trimmed = value.trim().toLowerCase();
-  const match = trimmed.match(/^#?([a-f0-9]{3}|[a-f0-9]{6})$/);
-  if (!match) return null;
-
-  let hex = match[1];
-  if (hex.length === 3) {
-    hex = hex
-      .split("")
-      .map((char) => char + char)
-      .join("");
-  }
-
-  return `#${hex}`;
-};
 
 const HexagonGrid = memo(
   ({
@@ -180,7 +165,7 @@ export const BlockDrawer = ({
     typeof atlasData.colors[blockAtlasIndex] === "number"
       ? `#${atlasData.colors[blockAtlasIndex].toString(16).padStart(6, "0")}`
       : DEFAULT_DISPLAY_COLOR;
-  const hasSelectedBlock = blockAtlasIndex !== null;
+  const hasSelectedBlock = typeof blockAtlasIndex === "number";
 
   const handleColorChange = useCallback(
     (color: string) => {

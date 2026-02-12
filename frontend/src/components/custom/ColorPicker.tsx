@@ -1,5 +1,6 @@
 import { HexColorPicker } from "react-colorful";
 import { useEffect, useState } from "react";
+import { normalizeHex } from "@/lib/color-utils";
 import "@/components/custom/color-picker.css";
 
 const getTextColor = (hexColor: string): string => {
@@ -12,7 +13,7 @@ const getTextColor = (hexColor: string): string => {
 };
 
 const isValidHex = (hex: string): boolean => {
-  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex);
+  return normalizeHex(hex) !== null;
 };
 
 export const ColorPicker = ({
@@ -24,7 +25,7 @@ export const ColorPicker = ({
   color: string;
   onChange: (color: string) => void;
   className?: string;
-  pickerHeight?: number | string;
+  pickerHeight?: number;
 }) => {
   const [inputValue, setInputValue] = useState(color);
 
@@ -65,11 +66,13 @@ export const ColorPicker = ({
       ? undefined
       : {
           width: "100%",
-          height: typeof pickerHeight === "number" ? `${pickerHeight}px` : pickerHeight,
+          height: `${pickerHeight}px`,
         };
 
+  const containerClassName = className ? `relative ${className}` : "relative";
+
   return (
-    <div className={className ? `relative ${className}` : "relative"}>
+    <div className={containerClassName}>
       <HexColorPicker
         color={color}
         onChange={handleColorChange}
