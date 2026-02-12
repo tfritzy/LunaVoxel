@@ -287,65 +287,25 @@ export const Builder = class {
     );
 
     if (voxelResult) {
-      const faceCenter = voxelResult.position.clone();
-
-      if (Math.abs(voxelResult.normal.x) < 0.1) {
-        faceCenter.x = Math.floor(faceCenter.x) + 0.5;
+      const faceCenter = voxelResult.gridPosition.clone().addScalar(0.5);
+      
+      if (voxelResult.normal.x !== 0) {
+        faceCenter.x = voxelResult.gridPosition.x + (voxelResult.normal.x > 0 ? 1 : 0);
       }
-      if (Math.abs(voxelResult.normal.y) < 0.1) {
-        faceCenter.y = Math.floor(faceCenter.y) + 0.5;
+      if (voxelResult.normal.y !== 0) {
+        faceCenter.y = voxelResult.gridPosition.y + (voxelResult.normal.y > 0 ? 1 : 0);
       }
-      if (Math.abs(voxelResult.normal.z) < 0.1) {
-        faceCenter.z = Math.floor(faceCenter.z) + 0.5;
+      if (voxelResult.normal.z !== 0) {
+        faceCenter.z = voxelResult.gridPosition.z + (voxelResult.normal.z > 0 ? 1 : 0);
       }
 
       this.throttledUpdateCursorPos(faceCenter, voxelResult.normal);
 
       return this.currentTool.calculateGridPosition(
-        voxelResult.position.clone(),
+        voxelResult.gridPosition.clone(),
         voxelResult.normal.clone(),
         this.currentMode
       );
-    }
-
-    const intersects = this.raycaster.intersectObjects(
-      this.scene.children,
-      true
-    );
-
-    for (const intersection of intersects) {
-      if (intersection.object.userData.isBoundaryPlane) {
-        const intersectionPoint = intersection.point;
-        const face = intersection.face;
-
-        if (face) {
-          const worldNormal = face.normal.clone();
-          worldNormal.transformDirection(intersection.object.matrixWorld);
-          worldNormal.normalize();
-          
-          const faceCenter = intersectionPoint.clone();
-
-          if (Math.abs(worldNormal.x) < 0.1) {
-            faceCenter.x = Math.floor(faceCenter.x) + 0.5;
-          }
-
-          if (Math.abs(worldNormal.y) < 0.1) {
-            faceCenter.y = Math.floor(faceCenter.y) + 0.5;
-          }
-
-          if (Math.abs(worldNormal.z) < 0.1) {
-            faceCenter.z = Math.floor(faceCenter.z) + 0.5;
-          }
-
-          this.throttledUpdateCursorPos(faceCenter, worldNormal);
-
-          return this.currentTool.calculateGridPosition(
-            intersectionPoint.clone(),
-            face.normal.clone(),
-            this.currentMode
-          );
-        }
-      }
     }
 
     return null;

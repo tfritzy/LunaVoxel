@@ -34,7 +34,7 @@ export interface Tool {
   getType(): ToolType;
 
   calculateGridPosition(
-    intersectionPoint: THREE.Vector3,
+    gridPosition: THREE.Vector3,
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3;

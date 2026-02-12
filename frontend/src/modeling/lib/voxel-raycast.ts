@@ -3,9 +3,8 @@ import type { Vector3 } from "@/state/types";
 import { isBlockRaycastable } from "./voxel-data-utils";
 
 export interface VoxelRaycastResult {
-  position: THREE.Vector3;
-  normal: THREE.Vector3;
   gridPosition: THREE.Vector3;
+  normal: THREE.Vector3;
   blockValue: number;
 }
 
@@ -94,19 +93,9 @@ export function performRaycast(
           else normal.z = -stepZ;
         }
 
-        const position = computeEntryPoint(
-          origin,
-          dir,
-          x,
-          y,
-          z,
-          normal
-        );
-
         return {
-          position,
-          normal,
           gridPosition: new THREE.Vector3(x, y, z),
+          normal,
           blockValue,
         };
       }
@@ -148,38 +137,4 @@ export function performRaycast(
   }
 
   return null;
-}
-
-function computeEntryPoint(
-  origin: THREE.Vector3,
-  dir: THREE.Vector3,
-  voxelX: number,
-  voxelY: number,
-  voxelZ: number,
-  normal: THREE.Vector3
-): THREE.Vector3 {
-  let t = 0;
-
-  if (normal.x !== 0) {
-    const planeX = normal.x < 0 ? voxelX : voxelX + 1;
-    if (dir.x !== 0) {
-      t = (planeX - origin.x) / dir.x;
-    }
-  } else if (normal.y !== 0) {
-    const planeY = normal.y < 0 ? voxelY : voxelY + 1;
-    if (dir.y !== 0) {
-      t = (planeY - origin.y) / dir.y;
-    }
-  } else if (normal.z !== 0) {
-    const planeZ = normal.z < 0 ? voxelZ : voxelZ + 1;
-    if (dir.z !== 0) {
-      t = (planeZ - origin.z) / dir.z;
-    }
-  }
-
-  return new THREE.Vector3(
-    origin.x + dir.x * t,
-    origin.y + dir.y * t,
-    origin.z + dir.z * t
-  );
 }

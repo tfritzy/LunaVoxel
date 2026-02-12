@@ -203,7 +203,7 @@ describe("voxel-raycast", () => {
       expect(result!.gridPosition.z).toBe(8);
     });
 
-    it("should return correct intersection position on voxel face", () => {
+    it("should return correct grid position and normal for voxel face", () => {
       const grid = createVoxelGrid();
       grid[5][8][8] = setRaycastable(1);
 
@@ -218,9 +218,12 @@ describe("voxel-raycast", () => {
       );
 
       expect(result).not.toBeNull();
-      expect(result!.position.x).toBeCloseTo(5, 5);
-      expect(result!.position.y).toBeCloseTo(8.5, 5);
-      expect(result!.position.z).toBeCloseTo(8.5, 5);
+      expect(result!.gridPosition.x).toBe(5);
+      expect(result!.gridPosition.y).toBe(8);
+      expect(result!.gridPosition.z).toBe(8);
+      expect(result!.normal.x).toBe(-1);
+      expect(result!.normal.y).toBe(0);
+      expect(result!.normal.z).toBe(0);
     });
 
     it("should handle ray starting inside bounds", () => {
