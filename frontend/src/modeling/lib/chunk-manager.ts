@@ -4,7 +4,7 @@ import type { StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
-import { Chunk } from "./chunk";
+import { Chunk, NeighborData } from "./chunk";
 
 export class ChunkManager {
   private scene: THREE.Scene;
@@ -54,6 +54,39 @@ export class ChunkManager {
     };
   }
 
+  private createNeighborDataGetter(minPos: Vector3): () => NeighborData {
+    return () => {
+      const negXKey = this.getChunkKey({ x: minPos.x - CHUNK_SIZE, y: minPos.y, z: minPos.z });
+      const posXKey = this.getChunkKey({ x: minPos.x + CHUNK_SIZE, y: minPos.y, z: minPos.z });
+      const negYKey = this.getChunkKey({ x: minPos.x, y: minPos.y - CHUNK_SIZE, z: minPos.z });
+      const posYKey = this.getChunkKey({ x: minPos.x, y: minPos.y + CHUNK_SIZE, z: minPos.z });
+      const negZKey = this.getChunkKey({ x: minPos.x, y: minPos.y, z: minPos.z - CHUNK_SIZE });
+      const posZKey = this.getChunkKey({ x: minPos.x, y: minPos.y, z: minPos.z + CHUNK_SIZE });
+
+      const negXChunk = this.chunks.get(negXKey);
+      const posXChunk = this.chunks.get(posXKey);
+      const negYChunk = this.chunks.get(negYKey);
+      const posYChunk = this.chunks.get(posYKey);
+      const negZChunk = this.chunks.get(negZKey);
+      const posZChunk = this.chunks.get(posZKey);
+
+      return {
+        negX: negXChunk?.getVoxelData() ?? null,
+        posX: posXChunk?.getVoxelData() ?? null,
+        negY: negYChunk?.getVoxelData() ?? null,
+        posY: posYChunk?.getVoxelData() ?? null,
+        negZ: negZChunk?.getVoxelData() ?? null,
+        posZ: posZChunk?.getVoxelData() ?? null,
+        negXSize: negXChunk?.size ?? null,
+        posXSize: posXChunk?.size ?? null,
+        negYSize: negYChunk?.size ?? null,
+        posYSize: posYChunk?.size ?? null,
+        negZSize: negZChunk?.size ?? null,
+        posZSize: posZChunk?.size ?? null,
+      };
+    };
+  }
+
   private getOrCreateChunk(minPos: Vector3): Chunk {
     const key = this.getChunkKey(minPos);
     let chunk = this.chunks.get(key);
@@ -75,7 +108,8 @@ export class ChunkManager {
         this.getMode,
         (layerIndex: number) => {
           return this.layerVisibilityMap.get(layerIndex) ?? true;
-        }
+        },
+        this.createNeighborDataGetter(minPos)
       );
       this.chunks.set(key, chunk); 
     }

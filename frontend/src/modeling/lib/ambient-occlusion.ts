@@ -44,6 +44,15 @@ function isOccluderAt(
   return (voxelData[x * strideX + y * dimZ + z] & 0x7F) !== 0;
 }
 
+function isOccluderAtPadded(
+  x: number, y: number, z: number,
+  paddedVoxelData: Uint8Array,
+  strideX: number,
+  dimZ: number
+): boolean {
+  return (paddedVoxelData[x * strideX + y * dimZ + z] & 0x7F) !== 0;
+}
+
 export const calculateAmbientOcclusion = (
   nx: number,
   ny: number,
@@ -74,6 +83,43 @@ export const calculateAmbientOcclusion = (
   const corner_pn = isOccluderAt(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2, voxelData, dimX, dimY, dimZ, strideX);
   const corner_np = isOccluderAt(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2, voxelData, dimX, dimY, dimZ, strideX);
   const corner_pp = isOccluderAt(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2, voxelData, dimX, dimY, dimZ, strideX);
+
+  const occ00 = (side1_neg && side2_neg) ? 3 : ((side1_neg ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_nn ? 1 : 0));
+  const occ10 = (side1_pos && side2_neg) ? 3 : ((side1_pos ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_pn ? 1 : 0));
+  const occ11 = (side1_pos && side2_pos) ? 3 : ((side1_pos ? 1 : 0) + (side2_pos ? 1 : 0) + (corner_pp ? 1 : 0));
+  const occ01 = (side1_neg && side2_pos) ? 3 : ((side1_neg ? 1 : 0) + (side2_pos ? 1 : 0) + (corner_np ? 1 : 0));
+
+  return occ00 | (occ10 << 2) | (occ11 << 4) | (occ01 << 6);
+};
+
+export const calculateAmbientOcclusionPadded = (
+  nx: number,
+  ny: number,
+  nz: number,
+  faceDir: number,
+  paddedVoxelData: Uint8Array,
+  paddedDimensions: Vector3
+): number => {
+  const offset = faceDir * 6;
+  const u0 = FACE_TANGENTS_FLAT[offset];
+  const u1 = FACE_TANGENTS_FLAT[offset + 1];
+  const u2 = FACE_TANGENTS_FLAT[offset + 2];
+  const v0 = FACE_TANGENTS_FLAT[offset + 3];
+  const v1 = FACE_TANGENTS_FLAT[offset + 4];
+  const v2 = FACE_TANGENTS_FLAT[offset + 5];
+
+  const dimZ = paddedDimensions.z;
+  const strideX = paddedDimensions.y * dimZ;
+
+  const side1_neg = isOccluderAtPadded(nx - u0, ny - u1, nz - u2, paddedVoxelData, strideX, dimZ);
+  const side1_pos = isOccluderAtPadded(nx + u0, ny + u1, nz + u2, paddedVoxelData, strideX, dimZ);
+  const side2_neg = isOccluderAtPadded(nx - v0, ny - v1, nz - v2, paddedVoxelData, strideX, dimZ);
+  const side2_pos = isOccluderAtPadded(nx + v0, ny + v1, nz + v2, paddedVoxelData, strideX, dimZ);
+
+  const corner_nn = isOccluderAtPadded(nx - u0 - v0, ny - u1 - v1, nz - u2 - v2, paddedVoxelData, strideX, dimZ);
+  const corner_pn = isOccluderAtPadded(nx + u0 - v0, ny + u1 - v1, nz + u2 - v2, paddedVoxelData, strideX, dimZ);
+  const corner_np = isOccluderAtPadded(nx - u0 + v0, ny - u1 + v1, nz - u2 + v2, paddedVoxelData, strideX, dimZ);
+  const corner_pp = isOccluderAtPadded(nx + u0 + v0, ny + u1 + v1, nz + u2 + v2, paddedVoxelData, strideX, dimZ);
 
   const occ00 = (side1_neg && side2_neg) ? 3 : ((side1_neg ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_nn ? 1 : 0));
   const occ10 = (side1_pos && side2_neg) ? 3 : ((side1_pos ? 1 : 0) + (side2_neg ? 1 : 0) + (corner_pn ? 1 : 0));

@@ -2,7 +2,6 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import {
   isBlockVisible,
-  getBlockType,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
@@ -32,6 +31,21 @@ export type LayerChunk = {
   voxels: Uint8Array;
 };
 
+export type NeighborData = {
+  negX: Uint8Array | null;
+  posX: Uint8Array | null;
+  negY: Uint8Array | null;
+  posY: Uint8Array | null;
+  negZ: Uint8Array | null;
+  posZ: Uint8Array | null;
+  negXSize: Vector3 | null;
+  posXSize: Vector3 | null;
+  negYSize: Vector3 | null;
+  posYSize: Vector3 | null;
+  negZSize: Vector3 | null;
+  posZSize: Vector3 | null;
+};
+
 export class Chunk {
   private scene: THREE.Scene;
   public readonly minPos: Vector3;
@@ -46,12 +60,15 @@ export class Chunk {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private getLayerVisible: (layerIndex: number) => boolean;
+  private getNeighborData: () => NeighborData;
 
   // Mesh-related properties
   private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
   private meshData: MeshData;
   private voxelData: Uint8Array;
+  private paddedVoxelData: Uint8Array;
+  private paddedSize: Vector3;
   private facesFinder: ExteriorFacesFinder;
 
   constructor(
@@ -61,7 +78,8 @@ export class Chunk {
     maxLayers: number,
     atlasData: AtlasData | undefined,
     getMode: () => BlockModificationMode,
-    getLayerVisible: (layerIndex: number) => boolean
+    getLayerVisible: (layerIndex: number) => boolean,
+    getNeighborData: () => NeighborData
   ) {
     this.scene = scene;
     this.minPos = minPos;
@@ -69,6 +87,7 @@ export class Chunk {
     this.atlasData = atlasData;
     this.getMode = getMode;
     this.getLayerVisible = getLayerVisible;
+    this.getNeighborData = getNeighborData;
 
     this.layerChunks = new Array(maxLayers).fill(null);
 
@@ -88,6 +107,10 @@ export class Chunk {
     };
 
     this.voxelData = new Uint8Array(totalVoxels);
+    
+    this.paddedSize = { x: size.x + 2, y: size.y + 2, z: size.z + 2 };
+    const paddedTotalVoxels = this.paddedSize.x * this.paddedSize.y * this.paddedSize.z;
+    this.paddedVoxelData = new Uint8Array(paddedTotalVoxels);
 
     const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
@@ -153,6 +176,121 @@ export class Chunk {
 
   private copyChunkData(blocks: Uint8Array): void {
     this.voxelData.set(blocks);
+    this.buildPaddedVoxelData(blocks);
+  }
+
+  private buildPaddedVoxelData(blocks: Uint8Array): void {
+    const sizeX = this.size.x;
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+    const paddedSizeY = this.paddedSize.y;
+    const paddedSizeZ = this.paddedSize.z;
+    const strideY = sizeZ;
+    const strideX = sizeY * sizeZ;
+    const paddedStrideY = paddedSizeZ;
+    const paddedStrideX = paddedSizeY * paddedSizeZ;
+
+    this.paddedVoxelData.fill(0);
+
+    for (let x = 0; x < sizeX; x++) {
+      for (let y = 0; y < sizeY; y++) {
+        for (let z = 0; z < sizeZ; z++) {
+          const srcIndex = x * strideX + y * strideY + z;
+          const dstIndex = (x + 1) * paddedStrideX + (y + 1) * paddedStrideY + (z + 1);
+          this.paddedVoxelData[dstIndex] = blocks[srcIndex];
+        }
+      }
+    }
+
+    const neighborData = this.getNeighborData();
+    
+    if (neighborData.negX && neighborData.negXSize) {
+      const nSize = neighborData.negXSize;
+      const nStrideX = nSize.y * nSize.z;
+      const nStrideY = nSize.z;
+      const srcX = nSize.x - 1;
+      for (let y = 0; y < sizeY && y < nSize.y; y++) {
+        for (let z = 0; z < sizeZ && z < nSize.z; z++) {
+          const srcIndex = srcX * nStrideX + y * nStrideY + z;
+          const dstIndex = 0 * paddedStrideX + (y + 1) * paddedStrideY + (z + 1);
+          this.paddedVoxelData[dstIndex] = neighborData.negX[srcIndex];
+        }
+      }
+    }
+
+    if (neighborData.posX && neighborData.posXSize) {
+      const nSize = neighborData.posXSize;
+      const nStrideX = nSize.y * nSize.z;
+      const nStrideY = nSize.z;
+      const srcX = 0;
+      for (let y = 0; y < sizeY && y < nSize.y; y++) {
+        for (let z = 0; z < sizeZ && z < nSize.z; z++) {
+          const srcIndex = srcX * nStrideX + y * nStrideY + z;
+          const dstIndex = (sizeX + 1) * paddedStrideX + (y + 1) * paddedStrideY + (z + 1);
+          this.paddedVoxelData[dstIndex] = neighborData.posX[srcIndex];
+        }
+      }
+    }
+
+    if (neighborData.negY && neighborData.negYSize) {
+      const nSize = neighborData.negYSize;
+      const nStrideX = nSize.y * nSize.z;
+      const nStrideY = nSize.z;
+      const srcY = nSize.y - 1;
+      for (let x = 0; x < sizeX && x < nSize.x; x++) {
+        for (let z = 0; z < sizeZ && z < nSize.z; z++) {
+          const srcIndex = x * nStrideX + srcY * nStrideY + z;
+          const dstIndex = (x + 1) * paddedStrideX + 0 * paddedStrideY + (z + 1);
+          this.paddedVoxelData[dstIndex] = neighborData.negY[srcIndex];
+        }
+      }
+    }
+
+    if (neighborData.posY && neighborData.posYSize) {
+      const nSize = neighborData.posYSize;
+      const nStrideX = nSize.y * nSize.z;
+      const nStrideY = nSize.z;
+      const srcY = 0;
+      for (let x = 0; x < sizeX && x < nSize.x; x++) {
+        for (let z = 0; z < sizeZ && z < nSize.z; z++) {
+          const srcIndex = x * nStrideX + srcY * nStrideY + z;
+          const dstIndex = (x + 1) * paddedStrideX + (sizeY + 1) * paddedStrideY + (z + 1);
+          this.paddedVoxelData[dstIndex] = neighborData.posY[srcIndex];
+        }
+      }
+    }
+
+    if (neighborData.negZ && neighborData.negZSize) {
+      const nSize = neighborData.negZSize;
+      const nStrideX = nSize.y * nSize.z;
+      const nStrideY = nSize.z;
+      const srcZ = nSize.z - 1;
+      for (let x = 0; x < sizeX && x < nSize.x; x++) {
+        for (let y = 0; y < sizeY && y < nSize.y; y++) {
+          const srcIndex = x * nStrideX + y * nStrideY + srcZ;
+          const dstIndex = (x + 1) * paddedStrideX + (y + 1) * paddedStrideY + 0;
+          this.paddedVoxelData[dstIndex] = neighborData.negZ[srcIndex];
+        }
+      }
+    }
+
+    if (neighborData.posZ && neighborData.posZSize) {
+      const nSize = neighborData.posZSize;
+      const nStrideX = nSize.y * nSize.z;
+      const nStrideY = nSize.z;
+      const srcZ = 0;
+      for (let x = 0; x < sizeX && x < nSize.x; x++) {
+        for (let y = 0; y < sizeY && y < nSize.y; y++) {
+          const srcIndex = x * nStrideX + y * nStrideY + srcZ;
+          const dstIndex = (x + 1) * paddedStrideX + (y + 1) * paddedStrideY + (sizeZ + 1);
+          this.paddedVoxelData[dstIndex] = neighborData.posZ[srcIndex];
+        }
+      }
+    }
+  }
+
+  public getVoxelData(): Uint8Array {
+    return this.voxelData;
   }
 
   public setTextureAtlas = (atlasData: AtlasData) => {
@@ -372,10 +510,11 @@ export class Chunk {
 
   private updateMeshes = (atlasData: AtlasData) => {
     this.facesFinder.findExteriorFaces(
-      this.voxelData,
+      this.paddedVoxelData,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMappings,
       this.size,
+      this.paddedSize,
       this.meshData.meshArrays,
       this.mergedSelectionFrame
     );

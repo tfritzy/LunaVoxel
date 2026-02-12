@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Chunk } from "../chunk";
+import { Chunk, NeighborData } from "../chunk";
 import * as THREE from "three";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import { AtlasData } from "@/lib/useAtlas";
@@ -15,6 +15,11 @@ describe("Chunk selection rendering", () => {
     colors: [0xffffff, 0x000000, 0xff0000, 0x00ff00, 0x0000ff, 0xffff00],
   };
 
+  const emptyNeighborData = (): NeighborData => ({
+    negX: null, posX: null, negY: null, posY: null, negZ: null, posZ: null,
+    negXSize: null, posXSize: null, negYSize: null, posYSize: null, negZSize: null, posZSize: null,
+  });
+
   beforeEach(() => {
     scene = new THREE.Scene();
     chunk = new Chunk(
@@ -24,7 +29,8 @@ describe("Chunk selection rendering", () => {
       3, // 3 layers
       mockAtlasData,
       () => ({ tag: "Attach" } as BlockModificationMode),
-      () => true // all layers visible
+      () => true, // all layers visible
+      emptyNeighborData
     );
   });
 
