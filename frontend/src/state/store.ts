@@ -130,7 +130,7 @@ const createInitialState = (): GlobalState => {
     )
       return;
     const index = x * seedChunk.size.y * seedChunk.size.z + y * seedChunk.size.z + z;
-    seedChunk.voxels[index] = value;
+    seedChunk.voxels[index] = value | RAYCASTABLE_BIT;
   };
 
   for (let x = 10; x <= 14; x++) {
