@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { useGlobalState } from "@/state/store";
 
 export interface AtlasData {
-  blockAtlasMappings: number[][];
+  blockAtlasMappings: number[];
   texture: THREE.Texture | null;
   colors: number[];
 }
@@ -26,19 +26,15 @@ export const useAtlas = (): AtlasData => {
 
     const colors: number[] = [];
     const colorMap = new Map<number, number>();
-    const blockAtlasMappings: number[][] = [];
+    const blockAtlasMappings: number[] = [];
 
     for (let i = 0; i < blocks.faceColors.length; i++) {
-      const blockAtlasIndexes: number[] = [];
-      for (let j = 0; j < blocks.faceColors[i].length; j++) {
-        const color = blocks.faceColors[i][j];
-        if (!colorMap.has(color)) {
-          colorMap.set(color, colors.length);
-          colors.push(color);
-        }
-        blockAtlasIndexes.push(colorMap.get(color)!);
+      const color = blocks.faceColors[i];
+      if (!colorMap.has(color)) {
+        colorMap.set(color, colors.length);
+        colors.push(color);
       }
-      blockAtlasMappings.push(blockAtlasIndexes);
+      blockAtlasMappings.push(colorMap.get(color)!);
     }
 
     if (!colors.length) {

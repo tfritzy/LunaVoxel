@@ -104,13 +104,16 @@ export const BlockModal = ({
     if (isNewBlock) {
       return Array(6).fill(defaultColor);
     } else {
-      const blockAtlasIndices =
+      const blockAtlasIndex =
         atlasData.blockAtlasMappings?.[(blockIndex as number) - 1];
-      if (blockAtlasIndices) {
-        return blockAtlasIndices.map(
-          (atlasIndex) =>
-            "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
-        );
+      if (
+        typeof blockAtlasIndex === "number" &&
+        typeof atlasData.colors[blockAtlasIndex] === "number"
+      ) {
+        const blockColor = `#${atlasData.colors[blockAtlasIndex]
+          .toString(16)
+          .padStart(6, "0")}`;
+        return Array(6).fill(blockColor);
       }
       return Array(6).fill(defaultColor);
     }
@@ -123,18 +126,17 @@ export const BlockModal = ({
         setApplyToAllFaces(true);
         setSelectedColors(Array(6).fill(defaultColor));
       } else {
-        const blockAtlasIndices =
+        const blockAtlasIndex =
           atlasData.blockAtlasMappings?.[(blockIndex as number) - 1];
-        if (blockAtlasIndices) {
-          const existingColors = blockAtlasIndices.map(
-            (atlasIndex) =>
-              "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
-          );
-          const allSame = existingColors.every(
-            (color) => color === existingColors[0]
-          );
-          setApplyToAllFaces(allSame);
-          setSelectedColors(existingColors);
+        if (
+          typeof blockAtlasIndex === "number" &&
+          typeof atlasData.colors[blockAtlasIndex] === "number"
+        ) {
+          const blockColor = `#${atlasData.colors[blockAtlasIndex]
+            .toString(16)
+            .padStart(6, "0")}`;
+          setApplyToAllFaces(true);
+          setSelectedColors(Array(6).fill(blockColor));
         } else {
           setApplyToAllFaces(true);
           setSelectedColors(Array(6).fill(defaultColor));
@@ -163,17 +165,15 @@ export const BlockModal = ({
 
   const handleSubmit = () => {
     setSubmitPending(true);
-    const colorNumbers = selectedColors.map((hex) =>
-      parseInt(hex.replace("#", ""), 16)
-    );
+    const colorValue = parseInt(selectedColors[0].replace("#", ""), 16);
 
     if (isNewBlock) {
-      stateStore.reducers.addBlock(projectId, colorNumbers);
+      stateStore.reducers.addBlock(projectId, colorValue);
     } else {
       stateStore.reducers.updateBlock(
         projectId,
         (blockIndex as number) - 1,
-        colorNumbers
+        colorValue
       );
     }
     setSubmitPending(false);

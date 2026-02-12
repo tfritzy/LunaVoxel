@@ -8,7 +8,7 @@ import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
 
 interface AtlasData {
-  blockAtlasMappings: number[][];
+  blockAtlasMappings: number[];
   texture: Texture | null;
   colors: number[];
 }

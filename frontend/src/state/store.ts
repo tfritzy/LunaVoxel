@@ -18,8 +18,8 @@ export type GlobalState = {
 };
 
 export type Reducers = {
-  addBlock: (projectId: string, faceColors: number[]) => void;
-  updateBlock: (projectId: string, index: number, faceColors: number[]) => void;
+  addBlock: (projectId: string, color: number) => void;
+  updateBlock: (projectId: string, index: number, color: number) => void;
   deleteBlock: (
     projectId: string,
     blockIndex: number,
@@ -110,9 +110,9 @@ const createInitialState = (): GlobalState => {
   const blocks: ProjectBlocks = {
     projectId,
     faceColors: [
-      Array(6).fill(0xff6b6b),
-      Array(6).fill(0xffd166),
-      Array(6).fill(0x4dabf7),
+      0xff6b6b,
+      0xffd166,
+      0x4dabf7,
     ],
   };
 
@@ -213,17 +213,17 @@ const applyBlockAt = (
 };
 
 const reducers: Reducers = {
-  addBlock: (_projectId, faceColors) => {
+  addBlock: (_projectId, color) => {
     void _projectId;
     updateState((current) => {
-      current.blocks.faceColors.push([...faceColors]);
+      current.blocks.faceColors.push(color);
     });
   },
-  updateBlock: (_projectId, index, faceColors) => {
+  updateBlock: (_projectId, index, color) => {
     void _projectId;
     updateState((current) => {
-      if (!current.blocks.faceColors[index]) return;
-      current.blocks.faceColors[index] = [...faceColors];
+      if (index < 0 || index >= current.blocks.faceColors.length) return;
+      current.blocks.faceColors[index] = color;
     });
   },
   deleteBlock: (_projectId, blockIndex, replacementBlockType) => {

@@ -8,4 +8,22 @@
 .react-colorful .react-colorful__pointer{
     width: 10px;
     height: 10px;
-} 
+}
+
+.block-color-picker .react-colorful {
+  border-radius: 0;
+}
+
+.block-color-picker .react-colorful__saturation,
+.block-color-picker .react-colorful__hue {
+  border-radius: 0;
+  border: none;
+}
+
+.block-color-picker .react-colorful__saturation {
+  height: calc(100% - 16px);
+}
+
+.block-color-picker .react-colorful__hue {
+  height: 16px;
+}

@@ -2,17 +2,34 @@ import { HexagonOverlay } from "./HexagonOverlay";
 import { Button } from "@/components/ui/button";
 import { FileQuestion, Plus, Trash2 } from "lucide-react";
 import { useState, useMemo, useCallback, memo } from "react";
-import { BlockModal } from "./BlockModal";
 import { DeleteBlockModal } from "./DeleteBlockModal";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
-import { Block3DPreview } from "./Block3dPreview";
+import { ColorPicker } from "@/components/custom/ColorPicker";
+import { stateStore } from "@/state/store";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
+const DEFAULT_DISPLAY_COLOR = "#ffffff";
+
+const normalizeHex = (value: string): string | null => {
+  const trimmed = value.trim().toLowerCase();
+  const match = trimmed.match(/^#?([a-f0-9]{3}|[a-f0-9]{6})$/);
+  if (!match) return null;
+
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+
+  return `#${hex}`;
+};
 
 const HexagonGrid = memo(
   ({
@@ -139,27 +156,42 @@ export const BlockDrawer = ({
   setSelectedBlock: (index: number) => void;
   atlasData: AtlasData;
 }) => {
-  const [editingBlockIndex, setEditingBlockIndex] = useState<
-    number | "new" | null
-  >(null);
   const [deletingBlockIndex, setDeletingBlockIndex] = useState<number | null>(
     null
   );
+  const blockCount = atlasData.blockAtlasMappings.length;
 
   const handleAddNew = useCallback(() => {
-    setEditingBlockIndex("new");
-  }, []);
+    const colorValue = parseInt(DEFAULT_DISPLAY_COLOR.replace("#", ""), 16);
+    stateStore.reducers.addBlock(projectId, colorValue);
+    setSelectedBlock(blockCount + 1);
+  }, [projectId, setSelectedBlock, blockCount]);
 
   const handleDelete = useCallback(() => {
     setDeletingBlockIndex(selectedBlock);
   }, [selectedBlock]);
 
-  const faceColors =
-    selectedBlock <= atlasData.blockAtlasMappings.length
+  const blockAtlasIndex =
+    selectedBlock <= blockCount
       ? atlasData.blockAtlasMappings[selectedBlock - 1]
-          .map((face) => atlasData.colors[face])
-          .map((c) => `#${c.toString(16).padStart(6, "0")}`)
       : null;
+  const displayColor =
+    typeof blockAtlasIndex === "number" &&
+    typeof atlasData.colors[blockAtlasIndex] === "number"
+      ? `#${atlasData.colors[blockAtlasIndex].toString(16).padStart(6, "0")}`
+      : DEFAULT_DISPLAY_COLOR;
+  const hasSelectedBlock = blockAtlasIndex !== null;
+
+  const handleColorChange = useCallback(
+    (color: string) => {
+      if (selectedBlock <= 0 || selectedBlock > blockCount) return;
+      const normalized = normalizeHex(color);
+      if (!normalized) return;
+      const colorValue = parseInt(normalized.replace("#", ""), 16);
+      stateStore.reducers.updateBlock(projectId, selectedBlock - 1, colorValue);
+    },
+    [projectId, selectedBlock, blockCount]
+  );
 
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
@@ -169,45 +201,33 @@ export const BlockDrawer = ({
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <HexagonGrid
-            blockCount={atlasData.blockAtlasMappings.length}
+            blockCount={blockCount}
             selectedBlock={selectedBlock}
             onSelectBlock={setSelectedBlock}
             onAddNew={handleAddNew}
             atlasData={atlasData}
           />
         </div>
-        {faceColors && (
-          <div className="">
+        {hasSelectedBlock && (
+          <div>
             <div className="flex gap-2 mb-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => {
-                  setEditingBlockIndex(selectedBlock);
-                }}
+                onClick={handleDelete}
               >
-                Edit Block
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDelete}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
-            <div className="bg-muted/30 rounded-lg border border-border">
-              <div className="h-48 flex items-center justify-center">
-                <Block3DPreview faceColors={faceColors} camRadius={4} />
-              </div>
+            <div className="block-color-picker px-2">
+              <ColorPicker
+                color={displayColor}
+                onChange={handleColorChange}
+                pickerHeight={140}
+              />
             </div>
           </div>
-        )}
-
-        {editingBlockIndex !== null && (
-          <BlockModal
-            isOpen={editingBlockIndex !== null}
-            onClose={() => setEditingBlockIndex(null)}
-            blockIndex={editingBlockIndex}
-            atlasData={atlasData}
-          />
         )}
 
         {deletingBlockIndex !== null && (

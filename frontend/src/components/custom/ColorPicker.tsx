@@ -18,9 +18,13 @@ const isValidHex = (hex: string): boolean => {
 export const ColorPicker = ({
   color,
   onChange,
+  className,
+  pickerHeight,
 }: {
   color: string;
   onChange: (color: string) => void;
+  className?: string;
+  pickerHeight?: number | string;
 }) => {
   const [inputValue, setInputValue] = useState(color);
 
@@ -56,10 +60,22 @@ export const ColorPicker = ({
 
   const textColor = getTextColor(isValidHex(inputValue) ? inputValue : color);
   const backgroundColor = isValidHex(inputValue) ? inputValue : color;
+  const pickerStyle =
+    pickerHeight === undefined
+      ? undefined
+      : {
+          width: "100%",
+          height: typeof pickerHeight === "number" ? `${pickerHeight}px` : pickerHeight,
+        };
 
   return (
-    <div className={`relative`}>
-      <HexColorPicker color={color} onChange={handleColorChange} />
+    <div className={className ? `relative ${className}` : "relative"}>
+      <HexColorPicker
+        color={color}
+        onChange={handleColorChange}
+        style={pickerStyle}
+        className="w-full"
+      />
       <input
         type="text"
         value={inputValue}
