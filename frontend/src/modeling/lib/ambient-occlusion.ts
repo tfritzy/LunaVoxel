@@ -1,5 +1,3 @@
-import type { Vector3 } from "@/state/types";
-
 /**
  * Defines the final AO value based on the number of occluders.
  * Index 0 = 0 occluders (fully lit, should be 1.0)
@@ -50,7 +48,10 @@ export const calculateAmbientOcclusion = (
   nz: number,
   faceDir: number,
   voxelData: Uint8Array,
-  dimensions: Vector3
+  dimX: number,
+  dimY: number,
+  dimZ: number,
+  strideX: number
 ): number => {
   const offset = faceDir * 6;
   const u0 = FACE_TANGENTS_FLAT[offset];
@@ -59,11 +60,6 @@ export const calculateAmbientOcclusion = (
   const v0 = FACE_TANGENTS_FLAT[offset + 3];
   const v1 = FACE_TANGENTS_FLAT[offset + 4];
   const v2 = FACE_TANGENTS_FLAT[offset + 5];
-
-  const dimX = dimensions.x;
-  const dimY = dimensions.y;
-  const dimZ = dimensions.z;
-  const strideX = dimY * dimZ;
 
   const side1_neg = isOccluderAt(nx - u0, ny - u1, nz - u2, voxelData, dimX, dimY, dimZ, strideX);
   const side1_pos = isOccluderAt(nx + u0, ny + u1, nz + u2, voxelData, dimX, dimY, dimZ, strideX);

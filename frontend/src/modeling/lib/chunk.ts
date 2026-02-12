@@ -2,7 +2,6 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import {
   isBlockVisible,
-  getBlockType,
 } from "./voxel-data-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
