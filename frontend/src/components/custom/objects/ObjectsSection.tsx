@@ -59,7 +59,7 @@ export const ObjectsSection = ({
     (obj: VoxelObject) => {
       stateStore.reducers.deleteObject(obj.id);
       if (selectedObject >= sortedObjects.length - 1) {
-        setSelectedObject(selectedObject - 1);
+        setSelectedObject(Math.max(0, selectedObject - 1));
       }
     },
     [sortedObjects, selectedObject]
