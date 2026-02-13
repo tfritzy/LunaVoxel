@@ -3,6 +3,7 @@ import { RectTool } from "../tools/rect-tool";
 import { BlockPickerTool } from "../tools/block-picker-tool";
 import { MagicSelectTool } from "../tools/magic-select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
+import { SphereTool } from "../tools/sphere-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
@@ -30,6 +31,7 @@ describe("Tool Interface", () => {
       toggleObjectLock: () => {},
       reorderObjects: () => {},
       modifyBlockRect: () => {},
+      modifyBlockSphere: () => {},
       undoEdit: () => {},
       updateCursorPos: () => {},
       magicSelect: () => {},
@@ -77,6 +79,11 @@ describe("Tool Interface", () => {
     it("should create MoveSelection tool", () => {
       const tool = new MoveSelectionTool();
       expect(tool.getType()).toEqual("MoveSelection");
+    });
+
+    it("should create Sphere tool", () => {
+      const tool = new SphereTool();
+      expect(tool.getType()).toEqual("Sphere");
     });
   });
 
@@ -285,6 +292,45 @@ describe("Tool Interface", () => {
       });
 
       expect(commitSelectionMoveCalled).toBe(false);
+    });
+  });
+
+  describe("Sphere Tool", () => {
+    let tool: Tool;
+
+    beforeEach(() => {
+      tool = new SphereTool();
+    });
+
+    it("should create a rounded preview shape while dragging", () => {
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+    });
+
+    it("should dispatch sphere edit on mouse up", () => {
+      let called = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        modifyBlockSphere: () => {
+          called = true;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(3, 4, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(called).toBe(true);
     });
   });
 });
