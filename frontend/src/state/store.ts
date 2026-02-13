@@ -102,7 +102,7 @@ const createInitialState = (): GlobalState => {
     },
   ];
 
-  const DEFAULT_BLOCK_COLOR = 0x6366f1;
+  const DEFAULT_BLOCK_COLOR = 0x2d2d3a;
   const blocks: ProjectBlocks = {
     projectId,
     colors: Array.from({ length: 127 }, () => DEFAULT_BLOCK_COLOR),
