@@ -83,6 +83,53 @@ const createChunkData = (
   };
 };
 
+const updateObjectBoundsFromChunks = (current: GlobalState, objectId: string) => {
+  const object = current.objects.find((obj) => obj.id === objectId);
+  if (!object) return;
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+
+  for (const chunk of current.chunks.values()) {
+    if (chunk.objectId !== objectId) continue;
+    for (let x = 0; x < chunk.size.x; x++) {
+      for (let y = 0; y < chunk.size.y; y++) {
+        for (let z = 0; z < chunk.size.z; z++) {
+          const index = x * chunk.size.y * chunk.size.z + y * chunk.size.z + z;
+          if (chunk.voxels[index] === 0) continue;
+
+          const worldX = chunk.minPos.x + x;
+          const worldY = chunk.minPos.y + y;
+          const worldZ = chunk.minPos.z + z;
+          minX = Math.min(minX, worldX);
+          minY = Math.min(minY, worldY);
+          minZ = Math.min(minZ, worldZ);
+          maxX = Math.max(maxX, worldX + 1);
+          maxY = Math.max(maxY, worldY + 1);
+          maxZ = Math.max(maxZ, worldZ + 1);
+        }
+      }
+    }
+  }
+
+  if (!Number.isFinite(minX)) {
+    object.position = { x: 0, y: 0, z: 0 };
+    object.dimensions = { x: 0, y: 0, z: 0 };
+    return;
+  }
+
+  object.position = { x: minX, y: minY, z: minZ };
+  object.dimensions = {
+    x: maxX - minX,
+    y: maxY - minY,
+    z: maxZ - minZ,
+  };
+};
+
 const createInitialState = (): GlobalState => {
   const projectId = "local-project";
   const project: Project = {
@@ -145,7 +192,9 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, objects, blocks, chunks };
+  const initialState = { project, objects, blocks, chunks };
+  updateObjectBoundsFromChunks(initialState, objectId);
+  return initialState;
 };
 
 let state = createInitialState();
@@ -219,7 +268,7 @@ const reducers: Reducers = {
         visible: true,
         locked: false,
         position: { x: 0, y: 0, z: 0 },
-        dimensions: { x: 64, y: 64, z: 64 },
+        dimensions: { x: 0, y: 0, z: 0 },
       });
     });
   },
@@ -343,6 +392,7 @@ const reducers: Reducers = {
           }
         }
       }
+      updateObjectBoundsFromChunks(current, obj.id);
     });
   },
   undoEdit: () => {

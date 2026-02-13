@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import type {
   BlockModificationMode,
-  ChunkData,
   VoxelObject,
   Vector3,
 } from "@/state/types";
@@ -19,7 +18,6 @@ export class ChunkManager {
   private objects: VoxelObject[] = [];
   private objectVisibilityMap: Map<number, boolean> = new Map();
   private chunks: Map<string, Chunk> = new Map();
-  private objectBoundsMap: Map<number, { min: Vector3; max: Vector3 }> = new Map();
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
@@ -104,13 +102,11 @@ export class ChunkManager {
       this.objects.map((obj) => [obj.id, obj.index])
     );
     const nextChunkObjects = new Map<string, Set<number>>();
-    const nextObjectBounds = new Map<number, { min: Vector3; max: Vector3 }>();
 
     for (const chunkData of current.chunks.values()) {
       if (chunkData.projectId !== this.projectId) continue;
       const objectIndex = objectIndexById.get(chunkData.objectId);
       if (objectIndex === undefined) continue;
-      this.updateObjectBounds(nextObjectBounds, objectIndex, chunkData);
 
       const chunk = this.getOrCreateChunk(chunkData.minPos);
       chunk.setObjectChunk(objectIndex, chunkData.voxels);
@@ -136,7 +132,6 @@ export class ChunkManager {
       }
     }
 
-    this.objectBoundsMap = nextObjectBounds;
     this.updateAllChunks();
   };
 
@@ -145,63 +140,24 @@ export class ChunkManager {
   }
 
   public getObjectBounds(objectIndex: number): { min: Vector3; max: Vector3 } | null {
-    if (!this.getObject(objectIndex)) {
+    const object = this.getObject(objectIndex);
+    if (
+      !object ||
+      object.dimensions.x <= 0 ||
+      object.dimensions.y <= 0 ||
+      object.dimensions.z <= 0
+    ) {
       return null;
     }
-    return this.objectBoundsMap.get(objectIndex) ?? null;
-  }
 
-  private updateObjectBounds(
-    boundsMap: Map<number, { min: Vector3; max: Vector3 }>,
-    objectIndex: number,
-    chunkData: ChunkData
-  ): void {
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let minZ = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    let maxZ = Number.NEGATIVE_INFINITY;
-
-    for (let x = 0; x < chunkData.size.x; x++) {
-      for (let y = 0; y < chunkData.size.y; y++) {
-        for (let z = 0; z < chunkData.size.z; z++) {
-          const index = x * chunkData.size.y * chunkData.size.z + y * chunkData.size.z + z;
-          if (chunkData.voxels[index] === 0) continue;
-
-          const worldX = chunkData.minPos.x + x;
-          const worldY = chunkData.minPos.y + y;
-          const worldZ = chunkData.minPos.z + z;
-
-          minX = Math.min(minX, worldX);
-          minY = Math.min(minY, worldY);
-          minZ = Math.min(minZ, worldZ);
-          maxX = Math.max(maxX, worldX + 1);
-          maxY = Math.max(maxY, worldY + 1);
-          maxZ = Math.max(maxZ, worldZ + 1);
-        }
-      }
-    }
-
-    if (!Number.isFinite(minX)) {
-      return;
-    }
-
-    const existing = boundsMap.get(objectIndex);
-    if (!existing) {
-      boundsMap.set(objectIndex, {
-        min: { x: minX, y: minY, z: minZ },
-        max: { x: maxX, y: maxY, z: maxZ },
-      });
-      return;
-    }
-
-    existing.min.x = Math.min(existing.min.x, minX);
-    existing.min.y = Math.min(existing.min.y, minY);
-    existing.min.z = Math.min(existing.min.z, minZ);
-    existing.max.x = Math.max(existing.max.x, maxX);
-    existing.max.y = Math.max(existing.max.y, maxY);
-    existing.max.z = Math.max(existing.max.z, maxZ);
+    return {
+      min: { ...object.position },
+      max: {
+        x: object.position.x + object.dimensions.x,
+        y: object.position.y + object.dimensions.y,
+        z: object.position.z + object.dimensions.z,
+      },
+    };
   }
 
   setTextureAtlas = (atlasData: AtlasData) => {
