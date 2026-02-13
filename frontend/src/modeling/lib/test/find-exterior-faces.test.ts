@@ -6,17 +6,12 @@ import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 
-/**
- * Helper function to create block atlas mappings
- * Each block type has 6 face texture indices (one for each face direction)
- */
-function createBlockAtlasMappings(numBlocks: number): number[][] {
-  const mappings: number[][] = [];
+function createBlockAtlasMapping(numBlocks: number): number[] {
+  const mapping: number[] = [];
   for (let i = 0; i < numBlocks; i++) {
-    // All faces use the same texture for simplicity
-    mappings.push([i, i, i, i, i, i]);
+    mapping.push(i);
   }
-  return mappings;
+  return mapping;
 }
 
 describe("ExteriorFacesFinder", () => {
@@ -39,7 +34,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4, // textureWidth
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -71,7 +66,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -111,7 +106,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -142,7 +137,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -166,7 +161,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -192,7 +187,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(3),
+        createBlockAtlasMapping(3),
         dimensions,
         meshArrays,
         selectionFrame
@@ -220,7 +215,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -249,7 +244,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -285,7 +280,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -310,7 +305,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -333,7 +328,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -366,7 +361,7 @@ describe("ExteriorFacesFinder", () => {
       finder.findExteriorFaces(
         voxelData,
         4,
-        createBlockAtlasMappings(2),
+        createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
         selectionFrame
@@ -407,7 +402,7 @@ describe("ExteriorFacesFinder", () => {
         finder.findExteriorFaces(
           voxelData,
           4,
-          createBlockAtlasMappings(2),
+          createBlockAtlasMapping(2),
           dimensions,
           meshArrays,
           selectionFrame
@@ -457,7 +452,7 @@ describe("ExteriorFacesFinder", () => {
         finder.findExteriorFaces(
           voxelData,
           4,
-          createBlockAtlasMappings(2),
+          createBlockAtlasMapping(2),
           dimensions,
           meshArrays,
           selectionFrame
@@ -507,7 +502,7 @@ describe("ExteriorFacesFinder", () => {
         finder.findExteriorFaces(
           voxelData,
           4,
-          createBlockAtlasMappings(2),
+          createBlockAtlasMapping(2),
           dimensions,
           meshArrays,
           selectionFrame

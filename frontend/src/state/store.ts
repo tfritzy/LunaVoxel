@@ -18,7 +18,6 @@ export type GlobalState = {
 };
 
 export type Reducers = {
-  updateBlock: (projectId: string, index: number, faceColors: number[]) => void;
   addObject: (projectId: string) => void;
   deleteObject: (objectId: string) => void;
   toggleObjectVisibility: (objectId: string) => void;
@@ -103,10 +102,10 @@ const createInitialState = (): GlobalState => {
     },
   ];
 
-  const DEFAULT_BLOCK_COLOR = 0x181826;
+  const DEFAULT_BLOCK_COLOR = 0x2d2d3a;
   const blocks: ProjectBlocks = {
     projectId,
-    faceColors: Array.from({ length: 127 }, () => Array(6).fill(DEFAULT_BLOCK_COLOR)),
+    colors: Array.from({ length: 127 }, () => DEFAULT_BLOCK_COLOR),
   };
 
   const chunks = new Map<string, ChunkData>();
@@ -206,13 +205,6 @@ const applyBlockAt = (
 };
 
 const reducers: Reducers = {
-  updateBlock: (_projectId, index, faceColors) => {
-    void _projectId;
-    updateState((current) => {
-      if (!current.blocks.faceColors[index]) return;
-      current.blocks.faceColors[index] = [...faceColors];
-    });
-  },
   addObject: (_projectId) => {
     void _projectId;
     updateState((current) => {

@@ -30,7 +30,7 @@ export type VoxelObject = {
 
 export type ProjectBlocks = {
   projectId: string;
-  faceColors: number[][];
+  colors: number[];
 };
 
 export type ChunkData = {

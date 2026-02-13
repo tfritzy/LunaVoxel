@@ -383,7 +383,7 @@ export class Chunk {
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
-      atlasData.blockAtlasMappings,
+      atlasData.blockAtlasMapping,
       this.size,
       this.meshData.meshArrays,
       this.mergedSelectionFrame
