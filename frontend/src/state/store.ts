@@ -18,7 +18,6 @@ export type GlobalState = {
 };
 
 export type Reducers = {
-  updateBlock: (projectId: string, index: number, color: number) => void;
   addObject: (projectId: string) => void;
   deleteObject: (objectId: string) => void;
   toggleObjectVisibility: (objectId: string) => void;
@@ -103,7 +102,7 @@ const createInitialState = (): GlobalState => {
     },
   ];
 
-  const DEFAULT_BLOCK_COLOR = 0x181826;
+  const DEFAULT_BLOCK_COLOR = 0x6366f1;
   const blocks: ProjectBlocks = {
     projectId,
     colors: Array.from({ length: 127 }, () => DEFAULT_BLOCK_COLOR),
@@ -206,13 +205,6 @@ const applyBlockAt = (
 };
 
 const reducers: Reducers = {
-  updateBlock: (_projectId, index, color) => {
-    void _projectId;
-    updateState((current) => {
-      if (current.blocks.colors[index] === undefined) return;
-      current.blocks.colors[index] = color;
-    });
-  },
   addObject: (_projectId) => {
     void _projectId;
     updateState((current) => {

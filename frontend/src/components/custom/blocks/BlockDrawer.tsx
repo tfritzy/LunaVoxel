@@ -1,11 +1,8 @@
 import { HexagonOverlay } from "./HexagonOverlay";
-import { Button } from "@/components/ui/button";
 import { FileQuestion } from "lucide-react";
-import { useState, useMemo, memo } from "react";
-import { BlockModal } from "./BlockModal";
+import { useMemo, memo } from "react";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
-import { Block3DPreview } from "./Block3dPreview";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
@@ -111,13 +108,6 @@ export const BlockDrawer = ({
   setSelectedBlock: (index: number) => void;
   atlasData: AtlasData;
 }) => {
-  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null);
-
-  const blockColor =
-    selectedBlock <= atlasData.blockAtlasMapping.length
-      ? `#${atlasData.colors[atlasData.blockAtlasMapping[selectedBlock - 1]].toString(16).padStart(6, "0")}`
-      : null;
-
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
       <div className="mb-4">
@@ -132,36 +122,6 @@ export const BlockDrawer = ({
             atlasData={atlasData}
           />
         </div>
-        {blockColor && (
-          <div className="">
-            <div className="flex gap-2 mb-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  setEditingBlockIndex(selectedBlock);
-                }}
-              >
-                Edit Block
-              </Button>
-            </div>
-            <div className="bg-muted/30 rounded-lg border border-border">
-              <div className="h-48 flex items-center justify-center">
-                <Block3DPreview color={blockColor} camRadius={4} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {editingBlockIndex !== null && (
-          <BlockModal
-            isOpen={editingBlockIndex !== null}
-            onClose={() => setEditingBlockIndex(null)}
-            blockIndex={editingBlockIndex}
-            atlasData={atlasData}
-          />
-        )}
       </div>
     </div>
   );
