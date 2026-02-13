@@ -135,6 +135,52 @@ export class ChunkManager {
     return this.objects.find((o) => o.index === objectIndex);
   }
 
+  public getObjectBounds(objectIndex: number): { min: Vector3; max: Vector3 } | null {
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+
+    for (const chunk of this.chunks.values()) {
+      const objectChunk = chunk.getObjectChunk(objectIndex);
+      if (!objectChunk) continue;
+
+      const sizeY = chunk.size.y;
+      const sizeZ = chunk.size.z;
+      const sizeYZ = sizeY * sizeZ;
+
+      for (let index = 0; index < objectChunk.voxels.length; index++) {
+        if (objectChunk.voxels[index] === 0) continue;
+
+        const localX = Math.floor(index / sizeYZ);
+        const localY = Math.floor((index % sizeYZ) / sizeZ);
+        const localZ = index % sizeZ;
+
+        const worldX = chunk.minPos.x + localX;
+        const worldY = chunk.minPos.y + localY;
+        const worldZ = chunk.minPos.z + localZ;
+
+        minX = Math.min(minX, worldX);
+        minY = Math.min(minY, worldY);
+        minZ = Math.min(minZ, worldZ);
+        maxX = Math.max(maxX, worldX);
+        maxY = Math.max(maxY, worldY);
+        maxZ = Math.max(maxZ, worldZ);
+      }
+    }
+
+    if (!Number.isFinite(minX)) {
+      return null;
+    }
+
+    return {
+      min: { x: minX, y: minY, z: minZ },
+      max: { x: maxX, y: maxY, z: maxZ },
+    };
+  }
+
   setTextureAtlas = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     

@@ -7,6 +7,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
   private lastOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+  private selectedBounds: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } } | null = null;
 
   getType(): ToolType {
     return "MoveSelection";
@@ -26,6 +27,8 @@ export class MoveSelectionTool implements Tool {
     void event;
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
+    this.selectedBounds = context.projectManager.getSelectedObjectBounds(context.selectedObject);
+    context.projectManager.updateMoveSelectionBox(this.selectedBounds, this.lastOffset);
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
@@ -36,6 +39,7 @@ export class MoveSelectionTool implements Tool {
     );
 
     this.lastOffset.copy(offset);
+    context.projectManager.updateMoveSelectionBox(this.selectedBounds, this.lastOffset);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -53,6 +57,8 @@ export class MoveSelectionTool implements Tool {
 
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
+    this.selectedBounds = context.projectManager.getSelectedObjectBounds(context.selectedObject);
+    context.projectManager.updateMoveSelectionBox(this.selectedBounds, this.lastOffset);
   }
 
   private calculateOffsetFromMouseDelta(

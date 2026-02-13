@@ -44,6 +44,12 @@ describe("Tool Interface", () => {
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
+        getSelectedObjectBounds: () => ({
+          min: { x: 1, y: 2, z: 3 },
+          max: { x: 3, y: 4, z: 5 },
+        }),
+        updateMoveSelectionBox: () => {},
+        clearMoveSelectionBox: () => {},
         chunkManager: {
           setPreview: () => {},
         },
@@ -236,6 +242,11 @@ describe("Tool Interface", () => {
         },
       };
 
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 2, 3),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
       // Simulate drag with movement
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
@@ -270,6 +281,11 @@ describe("Tool Interface", () => {
         },
       };
 
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 2, 3),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
         currentGridPosition: new THREE.Vector3(1, 2, 3),
@@ -285,6 +301,34 @@ describe("Tool Interface", () => {
       });
 
       expect(commitSelectionMoveCalled).toBe(false);
+    });
+
+    it("should update move selection box while dragging", () => {
+      let moveSelectionBoxUpdated = false;
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        getSelectedObjectBounds: () => ({
+          min: { x: 1, y: 2, z: 3 },
+          max: { x: 3, y: 4, z: 5 },
+        }),
+        updateMoveSelectionBox: () => {
+          moveSelectionBoxUpdated = true;
+        },
+      } as unknown as ProjectManager;
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 2, 3),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(4, 2, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0),
+      });
+
+      expect(moveSelectionBoxUpdated).toBe(true);
     });
   });
 });

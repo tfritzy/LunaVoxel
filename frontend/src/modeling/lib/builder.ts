@@ -111,6 +111,7 @@ export const Builder = class {
       this.previewFrame.clear();
       this.projectManager.chunkManager.setPreview(this.previewFrame);
     }
+    this.projectManager.clearMoveSelectionBox();
     this.isMouseDown = false;
     this.startPosition = null;
     this.startMousePos = null;
@@ -121,6 +122,11 @@ export const Builder = class {
   public setTool(tool: ToolType): void {
     this.cancelCurrentOperation();
     this.currentTool = this.createTool(tool);
+    if (tool === "MoveSelection") {
+      this.projectManager.updateMoveSelectionBox(
+        this.projectManager.getSelectedObjectBounds(this.selectedObject)
+      );
+    }
   }
 
   private createTool(toolType: ToolType): Tool {
@@ -166,6 +172,11 @@ export const Builder = class {
   public setSelectedObject(objectIndex: number): void {
     this.selectedObject = objectIndex;
     this.toolContext.selectedObject = objectIndex;
+    if (this.currentTool.getType() === "MoveSelection") {
+      this.projectManager.updateMoveSelectionBox(
+        this.projectManager.getSelectedObjectBounds(this.selectedObject)
+      );
+    }
   }
 
   public updateCamera(camera: THREE.Camera): void {
@@ -374,6 +385,7 @@ export const Builder = class {
   }
 
   public dispose(): void {
+    this.projectManager.clearMoveSelectionBox();
     this.removeEventListeners();
   }
 };
