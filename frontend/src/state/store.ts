@@ -18,13 +18,7 @@ export type GlobalState = {
 };
 
 export type Reducers = {
-  addBlock: (projectId: string, faceColors: number[]) => void;
   updateBlock: (projectId: string, index: number, faceColors: number[]) => void;
-  deleteBlock: (
-    projectId: string,
-    blockIndex: number,
-    replacementBlockType: number
-  ) => void;
   addObject: (projectId: string) => void;
   deleteObject: (objectId: string) => void;
   toggleObjectVisibility: (objectId: string) => void;
@@ -109,13 +103,10 @@ const createInitialState = (): GlobalState => {
     },
   ];
 
+  const DEFAULT_BLOCK_COLOR = 0x181826;
   const blocks: ProjectBlocks = {
     projectId,
-    faceColors: [
-      Array(6).fill(0xff6b6b),
-      Array(6).fill(0xffd166),
-      Array(6).fill(0x4dabf7),
-    ],
+    faceColors: Array.from({ length: 127 }, () => Array(6).fill(DEFAULT_BLOCK_COLOR)),
   };
 
   const chunks = new Map<string, ChunkData>();
@@ -215,39 +206,11 @@ const applyBlockAt = (
 };
 
 const reducers: Reducers = {
-  addBlock: (_projectId, faceColors) => {
-    void _projectId;
-    updateState((current) => {
-      current.blocks.faceColors.push([...faceColors]);
-    });
-  },
   updateBlock: (_projectId, index, faceColors) => {
     void _projectId;
     updateState((current) => {
       if (!current.blocks.faceColors[index]) return;
       current.blocks.faceColors[index] = [...faceColors];
-    });
-  },
-  deleteBlock: (_projectId, blockIndex, replacementBlockType) => {
-    void _projectId;
-    updateState((current) => {
-      const zeroBasedIndex = blockIndex - 1;
-      if (zeroBasedIndex < 0 || zeroBasedIndex >= current.blocks.faceColors.length) {
-        return;
-      }
-
-      current.blocks.faceColors.splice(zeroBasedIndex, 1);
-
-      for (const chunk of current.chunks.values()) {
-        for (let i = 0; i < chunk.voxels.length; i++) {
-          const value = chunk.voxels[i];
-          if (value === blockIndex) {
-            chunk.voxels[i] = replacementBlockType;
-          } else if (value > blockIndex) {
-            chunk.voxels[i] = value - 1;
-          }
-        }
-      }
     });
   },
   addObject: (_projectId) => {

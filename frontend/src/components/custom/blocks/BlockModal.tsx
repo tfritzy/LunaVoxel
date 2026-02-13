@@ -85,7 +85,7 @@ export const ColorPicker = ({
 interface BlockModalProps {
   isOpen: boolean;
   onClose: () => void;
-  blockIndex: number | "new";
+  blockIndex: number;
   atlasData: AtlasData;
 }
 
@@ -96,52 +96,40 @@ export const BlockModal = ({
   atlasData,
 }: BlockModalProps) => {
   const projectId = useGlobalState((state) => state.project.id);
-  const isNewBlock = blockIndex === "new";
 
   const defaultColor = "#ffffff";
   const [applyToAllFaces, setApplyToAllFaces] = useState(true);
   const [selectedColors, setSelectedColors] = useState<string[]>(() => {
-    if (isNewBlock) {
-      return Array(6).fill(defaultColor);
-    } else {
-      const blockAtlasIndices =
-        atlasData.blockAtlasMappings?.[(blockIndex as number) - 1];
-      if (blockAtlasIndices) {
-        return blockAtlasIndices.map(
-          (atlasIndex) =>
-            "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
-        );
-      }
-      return Array(6).fill(defaultColor);
+    const blockAtlasIndices = atlasData.blockAtlasMappings?.[blockIndex - 1];
+    if (blockAtlasIndices) {
+      return blockAtlasIndices.map(
+        (atlasIndex) =>
+          "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
+      );
     }
+    return Array(6).fill(defaultColor);
   });
   const [submitPending, setSubmitPending] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      if (isNewBlock) {
+      const blockAtlasIndices = atlasData.blockAtlasMappings?.[blockIndex - 1];
+      if (blockAtlasIndices) {
+        const existingColors = blockAtlasIndices.map(
+          (atlasIndex) =>
+            "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
+        );
+        const allSame = existingColors.every(
+          (color) => color === existingColors[0]
+        );
+        setApplyToAllFaces(allSame);
+        setSelectedColors(existingColors);
+      } else {
         setApplyToAllFaces(true);
         setSelectedColors(Array(6).fill(defaultColor));
-      } else {
-        const blockAtlasIndices =
-          atlasData.blockAtlasMappings?.[(blockIndex as number) - 1];
-        if (blockAtlasIndices) {
-          const existingColors = blockAtlasIndices.map(
-            (atlasIndex) =>
-              "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
-          );
-          const allSame = existingColors.every(
-            (color) => color === existingColors[0]
-          );
-          setApplyToAllFaces(allSame);
-          setSelectedColors(existingColors);
-        } else {
-          setApplyToAllFaces(true);
-          setSelectedColors(Array(6).fill(defaultColor));
-        }
       }
     }
-  }, [isOpen, blockIndex, isNewBlock, atlasData]);
+  }, [isOpen, blockIndex, atlasData]);
 
   const handleApplyToAllChange = (checked: boolean | "indeterminate") => {
     const isApplyingAll = checked === false;
@@ -167,21 +155,12 @@ export const BlockModal = ({
       parseInt(hex.replace("#", ""), 16)
     );
 
-    if (isNewBlock) {
-      stateStore.reducers.addBlock(projectId, colorNumbers);
-    } else {
-      stateStore.reducers.updateBlock(
-        projectId,
-        (blockIndex as number) - 1,
-        colorNumbers
-      );
-    }
+    stateStore.reducers.updateBlock(projectId, blockIndex - 1, colorNumbers);
     setSubmitPending(false);
     onClose();
   };
 
   const faceNames = ["Right", "Left", "Top", "Bottom", "Front", "Back"];
-  const title = isNewBlock ? "Create New Block" : "Edit Block";
 
   const renderFaceColorPicker = (faceIndex: number) => (
     <div className="space-y-1 items-center flex flex-col">
@@ -199,7 +178,7 @@ export const BlockModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={title}
+      title="Edit Block"
       size="5xl"
       footer={
         <div className="flex justify-end w-full">
@@ -208,7 +187,7 @@ export const BlockModal = ({
               Cancel
             </Button>
             <Button onClick={handleSubmit} pending={submitPending}>
-              {isNewBlock ? "Create Block" : "Update Block"}
+              Update Block
             </Button>
           </div>
         </div>
