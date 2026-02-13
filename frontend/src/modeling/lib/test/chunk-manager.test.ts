@@ -1,19 +1,11 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { ChunkManager } from "../chunk-manager";
-import { CHUNK_SIZE } from "@/state/constants";
 import type { StateStore } from "@/state/store";
 import type { GlobalState } from "@/state/store";
 
-const toChunkIndex = (x: number, y: number, z: number) =>
-  x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z;
-
 describe("ChunkManager getObjectBounds", () => {
-  it("derives bounds from non-empty voxels instead of object dimensions", () => {
-    const voxels = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
-    voxels[toChunkIndex(10, 1, 10)] = 1;
-    voxels[toChunkIndex(14, 6, 14)] = 1;
-
+  it("derives bounds from object dimensions", () => {
     const state: GlobalState = {
       project: {
         id: "p1",
@@ -27,27 +19,15 @@ describe("ChunkManager getObjectBounds", () => {
           name: "Object 1",
           visible: true,
           locked: false,
-          position: { x: 0, y: 0, z: 0 },
-          dimensions: { x: 64, y: 64, z: 64 },
+          position: { x: 10, y: 1, z: 10 },
+          dimensions: { x: 5, y: 6, z: 5 },
         },
       ],
       blocks: {
         projectId: "p1",
         colors: [],
       },
-      chunks: new Map([
-        [
-          "o1:0,0,0",
-          {
-            key: "o1:0,0,0",
-            projectId: "p1",
-            objectId: "o1",
-            minPos: { x: 0, y: 0, z: 0 },
-            size: { x: CHUNK_SIZE, y: CHUNK_SIZE, z: CHUNK_SIZE },
-            voxels,
-          },
-        ],
-      ]),
+      chunks: new Map(),
     };
 
     const stateStore = {
@@ -71,7 +51,7 @@ describe("ChunkManager getObjectBounds", () => {
     manager.dispose();
   });
 
-  it("returns null for objects with no non-empty voxels", () => {
+  it("returns null for objects with empty dimensions", () => {
     const state: GlobalState = {
       project: {
         id: "p1",
@@ -86,26 +66,14 @@ describe("ChunkManager getObjectBounds", () => {
           visible: true,
           locked: false,
           position: { x: 0, y: 0, z: 0 },
-          dimensions: { x: 64, y: 64, z: 64 },
+          dimensions: { x: 0, y: 0, z: 0 },
         },
       ],
       blocks: {
         projectId: "p1",
         colors: [],
       },
-      chunks: new Map([
-        [
-          "o1:0,0,0",
-          {
-            key: "o1:0,0,0",
-            projectId: "p1",
-            objectId: "o1",
-            minPos: { x: 0, y: 0, z: 0 },
-            size: { x: CHUNK_SIZE, y: CHUNK_SIZE, z: CHUNK_SIZE },
-            voxels: new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE),
-          },
-        ],
-      ]),
+      chunks: new Map(),
     };
 
     const stateStore = {

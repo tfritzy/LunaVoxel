@@ -9,6 +9,7 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
+import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 
 export type GlobalState = {
   project: Project;
@@ -59,6 +60,8 @@ export type StateStore = {
 const createId = () =>
   `obj_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 
+const objectFrames = new Map<string, VoxelFrame>();
+
 export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
@@ -83,6 +86,83 @@ const createChunkData = (
   };
 };
 
+const normalizeObjectBounds = (objectId: string, object: VoxelObject) => {
+  const frame = objectFrames.get(objectId);
+  if (!frame) return;
+
+  const frameMin = frame.getMinPos();
+  const frameDimensions = frame.getDimensions();
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+
+  for (let x = 0; x < frameDimensions.x; x++) {
+    for (let y = 0; y < frameDimensions.y; y++) {
+      for (let z = 0; z < frameDimensions.z; z++) {
+        if (frame.data[x][y][z] === 0) continue;
+        const worldX = frameMin.x + x;
+        const worldY = frameMin.y + y;
+        const worldZ = frameMin.z + z;
+        minX = Math.min(minX, worldX);
+        minY = Math.min(minY, worldY);
+        minZ = Math.min(minZ, worldZ);
+        maxX = Math.max(maxX, worldX + 1);
+        maxY = Math.max(maxY, worldY + 1);
+        maxZ = Math.max(maxZ, worldZ + 1);
+      }
+    }
+  }
+
+  if (!Number.isFinite(minX)) {
+    frame.resize({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+    object.position = { x: 0, y: 0, z: 0 };
+    object.dimensions = { x: 0, y: 0, z: 0 };
+    return;
+  }
+
+  frame.resize(
+    {
+      x: maxX - minX,
+      y: maxY - minY,
+      z: maxZ - minZ,
+    },
+    { x: minX, y: minY, z: minZ }
+  );
+  object.position = { x: minX, y: minY, z: minZ };
+  object.dimensions = {
+    x: maxX - minX,
+    y: maxY - minY,
+    z: maxZ - minZ,
+  };
+};
+
+const ensureFrameContains = (frame: VoxelFrame, min: Vector3, max: Vector3) => {
+  const frameMin = frame.getMinPos();
+  const frameMax = frame.getMaxPos();
+  const nextMin = {
+    x: Math.min(frameMin.x, min.x),
+    y: Math.min(frameMin.y, min.y),
+    z: Math.min(frameMin.z, min.z),
+  };
+  const nextMax = {
+    x: Math.max(frameMax.x, max.x),
+    y: Math.max(frameMax.y, max.y),
+    z: Math.max(frameMax.z, max.z),
+  };
+  frame.resize(
+    {
+      x: Math.max(0, nextMax.x - nextMin.x),
+      y: Math.max(0, nextMax.y - nextMin.y),
+      z: Math.max(0, nextMax.z - nextMin.z),
+    },
+    nextMin
+  );
+};
+
 const createInitialState = (): GlobalState => {
   const projectId = "local-project";
   const project: Project = {
@@ -91,6 +171,9 @@ const createInitialState = (): GlobalState => {
   };
 
   const objectId = createId();
+  const objectFrame = new VoxelFrame(project.dimensions, { x: 0, y: 0, z: 0 });
+  objectFrames.clear();
+  objectFrames.set(objectId, objectFrame);
   const objects: VoxelObject[] = [
     {
       id: objectId,
@@ -100,7 +183,7 @@ const createInitialState = (): GlobalState => {
       visible: true,
       locked: false,
       position: { x: 0, y: 0, z: 0 },
-      dimensions: { x: 64, y: 64, z: 64 },
+      dimensions: { x: 0, y: 0, z: 0 },
     },
   ];
 
@@ -125,6 +208,7 @@ const createInitialState = (): GlobalState => {
       return;
     const index = x * seedChunk.size.y * seedChunk.size.z + y * seedChunk.size.z + z;
     seedChunk.voxels[index] = value | RAYCASTABLE_BIT;
+    objectFrame.set(x, y, z, value);
   };
 
   for (let x = 10; x <= 14; x++) {
@@ -144,6 +228,7 @@ const createInitialState = (): GlobalState => {
   }
 
   chunks.set(seedChunk.key, seedChunk);
+  normalizeObjectBounds(objectId, objects[0]);
 
   return { project, objects, blocks, chunks };
 };
@@ -219,8 +304,10 @@ const reducers: Reducers = {
         visible: true,
         locked: false,
         position: { x: 0, y: 0, z: 0 },
-        dimensions: { x: 64, y: 64, z: 64 },
+        dimensions: { x: 0, y: 0, z: 0 },
       });
+      const added = current.objects[nextIndex];
+      objectFrames.set(added.id, new VoxelFrame({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }));
     });
   },
   deleteObject: (objectId) => {
@@ -236,6 +323,7 @@ const reducers: Reducers = {
           current.chunks.delete(key);
         }
       }
+      objectFrames.delete(objectId);
     });
   },
   renameObject: (objectId, name) => {
@@ -296,6 +384,8 @@ const reducers: Reducers = {
     updateState((current) => {
       const obj = getObjectByIndex(objectIndex);
       if (!obj || obj.locked) return;
+      const frame = objectFrames.get(obj.id);
+      if (!frame) return;
 
       const dims = current.project.dimensions;
       const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
@@ -304,6 +394,12 @@ const reducers: Reducers = {
       const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
       const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
       const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
+      const worldMin = { x: minX, y: minY, z: minZ };
+      const worldMaxExclusive = { x: maxX + 1, y: maxY + 1, z: maxZ + 1 };
+
+      if (mode.tag !== "Erase") {
+        ensureFrameContains(frame, worldMin, worldMaxExclusive);
+      }
 
       for (
         let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
@@ -343,6 +439,26 @@ const reducers: Reducers = {
           }
         }
       }
+
+      for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+          for (let z = minZ; z <= maxZ; z++) {
+            const existing = frame.get(x, y, z);
+            switch (mode.tag) {
+              case "Attach":
+                frame.set(x, y, z, blockType);
+                break;
+              case "Erase":
+                if (existing !== 0) frame.set(x, y, z, 0);
+                break;
+              case "Paint":
+                if (existing !== 0) frame.set(x, y, z, blockType);
+                break;
+            }
+          }
+        }
+      }
+      normalizeObjectBounds(obj.id, obj);
     });
   },
   undoEdit: () => {
