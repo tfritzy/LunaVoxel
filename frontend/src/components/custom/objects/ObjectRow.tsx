@@ -13,8 +13,10 @@ import {
   Trash,
   LockKeyhole,
   MoreVertical,
+  Pencil,
   UnlockKeyhole,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface ObjectRowProps {
   object: VoxelObject;
@@ -23,6 +25,7 @@ interface ObjectRowProps {
   onDelete: (object: VoxelObject) => void;
   onToggleVisibility: (object: VoxelObject) => void;
   onToggleLocked: (object: VoxelObject) => void;
+  onRename: (object: VoxelObject, name: string) => void;
   isDragging?: boolean;
 }
 
@@ -33,8 +36,24 @@ export const ObjectRow = ({
   onDelete,
   onToggleVisibility,
   onToggleLocked,
+  onRename,
   isDragging = false,
 }: ObjectRowProps) => {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [name, setName] = useState(object.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setName(object.name);
+  }, [object.name]);
+
+  useEffect(() => {
+    if (isRenaming) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isRenaming]);
+
   const handleDelete = (event: React.MouseEvent) => {
     onDelete(object);
     event.stopPropagation();
@@ -54,6 +73,21 @@ export const ObjectRow = ({
     event: React.MouseEvent | React.PointerEvent
   ) => {
     event.stopPropagation();
+  };
+
+  const commitRename = () => {
+    const trimmed = name.trim();
+    const nextName = trimmed || object.name;
+    if (nextName !== object.name) {
+      onRename(object, nextName);
+    }
+    setIsRenaming(false);
+  };
+
+  const startRenaming = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setName(object.name);
+    setIsRenaming(true);
   };
 
   return (
@@ -93,18 +127,39 @@ export const ObjectRow = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
             <div className="min-w-0">
-              <div
-                className={`
-                  font-medium truncate
-                  ${
-                    object.visible
-                      ? "text-foreground"
-                      : "text-muted-foreground/70"
-                  }
-                `}
-              >
-                {object.name}
-              </div>
+              {isRenaming ? (
+                <input
+                  ref={inputRef}
+                  value={name}
+                  className="font-medium bg-transparent outline-none border border-border rounded px-1 py-0.5 w-full"
+                  onPointerDown={stopDragPropagation}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={(event) => setName(event.target.value)}
+                  onBlur={commitRename}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.key === "Enter") {
+                      commitRename();
+                    } else if (event.key === "Escape") {
+                      setIsRenaming(false);
+                    }
+                  }}
+                />
+              ) : (
+                <div
+                  className={`
+                    font-medium truncate
+                    ${
+                      object.visible
+                        ? "text-foreground"
+                        : "text-muted-foreground/70"
+                    }
+                  `}
+                  onDoubleClick={startRenaming}
+                >
+                  {object.name}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -123,6 +178,10 @@ export const ObjectRow = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={startRenaming}>
+              <Pencil className="w-4 h-4 mr-2" />
+              Rename
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleDelete} className="">
               <Trash className="w-4 h-4 mr-2" />
               Delete

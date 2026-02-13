@@ -10,6 +10,7 @@ interface SortableObjectRowProps {
   onDelete: (object: VoxelObject) => void;
   onToggleVisibility: (object: VoxelObject) => void;
   onToggleLocked: (object: VoxelObject) => void;
+  onRename: (object: VoxelObject, name: string) => void;
 }
 
 export const SortableObjectRow = ({
@@ -19,6 +20,7 @@ export const SortableObjectRow = ({
   onDelete,
   onToggleVisibility,
   onToggleLocked,
+  onRename,
 }: SortableObjectRowProps) => {
   const {
     attributes,
@@ -44,6 +46,7 @@ export const SortableObjectRow = ({
         onDelete={onDelete}
         onToggleVisibility={onToggleVisibility}
         onToggleLocked={onToggleLocked}
+        onRename={onRename}
         isDragging={isDragging}
       />
     </div>

@@ -20,6 +20,7 @@ export type GlobalState = {
 export type Reducers = {
   addObject: (projectId: string) => void;
   deleteObject: (objectId: string) => void;
+  renameObject: (objectId: string, name: string) => void;
   toggleObjectVisibility: (objectId: string) => void;
   toggleObjectLock: (objectId: string) => void;
   reorderObjects: (projectId: string, objectIds: string[]) => void;
@@ -234,6 +235,14 @@ const reducers: Reducers = {
         if (chunk.objectId === objectId) {
           current.chunks.delete(key);
         }
+      }
+    });
+  },
+  renameObject: (objectId, name) => {
+    updateState((current) => {
+      const obj = current.objects.find((o) => o.id === objectId);
+      if (obj) {
+        obj.name = name;
       }
     });
   },

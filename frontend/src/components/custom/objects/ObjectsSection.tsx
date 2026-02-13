@@ -79,6 +79,10 @@ export const ObjectsSection = ({
     []
   );
 
+  const renameObject = React.useCallback((obj: VoxelObject, name: string) => {
+    stateStore.reducers.renameObject(obj.id, name);
+  }, []);
+
   const handleDragEnd = React.useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -139,6 +143,7 @@ export const ObjectsSection = ({
                 onDelete={onDelete}
                 onToggleVisibility={toggleVisibility}
                 onToggleLocked={toggleLocked}
+                onRename={renameObject}
               />
             ))}
           </div>
