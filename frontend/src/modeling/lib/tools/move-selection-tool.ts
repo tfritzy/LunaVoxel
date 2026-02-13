@@ -26,6 +26,7 @@ export class MoveSelectionTool implements Tool {
     void event;
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
+    context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
@@ -36,6 +37,7 @@ export class MoveSelectionTool implements Tool {
     );
 
     this.lastOffset.copy(offset);
+    context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -53,6 +55,7 @@ export class MoveSelectionTool implements Tool {
 
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
+    context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
   }
 
   private calculateOffsetFromMouseDelta(

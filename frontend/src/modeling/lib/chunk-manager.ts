@@ -135,6 +135,22 @@ export class ChunkManager {
     return this.objects.find((o) => o.index === objectIndex);
   }
 
+  public getObjectBounds(objectIndex: number): { min: Vector3; max: Vector3 } | null {
+    const object = this.getObject(objectIndex);
+    if (!object) {
+      return null;
+    }
+
+    return {
+      min: { ...object.position },
+      max: {
+        x: object.position.x + object.dimensions.x,
+        y: object.position.y + object.dimensions.y,
+        z: object.position.z + object.dimensions.z,
+      },
+    };
+  }
+
   setTextureAtlas = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
     
