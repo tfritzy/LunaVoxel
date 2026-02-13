@@ -58,21 +58,26 @@ export const ColorPicker = ({
   const backgroundColor = isValidHex(inputValue) ? inputValue : color;
 
   return (
-    <div className={`relative`}>
+    <div className="w-full">
       <HexColorPicker color={color} onChange={handleColorChange} />
-      <input
-        type="text"
-        value={inputValue}
-        onChange={handleHexInputChange}
-        onBlur={handleInputBlur}
-        onFocus={handleInputFocus}
-        className="w-full mt-2 text-xs py-2 font-mono text-center border border-border rounded"
-        style={{
-          backgroundColor,
-          color: textColor,
-        }}
-        placeholder="#ffffff"
-      />
+      <div className="mt-3 flex items-center gap-2">
+        <div
+          className="w-10 h-10 rounded-md border border-border shrink-0 shadow-sm"
+          style={{ backgroundColor }}
+        />
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleHexInputChange}
+          onBlur={handleInputBlur}
+          onFocus={handleInputFocus}
+          className="flex-1 h-10 px-3 text-sm font-mono text-center bg-muted border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background transition-shadow"
+          style={{
+            color: "inherit",
+          }}
+          placeholder="#ffffff"
+        />
+      </div>
     </div>
   );
 };
