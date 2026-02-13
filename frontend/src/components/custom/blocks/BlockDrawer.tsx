@@ -1,14 +1,46 @@
 import { HexagonOverlay } from "./HexagonOverlay";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, Eraser } from "lucide-react";
 import { useMemo, memo } from "react";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
+import { ColorPicker } from "../ColorPicker";
+import { stateStore, useGlobalState } from "@/state/store";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
+
+const EraserBlock = memo(
+  ({
+    isSelected,
+    onSelect,
+  }: {
+    isSelected: boolean;
+    onSelect: () => void;
+  }) => {
+    return (
+      <div
+        className="relative pointer-events-none"
+        style={{
+          width: BLOCK_WIDTH,
+          height: BLOCK_HEIGHT,
+        }}
+      >
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="flex flex-col items-center gap-0.5">
+            <Eraser className="w-5 h-5 text-destructive" />
+            <span className="text-[9px] font-medium text-destructive uppercase tracking-wide">
+              Erase
+            </span>
+          </div>
+        </div>
+        <HexagonOverlay onClick={onSelect} stroke={isSelected} />
+      </div>
+    );
+  }
+);
 
 const HexagonGrid = memo(
   ({
@@ -26,46 +58,59 @@ const HexagonGrid = memo(
 
     const rows = useMemo(() => {
       const result = [];
-      let currentIndex = 0;
+      let currentIndex = -1;
       let rowIndex = 0;
 
-      while (currentIndex < blockCount) {
+      const totalItems = blockCount + 1;
+
+      while (currentIndex < totalItems - 1) {
         const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
         const isOddRow = rowIndex % 2 === 1;
         const rowItems = [];
 
-        for (let i = 0; i < itemsInRow && currentIndex < blockCount; i++) {
-          const blockIndex = currentIndex + 1;
-          const blockTexture = isReady ? getBlockTexture(currentIndex) : null;
-
-          rowItems.push(
-            <div
-              key={blockIndex}
-              className="relative pointer-events-none"
-              style={{
-                width: BLOCK_WIDTH,
-                height: BLOCK_HEIGHT,
-              }}
-            >
-              {blockTexture ? (
-                <img
-                  src={blockTexture}
-                  alt={`Block ${blockIndex}`}
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <FileQuestion className="w-6 h-6 text-muted-foreground" />
-                </div>
-              )}
-
-              <HexagonOverlay
-                onClick={() => onSelectBlock(blockIndex)}
-                stroke={blockIndex === selectedBlock}
+        for (let i = 0; i < itemsInRow && currentIndex < totalItems - 1; i++) {
+          if (currentIndex === -1) {
+            rowItems.push(
+              <EraserBlock
+                key="eraser"
+                isSelected={selectedBlock === 0}
+                onSelect={() => onSelectBlock(0)}
               />
-            </div>
-          );
-          currentIndex++;
+            );
+            currentIndex++;
+          } else {
+            const blockIndex = currentIndex + 1;
+            const blockTexture = isReady ? getBlockTexture(currentIndex) : null;
+
+            rowItems.push(
+              <div
+                key={blockIndex}
+                className="relative pointer-events-none"
+                style={{
+                  width: BLOCK_WIDTH,
+                  height: BLOCK_HEIGHT,
+                }}
+              >
+                {blockTexture ? (
+                  <img
+                    src={blockTexture}
+                    alt={`Block ${blockIndex}`}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FileQuestion className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+
+                <HexagonOverlay
+                  onClick={() => onSelectBlock(blockIndex)}
+                  stroke={blockIndex === selectedBlock}
+                />
+              </div>
+            );
+            currentIndex++;
+          }
         }
 
         result.push(
@@ -108,6 +153,20 @@ export const BlockDrawer = ({
   setSelectedBlock: (index: number) => void;
   atlasData: AtlasData;
 }) => {
+  const blocks = useGlobalState((state) => state.blocks);
+  const selectedBlockColorIndex = selectedBlock > 0 ? selectedBlock - 1 : -1;
+  const selectedBlockColor =
+    selectedBlockColorIndex >= 0
+      ? `#${blocks.colors[selectedBlockColorIndex].toString(16).padStart(6, "0")}`
+      : "#000000";
+
+  const handleColorChange = (color: string) => {
+    if (selectedBlockColorIndex >= 0) {
+      const colorValue = parseInt(color.replace("#", ""), 16);
+      stateStore.reducers.updateBlockColor(selectedBlockColorIndex, colorValue);
+    }
+  };
+
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
       <div className="mb-4">
@@ -122,6 +181,12 @@ export const BlockDrawer = ({
             atlasData={atlasData}
           />
         </div>
+        {selectedBlock > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <h3 className="text-sm font-medium mb-2">Block Color</h3>
+            <ColorPicker color={selectedBlockColor} onChange={handleColorChange} />
+          </div>
+        )}
       </div>
     </div>
   );

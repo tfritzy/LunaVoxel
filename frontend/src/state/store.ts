@@ -46,6 +46,7 @@ export type Reducers = {
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
   commitSelectionMove: (projectId: string, offset: Vector3) => void;
+  updateBlockColor: (blockIndex: number, color: number) => void;
 };
 
 export type StateStore = {
@@ -102,7 +103,7 @@ const createInitialState = (): GlobalState => {
     },
   ];
 
-  const DEFAULT_BLOCK_COLOR = 0x2d2d3a;
+  const DEFAULT_BLOCK_COLOR = 0x3d3852;
   const blocks: ProjectBlocks = {
     projectId,
     colors: Array.from({ length: 127 }, () => DEFAULT_BLOCK_COLOR),
@@ -341,6 +342,13 @@ const reducers: Reducers = {
   updateCursorPos: () => {},
   magicSelect: () => {},
   commitSelectionMove: () => {},
+  updateBlockColor: (blockIndex: number, color: number) => {
+    updateState((current) => {
+      if (blockIndex >= 0 && blockIndex < current.blocks.colors.length) {
+        current.blocks.colors[blockIndex] = color;
+      }
+    });
+  },
 };
 
 export const stateStore: StateStore = {

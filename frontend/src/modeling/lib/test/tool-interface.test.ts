@@ -34,6 +34,7 @@ describe("Tool Interface", () => {
       updateCursorPos: () => {},
       magicSelect: () => {},
       commitSelectionMove: () => {},
+      updateBlockColor: () => {},
     };
 
     mockContext = {
