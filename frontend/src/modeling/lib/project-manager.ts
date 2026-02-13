@@ -148,14 +148,11 @@ export class ProjectManager {
     return this.chunkManager.getBlockAtPosition(position, obj);
   }
 
-  public getSelectedObjectBounds = (objectIndex: number) => {
-    return this.chunkManager.getObjectBounds(objectIndex);
-  };
-
   public updateMoveSelectionBox = (
-    bounds: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } } | null,
+    objectIndex: number,
     offset: THREE.Vector3 = new THREE.Vector3()
   ) => {
+    const bounds = this.chunkManager.getObjectBounds(objectIndex);
     if (!bounds) {
       this.clearMoveSelectionBox();
       return;
@@ -175,9 +172,9 @@ export class ProjectManager {
       bounds.min.z + offset.z
     );
     this.moveSelectionBoxHelper.box.max.set(
-      bounds.max.x + offset.x + 1,
-      bounds.max.y + offset.y + 1,
-      bounds.max.z + offset.z + 1
+      bounds.max.x + offset.x,
+      bounds.max.y + offset.y,
+      bounds.max.z + offset.z
     );
     this.moveSelectionBoxHelper.updateMatrixWorld(true);
   };

@@ -44,10 +44,6 @@ describe("Tool Interface", () => {
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
-        getSelectedObjectBounds: () => ({
-          min: { x: 1, y: 2, z: 3 },
-          max: { x: 3, y: 4, z: 5 },
-        }),
         updateMoveSelectionBox: () => {},
         clearMoveSelectionBox: () => {},
         chunkManager: {
@@ -307,10 +303,6 @@ describe("Tool Interface", () => {
       let moveSelectionBoxUpdated = false;
       mockContext.projectManager = {
         ...mockContext.projectManager,
-        getSelectedObjectBounds: () => ({
-          min: { x: 1, y: 2, z: 3 },
-          max: { x: 3, y: 4, z: 5 },
-        }),
         updateMoveSelectionBox: () => {
           moveSelectionBoxUpdated = true;
         },

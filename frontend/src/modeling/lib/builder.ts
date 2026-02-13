@@ -123,9 +123,7 @@ export const Builder = class {
     this.cancelCurrentOperation();
     this.currentTool = this.createTool(tool);
     if (tool === "MoveSelection") {
-      this.projectManager.updateMoveSelectionBox(
-        this.projectManager.getSelectedObjectBounds(this.selectedObject)
-      );
+      this.projectManager.updateMoveSelectionBox(this.selectedObject);
     }
   }
 
@@ -173,9 +171,7 @@ export const Builder = class {
     this.selectedObject = objectIndex;
     this.toolContext.selectedObject = objectIndex;
     if (this.currentTool.getType() === "MoveSelection") {
-      this.projectManager.updateMoveSelectionBox(
-        this.projectManager.getSelectedObjectBounds(this.selectedObject)
-      );
+      this.projectManager.updateMoveSelectionBox(this.selectedObject);
     }
   }
 
