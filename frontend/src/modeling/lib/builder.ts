@@ -20,7 +20,7 @@ export const Builder = class {
   private projectManager: ProjectManager;
   private selectedBlock: number = 1;
   private setSelectedBlockInParent: (index: number) => void;
-  private selectedLayer: number = 0;
+  private selectedObject: number = 0;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -37,7 +37,7 @@ export const Builder = class {
     projectManager: ProjectManager;
     previewFrame: VoxelFrame;
     selectedBlock: number;
-    selectedLayer: number;
+    selectedObject: number;
     setSelectedBlockInParent: (index: number) => void;
     mode: BlockModificationMode;
     camera: THREE.Camera;
@@ -92,7 +92,7 @@ export const Builder = class {
       projectManager: this.projectManager,
       previewFrame: this.previewFrame,
       selectedBlock: this.selectedBlock,
-      selectedLayer: this.selectedLayer,
+      selectedObject: this.selectedObject,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
       mode: this.currentMode,
       camera: this.camera,
@@ -163,9 +163,9 @@ export const Builder = class {
     this.toolContext.setSelectedBlockInParent = setter;
   }
 
-  public setSelectedLayer(layer: number): void {
-    this.selectedLayer = layer;
-    this.toolContext.selectedLayer = layer;
+  public setSelectedObject(objectIndex: number): void {
+    this.selectedObject = objectIndex;
+    this.toolContext.selectedObject = objectIndex;
   }
 
   public updateCamera(camera: THREE.Camera): void {

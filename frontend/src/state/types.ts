@@ -17,13 +17,15 @@ export type AccessLevel = {
   tag: "ReadWrite" | "Read" | "None";
 };
 
-export type Layer = {
+export type VoxelObject = {
   id: string;
   projectId: string;
   index: number;
   name: string;
   visible: boolean;
   locked: boolean;
+  position: Vector3;
+  dimensions: Vector3;
 };
 
 export type ProjectBlocks = {
@@ -34,7 +36,7 @@ export type ProjectBlocks = {
 export type ChunkData = {
   key: string;
   projectId: string;
-  layerId: string;
+  objectId: string;
   minPos: Vector3;
   size: Vector3;
   voxels: Uint8Array;

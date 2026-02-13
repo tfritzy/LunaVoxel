@@ -73,7 +73,7 @@ export class RectTool implements Tool {
     context.previewFrame.clear();
     
     context.projectManager.applyOptimisticRectEdit(
-      context.selectedLayer,
+      context.selectedObject,
       context.mode,
       event.startGridPosition.clone(),
       event.currentGridPosition.clone(),
@@ -88,7 +88,7 @@ export class RectTool implements Tool {
       event.startGridPosition,
       event.currentGridPosition,
       0,
-      context.selectedLayer
+      context.selectedObject
     );
   }
 }

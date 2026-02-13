@@ -12,7 +12,7 @@ export interface ToolContext {
   projectManager: ProjectManager;
   previewFrame: VoxelFrame;
   selectedBlock: number;
-  selectedLayer: number;
+  selectedObject: number;
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
   camera: THREE.Camera;

@@ -3,7 +3,7 @@ import { CHUNK_SIZE } from "./constants";
 import type {
   BlockModificationMode,
   ChunkData,
-  Layer,
+  VoxelObject,
   Project,
   ProjectBlocks,
   Vector3,
@@ -12,7 +12,7 @@ import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 
 export type GlobalState = {
   project: Project;
-  layers: Layer[];
+  objects: VoxelObject[];
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -25,11 +25,11 @@ export type Reducers = {
     blockIndex: number,
     replacementBlockType: number
   ) => void;
-  addLayer: (projectId: string) => void;
-  deleteLayer: (layerId: string) => void;
-  toggleLayerVisibility: (layerId: string) => void;
-  toggleLayerLock: (layerId: string) => void;
-  reorderLayers: (projectId: string, layerIds: string[]) => void;
+  addObject: (projectId: string) => void;
+  deleteObject: (objectId: string) => void;
+  toggleObjectVisibility: (objectId: string) => void;
+  toggleObjectLock: (objectId: string) => void;
+  reorderObjects: (projectId: string, objectIds: string[]) => void;
   modifyBlockRect: (
     projectId: string,
     mode: BlockModificationMode,
@@ -37,13 +37,13 @@ export type Reducers = {
     start: Vector3,
     end: Vector3,
     rotation: number,
-    layerIndex: number
+    objectIndex: number
   ) => void;
   undoEdit: (
     projectId: string,
     beforeDiff: Uint8Array,
     afterDiff: Uint8Array,
-    layer: number
+    object: number
   ) => void;
   updateCursorPos: (
     projectId: string,
@@ -51,7 +51,7 @@ export type Reducers = {
     position: Vector3,
     normal: Vector3
   ) => void;
-  magicSelect: (projectId: string, layerIndex: number, pos: Vector3) => void;
+  magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
   commitSelectionMove: (projectId: string, offset: Vector3) => void;
 };
 
@@ -62,14 +62,14 @@ export type StateStore = {
 };
 
 const createId = () =>
-  `layer_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+  `obj_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 
-export const getChunkKey = (layerId: string, minPos: Vector3) =>
-  `${layerId}:${minPos.x},${minPos.y},${minPos.z}`;
+export const getChunkKey = (objectId: string, minPos: Vector3) =>
+  `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
 const createChunkData = (
   project: Project,
-  layerId: string,
+  objectId: string,
   minPos: Vector3
 ): ChunkData => {
   const size = {
@@ -79,9 +79,9 @@ const createChunkData = (
   };
   const voxels = new Uint8Array(size.x * size.y * size.z);
   return {
-    key: getChunkKey(layerId, minPos),
+    key: getChunkKey(objectId, minPos),
     projectId: project.id,
-    layerId,
+    objectId,
     minPos,
     size,
     voxels,
@@ -95,15 +95,17 @@ const createInitialState = (): GlobalState => {
     dimensions: { x: 64, y: 64, z: 64 },
   };
 
-  const layerId = createId();
-  const layers: Layer[] = [
+  const objectId = createId();
+  const objects: VoxelObject[] = [
     {
-      id: layerId,
+      id: objectId,
       projectId,
       index: 0,
-      name: "Layer 1",
+      name: "Object 1",
       visible: true,
       locked: false,
+      position: { x: 0, y: 0, z: 0 },
+      dimensions: { x: 64, y: 64, z: 64 },
     },
   ];
 
@@ -117,7 +119,7 @@ const createInitialState = (): GlobalState => {
   };
 
   const chunks = new Map<string, ChunkData>();
-  const seedChunk = createChunkData(project, layerId, { x: 0, y: 0, z: 0 });
+  const seedChunk = createChunkData(project, objectId, { x: 0, y: 0, z: 0 });
 
   const setVoxel = (x: number, y: number, z: number, value: number) => {
     if (
@@ -151,7 +153,7 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, layers, blocks, chunks };
+  return { project, objects, blocks, chunks };
 };
 
 let state = createInitialState();
@@ -170,15 +172,15 @@ const updateState = (mutator: (current: GlobalState) => void) => {
   notify();
 };
 
-const getLayerByIndex = (layerIndex: number) =>
-  state.layers.find((layer) => layer.index === layerIndex);
+const getObjectByIndex = (objectIndex: number) =>
+  state.objects.find((obj) => obj.index === objectIndex);
 
 
-const getOrCreateChunk = (layerId: string, minPos: Vector3) => {
-  const key = getChunkKey(layerId, minPos);
+const getOrCreateChunk = (objectId: string, minPos: Vector3) => {
+  const key = getChunkKey(objectId, minPos);
   let chunk = state.chunks.get(key);
   if (!chunk) {
-    chunk = createChunkData(state.project, layerId, minPos);
+    chunk = createChunkData(state.project, objectId, minPos);
     state.chunks.set(key, chunk);
   }
   return chunk;
@@ -248,68 +250,70 @@ const reducers: Reducers = {
       }
     });
   },
-  addLayer: (_projectId) => {
+  addObject: (_projectId) => {
     void _projectId;
     updateState((current) => {
-      const nextIndex = current.layers.length;
-      current.layers.push({
+      const nextIndex = current.objects.length;
+      current.objects.push({
         id: createId(),
         projectId: current.project.id,
         index: nextIndex,
-        name: `Layer ${nextIndex + 1}`,
+        name: `Object ${nextIndex + 1}`,
         visible: true,
         locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 64, y: 64, z: 64 },
       });
     });
   },
-  deleteLayer: (layerId) => {
+  deleteObject: (objectId) => {
     updateState((current) => {
-      const target = current.layers.find((layer) => layer.id === layerId);
+      const target = current.objects.find((obj) => obj.id === objectId);
       if (!target) return;
-      current.layers = current.layers
-        .filter((layer) => layer.id !== layerId)
-        .map((layer, index) => ({ ...layer, index }));
+      current.objects = current.objects
+        .filter((obj) => obj.id !== objectId)
+        .map((obj, index) => ({ ...obj, index }));
 
       for (const [key, chunk] of current.chunks.entries()) {
-        if (chunk.layerId === layerId) {
+        if (chunk.objectId === objectId) {
           current.chunks.delete(key);
         }
       }
     });
   },
-  toggleLayerVisibility: (layerId) => {
+  toggleObjectVisibility: (objectId) => {
     updateState((current) => {
-      const layer = current.layers.find((l) => l.id === layerId);
-      if (layer) {
-        layer.visible = !layer.visible;
+      const obj = current.objects.find((o) => o.id === objectId);
+      if (obj) {
+        obj.visible = !obj.visible;
       }
     });
   },
-  toggleLayerLock: (layerId) => {
+  toggleObjectLock: (objectId) => {
     updateState((current) => {
-      const layer = current.layers.find((l) => l.id === layerId);
-      if (layer) {
-        layer.locked = !layer.locked;
+      const obj = current.objects.find((o) => o.id === objectId);
+      if (obj) {
+        obj.locked = !obj.locked;
       }
     });
   },
-  reorderLayers: (_projectId, layerIds) => {
+  reorderObjects: (_projectId, objectIds) => {
     void _projectId;
     updateState((current) => {
-      const nextLayers: Layer[] = [];
-      for (const layerId of layerIds) {
-        const layer = current.layers.find((l) => l.id === layerId);
-        if (layer) {
-          nextLayers.push(layer);
+      const nextObjects: VoxelObject[] = [];
+      for (const objectId of objectIds) {
+        const obj = current.objects.find((o) => o.id === objectId);
+        if (obj) {
+          nextObjects.push(obj);
         }
       }
-      current.layers.forEach((layer) => {
-        if (!nextLayers.includes(layer)) {
-          nextLayers.push(layer);
+      current.objects.forEach((obj) => {
+        if (!nextObjects.includes(obj)) {
+          nextObjects.push(obj);
         }
       });
-      current.layers = nextLayers.map((layer, index) => ({
-        ...layer,
+      current.objects = nextObjects.map((obj, index) => ({
+        ...obj,
         index,
       }));
     });
@@ -321,12 +325,12 @@ const reducers: Reducers = {
     start,
     end,
     _rotation,
-    layerIndex
+    objectIndex
   ) => {
     void _projectId;
     updateState((current) => {
-      const layer = getLayerByIndex(layerIndex);
-      if (!layer || layer.locked) return;
+      const obj = getObjectByIndex(objectIndex);
+      if (!obj || obj.locked) return;
 
       const dims = current.project.dimensions;
       const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
@@ -351,7 +355,7 @@ const reducers: Reducers = {
             chunkZ <= maxZ;
             chunkZ += CHUNK_SIZE
           ) {
-            const chunk = getOrCreateChunk(layer.id, {
+            const chunk = getOrCreateChunk(obj.id, {
               x: chunkX,
               y: chunkY,
               z: chunkZ,

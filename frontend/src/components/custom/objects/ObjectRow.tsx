@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { Layer } from "@/state/types";
+import type { VoxelObject } from "@/state/types";
 import {
   Eye,
   EyeOff,
@@ -16,37 +16,37 @@ import {
   UnlockKeyhole,
 } from "lucide-react";
 
-interface LayerRowProps {
-  layer: Layer;
+interface ObjectRowProps {
+  object: VoxelObject;
   isSelected: boolean;
   onSelect: () => void;
-  onDelete: (layer: Layer) => void;
-  onToggleVisibility: (layer: Layer) => void;
-  onToggleLocked: (layer: Layer) => void;
+  onDelete: (object: VoxelObject) => void;
+  onToggleVisibility: (object: VoxelObject) => void;
+  onToggleLocked: (object: VoxelObject) => void;
   isDragging?: boolean;
 }
 
-export const LayerRow = ({
-  layer,
+export const ObjectRow = ({
+  object,
   isSelected,
   onSelect,
   onDelete,
   onToggleVisibility,
   onToggleLocked,
   isDragging = false,
-}: LayerRowProps) => {
+}: ObjectRowProps) => {
   const handleDelete = (event: React.MouseEvent) => {
-    onDelete(layer);
+    onDelete(object);
     event.stopPropagation();
   };
 
   const handleToggleVisibility = (event: React.MouseEvent) => {
-    onToggleVisibility(layer);
+    onToggleVisibility(object);
     event.stopPropagation();
   };
 
   const handleToggleLocked = (event: React.MouseEvent) => {
-    onToggleLocked(layer);
+    onToggleLocked(object);
     event.stopPropagation();
   };
 
@@ -70,7 +70,7 @@ export const LayerRow = ({
         onClick={handleToggleVisibility}
         onPointerDown={stopDragPropagation}
       >
-        {layer.visible ? (
+        {object.visible ? (
           <Eye className="w-4 h-4 text-muted-foreground hover:text-accent" />
         ) : (
           <EyeOff className="w-4 h-4 text-muted-foreground/20 hover:text-accent" />
@@ -82,7 +82,7 @@ export const LayerRow = ({
         onClick={handleToggleLocked}
         onPointerDown={stopDragPropagation}
       >
-        {layer.locked ? (
+        {object.locked ? (
           <LockKeyhole className="w-4 h-4 text-muted-foreground" />
         ) : (
           <UnlockKeyhole className="w-4 h-4 text-muted-foreground/20" />
@@ -97,13 +97,13 @@ export const LayerRow = ({
                 className={`
                   font-medium truncate
                   ${
-                    layer.visible
+                    object.visible
                       ? "text-foreground"
                       : "text-muted-foreground/70"
                   }
                 `}
               >
-                {layer.name}
+                {object.name}
               </div>
             </div>
           </div>

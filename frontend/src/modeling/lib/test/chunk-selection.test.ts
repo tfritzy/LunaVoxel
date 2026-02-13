@@ -21,10 +21,10 @@ describe("Chunk selection rendering", () => {
       scene,
       minPos,
       chunkSize,
-      3, // 3 layers
+      3, // 3 objects
       mockAtlasData,
       () => ({ tag: "Attach" } as BlockModificationMode),
-      () => true // all layers visible
+      () => true // all objects visible
     );
   });
 
@@ -36,7 +36,7 @@ describe("Chunk selection rendering", () => {
 
   it("should handle setting and clearing selection frames", () => {
     const selectionData = {
-      layer: 0,
+      object: 0,
       frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },
@@ -58,7 +58,7 @@ describe("Chunk selection rendering", () => {
 
   it("should handle multiple selection frames from different users", () => {
     const selectionData1 = {
-      layer: 0,
+      object: 0,
       frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },
@@ -69,7 +69,7 @@ describe("Chunk selection rendering", () => {
     selectionData1.frame.voxelData[0] = 1;
 
     const selectionData2 = {
-      layer: 1,
+      object: 1,
       frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode, Layer, Vector3 } from "@/state/types";
+import type { BlockModificationMode, VoxelObject, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
@@ -11,14 +11,14 @@ export class ChunkManager {
   private dimensions: Vector3;
   private stateStore: StateStore;
   private projectId: string;
-  private layers: Layer[] = [];
-  private layerVisibilityMap: Map<number, boolean> = new Map();
+  private objects: VoxelObject[] = [];
+  private objectVisibilityMap: Map<number, boolean> = new Map();
   private chunks: Map<string, Chunk> = new Map();
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
   private unsubscribe?: () => void;
-  private readonly maxLayers = 10;
+  private readonly maxObjects = 10;
 
   constructor(
     scene: THREE.Scene,
@@ -70,11 +70,11 @@ export class ChunkManager {
         this.scene, 
         minPos, 
         size, 
-        this.maxLayers,
+        this.maxObjects,
         this.atlasData, 
         this.getMode,
-        (layerIndex: number) => {
-          return this.layerVisibilityMap.get(layerIndex) ?? true;
+        (objectIndex: number) => {
+          return this.objectVisibilityMap.get(objectIndex) ?? true;
         }
       );
       this.chunks.set(key, chunk); 
@@ -85,41 +85,41 @@ export class ChunkManager {
 
   private handleStateChange = () => {
     const current = this.stateStore.getState();
-    this.layers = current.layers
-      .filter((layer) => layer.projectId === this.projectId)
+    this.objects = current.objects
+      .filter((obj) => obj.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
 
-    this.layerVisibilityMap.clear();
-    for (const layer of this.layers) {
-      this.layerVisibilityMap.set(layer.index, layer.visible);
+    this.objectVisibilityMap.clear();
+    for (const obj of this.objects) {
+      this.objectVisibilityMap.set(obj.index, obj.visible);
     }
 
-    const layerIndexById = new Map(
-      this.layers.map((layer) => [layer.id, layer.index])
+    const objectIndexById = new Map(
+      this.objects.map((obj) => [obj.id, obj.index])
     );
-    const nextChunkLayers = new Map<string, Set<number>>();
+    const nextChunkObjects = new Map<string, Set<number>>();
 
     for (const chunkData of current.chunks.values()) {
       if (chunkData.projectId !== this.projectId) continue;
-      const layerIndex = layerIndexById.get(chunkData.layerId);
-      if (layerIndex === undefined) continue;
+      const objectIndex = objectIndexById.get(chunkData.objectId);
+      if (objectIndex === undefined) continue;
 
       const chunk = this.getOrCreateChunk(chunkData.minPos);
-      chunk.setLayerChunk(layerIndex, chunkData.voxels);
+      chunk.setObjectChunk(objectIndex, chunkData.voxels);
       const key = this.getChunkKey(chunkData.minPos);
-      if (!nextChunkLayers.has(key)) {
-        nextChunkLayers.set(key, new Set());
+      if (!nextChunkObjects.has(key)) {
+        nextChunkObjects.set(key, new Set());
       }
-      nextChunkLayers.get(key)?.add(layerIndex);
+      nextChunkObjects.get(key)?.add(objectIndex);
     }
 
-    const activeLayerCount = Math.max(this.maxLayers, this.layers.length);
+    const activeObjectCount = Math.max(this.maxObjects, this.objects.length);
 
     for (const [key, chunk] of this.chunks.entries()) {
-      const activeLayers = nextChunkLayers.get(key) ?? new Set<number>();
-      for (let i = 0; i < activeLayerCount; i++) {
-        if (!activeLayers.has(i) && chunk.getLayerChunk(i)) {
-          chunk.setLayerChunk(i, null);
+      const activeObjects = nextChunkObjects.get(key) ?? new Set<number>();
+      for (let i = 0; i < activeObjectCount; i++) {
+        if (!activeObjects.has(i) && chunk.getObjectChunk(i)) {
+          chunk.setObjectChunk(i, null);
         }
       }
       if (chunk.isEmpty()) {
@@ -131,8 +131,8 @@ export class ChunkManager {
     this.updateAllChunks();
   };
 
-  public getLayer(layerIndex: number): Layer | undefined {
-    return this.layers.find((l) => l.index === layerIndex);
+  public getObject(objectIndex: number): VoxelObject | undefined {
+    return this.objects.find((o) => o.index === objectIndex);
   }
 
   setTextureAtlas = (atlasData: AtlasData) => {
@@ -188,15 +188,15 @@ export class ChunkManager {
     this.chunksWithPreview = currentChunksWithPreview;
   }
 
-  public getBlockAtPosition(position: THREE.Vector3, layer: Layer): number | null {
+  public getBlockAtPosition(position: THREE.Vector3, obj: VoxelObject): number | null {
     const chunkMinPos = this.getChunkMinPos(position);
     const key = this.getChunkKey(chunkMinPos);
     const chunk = this.chunks.get(key);
     
-    if (!chunk) return 0; // No chunk means empty
+    if (!chunk) return 0;
     
-    const layerChunk = chunk.getLayerChunk(layer.index);
-    if (!layerChunk) return 0;
+    const objectChunk = chunk.getObjectChunk(obj.index);
+    if (!objectChunk) return 0;
     
     const localX = position.x - chunkMinPos.x;
     const localY = position.y - chunkMinPos.y;
@@ -204,7 +204,7 @@ export class ChunkManager {
     
     const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
     
-    return layerChunk.voxels[index] || 0;
+    return objectChunk.voxels[index] || 0;
   }
 
   public getChunks(): Chunk[] {
@@ -226,7 +226,7 @@ export class ChunkManager {
   }
 
   public applyOptimisticRect(
-    layer: Layer,
+    obj: VoxelObject,
     mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
@@ -234,7 +234,7 @@ export class ChunkManager {
     _rotation: number
   ) {
     void _rotation;
-    if (layer.locked) return;
+    if (obj.locked) return;
 
     const minX = Math.floor(Math.min(start.x, end.x));
     const maxX = Math.floor(Math.max(start.x, end.x));
@@ -262,7 +262,7 @@ export class ChunkManager {
           const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
 
           chunk.applyOptimisticRect(
-            layer.index,
+            obj.index,
             mode,
             localMinX, localMaxX,
             localMinY, localMaxY,

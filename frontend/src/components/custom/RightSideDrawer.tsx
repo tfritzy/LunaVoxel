@@ -1,18 +1,18 @@
-import { LayersSection } from "./layers/LayersSection";
+import { ObjectsSection } from "./objects/ObjectsSection";
 
 interface RightSideDrawerProps {
-  onSelectLayer?: (layerIndex: number) => void;
+  onSelectObject?: (objectIndex: number) => void;
   projectId: string;
 }
 
 export const RightSideDrawer = ({
-  onSelectLayer,
+  onSelectObject,
   projectId,
 }: RightSideDrawerProps) => {
   return (
     <div className="h-full bg-background border-l border-border overflow-y-auto w-56">
       <div className="">
-        <LayersSection onSelectLayer={onSelectLayer} projectId={projectId} />
+        <ObjectsSection onSelectObject={onSelectObject} projectId={projectId} />
       </div>
     </div>
   );

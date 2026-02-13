@@ -91,7 +91,7 @@ export class ProjectManager {
   };
 
   applyEdit = (
-    layer: number,
+    object: number,
     beforeDiff: Uint8Array,
     afterDiff: Uint8Array
   ) => {
@@ -99,7 +99,7 @@ export class ProjectManager {
       this.project.id,
       beforeDiff,
       afterDiff,
-      layer
+      object
     );
   };
 
@@ -115,18 +115,18 @@ export class ProjectManager {
   };
 
   public applyOptimisticRectEdit = (
-    layerIndex: number,
+    objectIndex: number,
     mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
     rotation: number
   ) => {
-    const layer = this.chunkManager.getLayer(layerIndex);
-    if (!layer) return;
+    const obj = this.chunkManager.getObject(objectIndex);
+    if (!obj) return;
 
     this.chunkManager.applyOptimisticRect(
-      layer,
+      obj,
       mode,
       start,
       end,
@@ -137,12 +137,12 @@ export class ProjectManager {
 
   public getBlockAtPosition(
     position: THREE.Vector3,
-    layerIndex: number
+    objectIndex: number
   ): number | null {
-    const layer = this.chunkManager.getLayer(layerIndex);
-    if (!layer) return null;
+    const obj = this.chunkManager.getObject(objectIndex);
+    if (!obj) return null;
 
-    return this.chunkManager.getBlockAtPosition(position, layer);
+    return this.chunkManager.getBlockAtPosition(position, obj);
   }
 
   dispose(): void {
