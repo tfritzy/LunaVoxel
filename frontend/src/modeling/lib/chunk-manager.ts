@@ -171,7 +171,7 @@ export class ChunkManager {
       }
     }
 
-    if (!Number.isFinite(minX)) {
+    if (![minX, minY, minZ, maxX, maxY, maxZ].every(Number.isFinite)) {
       return null;
     }
 
