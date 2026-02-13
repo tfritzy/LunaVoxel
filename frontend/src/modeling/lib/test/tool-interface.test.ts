@@ -26,6 +26,7 @@ describe("Tool Interface", () => {
     const reducers: Reducers = {
       addObject: () => {},
       deleteObject: () => {},
+      renameObject: () => {},
       toggleObjectVisibility: () => {},
       toggleObjectLock: () => {},
       reorderObjects: () => {},
