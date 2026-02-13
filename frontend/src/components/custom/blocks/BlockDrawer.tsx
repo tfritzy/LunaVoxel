@@ -1,5 +1,5 @@
-import { HexagonOverlay } from "./HexagonOverlay";
-import { FileQuestion, Eraser } from "lucide-react";
+import { HexagonOverlay, points } from "./HexagonOverlay";
+import { FileQuestion } from "lucide-react";
 import { useMemo, memo } from "react";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
@@ -11,6 +11,41 @@ const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
+
+const EraserVoxelShape = () => {
+  return (
+    <svg
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-10"
+      viewBox="0 0 32 40"
+      fill="none"
+    >
+      <path
+        d="M16 2 L28 10 L28 26 L16 34 L4 26 L4 10 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="3 2"
+        className="text-muted-foreground"
+      />
+      <path
+        d="M4 10 L16 18 L28 10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeDasharray="3 2"
+        className="text-muted-foreground/60"
+      />
+      <path
+        d="M16 18 L16 34"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeDasharray="3 2"
+        className="text-muted-foreground/60"
+      />
+    </svg>
+  );
+};
 
 const EraserBlock = memo(
   ({
@@ -29,14 +64,36 @@ const EraserBlock = memo(
         }}
       >
         <div className="w-full h-full flex items-center justify-center">
-          <div className="flex flex-col items-center gap-0.5">
-            <Eraser className="w-5 h-5 text-destructive" />
-            <span className="text-[9px] font-medium text-destructive uppercase tracking-wide">
-              Erase
-            </span>
-          </div>
+          <EraserVoxelShape />
         </div>
-        <HexagonOverlay onClick={onSelect} stroke={isSelected} />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">
+            Erase
+          </span>
+        </div>
+        <div className="absolute inset-0 pointer-events-none text-muted-foreground">
+          <div
+            className="absolute inset-0 cursor-pointer pointer-events-auto"
+            style={{
+              clipPath: `polygon(50% ${points.top}%, ${points.topRight.x}% ${points.topRight.y}%, ${points.bottomRight.x}% ${points.bottomRight.y}%, 50% ${points.bottom}%, ${points.bottomLeft.x}% ${points.bottomLeft.y}%, ${points.topLeft.x}% ${points.topLeft.y}%)`,
+            }}
+            onMouseDown={onSelect}
+          />
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 100 100"
+            className="absolute inset-0"
+          >
+            <polygon
+              className="fill-transparent"
+              points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
+              stroke={isSelected ? "white" : "currentColor"}
+              strokeWidth={isSelected ? 4 : 2}
+              strokeDasharray={isSelected ? undefined : "6 4"}
+            />
+          </svg>
+        </div>
       </div>
     );
   }

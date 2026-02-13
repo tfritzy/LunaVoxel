@@ -1,4 +1,4 @@
-const points = {
+export const points = {
   bottom: 101.3,
   bottomLeft: { x: 5.350000000000001, y: 75.74499999999999 },
   bottomRight: { x: 94.175, y: 75.74499999999999 },
@@ -9,9 +9,11 @@ const points = {
 export const HexagonOverlay = ({
   onClick,
   stroke,
+  dashed,
 }: {
   onClick: () => void;
   stroke: boolean;
+  dashed?: boolean;
 }) => {
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -22,7 +24,7 @@ export const HexagonOverlay = ({
         }}
         onMouseDown={onClick}
       />
-      {(stroke) && (
+      {(stroke || dashed) && (
         <svg
           width="100%"
           height="100%"
@@ -32,8 +34,9 @@ export const HexagonOverlay = ({
           <polygon
             className="fill-transparent"
             points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
-            stroke="white"
-            strokeWidth={stroke ? 4 : 0}
+            stroke={dashed ? "currentColor" : "white"}
+            strokeWidth={stroke ? 4 : dashed ? 2 : 0}
+            strokeDasharray={dashed ? "6 4" : undefined}
           />
         </svg>
       )}
