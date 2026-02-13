@@ -54,7 +54,6 @@ export const ProjectLayout = ({
 
       <div className="flex flex-1 min-h-0">
         <BlockDrawer
-          projectId={projectId}
           selectedBlock={selectedBlock}
           setSelectedBlock={setSelectedBlock}
           atlasData={atlasData}

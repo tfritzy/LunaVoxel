@@ -1,9 +1,8 @@
 import { HexagonOverlay } from "./HexagonOverlay";
 import { Button } from "@/components/ui/button";
-import { FileQuestion, Plus, Trash2 } from "lucide-react";
-import { useState, useMemo, useCallback, memo } from "react";
+import { FileQuestion } from "lucide-react";
+import { useState, useMemo, memo } from "react";
 import { BlockModal } from "./BlockModal";
-import { DeleteBlockModal } from "./DeleteBlockModal";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
 import { Block3DPreview } from "./Block3dPreview";
@@ -19,13 +18,11 @@ const HexagonGrid = memo(
     blockCount,
     selectedBlock,
     onSelectBlock,
-    onAddNew,
     atlasData,
   }: {
     blockCount: number;
     selectedBlock: number;
     onSelectBlock: (index: number) => void;
-    onAddNew: () => void;
     atlasData: AtlasData;
   }) => {
     const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
@@ -34,65 +31,43 @@ const HexagonGrid = memo(
       const result = [];
       let currentIndex = 0;
       let rowIndex = 0;
-      const totalItems = blockCount + 1;
 
-      while (currentIndex < totalItems) {
+      while (currentIndex < blockCount) {
         const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
         const isOddRow = rowIndex % 2 === 1;
         const rowItems = [];
 
-        for (let i = 0; i < itemsInRow && currentIndex < totalItems; i++) {
-          if (currentIndex < blockCount) {
-            const blockIndex = currentIndex + 1;
-            const blockTexture = isReady ? getBlockTexture(currentIndex) : null;
+        for (let i = 0; i < itemsInRow && currentIndex < blockCount; i++) {
+          const blockIndex = currentIndex + 1;
+          const blockTexture = isReady ? getBlockTexture(currentIndex) : null;
 
-            rowItems.push(
-              <div
-                key={blockIndex}
-                className="relative pointer-events-none"
-                style={{
-                  width: BLOCK_WIDTH,
-                  height: BLOCK_HEIGHT,
-                }}
-              >
-                {blockTexture ? (
-                  <img
-                    src={blockTexture}
-                    alt={`Block ${blockIndex}`}
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FileQuestion className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                )}
-
-                <HexagonOverlay
-                  onClick={() => onSelectBlock(blockIndex)}
-                  stroke={blockIndex === selectedBlock}
+          rowItems.push(
+            <div
+              key={blockIndex}
+              className="relative pointer-events-none"
+              style={{
+                width: BLOCK_WIDTH,
+                height: BLOCK_HEIGHT,
+              }}
+            >
+              {blockTexture ? (
+                <img
+                  src={blockTexture}
+                  alt={`Block ${blockIndex}`}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
                 />
-              </div>
-            );
-          } else {
-            rowItems.push(
-              <div
-                key={`add-${currentIndex}`}
-                className="relative rounded-full pointer-events-none"
-                style={{
-                  width: BLOCK_WIDTH,
-                  height: BLOCK_HEIGHT,
-                }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Plus className="w-6 h-6 text-muted-foreground" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <FileQuestion className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <HexagonOverlay
-                  onClick={onAddNew}
-                  stroke={false}
-                />
-              </div>
-            );
-          }
+              )}
+
+              <HexagonOverlay
+                onClick={() => onSelectBlock(blockIndex)}
+                stroke={blockIndex === selectedBlock}
+              />
+            </div>
+          );
           currentIndex++;
         }
 
@@ -118,7 +93,6 @@ const HexagonGrid = memo(
       blockCount,
       selectedBlock,
       onSelectBlock,
-      onAddNew,
       getBlockTexture,
       isReady,
       atlasData,
@@ -129,30 +103,15 @@ const HexagonGrid = memo(
 );
 
 export const BlockDrawer = ({
-  projectId,
   selectedBlock,
   setSelectedBlock,
   atlasData,
 }: {
-  projectId: string;
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
   atlasData: AtlasData;
 }) => {
-  const [editingBlockIndex, setEditingBlockIndex] = useState<
-    number | "new" | null
-  >(null);
-  const [deletingBlockIndex, setDeletingBlockIndex] = useState<number | null>(
-    null
-  );
-
-  const handleAddNew = useCallback(() => {
-    setEditingBlockIndex("new");
-  }, []);
-
-  const handleDelete = useCallback(() => {
-    setDeletingBlockIndex(selectedBlock);
-  }, [selectedBlock]);
+  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null);
 
   const faceColors =
     selectedBlock <= atlasData.blockAtlasMappings.length
@@ -172,7 +131,6 @@ export const BlockDrawer = ({
             blockCount={atlasData.blockAtlasMappings.length}
             selectedBlock={selectedBlock}
             onSelectBlock={setSelectedBlock}
-            onAddNew={handleAddNew}
             atlasData={atlasData}
           />
         </div>
@@ -189,9 +147,6 @@ export const BlockDrawer = ({
               >
                 Edit Block
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDelete}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
             </div>
             <div className="bg-muted/30 rounded-lg border border-border">
               <div className="h-48 flex items-center justify-center">
@@ -207,16 +162,6 @@ export const BlockDrawer = ({
             onClose={() => setEditingBlockIndex(null)}
             blockIndex={editingBlockIndex}
             atlasData={atlasData}
-          />
-        )}
-
-        {deletingBlockIndex !== null && (
-          <DeleteBlockModal
-            isOpen={deletingBlockIndex !== null}
-            onClose={() => setDeletingBlockIndex(null)}
-            blockIndex={deletingBlockIndex}
-            atlasData={atlasData}
-            projectId={projectId}
           />
         )}
       </div>
