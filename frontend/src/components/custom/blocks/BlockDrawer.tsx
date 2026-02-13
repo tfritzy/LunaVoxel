@@ -1,5 +1,5 @@
 import { HexagonOverlay, points } from "./HexagonOverlay";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, Eraser } from "lucide-react";
 import { useMemo, memo } from "react";
 import { useBlockTextures } from "@/lib/useBlockTextures";
 import { AtlasData } from "@/lib/useAtlas";
@@ -11,41 +11,6 @@ const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
-
-const EraserVoxelShape = () => {
-  return (
-    <svg
-      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-10"
-      viewBox="0 0 32 40"
-      fill="none"
-    >
-      <path
-        d="M16 2 L28 10 L28 26 L16 34 L4 26 L4 10 Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeDasharray="3 2"
-        className="text-muted-foreground"
-      />
-      <path
-        d="M4 10 L16 18 L28 10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeDasharray="3 2"
-        className="text-muted-foreground/60"
-      />
-      <path
-        d="M16 18 L16 34"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeDasharray="3 2"
-        className="text-muted-foreground/60"
-      />
-    </svg>
-  );
-};
 
 const EraserBlock = memo(
   ({
@@ -63,11 +28,9 @@ const EraserBlock = memo(
           height: BLOCK_HEIGHT,
         }}
       >
-        <div className="w-full h-full flex items-center justify-center">
-          <EraserVoxelShape />
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
+          <Eraser className="w-4 h-4 text-muted-foreground" />
+          <span className="text-[7px] font-semibold text-muted-foreground uppercase tracking-wider">
             Erase
           </span>
         </div>
