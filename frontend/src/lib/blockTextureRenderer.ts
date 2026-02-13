@@ -87,7 +87,7 @@ class BlockTextureRenderer {
       const faceVertices = face.vertices;
       const faceNormal = face.normal;
 
-      const textureIndex = atlasData.blockAtlasMappings[blockIndex][faceIndex];
+      const textureIndex = atlasData.blockAtlasMapping[blockIndex];
 
       const textureCoords = getTextureCoordinates(
         textureIndex,

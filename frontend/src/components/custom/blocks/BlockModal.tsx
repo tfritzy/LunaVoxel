@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { stateStore, useGlobalState } from "@/state/store";
 import { HexColorPicker } from "react-colorful";
@@ -98,88 +97,43 @@ export const BlockModal = ({
   const projectId = useGlobalState((state) => state.project.id);
 
   const defaultColor = "#ffffff";
-  const [applyToAllFaces, setApplyToAllFaces] = useState(true);
-  const [selectedColors, setSelectedColors] = useState<string[]>(() => {
-    const blockAtlasIndices = atlasData.blockAtlasMappings?.[blockIndex - 1];
-    if (blockAtlasIndices) {
-      return blockAtlasIndices.map(
-        (atlasIndex) =>
-          "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
-      );
+  const [selectedColor, setSelectedColor] = useState<string>(() => {
+    const atlasIndex = atlasData.blockAtlasMapping?.[blockIndex - 1];
+    if (atlasIndex !== undefined) {
+      return "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0");
     }
-    return Array(6).fill(defaultColor);
+    return defaultColor;
   });
   const [submitPending, setSubmitPending] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      const blockAtlasIndices = atlasData.blockAtlasMappings?.[blockIndex - 1];
-      if (blockAtlasIndices) {
-        const existingColors = blockAtlasIndices.map(
-          (atlasIndex) =>
-            "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
+      const atlasIndex = atlasData.blockAtlasMapping?.[blockIndex - 1];
+      if (atlasIndex !== undefined) {
+        setSelectedColor(
+          "#" + atlasData.colors[atlasIndex].toString(16).padStart(6, "0")
         );
-        const allSame = existingColors.every(
-          (color) => color === existingColors[0]
-        );
-        setApplyToAllFaces(allSame);
-        setSelectedColors(existingColors);
       } else {
-        setApplyToAllFaces(true);
-        setSelectedColors(Array(6).fill(defaultColor));
+        setSelectedColor(defaultColor);
       }
     }
   }, [isOpen, blockIndex, atlasData]);
 
-  const handleApplyToAllChange = (checked: boolean | "indeterminate") => {
-    const isApplyingAll = checked === false;
-    setApplyToAllFaces(isApplyingAll);
-    if (isApplyingAll) {
-      setSelectedColors(Array(6).fill(selectedColors[0]));
-    }
-  };
-
-  const handleColorChange = (color: string, faceIndex?: number) => {
-    if (applyToAllFaces || faceIndex === undefined) {
-      setSelectedColors(Array(6).fill(color));
-    } else {
-      const newColors = [...selectedColors];
-      newColors[faceIndex] = color;
-      setSelectedColors(newColors);
-    }
-  };
-
   const handleSubmit = () => {
     setSubmitPending(true);
-    const colorNumbers = selectedColors.map((hex) =>
-      parseInt(hex.replace("#", ""), 16)
-    );
+    const colorNumber = parseInt(selectedColor.replace("#", ""), 16);
 
-    stateStore.reducers.updateBlock(projectId, blockIndex - 1, colorNumbers);
+    stateStore.reducers.updateBlock(projectId, blockIndex - 1, colorNumber);
     setSubmitPending(false);
     onClose();
   };
-
-  const faceNames = ["Right", "Left", "Top", "Bottom", "Front", "Back"];
-
-  const renderFaceColorPicker = (faceIndex: number) => (
-    <div className="space-y-1 items-center flex flex-col">
-      <label className="text-muted-foreground mb-2">
-        {faceNames[faceIndex]}
-      </label>
-      <ColorPicker
-        color={selectedColors[faceIndex]}
-        onChange={(color) => handleColorChange(color, faceIndex)}
-      />
-    </div>
-  );
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Block"
-      size="5xl"
+      size="2xl"
       footer={
         <div className="flex justify-end w-full">
           <div className="flex gap-4">
@@ -197,45 +151,18 @@ export const BlockModal = ({
         <div className="absolute max-h-full pb-4 pt-2 px-4 h-full overflow-y-auto">
           <div className="pr-6 h-full">
             <div className="flex flex-col h-full space-y-4">
-              <div className="rounded-lg p-4 border border-border shadow-sm">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="apply-all"
-                    checked={!applyToAllFaces}
-                    onCheckedChange={handleApplyToAllChange}
-                  />
-                  <label
-                    htmlFor="apply-all"
-                    className="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    Individual face colors
-                  </label>
-                </div>
-              </div>
-
               <div className="rounded-lg p-6 flex flex-col border border-border shadow-sm flex-1 overflow-y-auto bg-background">
-                {applyToAllFaces ? (
-                  <div className="flex justify-center">
-                    <ColorPicker
-                      color={selectedColors[0]}
-                      onChange={(color) => handleColorChange(color)}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col space-y-8 justify-items-center">
-                    {renderFaceColorPicker(2)}
-                    {renderFaceColorPicker(1)}
-                    {renderFaceColorPicker(4)}
-                    {renderFaceColorPicker(0)}
-                    {renderFaceColorPicker(3)}
-                    {renderFaceColorPicker(5)}
-                  </div>
-                )}
+                <div className="flex justify-center">
+                  <ColorPicker
+                    color={selectedColor}
+                    onChange={setSelectedColor}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <Block3DPreview faceColors={selectedColors} camRadius={8} />
+        <Block3DPreview color={selectedColor} camRadius={8} />
       </div>
     </Modal>
   );

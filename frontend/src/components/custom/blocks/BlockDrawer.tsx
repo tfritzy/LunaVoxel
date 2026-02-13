@@ -113,11 +113,9 @@ export const BlockDrawer = ({
 }) => {
   const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null);
 
-  const faceColors =
-    selectedBlock <= atlasData.blockAtlasMappings.length
-      ? atlasData.blockAtlasMappings[selectedBlock - 1]
-          .map((face) => atlasData.colors[face])
-          .map((c) => `#${c.toString(16).padStart(6, "0")}`)
+  const blockColor =
+    selectedBlock <= atlasData.blockAtlasMapping.length
+      ? `#${atlasData.colors[atlasData.blockAtlasMapping[selectedBlock - 1]].toString(16).padStart(6, "0")}`
       : null;
 
   return (
@@ -128,13 +126,13 @@ export const BlockDrawer = ({
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <HexagonGrid
-            blockCount={atlasData.blockAtlasMappings.length}
+            blockCount={atlasData.blockAtlasMapping.length}
             selectedBlock={selectedBlock}
             onSelectBlock={setSelectedBlock}
             atlasData={atlasData}
           />
         </div>
-        {faceColors && (
+        {blockColor && (
           <div className="">
             <div className="flex gap-2 mb-2">
               <Button
@@ -150,7 +148,7 @@ export const BlockDrawer = ({
             </div>
             <div className="bg-muted/30 rounded-lg border border-border">
               <div className="h-48 flex items-center justify-center">
-                <Block3DPreview faceColors={faceColors} camRadius={4} />
+                <Block3DPreview color={blockColor} camRadius={4} />
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { useGlobalState } from "@/state/store";
 
 export interface AtlasData {
-  blockAtlasMappings: number[][];
+  blockAtlasMapping: number[];
   texture: THREE.Texture | null;
   colors: number[];
 }
@@ -20,29 +20,25 @@ export const useAtlas = (): AtlasData => {
       textureRef.current = null;
     }
 
-    if (!blocks.faceColors.length) {
-      return { blockAtlasMappings: [], colors: [], texture: null };
+    if (!blocks.colors.length) {
+      return { blockAtlasMapping: [], colors: [], texture: null };
     }
 
     const colors: number[] = [];
     const colorMap = new Map<number, number>();
-    const blockAtlasMappings: number[][] = [];
+    const blockAtlasMapping: number[] = [];
 
-    for (let i = 0; i < blocks.faceColors.length; i++) {
-      const blockAtlasIndexes: number[] = [];
-      for (let j = 0; j < blocks.faceColors[i].length; j++) {
-        const color = blocks.faceColors[i][j];
-        if (!colorMap.has(color)) {
-          colorMap.set(color, colors.length);
-          colors.push(color);
-        }
-        blockAtlasIndexes.push(colorMap.get(color)!);
+    for (let i = 0; i < blocks.colors.length; i++) {
+      const color = blocks.colors[i];
+      if (!colorMap.has(color)) {
+        colorMap.set(color, colors.length);
+        colors.push(color);
       }
-      blockAtlasMappings.push(blockAtlasIndexes);
+      blockAtlasMapping.push(colorMap.get(color)!);
     }
 
     if (!colors.length) {
-      return { blockAtlasMappings, colors, texture: null };
+      return { blockAtlasMapping, colors, texture: null };
     }
 
     if (!canvasRef.current) {
@@ -54,7 +50,7 @@ export const useAtlas = (): AtlasData => {
     const ctx = ctxRef.current;
 
     if (!ctx) {
-      return { blockAtlasMappings, colors, texture: null };
+      return { blockAtlasMapping, colors, texture: null };
     }
 
     const requiredSlots = colors.length;
@@ -82,7 +78,7 @@ export const useAtlas = (): AtlasData => {
 
     textureRef.current = texture;
 
-    return { blockAtlasMappings, colors, texture };
+    return { blockAtlasMapping, colors, texture };
   }, [blocks]);
 
   useEffect(() => {

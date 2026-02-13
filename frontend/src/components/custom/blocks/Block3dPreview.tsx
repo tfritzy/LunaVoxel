@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { faces } from "@/modeling/lib/voxel-constants";
 
 interface Block3DPreviewProps {
-  faceColors: string[];
+  color: string;
   camRadius: number;
 }
 
@@ -61,7 +61,7 @@ const createBlockMaterial = (opacity: number = 1) => {
 };
 
 export const Block3DPreview = ({
-  faceColors,
+  color,
   camRadius,
 }: Block3DPreviewProps) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -78,7 +78,7 @@ export const Block3DPreview = ({
   });
   const lastTimeRef = useRef(0);
 
-  const createCubeGeometry = (colors: string[]): THREE.BufferGeometry => {
+  const createCubeGeometry = (blockColor: string): THREE.BufferGeometry => {
     const geometry = new THREE.BufferGeometry();
     const vertices: number[] = [];
     const normals: number[] = [];
@@ -87,13 +87,12 @@ export const Block3DPreview = ({
     const indices: number[] = [];
 
     let vertexIndex = 0;
+    const colorObj = new THREE.Color(blockColor || "#ffffff");
 
     for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
       const face = faces[faceIndex];
       const faceVertices = face.vertices;
       const faceNormal = face.normal;
-
-      const color = new THREE.Color(colors[faceIndex] || "#ffffff");
 
       const startVertexIndex = vertexIndex;
 
@@ -101,7 +100,7 @@ export const Block3DPreview = ({
         const vertex = faceVertices[j];
         vertices.push(vertex[0], vertex[1], vertex[2]);
         normals.push(faceNormal[0], faceNormal[1], faceNormal[2]);
-        vertexColors.push(color.r, color.g, color.b);
+        vertexColors.push(colorObj.r, colorObj.g, colorObj.b);
         ao.push(1.0);
         vertexIndex++;
       }
@@ -140,7 +139,7 @@ export const Block3DPreview = ({
   const updateGeometry = () => {
     if (!meshRef.current) return;
 
-    const newGeometry = createCubeGeometry(faceColors);
+    const newGeometry = createCubeGeometry(color);
     const oldGeometry = meshRef.current.geometry;
     meshRef.current.geometry = newGeometry;
     oldGeometry.dispose();
@@ -227,7 +226,7 @@ export const Block3DPreview = ({
   };
 
   useEffect(() => {
-    if (!mountRef.current || faceColors.length === 0) return;
+    if (!mountRef.current || !color) return;
 
     const container = mountRef.current;
     const width = container.clientWidth || 400;
@@ -244,7 +243,7 @@ export const Block3DPreview = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    const geometry = createCubeGeometry(faceColors);
+    const geometry = createCubeGeometry(color);
     const material = createBlockMaterial();
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.y = 0.5;
@@ -288,13 +287,13 @@ export const Block3DPreview = ({
       material.dispose();
       renderer.dispose();
     };
-  }, [faceColors]);
+  }, [color]);
 
   useEffect(() => {
-    if (meshRef.current && faceColors.length > 0) {
+    if (meshRef.current && color) {
       updateGeometry();
     }
-  }, [faceColors]);
+  }, [color]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(handleResize);
