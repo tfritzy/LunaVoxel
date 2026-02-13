@@ -141,7 +141,6 @@ export const ObjectRow = ({
                     if (event.key === "Enter") {
                       commitRename();
                     } else if (event.key === "Escape") {
-                      setName(object.name);
                       setIsRenaming(false);
                     }
                   }}
