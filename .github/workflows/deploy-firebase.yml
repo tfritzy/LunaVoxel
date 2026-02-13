@@ -7,6 +7,10 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   deploy:
     if: github.event.pull_request.merged == true
@@ -36,5 +40,5 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: block-by-block-1d4af
+          projectId: ${{ vars.FIREBASE_PROJECT_ID || 'block-by-block-1d4af' }}
           channelId: live
