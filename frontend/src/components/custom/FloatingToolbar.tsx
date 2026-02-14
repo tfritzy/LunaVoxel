@@ -101,7 +101,7 @@ export const FloatingToolbar = ({
 
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="flex items-end gap-3">
+      <div className="flex items-end gap-6">
         <div className="flex items-center gap-1">
           {modeConfig.map((mode) => {
             const isActive = currentMode.tag === mode.tag;
