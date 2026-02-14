@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Eraser, Paintbrush, PlusSquare, Pipette, Wand2, Move, Circle } from "lucide-react";
+import { PlusSquare, Pipette, Wand2, Move, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { BlockModificationMode } from "@/state/types";
@@ -29,16 +29,16 @@ export const FloatingToolbar = ({
         case "m":
           onToolChange("MoveSelection");
           break;
-        case "a":
+        case "r":
           onToolChange("Rect");
+          break;
+        case "a":
           onModeChange({ tag: "Attach" });
           break;
         case "e":
-          onToolChange("Rect");
           onModeChange({ tag: "Erase" });
           break;
         case "t":
-          onToolChange("Rect");
           onModeChange({ tag: "Paint" });
           break;
         case "c":
@@ -53,16 +53,14 @@ export const FloatingToolbar = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onToolChange, onModeChange]);
 
-  const isAttachMode = currentTool === "Rect" && currentMode.tag === "Attach";
-  const isEraseMode = currentTool === "Rect" && currentMode.tag === "Erase";
-  const isPaintMode = currentTool === "Rect" && currentMode.tag === "Paint";
+  const isAttachMode = currentMode.tag === "Attach";
+  const isEraseMode = currentMode.tag === "Erase";
+  const isPaintMode = currentMode.tag === "Paint";
 
-  // TODO: Separate mode selector and tool selector in the UI. Currently, Build/Erase/Paint
-  // buttons set both tool (Rect) and mode (Attach/Erase/Paint). In the future, we should
-  // have independent mode and tool selectors so users can combine any tool with any mode.
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
         <Button
           onClick={() => onToolChange("MoveSelection")}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
@@ -76,49 +74,16 @@ export const FloatingToolbar = ({
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">M</div>
         </Button>
         <Button
-          onClick={() => {
-            onToolChange("Rect");
-            onModeChange({ tag: "Attach" });
-          }}
+          onClick={() => onToolChange("Rect")}
           className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            isAttachMode
+            currentTool === "Rect"
               ? "border-accent text-accent"
               : "border-secondary text-secondary"
           }`}
-          title="Attach Mode (A)"
+          title="Rect Tool (R)"
         >
           <PlusSquare className="min-w-8 min-h-8" />
-          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">A</div>
-        </Button>
-        <Button
-          onClick={() => {
-            onToolChange("Rect");
-            onModeChange({ tag: "Erase" });
-          }}
-          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            isEraseMode
-              ? "border-accent text-accent"
-              : "border-secondary text-secondary"
-          }`}
-          title="Erase Mode (E)"
-        >
-          <Eraser className="min-w-8 min-h-8" />
-          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">E</div>
-        </Button>
-        <Button
-          onClick={() => {
-            onToolChange("Rect");
-            onModeChange({ tag: "Paint" });
-          }}
-          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            isPaintMode
-              ? "border-accent text-accent"
-              : "border-secondary text-secondary"
-          }`}
-          title="Paint Mode (T)"
-        >
-          <Paintbrush className="min-w-8 min-h-8" />
-          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
+          <div className="absolute bottom-0.5 right-0.5 text-xs px-1">R</div>
         </Button>
         <Button
           onClick={() => onToolChange("BlockPicker")}
@@ -162,6 +127,42 @@ export const FloatingToolbar = ({
             className="w-16 h-16 border-2 border-secondary bg-background"
           />
         ))}
+        </div>
+        <div className="flex items-center gap-2 rounded-full border-2 border-secondary bg-background px-3 py-2">
+          <Button
+            onClick={() => onModeChange({ tag: "Attach" })}
+            className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
+              isAttachMode
+                ? "border-emerald-400 bg-emerald-500/20 text-emerald-300"
+                : "border-secondary bg-background text-secondary hover:border-emerald-400/70 hover:text-emerald-300/80"
+            }`}
+            title="Attach Mode (A)"
+          >
+            <div className={`h-3.5 w-3.5 rounded-full ${isAttachMode ? "bg-emerald-300 shadow-[0_0_8px_var(--color-emerald-300)]" : "bg-emerald-600/70"}`} />
+          </Button>
+          <Button
+            onClick={() => onModeChange({ tag: "Erase" })}
+            className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
+              isEraseMode
+                ? "border-rose-400 bg-rose-500/20 text-rose-300"
+                : "border-secondary bg-background text-secondary hover:border-rose-400/70 hover:text-rose-300/80"
+            }`}
+            title="Erase Mode (E)"
+          >
+            <div className={`h-3.5 w-3.5 rounded-full ${isEraseMode ? "bg-rose-300 shadow-[0_0_8px_var(--color-rose-300)]" : "bg-rose-600/70"}`} />
+          </Button>
+          <Button
+            onClick={() => onModeChange({ tag: "Paint" })}
+            className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
+              isPaintMode
+                ? "border-sky-400 bg-sky-500/20 text-sky-300"
+                : "border-secondary bg-background text-secondary hover:border-sky-400/70 hover:text-sky-300/80"
+            }`}
+            title="Paint Mode (T)"
+          >
+            <div className={`h-3.5 w-3.5 rounded-full ${isPaintMode ? "bg-sky-300 shadow-[0_0_8px_var(--color-sky-300)]" : "bg-sky-600/70"}`} />
+          </Button>
+        </div>
       </div>
     </div>
   );

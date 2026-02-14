@@ -137,6 +137,26 @@ describe("Tool Interface", () => {
       
       expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
     });
+
+    it("should dispatch rect edit using selected mode", () => {
+      let passedMode: BlockModificationMode | null = null;
+      mockContext.mode = paintMode;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        modifyBlockRect: (_projectId: string, mode: BlockModificationMode) => {
+          passedMode = mode;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(3, 4, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(passedMode).toEqual(paintMode);
+    });
   });
 
   describe("BlockPicker Tool", () => {
@@ -368,6 +388,26 @@ describe("Tool Interface", () => {
       });
 
       expect(called).toBe(true);
+    });
+
+    it("should dispatch sphere edit using selected mode", () => {
+      let passedMode: BlockModificationMode | null = null;
+      mockContext.mode = eraseMode;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        modifyBlockSphere: (_projectId: string, mode: BlockModificationMode) => {
+          passedMode = mode;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(3, 4, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(passedMode).toEqual(eraseMode);
     });
   });
 });
