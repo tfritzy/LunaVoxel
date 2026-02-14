@@ -10,6 +10,9 @@ import { isInsideFillShape } from "../fill-shape-utils";
 
 export class RectTool implements Tool {
   private fillShape: FillShape = "Rect";
+  private flipX: boolean = false;
+  private flipY: boolean = false;
+  private flipZ: boolean = false;
 
   getType(): ToolType {
     return "Rect";
@@ -22,12 +25,33 @@ export class RectTool implements Tool {
         values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"],
         currentValue: this.fillShape,
       },
+      {
+        name: "Flip X",
+        values: ["Off", "On"],
+        currentValue: this.flipX ? "On" : "Off",
+      },
+      {
+        name: "Flip Y",
+        values: ["Off", "On"],
+        currentValue: this.flipY ? "On" : "Off",
+      },
+      {
+        name: "Flip Z",
+        values: ["Off", "On"],
+        currentValue: this.flipZ ? "On" : "Off",
+      },
     ];
   }
 
   setOption(name: string, value: string): void {
     if (name === "Fill Shape") {
       this.fillShape = value as FillShape;
+    } else if (name === "Flip X") {
+      this.flipX = value === "On";
+    } else if (name === "Flip Y") {
+      this.flipY = value === "On";
+    } else if (name === "Flip Z") {
+      this.flipZ = value === "On";
     }
   }
 
@@ -76,7 +100,10 @@ export class RectTool implements Tool {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          if (isInsideFillShape(this.fillShape, x, y, z, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
+          const sx = this.flipX ? bounds.minX + bounds.maxX - x : x;
+          const sy = this.flipY ? bounds.minY + bounds.maxY - y : y;
+          const sz = this.flipZ ? bounds.minZ + bounds.maxZ - z : z;
+          if (isInsideFillShape(this.fillShape, sx, sy, sz, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
             context.previewFrame.set(x, y, z, previewValue);
           }
         }

@@ -11,6 +11,8 @@ import {
   Hexagon,
   Star,
   Cross,
+  FlipHorizontal2,
+  FlipVertical2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +29,16 @@ const fillShapeIcons: Record<string, LucideIcon> = {
   Cross: Cross,
 };
 
+const flipIcons: Record<string, LucideIcon> = {
+  "Flip X": FlipHorizontal2,
+  "Flip Y": FlipVertical2,
+  "Flip Z": FlipHorizontal2,
+};
+
+function isToggleOption(option: ToolOption): boolean {
+  return option.values.length === 2 && option.values[0] === "Off" && option.values[1] === "On";
+}
+
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
@@ -38,13 +50,16 @@ export const ToolOptionsPanel = ({
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
+  const regularOptions = options.filter((o) => !isToggleOption(o));
+  const toggleOptions = options.filter((o) => isToggleOption(o));
+
   return (
     <div className="border-t border-border">
       <div className="w-full flex flex-row justify-between items-center pl-4 pt-4">
         <h2 className="text-lg font-semibold">Tool Options</h2>
       </div>
       <div className="px-4 pb-4">
-        {options.map((option) => (
+        {regularOptions.map((option) => (
           <div key={option.name}>
             <div className="text-sm text-muted-foreground mb-2">
               {option.name}
@@ -75,6 +90,34 @@ export const ToolOptionsPanel = ({
             </div>
           </div>
         ))}
+        {toggleOptions.length > 0 && (
+          <div className="mt-2">
+            <div className="flex flex-wrap gap-1">
+              {toggleOptions.map((option) => {
+                const Icon = flipIcons[option.name];
+                const isOn = option.currentValue === "On";
+                return (
+                  <Button
+                    key={option.name}
+                    variant="ghost"
+                    onClick={() =>
+                      onOptionChange(option.name, isOn ? "Off" : "On")
+                    }
+                    className={`h-10 px-2 border-2 rounded-none gap-1 ${
+                      isOn
+                        ? "border-accent text-accent"
+                        : "border-secondary text-secondary"
+                    }`}
+                    title={option.name}
+                  >
+                    {Icon && <Icon className="w-4 h-4" />}
+                    <span className="text-xs">{option.name.replace("Flip ", "")}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
