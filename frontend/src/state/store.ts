@@ -260,7 +260,7 @@ const isInsideShape = (
     return dx * dx + dz * dz <= 1;
   }
 
-  const heightRatio = Math.min(1, Math.abs(dy));
+  const heightRatio = radiusY === 0 ? 0 : Math.min(1, Math.abs(dy));
   const maxDx = 1 - heightRatio;
   const maxDz = 1 - heightRatio;
   return Math.abs(dx) <= maxDx && Math.abs(dz) <= maxDz;
