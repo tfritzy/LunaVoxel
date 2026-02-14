@@ -30,13 +30,13 @@ export const ToolOptionsPanel = ({
 
   return (
     <div className="border-t border-border">
-      <div className="w-full flex flex-row justify-between items-center mb-2 pl-4 pt-4">
-        <h2 className="text-lg font-semibold">Tool Options</h2>
+      <div className="w-full flex flex-row justify-between items-center pl-4 pt-2">
+        <h3 className="text-sm font-semibold">Tool Options</h3>
       </div>
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-2">
         {options.map((option) => (
           <div key={option.name}>
-            <div className="text-sm text-muted-foreground mb-2">
+            <div className="text-xs text-muted-foreground mb-1">
               {option.name}
             </div>
             <div className="flex flex-wrap gap-1">
@@ -47,7 +47,7 @@ export const ToolOptionsPanel = ({
                     key={value}
                     variant="ghost"
                     onClick={() => onOptionChange(option.name, value)}
-                    className={`w-10 h-10 p-0 border-2 rounded-none ${
+                    className={`w-8 h-8 p-0 border-2 rounded-none ${
                       option.currentValue === value
                         ? "border-accent text-accent"
                         : "border-secondary text-secondary"
@@ -55,7 +55,7 @@ export const ToolOptionsPanel = ({
                     title={value}
                   >
                     {Icon ? (
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4" />
                     ) : (
                       <span className="text-xs">{value}</span>
                     )}

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
-import type { FillShape } from "../fill-shape";
+import type { FillShape } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";

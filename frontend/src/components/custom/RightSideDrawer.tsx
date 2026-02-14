@@ -16,8 +16,8 @@ export const RightSideDrawer = ({
   onToolOptionChange,
 }: RightSideDrawerProps) => {
   return (
-    <div className="h-full bg-background border-l border-border overflow-y-auto w-56">
-      <div className="">
+    <div className="h-full bg-background border-l border-border overflow-y-auto w-56 flex flex-col">
+      <div className="flex-1">
         <ObjectsSection onSelectObject={onSelectObject} projectId={projectId} />
       </div>
       <ToolOptionsPanel
