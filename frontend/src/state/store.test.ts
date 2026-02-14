@@ -19,6 +19,8 @@ describe("stateStore renameObject reducer", () => {
 
     expect(object.position).toEqual({ x: 10, y: 0, z: 10 });
     expect(object.dimensions).toEqual({ x: 5, y: 7, z: 5 });
+    expect(object.voxelDataMinPos).toEqual({ x: 10, y: 0, z: 10 });
+    expect(object.voxelDataSize).toEqual({ x: 8, y: 8, z: 8 });
   });
 
   it("keeps object bounds minimized after attach and erase", () => {
@@ -38,6 +40,7 @@ describe("stateStore renameObject reducer", () => {
 
     expect(stateStore.getState().objects[0].position).toEqual({ x: 10, y: 0, z: 10 });
     expect(stateStore.getState().objects[0].dimensions).toEqual({ x: 11, y: 21, z: 11 });
+    expect(stateStore.getState().objects[0].voxelDataSize).toEqual({ x: 16, y: 32, z: 16 });
 
     stateStore.reducers.modifyBlockRect(
       projectId,
@@ -51,5 +54,6 @@ describe("stateStore renameObject reducer", () => {
 
     expect(stateStore.getState().objects[0].position).toEqual({ x: 20, y: 20, z: 20 });
     expect(stateStore.getState().objects[0].dimensions).toEqual({ x: 1, y: 1, z: 1 });
+    expect(stateStore.getState().objects[0].voxelDataSize).toEqual({ x: 1, y: 1, z: 1 });
   });
 });

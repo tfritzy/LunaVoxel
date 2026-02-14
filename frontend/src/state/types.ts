@@ -26,6 +26,9 @@ export type VoxelObject = {
   locked: boolean;
   position: Vector3;
   dimensions: Vector3;
+  voxelDataMinPos: Vector3;
+  voxelDataSize: Vector3;
+  voxelData: Uint8Array;
 };
 
 export type ProjectBlocks = {

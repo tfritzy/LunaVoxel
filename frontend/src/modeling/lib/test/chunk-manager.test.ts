@@ -21,6 +21,9 @@ describe("ChunkManager getObjectBounds", () => {
           locked: false,
           position: { x: 10, y: 1, z: 10 },
           dimensions: { x: 5, y: 6, z: 5 },
+          voxelDataMinPos: { x: 10, y: 1, z: 10 },
+          voxelDataSize: { x: 8, y: 8, z: 8 },
+          voxelData: new Uint8Array(8 * 8 * 8),
         },
       ],
       blocks: {
@@ -67,6 +70,9 @@ describe("ChunkManager getObjectBounds", () => {
           locked: false,
           position: { x: 0, y: 0, z: 0 },
           dimensions: { x: 0, y: 0, z: 0 },
+          voxelDataMinPos: { x: 0, y: 0, z: 0 },
+          voxelDataSize: { x: 1, y: 1, z: 1 },
+          voxelData: new Uint8Array(1),
         },
       ],
       blocks: {
