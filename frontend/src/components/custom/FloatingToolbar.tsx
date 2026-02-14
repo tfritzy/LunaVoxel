@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { PlusSquare, Pipette, Wand2, Move, Circle } from "lucide-react";
+import { PlusSquare, Pipette, Wand2, Move, Circle, Eraser, Paintbrush } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { BlockModificationMode } from "@/state/types";
@@ -128,45 +128,54 @@ export const FloatingToolbar = ({
           />
         ))}
         </div>
-        <div className="flex items-center gap-2 rounded-full border-2 border-secondary bg-background px-3 py-2">
+        <div className="flex items-center gap-1 border-2 border-secondary bg-background p-1">
           <Button
             onClick={() => onModeChange({ tag: "Attach" })}
             aria-pressed={isAttachMode}
             aria-label={isAttachMode ? "Attach Mode, selected" : "Attach Mode"}
-            className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
+            className={`relative rounded-none bg-background hover:bg-background w-16 h-16 p-0 border-2 transition-all ${
               isAttachMode
-                ? "border-emerald-400 bg-emerald-500/20 text-emerald-300"
-                : "border-secondary bg-background text-secondary hover:border-emerald-400/70 hover:text-emerald-300/80"
+                ? "border-emerald-400 text-emerald-300"
+                : "border-secondary text-secondary hover:border-emerald-400/70 hover:text-emerald-300/80"
             }`}
             title="Attach Mode (A)"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${isAttachMode ? "bg-emerald-300 shadow-[0_0_8px_#6ee7b7]" : "bg-emerald-600/70"}`} />
+            <PlusSquare className="min-w-6 min-h-6" />
+            <div className="absolute bottom-1 left-2 text-[10px] uppercase tracking-wide">Attach</div>
+            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">A</div>
+            <div className={`absolute top-1 right-1 h-2.5 w-2.5 rounded-full ${isAttachMode ? "bg-emerald-300 shadow-[0_0_8px_#6ee7b7]" : "bg-emerald-600/70"}`} />
           </Button>
           <Button
             onClick={() => onModeChange({ tag: "Erase" })}
             aria-pressed={isEraseMode}
             aria-label={isEraseMode ? "Erase Mode, selected" : "Erase Mode"}
-            className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
+            className={`relative rounded-none bg-background hover:bg-background w-16 h-16 p-0 border-2 transition-all ${
               isEraseMode
-                ? "border-rose-400 bg-rose-500/20 text-rose-300"
-                : "border-secondary bg-background text-secondary hover:border-rose-400/70 hover:text-rose-300/80"
+                ? "border-rose-400 text-rose-300"
+                : "border-secondary text-secondary hover:border-rose-400/70 hover:text-rose-300/80"
             }`}
             title="Erase Mode (E)"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${isEraseMode ? "bg-rose-300 shadow-[0_0_8px_#fda4af]" : "bg-rose-600/70"}`} />
+            <Eraser className="min-w-6 min-h-6" />
+            <div className="absolute bottom-1 left-2 text-[10px] uppercase tracking-wide">Erase</div>
+            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">E</div>
+            <div className={`absolute top-1 right-1 h-2.5 w-2.5 rounded-full ${isEraseMode ? "bg-rose-300 shadow-[0_0_8px_#fda4af]" : "bg-rose-600/70"}`} />
           </Button>
           <Button
             onClick={() => onModeChange({ tag: "Paint" })}
             aria-pressed={isPaintMode}
             aria-label={isPaintMode ? "Paint Mode, selected" : "Paint Mode"}
-            className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
+            className={`relative rounded-none bg-background hover:bg-background w-16 h-16 p-0 border-2 transition-all ${
               isPaintMode
-                ? "border-sky-400 bg-sky-500/20 text-sky-300"
-                : "border-secondary bg-background text-secondary hover:border-sky-400/70 hover:text-sky-300/80"
+                ? "border-sky-400 text-sky-300"
+                : "border-secondary text-secondary hover:border-sky-400/70 hover:text-sky-300/80"
             }`}
             title="Paint Mode (T)"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${isPaintMode ? "bg-sky-300 shadow-[0_0_8px_#7dd3fc]" : "bg-sky-600/70"}`} />
+            <Paintbrush className="min-w-6 min-h-6" />
+            <div className="absolute bottom-1 left-2 text-[10px] uppercase tracking-wide">Paint</div>
+            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
+            <div className={`absolute top-1 right-1 h-2.5 w-2.5 rounded-full ${isPaintMode ? "bg-sky-300 shadow-[0_0_8px_#7dd3fc]" : "bg-sky-600/70"}`} />
           </Button>
         </div>
       </div>
