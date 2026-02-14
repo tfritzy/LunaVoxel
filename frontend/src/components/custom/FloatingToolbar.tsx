@@ -20,7 +20,6 @@ const modeConfig: {
   shortcut: string;
   color: string;
   glowColor: string;
-  bgColor: string;
 }[] = [
   {
     tag: "Attach",
@@ -28,7 +27,6 @@ const modeConfig: {
     shortcut: "A",
     color: "hsl(115 54% 76%)",
     glowColor: "hsl(115 54% 76% / 0.5)",
-    bgColor: "hsl(115 54% 76% / 0.12)",
   },
   {
     tag: "Paint",
@@ -36,7 +34,6 @@ const modeConfig: {
     shortcut: "T",
     color: "hsl(217 92% 76%)",
     glowColor: "hsl(217 92% 76% / 0.5)",
-    bgColor: "hsl(217 92% 76% / 0.12)",
   },
   {
     tag: "Erase",
@@ -44,7 +41,6 @@ const modeConfig: {
     shortcut: "E",
     color: "hsl(343 81% 75%)",
     glowColor: "hsl(343 81% 75% / 0.5)",
-    bgColor: "hsl(343 81% 75% / 0.12)",
   },
 ];
 
@@ -92,38 +88,40 @@ export const FloatingToolbar = ({
 
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5 bg-background/80 border border-secondary rounded-full px-3 py-2 backdrop-blur-sm">
+      <div className="flex items-end gap-3">
+        <div className="flex items-center gap-1">
           {modeConfig.map((mode) => {
             const isActive = currentMode.tag === mode.tag;
             return (
-              <button
+              <Button
                 key={mode.tag}
                 onClick={() => onModeChange({ tag: mode.tag })}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-full transition-all cursor-pointer"
+                className="relative rounded-none bg-background hover:bg-background w-16 h-16 p-0 border-2 transition-all border-secondary text-secondary hover:border-secondary/75"
                 title={`${mode.label} (${mode.shortcut})`}
-                style={{
-                  background: isActive ? mode.bgColor : "transparent",
-                }}
               >
-                <div
-                  className="w-3 h-3 rounded-full transition-all duration-200"
-                  style={{
-                    background: isActive ? mode.color : INACTIVE_COLOR,
-                    boxShadow: isActive
-                      ? `0 0 8px 2px ${mode.glowColor}, 0 0 2px 1px ${mode.glowColor}`
-                      : "none",
-                  }}
-                />
-                <span
-                  className="text-xs font-medium tracking-wide select-none transition-colors duration-200"
-                  style={{
-                    color: isActive ? mode.color : INACTIVE_TEXT_COLOR,
-                  }}
-                >
-                  {mode.label}
-                </span>
-              </button>
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className="w-3 h-3 rounded-full transition-all duration-200"
+                    style={{
+                      background: isActive ? mode.color : INACTIVE_COLOR,
+                      boxShadow: isActive
+                        ? `0 0 8px 2px ${mode.glowColor}, 0 0 2px 1px ${mode.glowColor}`
+                        : "none",
+                    }}
+                  />
+                  <span
+                    className="text-xs font-medium select-none transition-colors duration-200"
+                    style={{
+                      color: isActive ? mode.color : INACTIVE_TEXT_COLOR,
+                    }}
+                  >
+                    {mode.label}
+                  </span>
+                </div>
+                <div className="absolute bottom-0.5 right-0.5 text-xs px-1 text-secondary">
+                  {mode.shortcut}
+                </div>
+              </Button>
             );
           })}
         </div>
