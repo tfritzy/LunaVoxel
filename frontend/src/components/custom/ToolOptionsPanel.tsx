@@ -92,6 +92,9 @@ export const ToolOptionsPanel = ({
         ))}
         {toggleOptions.length > 0 && (
           <div className="mt-2">
+            <div className="text-sm text-muted-foreground mb-2">
+              Flip
+            </div>
             <div className="flex flex-wrap gap-1">
               {toggleOptions.map((option) => {
                 const Icon = flipIcons[option.name];
