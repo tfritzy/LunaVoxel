@@ -9,8 +9,7 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
-import type { FillShape } from "@/modeling/lib/tool-type";
-import { isInsideFillShape } from "@/modeling/lib/fill-shape-utils";
+import type { VoxelFrame } from "@/modeling/lib/voxel-frame";
 
 export type GlobalState = {
   project: Project;
@@ -26,24 +25,11 @@ export type Reducers = {
   toggleObjectVisibility: (objectId: string) => void;
   toggleObjectLock: (objectId: string) => void;
   reorderObjects: (projectId: string, objectIds: string[]) => void;
-  modifyBlockRect: (
-    projectId: string,
+  applyFrame: (
     mode: BlockModificationMode,
     blockType: number,
-    start: Vector3,
-    end: Vector3,
-    rotation: number,
+    frame: VoxelFrame,
     objectIndex: number
-  ) => void;
-  modifyBlockShape: (
-    projectId: string,
-    mode: BlockModificationMode,
-    blockType: number,
-    start: Vector3,
-    end: Vector3,
-    rotation: number,
-    objectIndex: number,
-    shape: FillShape
   ) => void;
   undoEdit: (
     projectId: string,
@@ -295,89 +281,24 @@ const reducers: Reducers = {
       }));
     });
   },
-  modifyBlockRect: (
-    _projectId,
+  applyFrame: (
     mode,
     blockType,
-    start,
-    end,
-    _rotation,
+    frame,
     objectIndex
   ) => {
-    void _projectId;
-    updateState((current) => {
+    updateState(() => {
       const obj = getObjectByIndex(objectIndex);
       if (!obj || obj.locked) return;
 
-      const dims = current.project.dimensions;
-      const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
-      const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
-      const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
-      const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
-      const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
-      const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
-
-      for (
-        let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
-        chunkX <= maxX;
-        chunkX += CHUNK_SIZE
-      ) {
-        for (
-          let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
-          chunkY <= maxY;
-          chunkY += CHUNK_SIZE
-        ) {
-          for (
-            let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
-            chunkZ <= maxZ;
-            chunkZ += CHUNK_SIZE
-          ) {
-            const chunk = getOrCreateChunk(obj.id, {
-              x: chunkX,
-              y: chunkY,
-              z: chunkZ,
-            });
-
-            const localMinX = Math.max(0, minX - chunkX);
-            const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
-            const localMinY = Math.max(0, minY - chunkY);
-            const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
-            const localMinZ = Math.max(0, minZ - chunkZ);
-            const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
-
-            for (let x = localMinX; x <= localMaxX; x++) {
-              for (let y = localMinY; y <= localMaxY; y++) {
-                for (let z = localMinZ; z <= localMaxZ; z++) {
-                  applyBlockAt(chunk, mode, x, y, z, blockType);
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-  },
-  modifyBlockShape: (
-    _projectId,
-    mode,
-    blockType,
-    start,
-    end,
-    _rotation,
-    objectIndex,
-    shape
-  ) => {
-    updateState((current) => {
-      const obj = getObjectByIndex(objectIndex);
-      if (!obj || obj.locked) return;
-
-      const dims = current.project.dimensions;
-      const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
-      const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
-      const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
-      const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
-      const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
-      const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
+      const frameDims = frame.getDimensions();
+      const frameMin = frame.getMinPos();
+      const minX = frameMin.x;
+      const minY = frameMin.y;
+      const minZ = frameMin.z;
+      const maxX = minX + frameDims.x - 1;
+      const maxY = minY + frameDims.y - 1;
+      const maxZ = minZ + frameDims.z - 1;
 
       for (
         let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
@@ -413,7 +334,7 @@ const reducers: Reducers = {
                   const worldX = chunkX + x;
                   const worldY = chunkY + y;
                   const worldZ = chunkZ + z;
-                  if (isInsideFillShape(shape, worldX, worldY, worldZ, minX, maxX, minY, maxY, minZ, maxZ)) {
+                  if (frame.get(worldX, worldY, worldZ) !== 0) {
                     applyBlockAt(chunk, mode, x, y, z, blockType);
                   }
                 }

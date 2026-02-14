@@ -92,38 +92,44 @@ export class RectTool implements Tool {
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    const bounds = calculateRectBounds(
+      event.startGridPosition,
+      event.currentGridPosition,
+      context.dimensions
+    );
+
+    const frameSize = {
+      x: bounds.maxX - bounds.minX + 1,
+      y: bounds.maxY - bounds.minY + 1,
+      z: bounds.maxZ - bounds.minZ + 1,
+    };
+    const frameMinPos = {
+      x: bounds.minX,
+      y: bounds.minY,
+      z: bounds.minZ,
+    };
+
     context.previewFrame.clear();
+    context.previewFrame.resize(frameSize, frameMinPos);
 
-    if (this.fillShape === "Rect") {
-      context.projectManager.applyOptimisticRectEdit(
-        context.selectedObject,
-        context.mode,
-        event.startGridPosition.clone(),
-        event.currentGridPosition.clone(),
-        context.selectedBlock,
-        0
-      );
-
-      context.reducers.modifyBlockRect(
-        context.projectId,
-        context.mode,
-        context.selectedBlock,
-        event.startGridPosition,
-        event.currentGridPosition,
-        0,
-        context.selectedObject
-      );
-    } else {
-      context.reducers.modifyBlockShape(
-        context.projectId,
-        context.mode,
-        context.selectedBlock,
-        event.startGridPosition,
-        event.currentGridPosition,
-        0,
-        context.selectedObject,
-        this.fillShape
-      );
+    const previewValue = this.getPreviewBlockValue(context.mode, context.selectedBlock);
+    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+      for (let y = bounds.minY; y <= bounds.maxY; y++) {
+        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
+          if (isInsideFillShape(this.fillShape, x, y, z, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
+            context.previewFrame.set(x, y, z, previewValue);
+          }
+        }
+      }
     }
+
+    context.reducers.applyFrame(
+      context.mode,
+      context.selectedBlock,
+      context.previewFrame,
+      context.selectedObject
+    );
+
+    context.previewFrame.clear();
   }
 }

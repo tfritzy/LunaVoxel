@@ -30,8 +30,7 @@ describe("Tool Interface", () => {
       toggleObjectVisibility: () => {},
       toggleObjectLock: () => {},
       reorderObjects: () => {},
-      modifyBlockRect: () => {},
-      modifyBlockShape: () => {},
+      applyFrame: () => {},
       undoEdit: () => {},
       updateCursorPos: () => {},
       magicSelect: () => {},
@@ -199,14 +198,14 @@ describe("Tool Interface", () => {
       expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
     });
 
-    it("should dispatch shape edit on mouse up with Sphere fill shape", () => {
+    it("should dispatch applyFrame on mouse up with Sphere fill shape", () => {
       const tool = new RectTool();
       tool.setOption("Fill Shape", "Sphere");
       
       let called = false;
       mockContext.reducers = {
         ...mockContext.reducers,
-        modifyBlockShape: () => {
+        applyFrame: () => {
           called = true;
         },
       };
