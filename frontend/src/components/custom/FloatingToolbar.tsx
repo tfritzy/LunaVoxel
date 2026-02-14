@@ -1,5 +1,15 @@
-import { useEffect } from "react";
-import { Pipette, Wand2, Move, Circle, RectangleHorizontal } from "lucide-react";
+import { useEffect, type ComponentType } from "react";
+import {
+  Eraser,
+  Paintbrush,
+  PlusSquare,
+  Pipette,
+  Wand2,
+  Move,
+  Circle,
+  RectangleHorizontal,
+  type LucideProps,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { BlockModificationMode } from "@/state/types";
@@ -11,8 +21,7 @@ interface FloatingToolbarProps {
   onModeChange: (mode: BlockModificationMode) => void;
 }
 
-const INACTIVE_COLOR = "hsl(234 13% 31%)";
-const INACTIVE_TEXT_COLOR = "hsl(228 24% 72%)";
+const INACTIVE_LED_COLOR = "hsl(234 13% 31%)";
 
 const modeConfig: {
   tag: BlockModificationMode["tag"];
@@ -20,27 +29,31 @@ const modeConfig: {
   shortcut: string;
   color: string;
   glowColor: string;
+  icon: ComponentType<LucideProps>;
 }[] = [
   {
     tag: "Attach",
     label: "Attach",
     shortcut: "A",
     color: "hsl(115 54% 76%)",
-    glowColor: "hsl(115 54% 76% / 0.5)",
+    glowColor: "hsl(115 54% 76% / 0.4)",
+    icon: PlusSquare,
   },
   {
     tag: "Paint",
     label: "Paint",
     shortcut: "T",
     color: "hsl(217 92% 76%)",
-    glowColor: "hsl(217 92% 76% / 0.5)",
+    glowColor: "hsl(217 92% 76% / 0.4)",
+    icon: Paintbrush,
   },
   {
     tag: "Erase",
     label: "Erase",
     shortcut: "E",
     color: "hsl(343 81% 75%)",
-    glowColor: "hsl(343 81% 75% / 0.5)",
+    glowColor: "hsl(343 81% 75% / 0.4)",
+    icon: Eraser,
   },
 ];
 
@@ -92,33 +105,29 @@ export const FloatingToolbar = ({
         <div className="flex items-center gap-1">
           {modeConfig.map((mode) => {
             const isActive = currentMode.tag === mode.tag;
+            const Icon = mode.icon;
             return (
               <Button
                 key={mode.tag}
                 onClick={() => onModeChange({ tag: mode.tag })}
-                className="relative rounded-none bg-background hover:bg-background w-16 h-16 p-0 border-2 transition-all border-secondary text-secondary hover:border-secondary/75"
+                className="relative rounded-none bg-background hover:bg-background w-16 h-16 p-0 border-2 transition-all border-secondary text-secondary"
+                style={{
+                  borderColor: isActive ? mode.color : undefined,
+                  color: isActive ? mode.color : undefined,
+                }}
                 title={`${mode.label} (${mode.shortcut})`}
               >
-                <div className="flex flex-col items-center gap-1">
-                  <div
-                    className="w-3 h-3 rounded-full transition-all duration-200"
-                    style={{
-                      background: isActive ? mode.color : INACTIVE_COLOR,
-                      boxShadow: isActive
-                        ? `0 0 8px 2px ${mode.glowColor}, 0 0 2px 1px ${mode.glowColor}`
-                        : "none",
-                    }}
-                  />
-                  <span
-                    className="text-xs font-medium select-none transition-colors duration-200"
-                    style={{
-                      color: isActive ? mode.color : INACTIVE_TEXT_COLOR,
-                    }}
-                  >
-                    {mode.label}
-                  </span>
-                </div>
-                <div className="absolute bottom-0.5 right-0.5 text-xs px-1 text-secondary">
+                <Icon className="min-w-8 min-h-8" />
+                <div
+                  className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full transition-all duration-200"
+                  style={{
+                    background: isActive ? mode.color : INACTIVE_LED_COLOR,
+                    boxShadow: isActive
+                      ? `0 0 6px 1px ${mode.glowColor}`
+                      : "none",
+                  }}
+                />
+                <div className="absolute bottom-0.5 right-0.5 text-xs px-1">
                   {mode.shortcut}
                 </div>
               </Button>
