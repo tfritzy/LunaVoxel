@@ -131,6 +131,8 @@ export const FloatingToolbar = ({
         <div className="flex items-center gap-2 rounded-full border-2 border-secondary bg-background px-3 py-2">
           <Button
             onClick={() => onModeChange({ tag: "Attach" })}
+            aria-pressed={isAttachMode}
+            aria-label={isAttachMode ? "Attach Mode, selected" : "Attach Mode"}
             className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
               isAttachMode
                 ? "border-emerald-400 bg-emerald-500/20 text-emerald-300"
@@ -138,10 +140,12 @@ export const FloatingToolbar = ({
             }`}
             title="Attach Mode (A)"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${isAttachMode ? "bg-emerald-300 shadow-[0_0_8px_var(--color-emerald-300)]" : "bg-emerald-600/70"}`} />
+            <div className={`h-3.5 w-3.5 rounded-full ${isAttachMode ? "bg-emerald-300 shadow-[0_0_8px_#6ee7b7]" : "bg-emerald-600/70"}`} />
           </Button>
           <Button
             onClick={() => onModeChange({ tag: "Erase" })}
+            aria-pressed={isEraseMode}
+            aria-label={isEraseMode ? "Erase Mode, selected" : "Erase Mode"}
             className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
               isEraseMode
                 ? "border-rose-400 bg-rose-500/20 text-rose-300"
@@ -149,10 +153,12 @@ export const FloatingToolbar = ({
             }`}
             title="Erase Mode (E)"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${isEraseMode ? "bg-rose-300 shadow-[0_0_8px_var(--color-rose-300)]" : "bg-rose-600/70"}`} />
+            <div className={`h-3.5 w-3.5 rounded-full ${isEraseMode ? "bg-rose-300 shadow-[0_0_8px_#fda4af]" : "bg-rose-600/70"}`} />
           </Button>
           <Button
             onClick={() => onModeChange({ tag: "Paint" })}
+            aria-pressed={isPaintMode}
+            aria-label={isPaintMode ? "Paint Mode, selected" : "Paint Mode"}
             className={`relative rounded-full w-9 h-9 p-0 border-2 transition-all ${
               isPaintMode
                 ? "border-sky-400 bg-sky-500/20 text-sky-300"
@@ -160,7 +166,7 @@ export const FloatingToolbar = ({
             }`}
             title="Paint Mode (T)"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${isPaintMode ? "bg-sky-300 shadow-[0_0_8px_var(--color-sky-300)]" : "bg-sky-600/70"}`} />
+            <div className={`h-3.5 w-3.5 rounded-full ${isPaintMode ? "bg-sky-300 shadow-[0_0_8px_#7dd3fc]" : "bg-sky-600/70"}`} />
           </Button>
         </div>
       </div>
