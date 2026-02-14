@@ -85,65 +85,8 @@ const createChunkData = (
 const toVoxelIndex = (x: number, y: number, z: number, size: Vector3) =>
   x * size.y * size.z + y * size.z + z;
 
-const nextPowerOfTwo = (value: number) => {
-  let next = 1;
-  while (next < Math.max(1, value)) {
-    next <<= 1;
-  }
-  return next;
-};
-
 const createVoxelStorage = (size: Vector3) =>
   new Uint8Array(Math.max(1, size.x * size.y * size.z));
-
-const resizeObjectVoxelStorage = (
-  object: VoxelObject,
-  newMinPos: Vector3,
-  newSize: Vector3
-) => {
-  const oldSize = object.voxelDataSize;
-  const oldMinPos = object.voxelDataMinPos;
-  const oldData = object.voxelData;
-  const newData = createVoxelStorage(newSize);
-
-  const overlapMin = {
-    x: Math.max(oldMinPos.x, newMinPos.x),
-    y: Math.max(oldMinPos.y, newMinPos.y),
-    z: Math.max(oldMinPos.z, newMinPos.z),
-  };
-  const overlapMax = {
-    x: Math.min(oldMinPos.x + oldSize.x, newMinPos.x + newSize.x),
-    y: Math.min(oldMinPos.y + oldSize.y, newMinPos.y + newSize.y),
-    z: Math.min(oldMinPos.z + oldSize.z, newMinPos.z + newSize.z),
-  };
-
-  for (let worldX = overlapMin.x; worldX < overlapMax.x; worldX++) {
-    for (let worldY = overlapMin.y; worldY < overlapMax.y; worldY++) {
-      for (let worldZ = overlapMin.z; worldZ < overlapMax.z; worldZ++) {
-        const oldLocal = {
-          x: worldX - oldMinPos.x,
-          y: worldY - oldMinPos.y,
-          z: worldZ - oldMinPos.z,
-        };
-        const oldIndex = toVoxelIndex(oldLocal.x, oldLocal.y, oldLocal.z, oldSize);
-        const value = oldData[oldIndex];
-        if (value === 0) continue;
-
-        const newLocal = {
-          x: worldX - newMinPos.x,
-          y: worldY - newMinPos.y,
-          z: worldZ - newMinPos.z,
-        };
-        const newIndex = toVoxelIndex(newLocal.x, newLocal.y, newLocal.z, newSize);
-        newData[newIndex] = value;
-      }
-    }
-  }
-
-  object.voxelData = newData;
-  object.voxelDataMinPos = { ...newMinPos };
-  object.voxelDataSize = { ...newSize };
-};
 
 const getObjectVoxel = (object: VoxelObject, x: number, y: number, z: number) => {
   const localX = x - object.voxelDataMinPos.x;
@@ -185,45 +128,6 @@ const setObjectVoxel = (
   object.voxelData[toVoxelIndex(localX, localY, localZ, object.voxelDataSize)] = value;
 };
 
-const ensureVoxelStorageContains = (
-  object: VoxelObject,
-  min: Vector3,
-  maxExclusive: Vector3
-) => {
-  const currentMin = object.voxelDataMinPos;
-  const currentMax = {
-    x: currentMin.x + object.voxelDataSize.x,
-    y: currentMin.y + object.voxelDataSize.y,
-    z: currentMin.z + object.voxelDataSize.z,
-  };
-  const nextMin = {
-    x: Math.min(currentMin.x, min.x),
-    y: Math.min(currentMin.y, min.y),
-    z: Math.min(currentMin.z, min.z),
-  };
-  const requiredSize = {
-    x: Math.max(currentMax.x, maxExclusive.x) - nextMin.x,
-    y: Math.max(currentMax.y, maxExclusive.y) - nextMin.y,
-    z: Math.max(currentMax.z, maxExclusive.z) - nextMin.z,
-  };
-  const nextSize = {
-    x: nextPowerOfTwo(requiredSize.x),
-    y: nextPowerOfTwo(requiredSize.y),
-    z: nextPowerOfTwo(requiredSize.z),
-  };
-  if (
-    nextMin.x === currentMin.x &&
-    nextMin.y === currentMin.y &&
-    nextMin.z === currentMin.z &&
-    nextSize.x === object.voxelDataSize.x &&
-    nextSize.y === object.voxelDataSize.y &&
-    nextSize.z === object.voxelDataSize.z
-  ) {
-    return;
-  }
-  resizeObjectVoxelStorage(object, nextMin, nextSize);
-};
-
 const normalizeObjectBounds = (object: VoxelObject) => {
   const storageMin = object.voxelDataMinPos;
   const storageSize = object.voxelDataSize;
@@ -255,7 +159,6 @@ const normalizeObjectBounds = (object: VoxelObject) => {
   if (!Number.isFinite(minX)) {
     object.position = { x: 0, y: 0, z: 0 };
     object.dimensions = { x: 0, y: 0, z: 0 };
-    resizeObjectVoxelStorage(object, { x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 });
     return;
   }
 
@@ -266,13 +169,6 @@ const normalizeObjectBounds = (object: VoxelObject) => {
   };
   object.position = { x: minX, y: minY, z: minZ };
   object.dimensions = { ...tightDimensions };
-
-  const paddedSize = {
-    x: nextPowerOfTwo(tightDimensions.x),
-    y: nextPowerOfTwo(tightDimensions.y),
-    z: nextPowerOfTwo(tightDimensions.z),
-  };
-  resizeObjectVoxelStorage(object, { x: minX, y: minY, z: minZ }, paddedSize);
 };
 
 const createInitialState = (): GlobalState => {
@@ -418,8 +314,8 @@ const reducers: Reducers = {
         position: { x: 0, y: 0, z: 0 },
         dimensions: { x: 0, y: 0, z: 0 },
         voxelDataMinPos: { x: 0, y: 0, z: 0 },
-        voxelDataSize: { x: 1, y: 1, z: 1 },
-        voxelData: createVoxelStorage({ x: 1, y: 1, z: 1 }),
+        voxelDataSize: { ...current.project.dimensions },
+        voxelData: createVoxelStorage(current.project.dimensions),
       });
     });
   },
@@ -504,12 +400,6 @@ const reducers: Reducers = {
       const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
       const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
       const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
-      const worldMin = { x: minX, y: minY, z: minZ };
-      const worldMaxExclusive = { x: maxX + 1, y: maxY + 1, z: maxZ + 1 };
-
-      if (mode.tag !== "Erase") {
-        ensureVoxelStorageContains(obj, worldMin, worldMaxExclusive);
-      }
 
       for (
         let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
