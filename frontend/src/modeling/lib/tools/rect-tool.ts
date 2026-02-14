@@ -1,14 +1,58 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
+import type { FillShape } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
-import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { isInsideFillShape } from "../fill-shape-utils";
 
 export class RectTool implements Tool {
+  private fillShape: FillShape = "Rect";
+  private flipX: boolean = false;
+  private flipY: boolean = false;
+  private flipZ: boolean = false;
+
   getType(): ToolType {
     return "Rect";
+  }
+
+  getOptions(): ToolOption[] {
+    return [
+      {
+        name: "Fill Shape",
+        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"],
+        currentValue: this.fillShape,
+      },
+      {
+        name: "Flip X",
+        values: ["Off", "On"],
+        currentValue: this.flipX ? "On" : "Off",
+      },
+      {
+        name: "Flip Y",
+        values: ["Off", "On"],
+        currentValue: this.flipY ? "On" : "Off",
+      },
+      {
+        name: "Flip Z",
+        values: ["Off", "On"],
+        currentValue: this.flipZ ? "On" : "Off",
+      },
+    ];
+  }
+
+  setOption(name: string, value: string): void {
+    if (name === "Fill Shape") {
+      this.fillShape = value as FillShape;
+    } else if (name === "Flip X") {
+      this.flipX = value === "On";
+    } else if (name === "Flip Y") {
+      this.flipY = value === "On";
+    } else if (name === "Flip Z") {
+      this.flipZ = value === "On";
+    }
   }
 
   calculateGridPosition(
@@ -31,15 +75,10 @@ export class RectTool implements Tool {
     }
   }
 
-  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
-    void context;
-    void event;
-  }
-
-  onDrag(context: ToolContext, event: ToolDragEvent): void {
+  private buildFrame(context: ToolContext, event: ToolDragEvent): void {
     const bounds = calculateRectBounds(
-      event.startGridPosition, 
-      event.currentGridPosition, 
+      event.startGridPosition,
+      event.currentGridPosition,
       context.dimensions
     );
 
@@ -53,7 +92,7 @@ export class RectTool implements Tool {
       y: bounds.minY,
       z: bounds.minZ,
     };
-    
+
     context.previewFrame.clear();
     context.previewFrame.resize(frameSize, frameMinPos);
 
@@ -61,34 +100,37 @@ export class RectTool implements Tool {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          context.previewFrame.set(x, y, z, previewValue);
+          const sx = this.flipX ? bounds.minX + bounds.maxX - x : x;
+          const sy = this.flipY ? bounds.minY + bounds.maxY - y : y;
+          const sz = this.flipZ ? bounds.minZ + bounds.maxZ - z : z;
+          if (isInsideFillShape(this.fillShape, sx, sy, sz, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
+            context.previewFrame.set(x, y, z, previewValue);
+          }
         }
       }
     }
+  }
 
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    void context;
+    void event;
+  }
+
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
+    this.buildFrame(context, event);
     context.projectManager.chunkManager.setPreview(context.previewFrame);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    context.previewFrame.clear();
-    
-    context.projectManager.applyOptimisticRectEdit(
-      context.selectedObject,
-      context.mode,
-      event.startGridPosition.clone(),
-      event.currentGridPosition.clone(),
-      context.selectedBlock,
-      0
-    );
+    this.buildFrame(context, event);
 
-    context.reducers.modifyBlockRect(
-      context.projectId,
+    context.reducers.applyFrame(
       context.mode,
       context.selectedBlock,
-      event.startGridPosition,
-      event.currentGridPosition,
-      0,
+      context.previewFrame,
       context.selectedObject
     );
+
+    context.previewFrame.clear();
   }
 }

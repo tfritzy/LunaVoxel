@@ -3,6 +3,7 @@ import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "@/modeling/lib/tool-type";
+import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
@@ -27,6 +28,8 @@ interface ProjectLayoutProps {
   onRedo: () => void;
   children: React.ReactNode;
   atlasData: AtlasData;
+  toolOptions: ToolOption[];
+  onToolOptionChange: (name: string, value: string) => void;
 }
 
 export const ProjectLayout = ({
@@ -43,6 +46,8 @@ export const ProjectLayout = ({
   onRedo,
   children,
   atlasData,
+  toolOptions,
+  onToolOptionChange,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
@@ -69,7 +74,12 @@ export const ProjectLayout = ({
           />
         </div>
 
-        <RightSideDrawer onSelectObject={onSelectObject} projectId={projectId} />
+        <RightSideDrawer
+          onSelectObject={onSelectObject}
+          projectId={projectId}
+          toolOptions={toolOptions}
+          onToolOptionChange={onToolOptionChange}
+        />
       </div>
     </div>
   );

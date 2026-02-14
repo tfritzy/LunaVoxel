@@ -8,6 +8,15 @@ export class MagicSelectTool implements Tool {
     return "MagicSelect";
   }
 
+  getOptions(): import("../tool-interface").ToolOption[] {
+    return [];
+  }
+
+  setOption(name: string, value: string): void {
+    void name;
+    void value;
+  }
+
   calculateGridPosition(
     gridPosition: THREE.Vector3,
     normal: THREE.Vector3

@@ -5,6 +5,7 @@ import { ExportType } from "@/modeling/export/model-exporter";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
 import { useAtlas } from "@/lib/useAtlas";
 import type { ToolType } from "@/modeling/lib/tool-type";
+import type { ToolOption } from "@/modeling/lib/tool-interface";
 import type { BlockModificationMode } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
 
@@ -15,6 +16,7 @@ export const ProjectViewPage = () => {
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
+  const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
   const atlasData = useAtlas();
@@ -98,6 +100,7 @@ export const ProjectViewPage = () => {
         );
         engineRef.current.projectManager.builder.setTool(currentTool);
         engineRef.current.projectManager.setAtlasData(atlasData);
+        setToolOptions(engineRef.current.projectManager.builder.getToolOptions());
       });
     },
     [project, projectId, atlasData, selectedBlock, currentTool]
@@ -145,6 +148,19 @@ export const ProjectViewPage = () => {
     setCurrentMode(mode);
   }, []);
 
+  const handleToolOptionChange = useCallback((name: string, value: string) => {
+    if (engineRef.current) {
+      engineRef.current.projectManager.builder.setToolOption(name, value);
+      setToolOptions(engineRef.current.projectManager.builder.getToolOptions());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      setToolOptions(engineRef.current.projectManager.builder.getToolOptions());
+    }
+  }, [currentTool]);
+
   return (
     <ProjectLayout
       projectId={projectId}
@@ -159,6 +175,8 @@ export const ProjectViewPage = () => {
       onUndo={handleUndo}
       onRedo={handleRedo}
       atlasData={atlasData}
+      toolOptions={toolOptions}
+      onToolOptionChange={handleToolOptionChange}
     >
       <div
         ref={containerCallbackRef}
