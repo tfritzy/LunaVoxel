@@ -3,6 +3,7 @@ import type { ToolType } from "../tool-type";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import type { BlockModificationMode } from "@/state/types";
+import { BLOCK_TYPE_MASK } from "../voxel-constants";
 
 export class BlockPickerTool implements Tool {
   getType(): ToolType {
@@ -34,7 +35,7 @@ export class BlockPickerTool implements Tool {
       context.selectedObject
     );
     if (blockType !== null && blockType !== 0) {
-      context.setSelectedBlockInParent(blockType);
+      context.setSelectedBlockInParent(blockType & BLOCK_TYPE_MASK);
     }
   }
 }

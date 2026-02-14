@@ -10,6 +10,7 @@ import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
 import { VoxelFrame } from "../voxel-frame";
+import { RAYCASTABLE_BIT } from "../voxel-constants";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
@@ -165,6 +166,26 @@ describe("Tool Interface", () => {
         selectedBlock = block;
       };
       mockContext.projectManager.getBlockAtPosition = () => 5;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: startPos,
+        currentGridPosition: endPos,
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(selectedBlock).toBe(5);
+    });
+
+    it("should pick base block type when raycastable bit is set", () => {
+      const startPos = new THREE.Vector3(1, 2, 3);
+      const endPos = new THREE.Vector3(1, 2, 3);
+      let selectedBlock = 0;
+
+      mockContext.setSelectedBlockInParent = (block: number) => {
+        selectedBlock = block;
+      };
+      mockContext.projectManager.getBlockAtPosition = () => 5 | RAYCASTABLE_BIT;
 
       tool.onMouseUp(mockContext, {
         startGridPosition: startPos,
