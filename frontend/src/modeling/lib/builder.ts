@@ -9,9 +9,9 @@ import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
-import { SphereTool } from "./tools/sphere-tool";
 import type { Tool } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
+import { defaultToolOptions, type ToolOptions } from "./tool-options";
 
 export const Builder = class {
   private previewFrame: VoxelFrame;
@@ -22,6 +22,7 @@ export const Builder = class {
   private selectedBlock: number = 1;
   private setSelectedBlockInParent: (index: number) => void;
   private selectedObject: number = 0;
+  private toolOptions: ToolOptions = defaultToolOptions;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -39,6 +40,7 @@ export const Builder = class {
     previewFrame: VoxelFrame;
     selectedBlock: number;
     selectedObject: number;
+    toolOptions: ToolOptions;
     setSelectedBlockInParent: (index: number) => void;
     mode: BlockModificationMode;
     camera: THREE.Camera;
@@ -94,6 +96,7 @@ export const Builder = class {
       previewFrame: this.previewFrame,
       selectedBlock: this.selectedBlock,
       selectedObject: this.selectedObject,
+      toolOptions: this.toolOptions,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
       mode: this.currentMode,
       camera: this.camera,
@@ -134,8 +137,6 @@ export const Builder = class {
         return new MoveSelectionTool();
       case "Rect":
         return new RectTool();
-      case "Sphere":
-        return new SphereTool();
       case "BlockPicker":
         return new BlockPickerTool();
       case "MagicSelect":
@@ -158,6 +159,11 @@ export const Builder = class {
 
   public getTool(): ToolType {
     return this.currentTool.getType();
+  }
+
+  public setToolOptions(toolOptions: ToolOptions): void {
+    this.toolOptions = toolOptions;
+    this.toolContext.toolOptions = toolOptions;
   }
 
   public setSelectedBlock(

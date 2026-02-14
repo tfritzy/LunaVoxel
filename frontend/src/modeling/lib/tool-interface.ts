@@ -4,6 +4,7 @@ import type { Reducers } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import type { VoxelFrame } from "./voxel-frame";
+import type { ToolOptions } from "./tool-options";
 
 export interface ToolContext {
   reducers: Reducers;
@@ -13,6 +14,7 @@ export interface ToolContext {
   previewFrame: VoxelFrame;
   selectedBlock: number;
   selectedObject: number;
+  toolOptions: ToolOptions;
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
   camera: THREE.Camera;

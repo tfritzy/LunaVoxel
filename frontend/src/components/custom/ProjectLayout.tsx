@@ -6,6 +6,7 @@ import type { ToolType } from "@/modeling/lib/tool-type";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
 import { Texture } from "three";
+import type { ToolOptions } from "@/modeling/lib/tool-options";
 
 interface AtlasData {
   blockAtlasMapping: number[];
@@ -19,7 +20,9 @@ interface ProjectLayoutProps {
   setSelectedBlock: (index: number) => void;
   currentTool: ToolType;
   currentMode: BlockModificationMode;
+  toolOptions: ToolOptions;
   onToolChange: (tool: ToolType) => void;
+  onToolOptionsChange: (toolOptions: ToolOptions) => void;
   onModeChange: (mode: BlockModificationMode) => void;
   onExport: (format: ExportType) => void;
   onSelectObject?: (objectIndex: number) => void;
@@ -35,7 +38,9 @@ export const ProjectLayout = ({
   setSelectedBlock,
   currentTool,
   currentMode,
+  toolOptions,
   onToolChange,
+  onToolOptionsChange,
   onModeChange,
   onExport,
   onSelectObject,
@@ -69,7 +74,13 @@ export const ProjectLayout = ({
           />
         </div>
 
-        <RightSideDrawer onSelectObject={onSelectObject} projectId={projectId} />
+        <RightSideDrawer
+          onSelectObject={onSelectObject}
+          projectId={projectId}
+          currentTool={currentTool}
+          toolOptions={toolOptions}
+          onToolOptionsChange={onToolOptionsChange}
+        />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { useAtlas } from "@/lib/useAtlas";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { BlockModificationMode } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
+import { defaultToolOptions, type ToolOptions } from "@/modeling/lib/tool-options";
 
 export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,6 +15,7 @@ export const ProjectViewPage = () => {
   const isInitializedRef = useRef<boolean>(false);
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
+  const [toolOptions, setToolOptions] = useState<ToolOptions>(defaultToolOptions);
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
@@ -97,10 +99,11 @@ export const ProjectViewPage = () => {
           setSelectedBlock
         );
         engineRef.current.projectManager.builder.setTool(currentTool);
+        engineRef.current.projectManager.builder.setToolOptions(toolOptions);
         engineRef.current.projectManager.setAtlasData(atlasData);
       });
     },
-    [project, projectId, atlasData, selectedBlock, currentTool]
+    [project, projectId, atlasData, selectedBlock, currentTool, toolOptions]
   );
 
   useEffect(() => {
@@ -132,6 +135,12 @@ export const ProjectViewPage = () => {
   }, [currentMode]);
 
   useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.projectManager.builder.setToolOptions(toolOptions);
+    }
+  }, [toolOptions]);
+
+  useEffect(() => {
     if (engineRef.current?.projectManager && atlasData) {
       engineRef.current.projectManager.setAtlasData(atlasData);
     }
@@ -152,7 +161,9 @@ export const ProjectViewPage = () => {
       setSelectedBlock={setSelectedBlock}
       currentTool={currentTool}
       currentMode={currentMode}
+      toolOptions={toolOptions}
       onToolChange={handleToolChange}
+      onToolOptionsChange={setToolOptions}
       onModeChange={handleModeChange}
       onExport={handleExport}
       onSelectObject={handleObjectSelect}

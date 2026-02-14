@@ -5,6 +5,7 @@ import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
+import type { RectFillShape } from "../tool-options";
 
 export class RectTool implements Tool {
   getType(): ToolType {
@@ -29,6 +30,53 @@ export class RectTool implements Tool {
       case "Erase":
         return RAYCASTABLE_BIT;
     }
+  }
+
+  private isInFillShape(
+    fillShape: RectFillShape,
+    x: number,
+    y: number,
+    z: number,
+    minX: number,
+    maxX: number,
+    minY: number,
+    maxY: number,
+    minZ: number,
+    maxZ: number
+  ): boolean {
+    if (fillShape === "Full") {
+      return true;
+    }
+
+    const centerX = (minX + maxX + 1) / 2;
+    const centerY = (minY + maxY + 1) / 2;
+    const centerZ = (minZ + maxZ + 1) / 2;
+    const radiusX = (maxX - minX + 1) / 2;
+    const radiusY = (maxY - minY + 1) / 2;
+    const radiusZ = (maxZ - minZ + 1) / 2;
+    const sampleX = x + 0.5;
+    const sampleY = y + 0.5;
+    const sampleZ = z + 0.5;
+
+    if (fillShape === "Sphere") {
+      const dx = (sampleX - centerX) / radiusX;
+      const dy = (sampleY - centerY) / radiusY;
+      const dz = (sampleZ - centerZ) / radiusZ;
+      return dx * dx + dy * dy + dz * dz <= 1;
+    }
+
+    if (fillShape === "Cylinder") {
+      const dx = (sampleX - centerX) / radiusX;
+      const dz = (sampleZ - centerZ) / radiusZ;
+      return dx * dx + dz * dz <= 1;
+    }
+
+    const heightRatio = radiusY === 0 ? 0 : Math.min(1, Math.abs((sampleY - centerY) / radiusY));
+    const maxDx = 1 - heightRatio;
+    const maxDz = 1 - heightRatio;
+    const dx = Math.abs((sampleX - centerX) / radiusX);
+    const dz = Math.abs((sampleZ - centerZ) / radiusZ);
+    return dx <= maxDx && dz <= maxDz;
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
@@ -58,10 +106,26 @@ export class RectTool implements Tool {
     context.previewFrame.resize(frameSize, frameMinPos);
 
     const previewValue = this.getPreviewBlockValue(context.mode, context.selectedBlock);
+    const fillShape = context.toolOptions.Rect.fillShape;
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          context.previewFrame.set(x, y, z, previewValue);
+          if (
+            this.isInFillShape(
+              fillShape,
+              x,
+              y,
+              z,
+              bounds.minX,
+              bounds.maxX,
+              bounds.minY,
+              bounds.maxY,
+              bounds.minZ,
+              bounds.maxZ
+            )
+          ) {
+            context.previewFrame.set(x, y, z, previewValue);
+          }
         }
       }
     }
@@ -71,24 +135,51 @@ export class RectTool implements Tool {
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     context.previewFrame.clear();
-    
-    context.projectManager.applyOptimisticRectEdit(
-      context.selectedObject,
-      context.mode,
-      event.startGridPosition.clone(),
-      event.currentGridPosition.clone(),
-      context.selectedBlock,
-      0
-    );
 
-    context.reducers.modifyBlockRect(
+    const fillShape = context.toolOptions.Rect.fillShape;
+    if (fillShape === "Full") {
+      context.projectManager.applyOptimisticRectEdit(
+        context.selectedObject,
+        context.mode,
+        event.startGridPosition.clone(),
+        event.currentGridPosition.clone(),
+        context.selectedBlock,
+        0
+      );
+      context.reducers.modifyBlockRect(
+        context.projectId,
+        context.mode,
+        context.selectedBlock,
+        event.startGridPosition,
+        event.currentGridPosition,
+        0,
+        context.selectedObject
+      );
+      return;
+    }
+
+    if (fillShape === "Sphere") {
+      context.reducers.modifyBlockSphere(
+        context.projectId,
+        context.mode,
+        context.selectedBlock,
+        event.startGridPosition,
+        event.currentGridPosition,
+        0,
+        context.selectedObject
+      );
+      return;
+    }
+
+    context.reducers.modifyBlockShape(
       context.projectId,
       context.mode,
       context.selectedBlock,
       event.startGridPosition,
       event.currentGridPosition,
       0,
-      context.selectedObject
+      context.selectedObject,
+      fillShape
     );
   }
 }

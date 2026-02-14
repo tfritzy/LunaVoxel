@@ -9,6 +9,7 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
+import type { RectFillShape } from "@/modeling/lib/tool-options";
 
 export type GlobalState = {
   project: Project;
@@ -41,6 +42,16 @@ export type Reducers = {
     end: Vector3,
     rotation: number,
     objectIndex: number
+  ) => void;
+  modifyBlockShape: (
+    projectId: string,
+    mode: BlockModificationMode,
+    blockType: number,
+    start: Vector3,
+    end: Vector3,
+    rotation: number,
+    objectIndex: number,
+    fillShape: RectFillShape
   ) => void;
   undoEdit: (
     projectId: string,
@@ -215,6 +226,125 @@ const applyBlockAt = (
   }
 };
 
+const isInsideShape = (
+  fillShape: RectFillShape,
+  worldX: number,
+  worldY: number,
+  worldZ: number,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+  minZ: number,
+  maxZ: number
+) => {
+  if (fillShape === "Full") {
+    return true;
+  }
+
+  const radiusX = (maxX - minX + 1) / 2;
+  const radiusY = (maxY - minY + 1) / 2;
+  const radiusZ = (maxZ - minZ + 1) / 2;
+  const centerX = (minX + maxX + 1) / 2;
+  const centerY = (minY + maxY + 1) / 2;
+  const centerZ = (minZ + maxZ + 1) / 2;
+  const dx = (worldX + 0.5 - centerX) / radiusX;
+  const dy = (worldY + 0.5 - centerY) / radiusY;
+  const dz = (worldZ + 0.5 - centerZ) / radiusZ;
+
+  if (fillShape === "Sphere") {
+    return dx * dx + dy * dy + dz * dz <= 1;
+  }
+
+  if (fillShape === "Cylinder") {
+    return dx * dx + dz * dz <= 1;
+  }
+
+  const heightRatio = Math.min(1, Math.abs(dy));
+  const maxDx = 1 - heightRatio;
+  const maxDz = 1 - heightRatio;
+  return Math.abs(dx) <= maxDx && Math.abs(dz) <= maxDz;
+};
+
+const modifyBlockByShape = (
+  mode: BlockModificationMode,
+  blockType: number,
+  start: Vector3,
+  end: Vector3,
+  objectIndex: number,
+  fillShape: RectFillShape
+) => {
+  updateState((current) => {
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj || obj.locked) return;
+
+    const dims = current.project.dimensions;
+    const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
+    const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
+    const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
+    const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
+    const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
+    const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
+
+    for (
+      let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
+      chunkX <= maxX;
+      chunkX += CHUNK_SIZE
+    ) {
+      for (
+        let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
+        chunkY <= maxY;
+        chunkY += CHUNK_SIZE
+      ) {
+        for (
+          let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
+          chunkZ <= maxZ;
+          chunkZ += CHUNK_SIZE
+        ) {
+          const chunk = getOrCreateChunk(obj.id, {
+            x: chunkX,
+            y: chunkY,
+            z: chunkZ,
+          });
+
+          const localMinX = Math.max(0, minX - chunkX);
+          const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
+          const localMinY = Math.max(0, minY - chunkY);
+          const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
+          const localMinZ = Math.max(0, minZ - chunkZ);
+          const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
+
+          for (let x = localMinX; x <= localMaxX; x++) {
+            for (let y = localMinY; y <= localMaxY; y++) {
+              for (let z = localMinZ; z <= localMaxZ; z++) {
+                const worldX = chunkX + x;
+                const worldY = chunkY + y;
+                const worldZ = chunkZ + z;
+                if (
+                  isInsideShape(
+                    fillShape,
+                    worldX,
+                    worldY,
+                    worldZ,
+                    minX,
+                    maxX,
+                    minY,
+                    maxY,
+                    minZ,
+                    maxZ
+                  )
+                ) {
+                  applyBlockAt(chunk, mode, x, y, z, blockType);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+};
+
 const reducers: Reducers = {
   addObject: (_projectId) => {
     void _projectId;
@@ -302,57 +432,7 @@ const reducers: Reducers = {
     objectIndex
   ) => {
     void _projectId;
-    updateState((current) => {
-      const obj = getObjectByIndex(objectIndex);
-      if (!obj || obj.locked) return;
-
-      const dims = current.project.dimensions;
-      const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
-      const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
-      const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
-      const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
-      const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
-      const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
-
-      for (
-        let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
-        chunkX <= maxX;
-        chunkX += CHUNK_SIZE
-      ) {
-        for (
-          let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
-          chunkY <= maxY;
-          chunkY += CHUNK_SIZE
-        ) {
-          for (
-            let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
-            chunkZ <= maxZ;
-            chunkZ += CHUNK_SIZE
-          ) {
-            const chunk = getOrCreateChunk(obj.id, {
-              x: chunkX,
-              y: chunkY,
-              z: chunkZ,
-            });
-
-            const localMinX = Math.max(0, minX - chunkX);
-            const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
-            const localMinY = Math.max(0, minY - chunkY);
-            const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
-            const localMinZ = Math.max(0, minZ - chunkZ);
-            const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
-
-            for (let x = localMinX; x <= localMaxX; x++) {
-              for (let y = localMinY; y <= localMaxY; y++) {
-                for (let z = localMinZ; z <= localMaxZ; z++) {
-                  applyBlockAt(chunk, mode, x, y, z, blockType);
-                }
-              }
-            }
-          }
-        }
-      }
-    });
+    modifyBlockByShape(mode, blockType, start, end, objectIndex, "Full");
   },
   modifyBlockSphere: (
     _projectId,
@@ -363,72 +443,21 @@ const reducers: Reducers = {
     _rotation,
     objectIndex
   ) => {
-    updateState((current) => {
-      const obj = getObjectByIndex(objectIndex);
-      if (!obj || obj.locked) return;
-
-      const dims = current.project.dimensions;
-      const minX = Math.max(0, Math.floor(Math.min(start.x, end.x)));
-      const minY = Math.max(0, Math.floor(Math.min(start.y, end.y)));
-      const minZ = Math.max(0, Math.floor(Math.min(start.z, end.z)));
-      const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
-      const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
-      const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
-
-      const radiusX = (maxX - minX + 1) / 2;
-      const radiusY = (maxY - minY + 1) / 2;
-      const radiusZ = (maxZ - minZ + 1) / 2;
-      const centerX = (minX + maxX + 1) / 2;
-      const centerY = (minY + maxY + 1) / 2;
-      const centerZ = (minZ + maxZ + 1) / 2;
-
-      for (
-        let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
-        chunkX <= maxX;
-        chunkX += CHUNK_SIZE
-      ) {
-        for (
-          let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
-          chunkY <= maxY;
-          chunkY += CHUNK_SIZE
-        ) {
-          for (
-            let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
-            chunkZ <= maxZ;
-            chunkZ += CHUNK_SIZE
-          ) {
-            const chunk = getOrCreateChunk(obj.id, {
-              x: chunkX,
-              y: chunkY,
-              z: chunkZ,
-            });
-
-            const localMinX = Math.max(0, minX - chunkX);
-            const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
-            const localMinY = Math.max(0, minY - chunkY);
-            const localMaxY = Math.min(chunk.size.y - 1, maxY - chunkY);
-            const localMinZ = Math.max(0, minZ - chunkZ);
-            const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
-
-            for (let x = localMinX; x <= localMaxX; x++) {
-              for (let y = localMinY; y <= localMaxY; y++) {
-                for (let z = localMinZ; z <= localMaxZ; z++) {
-                  const worldX = chunkX + x;
-                  const worldY = chunkY + y;
-                  const worldZ = chunkZ + z;
-                  const dx = (worldX + 0.5 - centerX) / radiusX;
-                  const dy = (worldY + 0.5 - centerY) / radiusY;
-                  const dz = (worldZ + 0.5 - centerZ) / radiusZ;
-                  if (dx * dx + dy * dy + dz * dz <= 1) {
-                    applyBlockAt(chunk, mode, x, y, z, blockType);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
+    void _projectId;
+    modifyBlockByShape(mode, blockType, start, end, objectIndex, "Sphere");
+  },
+  modifyBlockShape: (
+    _projectId,
+    mode,
+    blockType,
+    start,
+    end,
+    _rotation,
+    objectIndex,
+    fillShape
+  ) => {
+    void _projectId;
+    modifyBlockByShape(mode, blockType, start, end, objectIndex, fillShape);
   },
   undoEdit: () => {
     notify();
