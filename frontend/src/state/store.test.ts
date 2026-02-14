@@ -13,4 +13,16 @@ describe("stateStore renameObject reducer", () => {
 
     expect(stateStore.getState().objects[0].name).toBe("Renamed Object");
   });
+
+  it("replaces blocks.colors when updating block color", () => {
+    const before = stateStore.getState().blocks;
+    const beforeColors = before.colors;
+
+    stateStore.reducers.updateBlockColor(0, 0xff0000);
+
+    const after = stateStore.getState().blocks;
+    expect(after.colors[0]).toBe(0xff0000);
+    expect(after).not.toBe(before);
+    expect(after.colors).not.toBe(beforeColors);
+  });
 });

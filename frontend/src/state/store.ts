@@ -439,7 +439,12 @@ const reducers: Reducers = {
   updateBlockColor: (blockIndex: number, color: number) => {
     updateState((current) => {
       if (blockIndex >= 0 && blockIndex < current.blocks.colors.length) {
-        current.blocks.colors[blockIndex] = color;
+        const nextColors = [...current.blocks.colors];
+        nextColors[blockIndex] = color;
+        current.blocks = {
+          ...current.blocks,
+          colors: nextColors,
+        };
       }
     });
   },
