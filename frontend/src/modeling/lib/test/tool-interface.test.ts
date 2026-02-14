@@ -459,4 +459,49 @@ describe("Tool Interface", () => {
       expect(moveSelectionBoxUpdated).toBe(true);
     });
   });
+
+  describe("Benchmark", () => {
+    it("should drag preview and apply across all fill shapes within 5 seconds", () => {
+      const shapes = ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"] as const;
+      const SIZE = 150;
+      const DRAG_STEPS = 8;
+      const benchDimensions = { x: SIZE, y: SIZE, z: SIZE };
+
+      const benchContext: ToolContext = {
+        ...mockContext,
+        dimensions: benchDimensions,
+        previewFrame: new VoxelFrame(benchDimensions),
+      };
+
+      const start = performance.now();
+
+      for (const shape of shapes) {
+        const tool = new RectTool();
+        tool.setOption("Fill Shape", shape);
+
+        for (let step = 1; step <= DRAG_STEPS; step++) {
+          const progress = step / DRAG_STEPS;
+          const currentPos = Math.floor(progress * (SIZE - 1));
+
+          tool.onDrag(benchContext, {
+            startGridPosition: new THREE.Vector3(0, 0, 0),
+            currentGridPosition: new THREE.Vector3(currentPos, currentPos, currentPos),
+            startMousePosition: new THREE.Vector2(0, 0),
+            currentMousePosition: new THREE.Vector2(progress, progress),
+          });
+        }
+
+        tool.onMouseUp(benchContext, {
+          startGridPosition: new THREE.Vector3(0, 0, 0),
+          currentGridPosition: new THREE.Vector3(SIZE - 1, SIZE - 1, SIZE - 1),
+          startMousePosition: new THREE.Vector2(0, 0),
+          currentMousePosition: new THREE.Vector2(1, 1),
+        });
+      }
+
+      const elapsed = performance.now() - start;
+      console.log(`Preview drag + apply benchmark (all shapes, ${SIZE}^3, ${DRAG_STEPS} drag steps): ${elapsed.toFixed(0)}ms`);
+      expect(elapsed).toBeLessThan(5000);
+    }, 10000);
+  });
 });
