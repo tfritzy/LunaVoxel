@@ -90,7 +90,7 @@ describe("Tool Interface", () => {
       
       expect(options).toHaveLength(1);
       expect(options[0].name).toBe("Fill Shape");
-      expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond"]);
+      expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"]);
       expect(options[0].currentValue).toBe("Rect");
     });
 

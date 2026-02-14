@@ -6,6 +6,11 @@ import {
   Cylinder,
   Triangle,
   Diamond,
+  Cone,
+  Pyramid,
+  Hexagon,
+  Star,
+  Cross,
   type LucideIcon,
 } from "lucide-react";
 
@@ -15,6 +20,11 @@ const fillShapeIcons: Record<string, LucideIcon> = {
   Cylinder: Cylinder,
   Triangle: Triangle,
   Diamond: Diamond,
+  Cone: Cone,
+  Pyramid: Pyramid,
+  Hexagon: Hexagon,
+  Star: Star,
+  Cross: Cross,
 };
 
 interface ToolOptionsPanelProps {

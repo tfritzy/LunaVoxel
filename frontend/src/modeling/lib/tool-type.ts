@@ -4,4 +4,4 @@ export type ToolType =
   | "BlockPicker"
   | "MagicSelect" 
 
-export type FillShape = "Rect" | "Sphere" | "Cylinder" | "Triangle" | "Diamond";
+export type FillShape = "Rect" | "Sphere" | "Cylinder" | "Triangle" | "Diamond" | "Cone" | "Pyramid" | "Hexagon" | "Star" | "Cross";

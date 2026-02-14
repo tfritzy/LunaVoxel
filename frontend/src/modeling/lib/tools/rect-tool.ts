@@ -19,7 +19,7 @@ export class RectTool implements Tool {
     return [
       {
         name: "Fill Shape",
-        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond"],
+        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"],
         currentValue: this.fillShape,
       },
     ];
@@ -51,47 +51,7 @@ export class RectTool implements Tool {
     }
   }
 
-  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
-    void context;
-    void event;
-  }
-
-  onDrag(context: ToolContext, event: ToolDragEvent): void {
-    const bounds = calculateRectBounds(
-      event.startGridPosition, 
-      event.currentGridPosition, 
-      context.dimensions
-    );
-
-    const frameSize = {
-      x: bounds.maxX - bounds.minX + 1,
-      y: bounds.maxY - bounds.minY + 1,
-      z: bounds.maxZ - bounds.minZ + 1,
-    };
-    const frameMinPos = {
-      x: bounds.minX,
-      y: bounds.minY,
-      z: bounds.minZ,
-    };
-    
-    context.previewFrame.clear();
-    context.previewFrame.resize(frameSize, frameMinPos);
-
-    const previewValue = this.getPreviewBlockValue(context.mode, context.selectedBlock);
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          if (isInsideFillShape(this.fillShape, x, y, z, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
-            context.previewFrame.set(x, y, z, previewValue);
-          }
-        }
-      }
-    }
-
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
-  }
-
-  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+  private buildFrame(context: ToolContext, event: ToolDragEvent): void {
     const bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
@@ -122,6 +82,20 @@ export class RectTool implements Tool {
         }
       }
     }
+  }
+
+  onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    void context;
+    void event;
+  }
+
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
+    this.buildFrame(context, event);
+    context.projectManager.chunkManager.setPreview(context.previewFrame);
+  }
+
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    this.buildFrame(context, event);
 
     context.reducers.applyFrame(
       context.mode,
