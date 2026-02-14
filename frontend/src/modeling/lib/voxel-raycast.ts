@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Vector3 } from "@/state/types";
 import { isBlockRaycastable } from "./voxel-data-utils";
+import { RAYCASTABLE_BIT } from "./voxel-constants";
 
 export interface VoxelRaycastResult {
   gridPosition: THREE.Vector3;
@@ -115,7 +116,7 @@ export function performRaycast(
       return {
         gridPosition: new THREE.Vector3(boundaryX, boundaryY, boundaryZ),
         normal,
-        blockValue: 0x80,
+        blockValue: RAYCASTABLE_BIT,
       };
     }
 
@@ -201,7 +202,7 @@ function intersectBoundingPlanes(
         plane.axis === "z" ? (plane.pos === 0 ? 0 : dimensions.z - 1) : gridZ,
       ),
       normal: plane.normal.clone(),
-      blockValue: 0x80,
+      blockValue: RAYCASTABLE_BIT,
     };
   }
 
