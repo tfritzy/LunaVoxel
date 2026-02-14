@@ -30,8 +30,18 @@ export interface ToolDragEvent {
   currentMousePosition: THREE.Vector2;
 }
 
+export interface ToolOption {
+  name: string;
+  values: string[];
+  currentValue: string;
+}
+
 export interface Tool {
   getType(): ToolType;
+
+  getOptions(): ToolOption[];
+
+  setOption(name: string, value: string): void;
 
   calculateGridPosition(
     gridPosition: THREE.Vector3,
