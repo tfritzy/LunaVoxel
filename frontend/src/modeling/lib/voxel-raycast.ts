@@ -156,5 +156,54 @@ export function performRaycast(
     }
   }
 
-  return null;
+  return intersectBoundingPlanes(origin, dir, dimensions, maxDistance);
+}
+
+function intersectBoundingPlanes(
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  dimensions: Vector3,
+  maxDistance: number
+): VoxelRaycastResult | null {
+  const planes: { pos: number; axis: "x" | "y" | "z"; normal: THREE.Vector3 }[] = [
+    { pos: 0, axis: "x", normal: new THREE.Vector3(1, 0, 0) },
+    { pos: dimensions.x, axis: "x", normal: new THREE.Vector3(-1, 0, 0) },
+    { pos: 0, axis: "y", normal: new THREE.Vector3(0, 1, 0) },
+    { pos: dimensions.y, axis: "y", normal: new THREE.Vector3(0, -1, 0) },
+    { pos: 0, axis: "z", normal: new THREE.Vector3(0, 0, 1) },
+    { pos: dimensions.z, axis: "z", normal: new THREE.Vector3(0, 0, -1) },
+  ];
+
+  let closestT = Infinity;
+  let closestResult: VoxelRaycastResult | null = null;
+
+  for (const plane of planes) {
+    const dirComponent = dir[plane.axis];
+    if (dirComponent === 0) continue;
+
+    const t = (plane.pos - origin[plane.axis]) / dirComponent;
+    if (t < 0 || t > maxDistance || t >= closestT) continue;
+
+    const hitFromFront = dir.dot(plane.normal) < 0;
+    if (!hitFromFront) continue;
+
+    const hit = origin.clone().addScaledVector(dir, t);
+    closestT = t;
+
+    const gridX = Math.floor(hit.x);
+    const gridY = Math.floor(hit.y);
+    const gridZ = Math.floor(hit.z);
+
+    closestResult = {
+      gridPosition: new THREE.Vector3(
+        plane.axis === "x" ? (plane.pos === 0 ? 0 : dimensions.x - 1) : gridX,
+        plane.axis === "y" ? (plane.pos === 0 ? 0 : dimensions.y - 1) : gridY,
+        plane.axis === "z" ? (plane.pos === 0 ? 0 : dimensions.z - 1) : gridZ,
+      ),
+      normal: plane.normal.clone(),
+      blockValue: 0x80,
+    };
+  }
+
+  return closestResult;
 }

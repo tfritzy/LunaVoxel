@@ -266,5 +266,80 @@ describe("voxel-raycast", () => {
 
       expect(result).toBeNull();
     });
+
+    it("should hit the bottom bounding plane outside grid bounds", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(50, 10, 50);
+      const direction = new THREE.Vector3(0, -1, 0);
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.gridPosition.y).toBe(0);
+      expect(result!.gridPosition.x).toBe(50);
+      expect(result!.gridPosition.z).toBe(50);
+      expect(result!.normal.y).toBe(1);
+      expect(result!.blockValue).toBe(0x80);
+    });
+
+    it("should hit the bottom bounding plane far outside grid bounds", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(500, 10, 500);
+      const direction = new THREE.Vector3(0, -1, 0);
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.gridPosition.y).toBe(0);
+      expect(result!.gridPosition.x).toBe(500);
+      expect(result!.gridPosition.z).toBe(500);
+      expect(result!.normal.y).toBe(1);
+      expect(result!.blockValue).toBe(0x80);
+    });
+
+    it("should hit the closest bounding plane when ray is diagonal outside bounds", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(50, 50, 50);
+      const direction = new THREE.Vector3(-1, -1, -1).normalize();
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.blockValue).toBe(0x80);
+    });
+
+    it("should not hit bounding plane when ray goes away from all planes", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(-5, -5, -5);
+      const direction = new THREE.Vector3(-1, -1, -1).normalize();
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).toBeNull();
+    });
   });
 });
