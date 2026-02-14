@@ -9,6 +9,8 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
+import type { FillShape } from "@/modeling/lib/tool-type";
+import { isInsideFillShape } from "@/modeling/lib/fill-shape-utils";
 
 export type GlobalState = {
   project: Project;
@@ -33,14 +35,15 @@ export type Reducers = {
     rotation: number,
     objectIndex: number
   ) => void;
-  modifyBlockSphere: (
+  modifyBlockShape: (
     projectId: string,
     mode: BlockModificationMode,
     blockType: number,
     start: Vector3,
     end: Vector3,
     rotation: number,
-    objectIndex: number
+    objectIndex: number,
+    shape: FillShape
   ) => void;
   undoEdit: (
     projectId: string,
@@ -354,14 +357,15 @@ const reducers: Reducers = {
       }
     });
   },
-  modifyBlockSphere: (
+  modifyBlockShape: (
     _projectId,
     mode,
     blockType,
     start,
     end,
     _rotation,
-    objectIndex
+    objectIndex,
+    shape
   ) => {
     updateState((current) => {
       const obj = getObjectByIndex(objectIndex);
@@ -374,13 +378,6 @@ const reducers: Reducers = {
       const maxX = Math.min(dims.x - 1, Math.floor(Math.max(start.x, end.x)));
       const maxY = Math.min(dims.y - 1, Math.floor(Math.max(start.y, end.y)));
       const maxZ = Math.min(dims.z - 1, Math.floor(Math.max(start.z, end.z)));
-
-      const radiusX = (maxX - minX + 1) / 2;
-      const radiusY = (maxY - minY + 1) / 2;
-      const radiusZ = (maxZ - minZ + 1) / 2;
-      const centerX = (minX + maxX + 1) / 2;
-      const centerY = (minY + maxY + 1) / 2;
-      const centerZ = (minZ + maxZ + 1) / 2;
 
       for (
         let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
@@ -416,10 +413,7 @@ const reducers: Reducers = {
                   const worldX = chunkX + x;
                   const worldY = chunkY + y;
                   const worldZ = chunkZ + z;
-                  const dx = (worldX + 0.5 - centerX) / radiusX;
-                  const dy = (worldY + 0.5 - centerY) / radiusY;
-                  const dz = (worldZ + 0.5 - centerZ) / radiusZ;
-                  if (dx * dx + dy * dy + dz * dz <= 1) {
+                  if (isInsideFillShape(shape, worldX, worldY, worldZ, minX, maxX, minY, maxY, minZ, maxZ)) {
                     applyBlockAt(chunk, mode, x, y, z, blockType);
                   }
                 }

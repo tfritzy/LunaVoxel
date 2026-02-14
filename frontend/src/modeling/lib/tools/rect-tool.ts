@@ -6,6 +6,7 @@ import { calculateRectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { isInsideFillShape } from "../fill-shape-utils";
 
 export class RectTool implements Tool {
   private fillShape: FillShape = "Rect";
@@ -50,116 +51,6 @@ export class RectTool implements Tool {
     }
   }
 
-  private isInsideShape(
-    x: number,
-    y: number,
-    z: number,
-    minX: number,
-    maxX: number,
-    minY: number,
-    maxY: number,
-    minZ: number,
-    maxZ: number
-  ): boolean {
-    switch (this.fillShape) {
-      case "Rect":
-        return true;
-      case "Sphere":
-        return this.isInsideSphere(x, y, z, minX, maxX, minY, maxY, minZ, maxZ);
-      case "Cylinder":
-        return this.isInsideCylinder(x, z, minX, maxX, minZ, maxZ);
-      case "Triangle":
-        return this.isInsideTriangle(x, y, minX, maxX, minY, maxY);
-      case "Diamond":
-        return this.isInsideDiamond(x, y, z, minX, maxX, minY, maxY, minZ, maxZ);
-    }
-  }
-
-  private isInsideSphere(
-    x: number,
-    y: number,
-    z: number,
-    minX: number,
-    maxX: number,
-    minY: number,
-    maxY: number,
-    minZ: number,
-    maxZ: number
-  ): boolean {
-    const radiusX = (maxX - minX + 1) / 2;
-    const radiusY = (maxY - minY + 1) / 2;
-    const radiusZ = (maxZ - minZ + 1) / 2;
-    const centerX = (minX + maxX + 1) / 2;
-    const centerY = (minY + maxY + 1) / 2;
-    const centerZ = (minZ + maxZ + 1) / 2;
-    const dx = (x + 0.5 - centerX) / radiusX;
-    const dy = (y + 0.5 - centerY) / radiusY;
-    const dz = (z + 0.5 - centerZ) / radiusZ;
-
-    return dx * dx + dy * dy + dz * dz <= 1;
-  }
-
-  private isInsideCylinder(
-    x: number,
-    z: number,
-    minX: number,
-    maxX: number,
-    minZ: number,
-    maxZ: number
-  ): boolean {
-    const radiusX = (maxX - minX + 1) / 2;
-    const radiusZ = (maxZ - minZ + 1) / 2;
-    const centerX = (minX + maxX + 1) / 2;
-    const centerZ = (minZ + maxZ + 1) / 2;
-    const dx = (x + 0.5 - centerX) / radiusX;
-    const dz = (z + 0.5 - centerZ) / radiusZ;
-
-    return dx * dx + dz * dz <= 1;
-  }
-
-  private isInsideTriangle(
-    x: number,
-    y: number,
-    minX: number,
-    maxX: number,
-    minY: number,
-    maxY: number
-  ): boolean {
-    const height = maxY - minY + 1;
-    const width = maxX - minX + 1;
-    const row = y - minY;
-    const fraction = (row + 0.5) / height;
-    const rowWidth = width * fraction;
-    const centerX = (minX + maxX + 1) / 2;
-    const dx = Math.abs(x + 0.5 - centerX);
-
-    return dx <= rowWidth / 2;
-  }
-
-  private isInsideDiamond(
-    x: number,
-    y: number,
-    z: number,
-    minX: number,
-    maxX: number,
-    minY: number,
-    maxY: number,
-    minZ: number,
-    maxZ: number
-  ): boolean {
-    const centerX = (minX + maxX + 1) / 2;
-    const centerY = (minY + maxY + 1) / 2;
-    const centerZ = (minZ + maxZ + 1) / 2;
-    const radiusX = (maxX - minX + 1) / 2;
-    const radiusY = (maxY - minY + 1) / 2;
-    const radiusZ = (maxZ - minZ + 1) / 2;
-    const dx = Math.abs(x + 0.5 - centerX) / radiusX;
-    const dy = Math.abs(y + 0.5 - centerY) / radiusY;
-    const dz = Math.abs(z + 0.5 - centerZ) / radiusZ;
-
-    return dx + dy + dz <= 1;
-  }
-
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
     void context;
     void event;
@@ -190,7 +81,7 @@ export class RectTool implements Tool {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          if (this.isInsideShape(x, y, z, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
+          if (isInsideFillShape(this.fillShape, x, y, z, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
             context.previewFrame.set(x, y, z, previewValue);
           }
         }
@@ -222,25 +113,16 @@ export class RectTool implements Tool {
         0,
         context.selectedObject
       );
-    } else if (this.fillShape === "Sphere") {
-      context.reducers.modifyBlockSphere(
-        context.projectId,
-        context.mode,
-        context.selectedBlock,
-        event.startGridPosition,
-        event.currentGridPosition,
-        0,
-        context.selectedObject
-      );
     } else {
-      context.reducers.modifyBlockRect(
+      context.reducers.modifyBlockShape(
         context.projectId,
         context.mode,
         context.selectedBlock,
         event.startGridPosition,
         event.currentGridPosition,
         0,
-        context.selectedObject
+        context.selectedObject,
+        this.fillShape
       );
     }
   }
