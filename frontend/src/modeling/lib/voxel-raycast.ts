@@ -65,7 +65,13 @@ export function performRaycast(
            pz >= 0 && pz < dimensions.z;
   };
 
-  let wasInsideBounds = isInsideBounds(x, y, z);
+  const isInRange = (value: number, dim: number): boolean => {
+    return value >= 0 && value < dim;
+  };
+
+  let wasInsideX = isInRange(x, dimensions.x);
+  let wasInsideY = isInRange(y, dimensions.y);
+  let wasInsideZ = isInRange(z, dimensions.z);
 
   const maxIterations = Math.ceil(maxDistance) * 3 + dimensions.x + dimensions.y + dimensions.z;
   for (let i = 0; i < maxIterations; i++) {
@@ -103,24 +109,7 @@ export function performRaycast(
           blockValue,
         };
       }
-    } else if (wasInsideBounds && !currentlyInsideBounds) {
-      const normal = new THREE.Vector3(0, 0, 0);
-      if (lastStepAxis === 0) normal.x = -stepX;
-      else if (lastStepAxis === 1) normal.y = -stepY;
-      else if (lastStepAxis === 2) normal.z = -stepZ;
-
-      const boundaryX = x < 0 ? 0 : (x >= dimensions.x ? dimensions.x - 1 : x);
-      const boundaryY = y < 0 ? 0 : (y >= dimensions.y ? dimensions.y - 1 : y);
-      const boundaryZ = z < 0 ? 0 : (z >= dimensions.z ? dimensions.z - 1 : z);
-
-      return {
-        gridPosition: new THREE.Vector3(boundaryX, boundaryY, boundaryZ),
-        normal,
-        blockValue: RAYCASTABLE_BIT,
-      };
     }
-
-    wasInsideBounds = currentlyInsideBounds;
 
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {
@@ -144,67 +133,50 @@ export function performRaycast(
       }
     }
 
-    const padding = 10;
+    const nowInsideX = isInRange(x, dimensions.x);
+    const nowInsideY = isInRange(y, dimensions.y);
+    const nowInsideZ = isInRange(z, dimensions.z);
+
+    if (lastStepAxis === 0 && wasInsideX && !nowInsideX) {
+      const boundaryX = x < 0 ? 0 : dimensions.x - 1;
+      return {
+        gridPosition: new THREE.Vector3(boundaryX, y, z),
+        normal: new THREE.Vector3(-stepX, 0, 0),
+        blockValue: RAYCASTABLE_BIT,
+      };
+    }
+    if (lastStepAxis === 1 && wasInsideY && !nowInsideY) {
+      const boundaryY = y < 0 ? 0 : dimensions.y - 1;
+      return {
+        gridPosition: new THREE.Vector3(x, boundaryY, z),
+        normal: new THREE.Vector3(0, -stepY, 0),
+        blockValue: RAYCASTABLE_BIT,
+      };
+    }
+    if (lastStepAxis === 2 && wasInsideZ && !nowInsideZ) {
+      const boundaryZ = z < 0 ? 0 : dimensions.z - 1;
+      return {
+        gridPosition: new THREE.Vector3(x, y, boundaryZ),
+        normal: new THREE.Vector3(0, 0, -stepZ),
+        blockValue: RAYCASTABLE_BIT,
+      };
+    }
+
+    wasInsideX = nowInsideX;
+    wasInsideY = nowInsideY;
+    wasInsideZ = nowInsideZ;
+
     if (
-      (stepX > 0 && x > dimensions.x + padding) ||
-      (stepX < 0 && x < -padding) ||
-      (stepY > 0 && y > dimensions.y + padding) ||
-      (stepY < 0 && y < -padding) ||
-      (stepZ > 0 && z > dimensions.z + padding) ||
-      (stepZ < 0 && z < -padding)
+      (stepX > 0 && x > dimensions.x && !wasInsideY && !wasInsideZ) ||
+      (stepX < 0 && x < 0 && !wasInsideY && !wasInsideZ) ||
+      (stepY > 0 && y > dimensions.y && !wasInsideX && !wasInsideZ) ||
+      (stepY < 0 && y < 0 && !wasInsideX && !wasInsideZ) ||
+      (stepZ > 0 && z > dimensions.z && !wasInsideX && !wasInsideY) ||
+      (stepZ < 0 && z < 0 && !wasInsideX && !wasInsideY)
     ) {
       break;
     }
   }
 
-  return intersectBoundingPlanes(origin, dir, dimensions, maxDistance);
-}
-
-function intersectBoundingPlanes(
-  origin: THREE.Vector3,
-  dir: THREE.Vector3,
-  dimensions: Vector3,
-  maxDistance: number
-): VoxelRaycastResult | null {
-  const planes: { pos: number; axis: "x" | "y" | "z"; normal: THREE.Vector3 }[] = [
-    { pos: 0, axis: "x", normal: new THREE.Vector3(1, 0, 0) },
-    { pos: dimensions.x, axis: "x", normal: new THREE.Vector3(-1, 0, 0) },
-    { pos: 0, axis: "y", normal: new THREE.Vector3(0, 1, 0) },
-    { pos: dimensions.y, axis: "y", normal: new THREE.Vector3(0, -1, 0) },
-    { pos: 0, axis: "z", normal: new THREE.Vector3(0, 0, 1) },
-    { pos: dimensions.z, axis: "z", normal: new THREE.Vector3(0, 0, -1) },
-  ];
-
-  let closestT = Infinity;
-  let closestResult: VoxelRaycastResult | null = null;
-
-  for (const plane of planes) {
-    const dirComponent = dir[plane.axis];
-    if (dirComponent === 0) continue;
-
-    const t = (plane.pos - origin[plane.axis]) / dirComponent;
-    if (t < 0 || t > maxDistance || t >= closestT) continue;
-
-    const hitFromFront = dir.dot(plane.normal) < 0;
-    if (!hitFromFront) continue;
-
-    const hit = origin.clone().addScaledVector(dir, t);
-    closestT = t;
-
-    const gridX = Math.floor(hit.x);
-    const gridY = Math.floor(hit.y);
-    const gridZ = Math.floor(hit.z);
-
-    closestResult = {
-      gridPosition: new THREE.Vector3(
-        plane.axis === "x" ? (plane.pos === 0 ? 0 : dimensions.x - 1) : gridX,
-        plane.axis === "y" ? (plane.pos === 0 ? 0 : dimensions.y - 1) : gridY,
-        plane.axis === "z" ? (plane.pos === 0 ? 0 : dimensions.z - 1) : gridZ,
-      ),
-      normal: plane.normal.clone(),
-      blockValue: RAYCASTABLE_BIT,
-    };
-  }
-
-  return closestResult;
+  return null;
 }
