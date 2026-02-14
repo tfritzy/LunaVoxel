@@ -3,7 +3,6 @@ import { RectTool } from "../tools/rect-tool";
 import { BlockPickerTool } from "../tools/block-picker-tool";
 import { MagicSelectTool } from "../tools/magic-select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
-import { SphereTool } from "../tools/sphere-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
@@ -83,10 +82,40 @@ describe("Tool Interface", () => {
       const tool = new MoveSelectionTool();
       expect(tool.getType()).toEqual("MoveSelection");
     });
+  });
 
-    it("should create Sphere tool", () => {
-      const tool = new SphereTool();
-      expect(tool.getType()).toEqual("Sphere");
+  describe("Tool Options", () => {
+    it("should return fill shape options for RectTool", () => {
+      const tool = new RectTool();
+      const options = tool.getOptions();
+      
+      expect(options).toHaveLength(1);
+      expect(options[0].name).toBe("Fill Shape");
+      expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond"]);
+      expect(options[0].currentValue).toBe("Rect");
+    });
+
+    it("should update fill shape option on RectTool", () => {
+      const tool = new RectTool();
+      tool.setOption("Fill Shape", "Sphere");
+      
+      const options = tool.getOptions();
+      expect(options[0].currentValue).toBe("Sphere");
+    });
+
+    it("should return empty options for BlockPicker", () => {
+      const tool = new BlockPickerTool();
+      expect(tool.getOptions()).toHaveLength(0);
+    });
+
+    it("should return empty options for MagicSelect", () => {
+      const tool = new MagicSelectTool();
+      expect(tool.getOptions()).toHaveLength(0);
+    });
+
+    it("should return empty options for MoveSelection", () => {
+      const tool = new MoveSelectionTool();
+      expect(tool.getOptions()).toHaveLength(0);
     });
   });
 
@@ -136,6 +165,90 @@ describe("Tool Interface", () => {
       });
       
       expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
+    });
+  });
+
+  describe("RectTool Fill Shapes", () => {
+    it("should fill all blocks with Rect shape", () => {
+      const tool = new RectTool();
+      
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+    });
+
+    it("should create sphere shape when fill shape is Sphere", () => {
+      const tool = new RectTool();
+      tool.setOption("Fill Shape", "Sphere");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+    });
+
+    it("should dispatch sphere edit on mouse up with Sphere fill shape", () => {
+      const tool = new RectTool();
+      tool.setOption("Fill Shape", "Sphere");
+      
+      let called = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        modifyBlockSphere: () => {
+          called = true;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(3, 4, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(called).toBe(true);
+    });
+
+    it("should create cylinder shape when fill shape is Cylinder", () => {
+      const tool = new RectTool();
+      tool.setOption("Fill Shape", "Cylinder");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 4, 4),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(0, 2, 0)).toBe(0);
+    });
+
+    it("should create diamond shape when fill shape is Diamond", () => {
+      const tool = new RectTool();
+      tool.setOption("Fill Shape", "Diamond");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 4, 4),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
     });
   });
 
@@ -329,45 +442,6 @@ describe("Tool Interface", () => {
       });
 
       expect(moveSelectionBoxUpdated).toBe(true);
-    });
-  });
-
-  describe("Sphere Tool", () => {
-    let tool: Tool;
-
-    beforeEach(() => {
-      tool = new SphereTool();
-    });
-
-    it("should create a rounded preview shape while dragging", () => {
-      tool.onDrag(mockContext, {
-        startGridPosition: new THREE.Vector3(0, 0, 0),
-        currentGridPosition: new THREE.Vector3(2, 2, 2),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0.5, 0.5),
-      });
-
-      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
-    });
-
-    it("should dispatch sphere edit on mouse up", () => {
-      let called = false;
-      mockContext.reducers = {
-        ...mockContext.reducers,
-        modifyBlockSphere: () => {
-          called = true;
-        },
-      };
-
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 2, 3),
-        currentGridPosition: new THREE.Vector3(3, 4, 5),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0.5, 0.5),
-      });
-
-      expect(called).toBe(true);
     });
   });
 });

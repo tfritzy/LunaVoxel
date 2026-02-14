@@ -9,8 +9,7 @@ import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
-import { SphereTool } from "./tools/sphere-tool";
-import type { Tool } from "./tool-interface";
+import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
 
 export const Builder = class {
@@ -134,8 +133,6 @@ export const Builder = class {
         return new MoveSelectionTool();
       case "Rect":
         return new RectTool();
-      case "Sphere":
-        return new SphereTool();
       case "BlockPicker":
         return new BlockPickerTool();
       case "MagicSelect":
@@ -158,6 +155,14 @@ export const Builder = class {
 
   public getTool(): ToolType {
     return this.currentTool.getType();
+  }
+
+  public getToolOptions(): ToolOption[] {
+    return this.currentTool.getOptions();
+  }
+
+  public setToolOption(name: string, value: string): void {
+    this.currentTool.setOption(name, value);
   }
 
   public setSelectedBlock(

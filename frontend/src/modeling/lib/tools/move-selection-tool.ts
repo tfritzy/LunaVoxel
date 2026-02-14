@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
-import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
@@ -11,6 +11,12 @@ export class MoveSelectionTool implements Tool {
   getType(): ToolType {
     return "MoveSelection";
   }
+
+  getOptions(): ToolOption[] {
+    return [];
+  }
+
+  setOption(_name: string, _value: string): void {}
 
   calculateGridPosition(
     gridPosition: THREE.Vector3,

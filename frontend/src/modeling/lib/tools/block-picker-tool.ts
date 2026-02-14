@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { ToolType } from "../tool-type";
-import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import type { BlockModificationMode } from "@/state/types";
 
@@ -8,6 +8,12 @@ export class BlockPickerTool implements Tool {
   getType(): ToolType {
     return "BlockPicker";
   }
+
+  getOptions(): ToolOption[] {
+    return [];
+  }
+
+  setOption(_name: string, _value: string): void {}
 
   calculateGridPosition(
     gridPosition: THREE.Vector3,

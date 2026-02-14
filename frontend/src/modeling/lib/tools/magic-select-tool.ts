@@ -1,12 +1,18 @@
 import * as THREE from "three";
 import type { ToolType } from "../tool-type";
-import type { Tool, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
   getType(): ToolType {
     return "MagicSelect";
   }
+
+  getOptions(): ToolOption[] {
+    return [];
+  }
+
+  setOption(_name: string, _value: string): void {}
 
   calculateGridPosition(
     gridPosition: THREE.Vector3,

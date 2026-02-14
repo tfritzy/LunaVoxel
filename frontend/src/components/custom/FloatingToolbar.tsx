@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Eraser, Paintbrush, PlusSquare, Pipette, Wand2, Move, Circle } from "lucide-react";
+import { Eraser, Paintbrush, PlusSquare, Pipette, Wand2, Move } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { BlockModificationMode } from "@/state/types";
@@ -144,19 +144,8 @@ export const FloatingToolbar = ({
           <Wand2 className="min-w-8 min-h-8" />
           <div className="absolute bottom-0.5 right-0.5 text-xs px-1">S</div>
         </Button>
-        <Button
-          onClick={() => onToolChange("Sphere")}
-          className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-            currentTool === "Sphere"
-              ? "border-accent text-accent"
-              : "border-secondary text-secondary"
-          }`}
-          title="Sphere Tool"
-        >
-          <Circle className="min-w-8 min-h-8" />
-        </Button>
         {/* Placeholder slots for future tools */}
-        {Array.from({ length: 1 }, (_, i) => (
+        {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
             className="w-16 h-16 border-2 border-secondary bg-background"
