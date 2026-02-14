@@ -140,9 +140,9 @@ export const FloatingToolbar = ({
             }`}
             title="Attach Mode (A)"
           >
-            <PlusSquare className="min-w-6 min-h-6" />
-            <div className="absolute bottom-1 left-2 text-[10px] uppercase tracking-wide">Attach</div>
-            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">A</div>
+            <PlusSquare className="min-w-6 min-h-6" aria-hidden="true" />
+            <div aria-hidden="true" className="absolute bottom-1 left-2 text-xs uppercase tracking-wide">Attach</div>
+            <div aria-hidden="true" className="absolute bottom-0.5 right-0.5 text-xs px-1">A</div>
             <div className={`absolute top-1 right-1 h-2.5 w-2.5 rounded-full ${isAttachMode ? "bg-emerald-300 shadow-[0_0_8px_#6ee7b7]" : "bg-emerald-600/70"}`} />
           </Button>
           <Button
@@ -156,9 +156,9 @@ export const FloatingToolbar = ({
             }`}
             title="Erase Mode (E)"
           >
-            <Eraser className="min-w-6 min-h-6" />
-            <div className="absolute bottom-1 left-2 text-[10px] uppercase tracking-wide">Erase</div>
-            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">E</div>
+            <Eraser className="min-w-6 min-h-6" aria-hidden="true" />
+            <div aria-hidden="true" className="absolute bottom-1 left-2 text-xs uppercase tracking-wide">Erase</div>
+            <div aria-hidden="true" className="absolute bottom-0.5 right-0.5 text-xs px-1">E</div>
             <div className={`absolute top-1 right-1 h-2.5 w-2.5 rounded-full ${isEraseMode ? "bg-rose-300 shadow-[0_0_8px_#fda4af]" : "bg-rose-600/70"}`} />
           </Button>
           <Button
@@ -172,9 +172,9 @@ export const FloatingToolbar = ({
             }`}
             title="Paint Mode (T)"
           >
-            <Paintbrush className="min-w-6 min-h-6" />
-            <div className="absolute bottom-1 left-2 text-[10px] uppercase tracking-wide">Paint</div>
-            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
+            <Paintbrush className="min-w-6 min-h-6" aria-hidden="true" />
+            <div aria-hidden="true" className="absolute bottom-1 left-2 text-xs uppercase tracking-wide">Paint</div>
+            <div aria-hidden="true" className="absolute bottom-0.5 right-0.5 text-xs px-1">T</div>
             <div className={`absolute top-1 right-1 h-2.5 w-2.5 rounded-full ${isPaintMode ? "bg-sky-300 shadow-[0_0_8px_#7dd3fc]" : "bg-sky-600/70"}`} />
           </Button>
         </div>
