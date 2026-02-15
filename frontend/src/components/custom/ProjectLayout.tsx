@@ -1,6 +1,7 @@
 import { ProjectHeader } from "./ProjectHeader";
 import { RightSideDrawer } from "./RightSideDrawer";
 import { FloatingToolbar } from "./FloatingToolbar";
+import { PendingActionBar } from "./PendingActionBar";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
@@ -30,6 +31,9 @@ interface ProjectLayoutProps {
   atlasData: AtlasData;
   toolOptions: ToolOption[];
   onToolOptionChange: (name: string, value: string) => void;
+  hasPendingOperation?: boolean;
+  onConfirmPending?: () => void;
+  onCancelPending?: () => void;
 }
 
 export const ProjectLayout = ({
@@ -48,6 +52,9 @@ export const ProjectLayout = ({
   atlasData,
   toolOptions,
   onToolOptionChange,
+  hasPendingOperation,
+  onConfirmPending,
+  onCancelPending,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
@@ -66,6 +73,12 @@ export const ProjectLayout = ({
 
         <div className="flex-1 relative bg-muted/5 min-w-0">
           {children}
+          {hasPendingOperation && onConfirmPending && onCancelPending && (
+            <PendingActionBar
+              onConfirm={onConfirmPending}
+              onCancel={onCancelPending}
+            />
+          )}
           <FloatingToolbar
             currentTool={currentTool}
             currentMode={currentMode}

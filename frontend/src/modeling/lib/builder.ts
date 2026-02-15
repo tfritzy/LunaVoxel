@@ -22,6 +22,7 @@ export const Builder = class {
   private selectedBlock: number = 1;
   private setSelectedBlockInParent: (index: number) => void;
   private selectedObject: number = 0;
+  private onPendingStateChange: ((hasPending: boolean) => void) | null = null;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -56,6 +57,7 @@ export const Builder = class {
   private boundMouseClick: (event: MouseEvent) => void;
   private boundMouseDown: (event: MouseEvent) => void;
   private boundContextMenu: (event: MouseEvent) => void;
+  private boundKeyDown: (event: KeyboardEvent) => void;
 
   private lastCursorUpdateTime: number = 0;
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
@@ -106,6 +108,7 @@ export const Builder = class {
     this.boundMouseClick = this.onMouseClick.bind(this);
     this.boundMouseDown = this.onMouseDown.bind(this);
     this.boundContextMenu = this.onContextMenu.bind(this);
+    this.boundKeyDown = this.onKeyDown.bind(this);
 
     this.addEventListeners();
   }
@@ -113,6 +116,7 @@ export const Builder = class {
   private commitPendingIfNeeded(): void {
     if (this.currentTool.hasPendingOperation?.()) {
       this.currentTool.commitPendingOperation?.(this.toolContext);
+      this.notifyPendingStateChange();
     }
   }
 
@@ -131,6 +135,7 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
+    this.notifyPendingStateChange();
   }
 
   public setTool(tool: ToolType): void {
@@ -206,11 +211,20 @@ export const Builder = class {
     this.toolContext.camera = camera;
   }
 
+  public setOnPendingStateChange(callback: (hasPending: boolean) => void): void {
+    this.onPendingStateChange = callback;
+  }
+
+  private notifyPendingStateChange(): void {
+    this.onPendingStateChange?.(this.currentTool.hasPendingOperation?.() ?? false);
+  }
+
   private addEventListeners(): void {
     this.domElement.addEventListener("mousemove", this.boundMouseMove);
     this.domElement.addEventListener("mouseup", this.boundMouseClick);
     this.domElement.addEventListener("mousedown", this.boundMouseDown);
     this.domElement.addEventListener("contextmenu", this.boundContextMenu);
+    window.addEventListener("keydown", this.boundKeyDown);
   }
 
   private removeEventListeners(): void {
@@ -218,6 +232,7 @@ export const Builder = class {
     this.domElement.removeEventListener("mouseup", this.boundMouseClick);
     this.domElement.removeEventListener("mousedown", this.boundMouseDown);
     this.domElement.removeEventListener("contextmenu", this.boundContextMenu);
+    window.removeEventListener("keydown", this.boundKeyDown);
   }
 
   private onMouseMove(event: MouseEvent): void {
@@ -288,6 +303,26 @@ export const Builder = class {
 
   private onContextMenu(event: MouseEvent): void {
     event.preventDefault();
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    if (!this.currentTool.hasPendingOperation?.()) return;
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.commitPendingIfNeeded();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      this.cancelCurrentOperation();
+    }
+  }
+
+  public hasPendingOperation(): boolean {
+    return this.currentTool.hasPendingOperation?.() ?? false;
+  }
+
+  public commitPending(): void {
+    this.commitPendingIfNeeded();
   }
 
   private updateMousePosition(event: MouseEvent): void {
@@ -424,6 +459,7 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
+    this.notifyPendingStateChange();
   }
 
   private vectorsApproximatelyEqual(

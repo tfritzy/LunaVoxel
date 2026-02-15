@@ -29,6 +29,9 @@ export class RectTool implements Tool {
   private resizingCorner: ResizeCorner | null = null;
   private resizeBaseBounds: RectBounds | null = null;
   private boundsBoxHelper: THREE.Box3Helper | null = null;
+  private handleMeshes: THREE.Mesh[] = [];
+  private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.15, 8, 8);
+  private static readonly HANDLE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
   private static readonly HANDLE_SCREEN_THRESHOLD = 0.05;
 
@@ -306,11 +309,13 @@ export class RectTool implements Tool {
   }
 
   dispose(): void {
-    if (!this.boundsBoxHelper) return;
-    this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
-    this.boundsBoxHelper.geometry.dispose();
-    (this.boundsBoxHelper.material as THREE.Material).dispose();
-    this.boundsBoxHelper = null;
+    if (this.boundsBoxHelper) {
+      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
+      this.boundsBoxHelper.geometry.dispose();
+      (this.boundsBoxHelper.material as THREE.Material).dispose();
+      this.boundsBoxHelper = null;
+    }
+    this.clearHandleMeshes();
   }
 
   private findResizeHandle(context: ToolContext, mousePos: THREE.Vector2): ResizeCorner | null {
@@ -374,6 +379,43 @@ export class RectTool implements Tool {
     this.boundsBoxHelper.box.min.set(bounds.minX, bounds.minY, bounds.minZ);
     this.boundsBoxHelper.box.max.set(bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1);
     this.boundsBoxHelper.updateMatrixWorld(true);
+
+    this.updateHandleMeshes(context, bounds);
+  }
+
+  private updateHandleMeshes(context: ToolContext, bounds: RectBounds): void {
+    if (this.handleMeshes.length === 0) {
+      for (let i = 0; i < 8; i++) {
+        const mesh = new THREE.Mesh(
+          RectTool.HANDLE_SPHERE_GEOMETRY,
+          RectTool.HANDLE_MATERIAL
+        );
+        this.handleMeshes.push(mesh);
+        context.scene.add(mesh);
+      }
+    }
+
+    const corners = [
+      [bounds.minX, bounds.minY, bounds.minZ],
+      [bounds.minX, bounds.minY, bounds.maxZ + 1],
+      [bounds.minX, bounds.maxY + 1, bounds.minZ],
+      [bounds.minX, bounds.maxY + 1, bounds.maxZ + 1],
+      [bounds.maxX + 1, bounds.minY, bounds.minZ],
+      [bounds.maxX + 1, bounds.minY, bounds.maxZ + 1],
+      [bounds.maxX + 1, bounds.maxY + 1, bounds.minZ],
+      [bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1],
+    ];
+
+    for (let i = 0; i < 8; i++) {
+      this.handleMeshes[i].position.set(corners[i][0], corners[i][1], corners[i][2]);
+    }
+  }
+
+  private clearHandleMeshes(): void {
+    for (const mesh of this.handleMeshes) {
+      mesh.parent?.remove(mesh);
+    }
+    this.handleMeshes = [];
   }
 
   private clearBoundsBox(_context: ToolContext): void {
