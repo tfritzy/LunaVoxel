@@ -32,8 +32,11 @@ export class BrushTool implements Tool {
       },
       {
         name: "Size",
-        values: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+        values: [],
         currentValue: String(this.size),
+        type: "slider",
+        min: 1,
+        max: 10,
       },
     ];
   }

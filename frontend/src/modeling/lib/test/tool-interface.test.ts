@@ -481,6 +481,9 @@ describe("Tool Interface", () => {
       expect(options[0].currentValue).toBe("Sphere");
       expect(options[1].name).toBe("Size");
       expect(options[1].currentValue).toBe("3");
+      expect(options[1].type).toBe("slider");
+      expect(options[1].min).toBe(1);
+      expect(options[1].max).toBe(10);
     });
 
     it("should update brush shape option", () => {

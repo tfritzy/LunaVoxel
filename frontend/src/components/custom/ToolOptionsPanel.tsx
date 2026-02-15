@@ -40,6 +40,10 @@ function isToggleOption(option: ToolOption): boolean {
   return option.values.length === 2 && option.values[0] === "Off" && option.values[1] === "On";
 }
 
+function isSliderOption(option: ToolOption): boolean {
+  return option.type === "slider";
+}
+
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
@@ -51,7 +55,8 @@ export const ToolOptionsPanel = ({
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
-  const regularOptions = options.filter((o) => !isToggleOption(o));
+  const regularOptions = options.filter((o) => !isToggleOption(o) && !isSliderOption(o));
+  const sliderOptions = options.filter((o) => isSliderOption(o));
   const toggleOptions = options.filter((o) => isToggleOption(o));
 
   return (
@@ -89,6 +94,21 @@ export const ToolOptionsPanel = ({
                 );
               })}
             </div>
+          </div>
+        ))}
+        {sliderOptions.map((option) => (
+          <div key={option.name} className="mt-2">
+            <div className="text-sm text-muted-foreground mb-2">
+              {option.name}: {option.currentValue}
+            </div>
+            <input
+              type="range"
+              min={option.min ?? 1}
+              max={option.max ?? 10}
+              value={Number(option.currentValue)}
+              onChange={(e) => onOptionChange(option.name, e.target.value)}
+              className="w-full accent-accent"
+            />
           </div>
         ))}
         {toggleOptions.length > 0 && (

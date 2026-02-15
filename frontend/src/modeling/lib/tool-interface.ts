@@ -34,6 +34,9 @@ export interface ToolOption {
   name: string;
   values: string[];
   currentValue: string;
+  type?: "slider";
+  min?: number;
+  max?: number;
 }
 
 export interface Tool {
