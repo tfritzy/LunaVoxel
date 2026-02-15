@@ -1,14 +1,14 @@
-import { HexagonOverlay, points, hexViewBox, hexClipPath } from "./HexagonOverlay";
+import { HexagonOverlay, points } from "./HexagonOverlay";
 import { Eraser } from "lucide-react";
 import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
 import { stateStore, useGlobalState } from "@/state/store";
 
 const BLOCK_WIDTH = "3em";
-const BLOCK_HEIGHT = "3.47em";
-const HORIZONTAL_OFFSET = "1.5em";
-const VERTICAL_OVERLAP = "-1.73em";
-const HORIZONTAL_GAP = "0em";
+const BLOCK_HEIGHT = "4.1rem";
+const HORIZONTAL_OFFSET = "1.44rem";
+const VERTICAL_OVERLAP = "-1.63rem";
+const HORIZONTAL_GAP = "-1.5rem";
 
 const EraserBlock = memo(
   ({
@@ -35,13 +35,15 @@ const EraserBlock = memo(
         <div className="absolute inset-0 pointer-events-none text-muted-foreground">
           <div
             className="absolute inset-0 cursor-pointer pointer-events-auto"
-            style={{ clipPath: hexClipPath }}
+            style={{
+              clipPath: `polygon(50% ${points.top}%, ${points.topRight.x}% ${points.topRight.y}%, ${points.bottomRight.x}% ${points.bottomRight.y}%, 50% ${points.bottom}%, ${points.bottomLeft.x}% ${points.bottomLeft.y}%, ${points.topLeft.x}% ${points.topLeft.y}%)`,
+            }}
             onMouseDown={onSelect}
           />
           <svg
             width="100%"
             height="100%"
-            viewBox={hexViewBox}
+            viewBox="0 0 100 100"
             className="absolute inset-0"
           >
             <polygon
@@ -82,8 +84,9 @@ const ShadedBlock = memo(
       <svg
         width="100%"
         height="100%"
-        viewBox={hexViewBox}
+        viewBox="0 0 100 100"
         className="absolute inset-0"
+        preserveAspectRatio="none"
       >
         <polygon points={topFace} fill={top} />
         <polygon points={rightFace} fill={right} />

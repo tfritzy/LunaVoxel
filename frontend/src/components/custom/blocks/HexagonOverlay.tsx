@@ -6,16 +6,6 @@ export const points = {
   topLeft: { x: 5.350000000000001, y: 24.445000000000004 },
   topRight: { x: 94.175, y: 24.445000000000004 },
 };
-
-const hexW = points.topRight.x - points.topLeft.x;
-const hexH = points.bottom - points.top;
-const mapX = (x: number) => ((x - points.topLeft.x) / hexW * 100);
-const mapY = (y: number) => ((y - points.top) / hexH * 100);
-
-export const hexViewBox = `${points.topLeft.x} ${points.top} ${hexW} ${hexH}`;
-
-export const hexClipPath = `polygon(${mapX(50)}% ${mapY(points.top)}%, ${mapX(points.topRight.x)}% ${mapY(points.topRight.y)}%, ${mapX(points.bottomRight.x)}% ${mapY(points.bottomRight.y)}%, ${mapX(50)}% ${mapY(points.bottom)}%, ${mapX(points.bottomLeft.x)}% ${mapY(points.bottomLeft.y)}%, ${mapX(points.topLeft.x)}% ${mapY(points.topLeft.y)}%)`;
-
 export const HexagonOverlay = ({
   onClick,
   stroke,
@@ -29,14 +19,16 @@ export const HexagonOverlay = ({
     <div className="absolute inset-0 pointer-events-none">
       <div
         className="absolute inset-0 cursor-pointer hover:stroke-primary/10 pointer-events-auto"
-        style={{ clipPath: hexClipPath }}
+        style={{
+          clipPath: `polygon(50% ${points.top}%, ${points.topRight.x}% ${points.topRight.y}%, ${points.bottomRight.x}% ${points.bottomRight.y}%, 50% ${points.bottom}%, ${points.bottomLeft.x}% ${points.bottomLeft.y}%, ${points.topLeft.x}% ${points.topLeft.y}%)`,
+        }}
         onMouseDown={onClick}
       />
       {(stroke || dashed) && (
         <svg
           width="100%"
           height="100%"
-          viewBox={hexViewBox}
+          viewBox="0 0 100 100"
           className="absolute inset-0"
         >
           <polygon
