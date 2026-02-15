@@ -22,7 +22,6 @@ export const Builder = class {
   private selectedBlock: number = 1;
   private setSelectedBlockInParent: (index: number) => void;
   private selectedObject: number = 0;
-  private onPendingStateChange: ((hasPending: boolean) => void) | null = null;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -116,7 +115,6 @@ export const Builder = class {
   private commitPendingIfNeeded(): void {
     if (this.currentTool.hasPendingOperation?.()) {
       this.currentTool.commitPendingOperation?.(this.toolContext);
-      this.notifyPendingStateChange();
     }
   }
 
@@ -135,7 +133,6 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
-    this.notifyPendingStateChange();
   }
 
   public setTool(tool: ToolType): void {
@@ -209,14 +206,6 @@ export const Builder = class {
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
     this.toolContext.camera = camera;
-  }
-
-  public setOnPendingStateChange(callback: (hasPending: boolean) => void): void {
-    this.onPendingStateChange = callback;
-  }
-
-  private notifyPendingStateChange(): void {
-    this.onPendingStateChange?.(this.currentTool.hasPendingOperation?.() ?? false);
   }
 
   private addEventListeners(): void {
@@ -314,21 +303,10 @@ export const Builder = class {
       return;
     }
 
-    if (event.key === "Enter") {
+    if (event.key === "Enter" || event.key === "Escape") {
       event.preventDefault();
       this.commitPendingIfNeeded();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      this.cancelCurrentOperation();
     }
-  }
-
-  public hasPendingOperation(): boolean {
-    return this.currentTool.hasPendingOperation?.() ?? false;
-  }
-
-  public commitPending(): void {
-    this.commitPendingIfNeeded();
   }
 
   private updateMousePosition(event: MouseEvent): void {
@@ -465,7 +443,6 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
-    this.notifyPendingStateChange();
   }
 
   private vectorsApproximatelyEqual(

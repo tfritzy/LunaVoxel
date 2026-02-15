@@ -17,7 +17,6 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
-  const [hasPendingOperation, setHasPendingOperation] = useState(false);
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
   const atlasData = useAtlas();
@@ -42,14 +41,6 @@ export const ProjectViewPage = () => {
     if (engineRef.current?.projectManager) {
       engineRef.current.projectManager.redo();
     }
-  }, []);
-
-  const handleConfirmPending = useCallback(() => {
-    engineRef.current?.projectManager?.builder.commitPending();
-  }, []);
-
-  const handleCancelPending = useCallback(() => {
-    engineRef.current?.projectManager?.builder.cancelCurrentOperation();
   }, []);
 
   const disposeEngine = useCallback(() => {
@@ -108,7 +99,6 @@ export const ProjectViewPage = () => {
           setSelectedBlock
         );
         engineRef.current.projectManager.builder.setTool(currentTool);
-        engineRef.current.projectManager.builder.setOnPendingStateChange(setHasPendingOperation);
         engineRef.current.projectManager.setAtlasData(atlasData);
         setToolOptions(engineRef.current.projectManager.builder.getToolOptions());
       });
@@ -187,9 +177,6 @@ export const ProjectViewPage = () => {
       atlasData={atlasData}
       toolOptions={toolOptions}
       onToolOptionChange={handleToolOptionChange}
-      hasPendingOperation={hasPendingOperation}
-      onConfirmPending={handleConfirmPending}
-      onCancelPending={handleCancelPending}
     >
       <div
         ref={containerCallbackRef}
