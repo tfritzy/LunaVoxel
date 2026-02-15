@@ -1,5 +1,3 @@
-import type { VoxelFrame } from "@/modeling/lib/flat-voxel-frame";
-
 export type Vector3 = {
   x: number;
   y: number;
@@ -28,7 +26,6 @@ export type VoxelObject = {
   locked: boolean;
   position: Vector3;
   dimensions: Vector3;
-  selection: VoxelFrame | null;
 };
 
 export type ProjectBlocks = {
