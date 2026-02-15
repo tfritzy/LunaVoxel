@@ -241,19 +241,13 @@ export class RectTool implements Tool {
     }
 
     if (newBounds.minX > newBounds.maxX) {
-      const tmp = newBounds.minX;
-      newBounds.minX = newBounds.maxX;
-      newBounds.maxX = tmp;
+      [newBounds.minX, newBounds.maxX] = [newBounds.maxX, newBounds.minX];
     }
     if (newBounds.minY > newBounds.maxY) {
-      const tmp = newBounds.minY;
-      newBounds.minY = newBounds.maxY;
-      newBounds.maxY = tmp;
+      [newBounds.minY, newBounds.maxY] = [newBounds.maxY, newBounds.minY];
     }
     if (newBounds.minZ > newBounds.maxZ) {
-      const tmp = newBounds.minZ;
-      newBounds.minZ = newBounds.maxZ;
-      newBounds.maxZ = tmp;
+      [newBounds.minZ, newBounds.maxZ] = [newBounds.maxZ, newBounds.minZ];
     }
 
     this.resizePendingBounds(context, newBounds);
@@ -312,12 +306,11 @@ export class RectTool implements Tool {
   }
 
   dispose(): void {
-    if (this.boundsBoxHelper) {
-      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
-      this.boundsBoxHelper.geometry.dispose();
-      (this.boundsBoxHelper.material as THREE.Material).dispose();
-      this.boundsBoxHelper = null;
-    }
+    if (!this.boundsBoxHelper) return;
+    this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
+    this.boundsBoxHelper.geometry.dispose();
+    (this.boundsBoxHelper.material as THREE.Material).dispose();
+    this.boundsBoxHelper = null;
   }
 
   private findResizeHandle(context: ToolContext, mousePos: THREE.Vector2): ResizeCorner | null {
@@ -383,11 +376,7 @@ export class RectTool implements Tool {
     this.boundsBoxHelper.updateMatrixWorld(true);
   }
 
-  private clearBoundsBox(context: ToolContext): void {
-    if (!this.boundsBoxHelper) return;
-    context.scene.remove(this.boundsBoxHelper);
-    this.boundsBoxHelper.geometry.dispose();
-    (this.boundsBoxHelper.material as THREE.Material).dispose();
-    this.boundsBoxHelper = null;
+  private clearBoundsBox(_context: ToolContext): void {
+    this.dispose();
   }
 }
