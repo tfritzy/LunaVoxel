@@ -69,6 +69,15 @@ export class ProjectManager {
 
   private setupKeyboardEvents = () => {
     const handler = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
       if (event.ctrlKey || event.metaKey) {
         if ((event.shiftKey && event.key === "Z") || event.key === "y") {
           event.preventDefault();
@@ -76,7 +85,19 @@ export class ProjectManager {
         } else if (event.key === "z") {
           event.preventDefault();
           this.editHistory.undo();
+        } else if (event.key === "a" || event.key === "A") {
+          event.preventDefault();
+          this.stateStore.reducers.selectAllVoxels(
+            this.project.id,
+            this.builder.getSelectedObject()
+          );
         }
+      } else if (event.key === "Delete") {
+        event.preventDefault();
+        this.stateStore.reducers.deleteSelectedVoxels(
+          this.project.id,
+          this.builder.getSelectedObject()
+        );
       }
     };
 
