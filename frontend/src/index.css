@@ -145,3 +145,39 @@
   mask: var(--emoji-url) center/contain no-repeat;
   -webkit-mask: var(--emoji-url) center/contain no-repeat;
 }
+
+.tool-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--secondary);
+  outline: none;
+  cursor: pointer;
+}
+
+.tool-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.tool-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.tool-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--secondary);
+}

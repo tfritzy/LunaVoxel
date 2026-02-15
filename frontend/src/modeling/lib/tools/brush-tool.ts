@@ -36,7 +36,7 @@ export class BrushTool implements Tool {
         currentValue: String(this.size),
         type: "slider",
         min: 1,
-        max: 10,
+        max: 50,
       },
     ];
   }

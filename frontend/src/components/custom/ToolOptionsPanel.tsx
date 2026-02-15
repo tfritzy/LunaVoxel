@@ -107,7 +107,7 @@ export const ToolOptionsPanel = ({
               max={option.max ?? 10}
               value={Number(option.currentValue)}
               onChange={(e) => onOptionChange(option.name, e.target.value)}
-              className="w-full accent-accent"
+              className="tool-slider w-full"
             />
           </div>
         ))}
