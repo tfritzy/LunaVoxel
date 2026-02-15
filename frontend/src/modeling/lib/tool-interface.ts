@@ -16,6 +16,7 @@ export interface ToolContext {
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
   camera: THREE.Camera;
+  scene: THREE.Scene;
 }
 
 export interface ToolMouseEvent {
@@ -57,4 +58,18 @@ export interface Tool {
   onDrag(context: ToolContext, event: ToolDragEvent): void;
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void;
+
+  hasPendingOperation?(): boolean;
+
+  onPendingMouseDown?(context: ToolContext, mousePos: THREE.Vector2): boolean;
+
+  onPendingMouseMove?(context: ToolContext, mousePos: THREE.Vector2): void;
+
+  onPendingMouseUp?(context: ToolContext, mousePos: THREE.Vector2): void;
+
+  commitPendingOperation?(context: ToolContext): void;
+
+  cancelPendingOperation?(context: ToolContext): void;
+
+  dispose?(): void;
 }

@@ -58,6 +58,7 @@ describe("Tool Interface", () => {
       setSelectedBlockInParent: () => {},
       mode: attachMode,
       camera,
+      scene: new THREE.Scene(),
     };
   });
 
@@ -220,7 +221,7 @@ describe("Tool Interface", () => {
       expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
     });
 
-    it("should dispatch applyFrame on mouse up with Sphere fill shape", () => {
+    it("should enter pending state on mouse up with Sphere fill shape", () => {
       const tool = new RectTool();
       tool.setOption("Fill Shape", "Sphere");
       
@@ -239,7 +240,12 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
+      expect(called).toBe(false);
+      expect(tool.hasPendingOperation()).toBe(true);
+
+      tool.commitPendingOperation(mockContext);
       expect(called).toBe(true);
+      expect(tool.hasPendingOperation()).toBe(false);
     });
 
     it("should create cylinder shape when fill shape is Cylinder", () => {
@@ -270,6 +276,130 @@ describe("Tool Interface", () => {
 
       expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
       expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+    });
+  });
+
+  describe("RectTool Pending Operation", () => {
+    let tool: RectTool;
+
+    beforeEach(() => {
+      tool = new RectTool();
+    });
+
+    it("should have no pending operation initially", () => {
+      expect(tool.hasPendingOperation()).toBe(false);
+      expect(tool.getPendingBounds()).toBeNull();
+    });
+
+    it("should enter pending state after mouse up", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(tool.hasPendingOperation()).toBe(true);
+      const bounds = tool.getPendingBounds();
+      expect(bounds).not.toBeNull();
+      expect(bounds!.minX).toBe(1);
+      expect(bounds!.maxX).toBe(3);
+      expect(bounds!.minY).toBe(1);
+      expect(bounds!.maxY).toBe(3);
+      expect(bounds!.minZ).toBe(1);
+      expect(bounds!.maxZ).toBe(3);
+    });
+
+    it("should keep preview visible after mouse up", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+    });
+
+    it("should commit pending operation with applyFrame", () => {
+      let applied = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applied = true;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(applied).toBe(false);
+
+      tool.commitPendingOperation(mockContext);
+      expect(applied).toBe(true);
+      expect(tool.hasPendingOperation()).toBe(false);
+    });
+
+    it("should cancel pending operation and clear preview", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      tool.cancelPendingOperation(mockContext);
+      expect(tool.hasPendingOperation()).toBe(false);
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBe(0);
+    });
+
+    it("should recalculate shape when resizing pending bounds", () => {
+      tool.setOption("Fill Shape", "Sphere");
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 4, 4),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const originalCenter = mockContext.previewFrame.get(2, 2, 2);
+      expect(originalCenter).toBeGreaterThan(0);
+
+      tool.resizePendingBounds(mockContext, {
+        minX: 0, maxX: 6,
+        minY: 0, maxY: 6,
+        minZ: 0, maxZ: 6,
+      });
+
+      expect(tool.getPendingBounds()!.maxX).toBe(6);
+      expect(mockContext.previewFrame.get(3, 3, 3)).toBeGreaterThan(0);
+    });
+
+    it("should clamp resized bounds to dimensions", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      tool.resizePendingBounds(mockContext, {
+        minX: -5, maxX: 20,
+        minY: -5, maxY: 20,
+        minZ: -5, maxZ: 20,
+      });
+
+      const bounds = tool.getPendingBounds()!;
+      expect(bounds.minX).toBe(0);
+      expect(bounds.maxX).toBe(9);
+      expect(bounds.minY).toBe(0);
+      expect(bounds.maxY).toBe(9);
     });
   });
 
@@ -659,6 +789,8 @@ describe("Tool Interface", () => {
           startMousePosition: new THREE.Vector2(0, 0),
           currentMousePosition: new THREE.Vector2(1, 1),
         });
+
+        tool.commitPendingOperation(benchContext);
       }
 
       const elapsed = performance.now() - start;
