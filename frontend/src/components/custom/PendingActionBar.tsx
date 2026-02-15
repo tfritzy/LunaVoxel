@@ -14,7 +14,7 @@ export const PendingActionBar = ({
     <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
       <div className="flex items-center gap-2 bg-background/90 border border-secondary rounded-md px-3 py-2 shadow-lg backdrop-blur-sm">
         <span className="text-sm text-muted-foreground mr-1">
-          Resize handles or
+          Drag handles to resize
         </span>
         <Button
           onClick={onConfirm}

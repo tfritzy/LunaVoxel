@@ -307,6 +307,12 @@ export const Builder = class {
 
   private onKeyDown(event: KeyboardEvent): void {
     if (!this.currentTool.hasPendingOperation?.()) return;
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
 
     if (event.key === "Enter") {
       event.preventDefault();
