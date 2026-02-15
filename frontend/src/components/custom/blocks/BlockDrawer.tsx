@@ -60,7 +60,41 @@ const EraserBlock = memo(
   }
 );
 
-const hexClipPath = `polygon(50% ${points.top}%, ${points.topRight.x}% ${points.topRight.y}%, ${points.bottomRight.x}% ${points.bottomRight.y}%, 50% ${points.bottom}%, ${points.bottomLeft.x}% ${points.bottomLeft.y}%, ${points.topLeft.x}% ${points.topLeft.y}%)`;
+const darkenColor = (hex: string, factor: number): string => {
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
+  return `rgb(${r},${g},${b})`;
+};
+
+const cx = 50;
+const cy = 50;
+
+const topFace = `50,${points.top} ${points.topRight.x},${points.topRight.y} ${cx},${cy} ${points.topLeft.x},${points.topLeft.y}`;
+const rightFace = `${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${cx},${cy}`;
+const leftFace = `${points.topLeft.x},${points.topLeft.y} ${cx},${cy} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y}`;
+
+const ShadedBlock = memo(
+  ({ color }: { color: string }) => {
+    const top = darkenColor(color, 1.0);
+    const right = darkenColor(color, 0.7);
+    const left = darkenColor(color, 0.5);
+
+    return (
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100"
+        className="absolute inset-0"
+        preserveAspectRatio="none"
+      >
+        <polygon points={topFace} fill={top} />
+        <polygon points={rightFace} fill={right} />
+        <polygon points={leftFace} fill={left} />
+      </svg>
+    );
+  }
+);
 
 const HexagonGrid = memo(
   ({
@@ -109,13 +143,7 @@ const HexagonGrid = memo(
                   height: BLOCK_HEIGHT,
                 }}
               >
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundColor: color,
-                    clipPath: hexClipPath,
-                  }}
-                />
+                <ShadedBlock color={color} />
 
                 <HexagonOverlay
                   onClick={() => onSelectBlock(blockIndex)}
