@@ -36,6 +36,8 @@ describe("Tool Interface", () => {
       updateCursorPos: () => {},
       magicSelect: () => {},
       commitSelectionMove: () => {},
+      selectAllVoxels: () => {},
+      deleteSelectedVoxels: () => {},
       updateBlockColor: () => {},
     };
 

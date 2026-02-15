@@ -26,3 +26,49 @@ describe("stateStore renameObject reducer", () => {
     expect(after.colors).not.toBe(beforeColors);
   });
 });
+
+describe("selectAllVoxels and deleteSelectedVoxels", () => {
+  beforeEach(() => {
+    resetState();
+  });
+
+  it("selects all then deletes all voxels in the current object", () => {
+    const { project } = stateStore.getState();
+    const objectId = stateStore.getState().objects[0].id;
+    const chunkBefore = Array.from(stateStore.getState().chunks.values()).find(
+      (chunk) => chunk.objectId === objectId
+    );
+    expect(chunkBefore).toBeDefined();
+    expect(chunkBefore?.voxels.some((v) => v !== 0)).toBe(true);
+
+    stateStore.reducers.selectAllVoxels(project.id, 0);
+    stateStore.reducers.deleteSelectedVoxels(project.id, 0);
+
+    const chunkAfter = Array.from(stateStore.getState().chunks.values()).find(
+      (chunk) => chunk.objectId === objectId
+    );
+    expect(chunkAfter?.voxels.every((v) => v === 0)).toBe(true);
+  });
+
+  it("does nothing when object has no voxels", () => {
+    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.deleteSelectedVoxels("local-project", 0);
+
+    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.deleteSelectedVoxels("local-project", 0);
+
+    const chunks = Array.from(stateStore.getState().chunks.values());
+    expect(chunks[0].voxels.every((v) => v === 0)).toBe(true);
+  });
+
+  it("does nothing for invalid object index", () => {
+    const chunksBefore = Array.from(stateStore.getState().chunks.values());
+    const voxelsBefore = chunksBefore[0].voxels.slice();
+
+    stateStore.reducers.selectAllVoxels("local-project", 999);
+    stateStore.reducers.deleteSelectedVoxels("local-project", 999);
+
+    const chunksAfter = Array.from(stateStore.getState().chunks.values());
+    expect(chunksAfter[0].voxels).toEqual(voxelsBefore);
+  });
+});

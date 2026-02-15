@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 import type { VoxelFrame } from "@/modeling/lib/voxel-frame";
+import { FlatVoxelFrame } from "@/modeling/lib/flat-voxel-frame";
 
 export type GlobalState = {
   project: Project;
@@ -45,6 +46,8 @@ export type Reducers = {
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
   commitSelectionMove: (projectId: string, offset: Vector3) => void;
+  selectAllVoxels: (projectId: string, objectIndex: number) => void;
+  deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
 };
 
@@ -99,6 +102,7 @@ const createInitialState = (): GlobalState => {
       locked: false,
       position: { x: 0, y: 0, z: 0 },
       dimensions: { x: 64, y: 64, z: 64 },
+      selection: null,
     },
   ];
 
@@ -218,6 +222,7 @@ const reducers: Reducers = {
         locked: false,
         position: { x: 0, y: 0, z: 0 },
         dimensions: { x: 64, y: 64, z: 64 },
+        selection: null,
       });
     });
   },
@@ -351,6 +356,84 @@ const reducers: Reducers = {
   updateCursorPos: () => {},
   magicSelect: () => {},
   commitSelectionMove: () => {},
+  selectAllVoxels: (_projectId, objectIndex) => {
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj) return;
+
+    const dims = state.project.dimensions;
+    const total = dims.x * dims.y * dims.z;
+    const buf = new Uint8Array(total);
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -1, maxY = -1, maxZ = -1;
+
+    for (const chunk of state.chunks.values()) {
+      if (chunk.objectId !== obj.id) continue;
+      for (let lx = 0; lx < chunk.size.x; lx++) {
+        for (let ly = 0; ly < chunk.size.y; ly++) {
+          for (let lz = 0; lz < chunk.size.z; lz++) {
+            if (chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz] === 0) continue;
+            const wx = chunk.minPos.x + lx;
+            const wy = chunk.minPos.y + ly;
+            const wz = chunk.minPos.z + lz;
+            buf[wx * dims.y * dims.z + wy * dims.z + wz] = 1;
+            if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
+            if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
+            if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+          }
+        }
+      }
+    }
+
+    if (maxX < 0) {
+      obj.selection = null;
+      notify();
+      return;
+    }
+
+    const sdx = maxX - minX + 1, sdy = maxY - minY + 1, sdz = maxZ - minZ + 1;
+    const frameData = new Uint8Array(sdx * sdy * sdz);
+    for (let wx = minX; wx <= maxX; wx++) {
+      for (let wy = minY; wy <= maxY; wy++) {
+        for (let wz = minZ; wz <= maxZ; wz++) {
+          if (buf[wx * dims.y * dims.z + wy * dims.z + wz] === 0) continue;
+          frameData[(wx - minX) * sdy * sdz + (wy - minY) * sdz + (wz - minZ)] = 1;
+        }
+      }
+    }
+
+    obj.selection = new FlatVoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
+    notify();
+  },
+  deleteSelectedVoxels: (_projectId, objectIndex) => {
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj || !obj.selection) return;
+
+    const sel = obj.selection;
+    const selDims = sel.getDimensions();
+    const selMin = sel.getMinPos();
+
+    updateState((current) => {
+      const chunkCache = new Map<string, ChunkData | undefined>();
+      for (let lx = 0; lx < selDims.x; lx++) {
+        for (let ly = 0; ly < selDims.y; ly++) {
+          for (let lz = 0; lz < selDims.z; lz++) {
+            if (sel.get(selMin.x + lx, selMin.y + ly, selMin.z + lz) === 0) continue;
+            const wx = selMin.x + lx, wy = selMin.y + ly, wz = selMin.z + lz;
+            const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
+            const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
+            const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
+            const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+            if (!chunkCache.has(key)) chunkCache.set(key, current.chunks.get(key));
+            const chunk = chunkCache.get(key);
+            if (!chunk) continue;
+            const ci = (wx - cx) * chunk.size.y * chunk.size.z + (wy - cy) * chunk.size.z + (wz - cz);
+            chunk.voxels[ci] = 0;
+          }
+        }
+      }
+      obj.selection = null;
+    });
+  },
   updateBlockColor: (blockIndex: number, color: number) => {
     updateState((current) => {
       if (blockIndex >= 0 && blockIndex < current.blocks.colors.length) {
