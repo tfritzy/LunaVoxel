@@ -325,9 +325,11 @@ export const Builder = class {
         this.currentMode
       );
 
-      gridPos.x = Math.max(0, Math.min(gridPos.x, this.dimensions.x - 1));
-      gridPos.y = Math.max(0, Math.min(gridPos.y, this.dimensions.y - 1));
-      gridPos.z = Math.max(0, Math.min(gridPos.z, this.dimensions.z - 1));
+      if (gridPos.x < 0 || gridPos.x >= this.dimensions.x ||
+          gridPos.y < 0 || gridPos.y >= this.dimensions.y ||
+          gridPos.z < 0 || gridPos.z >= this.dimensions.z) {
+        return null;
+      }
 
       return gridPos;
     }
