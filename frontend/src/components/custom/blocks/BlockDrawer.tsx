@@ -1,6 +1,6 @@
 import { HexagonOverlay, points } from "./HexagonOverlay";
 import { Eraser } from "lucide-react";
-import { useMemo, useRef, useCallback, memo } from "react";
+import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
 import { stateStore, useGlobalState } from "@/state/store";
 
@@ -166,6 +166,10 @@ export const BlockDrawer = ({
       : "#000000";
 
   const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   const handleColorChange = useCallback(
     (color: string) => {
