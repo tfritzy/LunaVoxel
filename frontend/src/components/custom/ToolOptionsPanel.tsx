@@ -18,6 +18,7 @@ import {
 
 const fillShapeIcons: Record<string, LucideIcon> = {
   Rect: Square,
+  Cube: Square,
   Sphere: Circle,
   Cylinder: Cylinder,
   Triangle: Triangle,

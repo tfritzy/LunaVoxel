@@ -9,6 +9,7 @@ import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
+import { BrushTool } from "./tools/brush-tool";
 import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
 
@@ -133,6 +134,8 @@ export const Builder = class {
         return new MoveSelectionTool();
       case "Rect":
         return new RectTool();
+      case "Brush":
+        return new BrushTool();
       case "BlockPicker":
         return new BlockPickerTool();
       case "MagicSelect":

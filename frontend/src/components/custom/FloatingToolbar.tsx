@@ -7,6 +7,7 @@ import {
   Wand2,
   Move,
   RectangleHorizontal,
+  Pen,
   type LucideProps,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,9 @@ export const FloatingToolbar = ({
         case "r":
           onToolChange("Rect");
           break;
+        case "b":
+          onToolChange("Brush");
+          break;
         case "c":
           onToolChange("BlockPicker");
           break;
@@ -158,6 +162,18 @@ export const FloatingToolbar = ({
           >
             <RectangleHorizontal className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">R</div>
+          </Button>
+          <Button
+            onClick={() => onToolChange("Brush")}
+            className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
+              currentTool === "Brush"
+                ? "border-accent text-accent"
+                : "border-secondary text-secondary"
+            }`}
+            title="Brush Tool (B)"
+          >
+            <Pen className="min-w-8 min-h-8" />
+            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">B</div>
           </Button>
           <Button
             onClick={() => onToolChange("BlockPicker")}

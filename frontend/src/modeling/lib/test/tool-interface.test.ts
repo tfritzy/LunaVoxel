@@ -3,6 +3,7 @@ import { RectTool } from "../tools/rect-tool";
 import { BlockPickerTool } from "../tools/block-picker-tool";
 import { MagicSelectTool } from "../tools/magic-select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
+import { BrushTool } from "../tools/brush-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
@@ -80,6 +81,11 @@ describe("Tool Interface", () => {
     it("should create MoveSelection tool", () => {
       const tool = new MoveSelectionTool();
       expect(tool.getType()).toEqual("MoveSelection");
+    });
+
+    it("should create BrushTool", () => {
+      const tool = new BrushTool();
+      expect(tool.getType()).toEqual("Brush");
     });
   });
 
@@ -457,6 +463,159 @@ describe("Tool Interface", () => {
       });
 
       expect(moveSelectionBoxUpdated).toBe(true);
+    });
+  });
+
+  describe("BrushTool", () => {
+    let tool: Tool;
+
+    beforeEach(() => {
+      tool = new BrushTool();
+    });
+
+    it("should return Brush Shape and Size options", () => {
+      const options = tool.getOptions();
+      expect(options).toHaveLength(2);
+      expect(options[0].name).toBe("Brush Shape");
+      expect(options[0].values).toEqual(["Sphere", "Cube", "Cylinder", "Diamond", "Cross"]);
+      expect(options[0].currentValue).toBe("Sphere");
+      expect(options[1].name).toBe("Size");
+      expect(options[1].currentValue).toBe("3");
+    });
+
+    it("should update brush shape option", () => {
+      tool.setOption("Brush Shape", "Cube");
+      const options = tool.getOptions();
+      expect(options[0].currentValue).toBe("Cube");
+    });
+
+    it("should update size option", () => {
+      tool.setOption("Size", "5");
+      const options = tool.getOptions();
+      expect(options[1].currentValue).toBe("5");
+    });
+
+    it("should calculate grid position above hit voxel in Attach mode", () => {
+      const gridPosition = new THREE.Vector3(1, 2, 3);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(gridPosition, normal, attachMode);
+      expect(gridPos.y).toBe(3);
+    });
+
+    it("should calculate grid position at hit voxel in Erase mode", () => {
+      const gridPosition = new THREE.Vector3(1, 2, 3);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(gridPosition, normal, eraseMode);
+      expect(gridPos.y).toBe(2);
+    });
+
+    it("should apply voxels on mouse down", () => {
+      let applyFrameCalled = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applyFrameCalled = true;
+        },
+      };
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(applyFrameCalled).toBe(true);
+    });
+
+    it("should apply voxels on drag to new positions", () => {
+      let applyCount = 0;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applyCount++;
+        },
+      };
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(5, 5, 5),
+        currentGridPosition: new THREE.Vector3(6, 5, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.1, 0),
+      });
+
+      expect(applyCount).toBe(2);
+    });
+
+    it("should not re-apply at the same position", () => {
+      let applyCount = 0;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applyCount++;
+        },
+      };
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(5, 5, 5),
+        currentGridPosition: new THREE.Vector3(5, 5, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(applyCount).toBe(1);
+    });
+
+    it("should create sphere-shaped stamp with default settings", () => {
+      tool.setOption("Size", "3");
+
+      let lastFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode, _block, frame) => {
+          lastFrame = frame.clone();
+        },
+      };
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(lastFrame).not.toBeNull();
+      expect(lastFrame!.get(5, 5, 5)).toBeGreaterThan(0);
+      expect(lastFrame!.get(4, 4, 4)).toBe(0);
+    });
+
+    it("should create cube-shaped stamp", () => {
+      tool.setOption("Brush Shape", "Cube");
+      tool.setOption("Size", "3");
+
+      let lastFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode, _block, frame) => {
+          lastFrame = frame.clone();
+        },
+      };
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(lastFrame).not.toBeNull();
+      expect(lastFrame!.get(5, 5, 5)).toBeGreaterThan(0);
+      expect(lastFrame!.get(4, 4, 4)).toBeGreaterThan(0);
+      expect(lastFrame!.get(6, 6, 6)).toBeGreaterThan(0);
     });
   });
 
