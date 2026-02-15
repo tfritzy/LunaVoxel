@@ -3,7 +3,8 @@ import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { FillShape } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
-import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import type { RectBounds } from "@/lib/rect-utils";
+import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent, PendingBounds } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
@@ -13,6 +14,12 @@ export class RectTool implements Tool {
   private flipX: boolean = false;
   private flipY: boolean = false;
   private flipZ: boolean = false;
+  private pending: {
+    bounds: RectBounds;
+    mode: BlockModificationMode;
+    selectedBlock: number;
+    selectedObject: number;
+  } | null = null;
 
   getType(): ToolType {
     return "Rect";
@@ -75,13 +82,7 @@ export class RectTool implements Tool {
     }
   }
 
-  private buildFrame(context: ToolContext, event: ToolDragEvent): void {
-    const bounds = calculateRectBounds(
-      event.startGridPosition,
-      event.currentGridPosition,
-      context.dimensions
-    );
-
+  private buildFrameFromBounds(context: ToolContext, bounds: RectBounds): void {
     const frameSize = {
       x: bounds.maxX - bounds.minX + 1,
       y: bounds.maxY - bounds.minY + 1,
@@ -111,6 +112,15 @@ export class RectTool implements Tool {
     }
   }
 
+  private buildFrame(context: ToolContext, event: ToolDragEvent): void {
+    const bounds = calculateRectBounds(
+      event.startGridPosition,
+      event.currentGridPosition,
+      context.dimensions
+    );
+    this.buildFrameFromBounds(context, bounds);
+  }
+
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
     void context;
     void event;
@@ -122,15 +132,70 @@ export class RectTool implements Tool {
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    this.buildFrame(context, event);
+    const bounds = calculateRectBounds(
+      event.startGridPosition,
+      event.currentGridPosition,
+      context.dimensions
+    );
+    this.buildFrameFromBounds(context, bounds);
+    context.projectManager.chunkManager.setPreview(context.previewFrame);
+
+    this.pending = {
+      bounds,
+      mode: context.mode,
+      selectedBlock: context.selectedBlock,
+      selectedObject: context.selectedObject,
+    };
+  }
+
+  hasPendingOperation(): boolean {
+    return this.pending !== null;
+  }
+
+  getPendingBounds(): PendingBounds | null {
+    if (!this.pending) return null;
+    return { ...this.pending.bounds };
+  }
+
+  resizePendingBounds(context: ToolContext, bounds: PendingBounds): void {
+    if (!this.pending) return;
+
+    const clamp = (val: number, max: number) =>
+      Math.max(0, Math.min(val, max - 1));
+
+    this.pending.bounds = {
+      minX: clamp(bounds.minX, context.dimensions.x),
+      maxX: clamp(bounds.maxX, context.dimensions.x),
+      minY: clamp(bounds.minY, context.dimensions.y),
+      maxY: clamp(bounds.maxY, context.dimensions.y),
+      minZ: clamp(bounds.minZ, context.dimensions.z),
+      maxZ: clamp(bounds.maxZ, context.dimensions.z),
+    };
+
+    this.buildFrameFromBounds(context, this.pending.bounds);
+    context.projectManager.chunkManager.setPreview(context.previewFrame);
+  }
+
+  commitPendingOperation(context: ToolContext): void {
+    if (!this.pending) return;
+
+    this.buildFrameFromBounds(context, this.pending.bounds);
 
     context.reducers.applyFrame(
-      context.mode,
-      context.selectedBlock,
+      this.pending.mode,
+      this.pending.selectedBlock,
       context.previewFrame,
-      context.selectedObject
+      this.pending.selectedObject
     );
 
     context.previewFrame.clear();
+    this.pending = null;
+  }
+
+  cancelPendingOperation(context: ToolContext): void {
+    if (!this.pending) return;
+    context.previewFrame.clear();
+    context.projectManager.chunkManager.setPreview(context.previewFrame);
+    this.pending = null;
   }
 }

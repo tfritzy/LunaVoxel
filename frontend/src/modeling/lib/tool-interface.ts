@@ -39,6 +39,15 @@ export interface ToolOption {
   max?: number;
 }
 
+export interface PendingBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  minZ: number;
+  maxZ: number;
+}
+
 export interface Tool {
   getType(): ToolType;
 
@@ -57,4 +66,14 @@ export interface Tool {
   onDrag(context: ToolContext, event: ToolDragEvent): void;
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void;
+
+  hasPendingOperation?(): boolean;
+
+  getPendingBounds?(): PendingBounds | null;
+
+  resizePendingBounds?(context: ToolContext, bounds: PendingBounds): void;
+
+  commitPendingOperation?(context: ToolContext): void;
+
+  cancelPendingOperation?(context: ToolContext): void;
 }

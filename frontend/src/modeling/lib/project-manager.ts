@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { BlockModificationMode, Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
+import type { PendingBounds } from "./tool-interface";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
@@ -19,6 +20,7 @@ export class ProjectManager {
   private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
   private moveSelectionBoxHelper: THREE.Box3Helper | null = null;
+  private pendingBoundsBoxHelper: THREE.Box3Helper | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -187,8 +189,39 @@ export class ProjectManager {
     this.moveSelectionBoxHelper = null;
   };
 
+  public updatePendingBoundsBox = (bounds: PendingBounds) => {
+    if (!this.pendingBoundsBoxHelper) {
+      this.pendingBoundsBoxHelper = new THREE.Box3Helper(
+        new THREE.Box3(),
+        0xffaa00
+      );
+      this.scene.add(this.pendingBoundsBoxHelper);
+    }
+
+    this.pendingBoundsBoxHelper.box.min.set(
+      bounds.minX,
+      bounds.minY,
+      bounds.minZ
+    );
+    this.pendingBoundsBoxHelper.box.max.set(
+      bounds.maxX + 1,
+      bounds.maxY + 1,
+      bounds.maxZ + 1
+    );
+    this.pendingBoundsBoxHelper.updateMatrixWorld(true);
+  };
+
+  public clearPendingBoundsBox = () => {
+    if (!this.pendingBoundsBoxHelper) return;
+    this.scene.remove(this.pendingBoundsBoxHelper);
+    this.pendingBoundsBoxHelper.geometry.dispose();
+    (this.pendingBoundsBoxHelper.material as THREE.Material).dispose();
+    this.pendingBoundsBoxHelper = null;
+  };
+
   dispose(): void {
     this.clearMoveSelectionBox();
+    this.clearPendingBoundsBox();
     this.builder.dispose();
     this.chunkManager.dispose();
     this.cursorManager.dispose();

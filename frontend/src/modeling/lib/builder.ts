@@ -10,8 +10,14 @@ import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
 import { BrushTool } from "./tools/brush-tool";
-import type { Tool, ToolOption } from "./tool-interface";
+import type { Tool, ToolOption, PendingBounds } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
+
+type ResizeCorner = {
+  xSide: "min" | "max";
+  ySide: "min" | "max";
+  zSide: "min" | "max";
+};
 
 export const Builder = class {
   private previewFrame: VoxelFrame;
@@ -50,6 +56,9 @@ export const Builder = class {
   private lastPreviewEnd: THREE.Vector3 | null = null;
   private lastHoveredPosition: THREE.Vector3 | null = null;
 
+  private resizingCorner: ResizeCorner | null = null;
+  private resizeBaseBounds: PendingBounds | null = null;
+
   private boundMouseMove: (event: MouseEvent) => void;
   private boundMouseClick: (event: MouseEvent) => void;
   private boundMouseDown: (event: MouseEvent) => void;
@@ -59,6 +68,8 @@ export const Builder = class {
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
   private lastSentCursorPos: THREE.Vector3 | null = null;
   private lastSentCursorNormal: THREE.Vector3 | null = null;
+
+  private static readonly HANDLE_SCREEN_THRESHOLD = 0.05;
 
   constructor(
     stateStore: StateStore,
@@ -107,7 +118,18 @@ export const Builder = class {
     this.addEventListeners();
   }
 
+  private commitPendingIfNeeded(): void {
+    if (this.currentTool.hasPendingOperation?.()) {
+      this.currentTool.commitPendingOperation?.(this.toolContext);
+      this.projectManager.clearPendingBoundsBox();
+    }
+  }
+
   cancelCurrentOperation(): void {
+    if (this.currentTool.hasPendingOperation?.()) {
+      this.currentTool.cancelPendingOperation?.(this.toolContext);
+      this.projectManager.clearPendingBoundsBox();
+    }
     if (this.isMouseDown) {
       this.previewFrame.clear();
       this.projectManager.chunkManager.setPreview(this.previewFrame);
@@ -118,9 +140,12 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
+    this.resizingCorner = null;
+    this.resizeBaseBounds = null;
   }
 
   public setTool(tool: ToolType): void {
+    this.commitPendingIfNeeded();
     this.cancelCurrentOperation();
     this.currentTool = this.createTool(tool);
     if (tool === "MoveSelection") {
@@ -208,6 +233,11 @@ export const Builder = class {
   private onMouseMove(event: MouseEvent): void {
     this.updateMousePosition(event);
 
+    if (this.resizingCorner) {
+      this.handleResizeDrag();
+      return;
+    }
+
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
     if (gridPos) {
@@ -221,6 +251,12 @@ export const Builder = class {
     }
 
     this.updateMousePosition(event);
+
+    if (this.resizingCorner) {
+      this.handleResizeEnd();
+      return;
+    }
+
     const gridPos = this.checkIntersection();
 
     const position = gridPos || this.lastHoveredPosition;
@@ -231,6 +267,21 @@ export const Builder = class {
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
+      this.updateMousePosition(event);
+
+      if (this.currentTool.hasPendingOperation?.()) {
+        const corner = this.findResizeHandle();
+        if (corner) {
+          this.resizingCorner = corner;
+          this.resizeBaseBounds = this.currentTool.getPendingBounds?.() ?? null;
+          this.isMouseDown = true;
+          this.startMousePos = this.mouse.clone();
+          return;
+        }
+
+        this.commitPendingIfNeeded();
+      }
+
       this.isMouseDown = true;
       this.startMousePos = this.mouse.clone();
 
@@ -253,6 +304,154 @@ export const Builder = class {
     const rect = this.domElement.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  private findResizeHandle(): ResizeCorner | null {
+    const bounds = this.currentTool.getPendingBounds?.();
+    if (!bounds) return null;
+
+    const corners: { corner: ResizeCorner; world: THREE.Vector3 }[] = [];
+    const sides: ("min" | "max")[] = ["min", "max"];
+
+    for (const xSide of sides) {
+      for (const ySide of sides) {
+        for (const zSide of sides) {
+          const wx = xSide === "min" ? bounds.minX : bounds.maxX + 1;
+          const wy = ySide === "min" ? bounds.minY : bounds.maxY + 1;
+          const wz = zSide === "min" ? bounds.minZ : bounds.maxZ + 1;
+          corners.push({
+            corner: { xSide, ySide, zSide },
+            world: new THREE.Vector3(wx, wy, wz),
+          });
+        }
+      }
+    }
+
+    let closest: ResizeCorner | null = null;
+    let closestDist = Infinity;
+
+    for (const { corner, world } of corners) {
+      const screen = world.clone().project(this.camera);
+      const dx = screen.x - this.mouse.x;
+      const dy = screen.y - this.mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = corner;
+      }
+    }
+
+    if (closestDist < Builder.HANDLE_SCREEN_THRESHOLD) {
+      return closest;
+    }
+
+    return null;
+  }
+
+  private handleResizeDrag(): void {
+    if (!this.resizingCorner || !this.resizeBaseBounds) return;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const ray = this.raycaster.ray;
+
+    const corner = this.resizingCorner;
+    const base = this.resizeBaseBounds;
+
+    const anchorX = corner.xSide === "min" ? base.maxX : base.minX;
+    const anchorY = corner.ySide === "min" ? base.maxY : base.minY;
+    const anchorZ = corner.zSide === "min" ? base.maxZ : base.minZ;
+    const anchor = new THREE.Vector3(anchorX + 0.5, anchorY + 0.5, anchorZ + 0.5);
+
+    const dragX = corner.xSide === "min" ? base.minX : base.maxX;
+    const dragY = corner.ySide === "min" ? base.minY : base.maxY;
+    const dragZ = corner.zSide === "min" ? base.minZ : base.maxZ;
+    const dragCorner = new THREE.Vector3(dragX + 0.5, dragY + 0.5, dragZ + 0.5);
+
+    const viewDir = new THREE.Vector3();
+    this.camera.getWorldDirection(viewDir);
+
+    const normal = new THREE.Vector3();
+    const toCorner = dragCorner.clone().sub(anchor);
+
+    const absX = Math.abs(viewDir.x);
+    const absY = Math.abs(viewDir.y);
+    const absZ = Math.abs(viewDir.z);
+
+    if (absX >= absY && absX >= absZ) {
+      normal.set(Math.sign(viewDir.x), 0, 0);
+    } else if (absY >= absX && absY >= absZ) {
+      normal.set(0, Math.sign(viewDir.y), 0);
+    } else {
+      normal.set(0, 0, Math.sign(viewDir.z));
+    }
+
+    const plane = new THREE.Plane();
+    plane.setFromNormalAndCoplanarPoint(normal, dragCorner);
+
+    const intersection = new THREE.Vector3();
+    if (!ray.intersectPlane(plane, intersection)) return;
+
+    const diff = intersection.clone().sub(dragCorner);
+
+    const newBounds = { ...base };
+
+    const snapToGrid = (val: number) => Math.round(val);
+
+    if (corner.xSide === "min") {
+      newBounds.minX = snapToGrid(base.minX + diff.x);
+    } else {
+      newBounds.maxX = snapToGrid(base.maxX + diff.x);
+    }
+    if (corner.ySide === "min") {
+      newBounds.minY = snapToGrid(base.minY + diff.y);
+    } else {
+      newBounds.maxY = snapToGrid(base.maxY + diff.y);
+    }
+    if (corner.zSide === "min") {
+      newBounds.minZ = snapToGrid(base.minZ + diff.z);
+    } else {
+      newBounds.maxZ = snapToGrid(base.maxZ + diff.z);
+    }
+
+    if (newBounds.minX > newBounds.maxX) {
+      const tmp = newBounds.minX;
+      newBounds.minX = newBounds.maxX;
+      newBounds.maxX = tmp;
+    }
+    if (newBounds.minY > newBounds.maxY) {
+      const tmp = newBounds.minY;
+      newBounds.minY = newBounds.maxY;
+      newBounds.maxY = tmp;
+    }
+    if (newBounds.minZ > newBounds.maxZ) {
+      const tmp = newBounds.minZ;
+      newBounds.minZ = newBounds.maxZ;
+      newBounds.maxZ = tmp;
+    }
+
+    void toCorner;
+    void anchor;
+
+    this.currentTool.resizePendingBounds?.(this.toolContext, newBounds);
+    this.updatePendingBoundsBox();
+  }
+
+  private handleResizeEnd(): void {
+    this.resizingCorner = null;
+    this.resizeBaseBounds = null;
+    this.isMouseDown = false;
+    this.startMousePos = null;
+    this.updatePendingBoundsBox();
+  }
+
+  private updatePendingBoundsBox(): void {
+    const bounds = this.currentTool.getPendingBounds?.();
+    if (bounds) {
+      this.projectManager.updatePendingBoundsBox(bounds);
+    } else {
+      this.projectManager.clearPendingBoundsBox();
+    }
   }
 
   private throttledUpdateCursorPos(
@@ -383,6 +582,8 @@ export const Builder = class {
     this.startMousePos = null;
     this.lastPreviewStart = null;
     this.lastPreviewEnd = null;
+
+    this.updatePendingBoundsBox();
   }
 
   private vectorsApproximatelyEqual(
@@ -400,7 +601,9 @@ export const Builder = class {
   }
 
   public dispose(): void {
+    this.commitPendingIfNeeded();
     this.projectManager.clearMoveSelectionBox();
+    this.projectManager.clearPendingBoundsBox();
     this.removeEventListeners();
   }
 };
