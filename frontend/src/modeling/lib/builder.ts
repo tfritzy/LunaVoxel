@@ -186,6 +186,10 @@ export const Builder = class {
     }
   }
 
+  public getSelectedObject(): number {
+    return this.selectedObject;
+  }
+
   public updateCamera(camera: THREE.Camera): void {
     this.camera = camera;
     this.toolContext.camera = camera;

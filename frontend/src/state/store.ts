@@ -45,6 +45,8 @@ export type Reducers = {
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
   commitSelectionMove: (projectId: string, offset: Vector3) => void;
+  selectAllVoxels?: (projectId: string, objectIndex: number) => void;
+  deleteSelectedVoxels?: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
 };
 
@@ -149,6 +151,7 @@ const createInitialState = (): GlobalState => {
 let state = createInitialState();
 let version = 0;
 const listeners = new Set<() => void>();
+const selectedVoxelsByObject = new Map<number, Uint8Array>();
 
 const notify = () => {
   version += 1;
@@ -202,6 +205,40 @@ const applyBlockAt = (
       }
       break;
   }
+};
+
+const getWorldIndex = (x: number, y: number, z: number, dimensions: Vector3): number =>
+  x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+const getObjectVoxelAt = (objectId: string, x: number, y: number, z: number): number => {
+  if (
+    x < 0 ||
+    y < 0 ||
+    z < 0 ||
+    x >= state.project.dimensions.x ||
+    y >= state.project.dimensions.y ||
+    z >= state.project.dimensions.z
+  ) {
+    return 0;
+  }
+
+  const minPos = {
+    x: Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE,
+    y: Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE,
+    z: Math.floor(z / CHUNK_SIZE) * CHUNK_SIZE,
+  };
+  const key = getChunkKey(objectId, minPos);
+  const chunk = state.chunks.get(key);
+  if (!chunk) return 0;
+
+  const localX = x - minPos.x;
+  const localY = y - minPos.y;
+  const localZ = z - minPos.z;
+  const index =
+    localX * chunk.size.y * chunk.size.z +
+    localY * chunk.size.z +
+    localZ;
+  return chunk.voxels[index] ?? 0;
 };
 
 const reducers: Reducers = {
@@ -349,8 +386,150 @@ const reducers: Reducers = {
     notify();
   },
   updateCursorPos: () => {},
-  magicSelect: () => {},
+  magicSelect: (_projectId, objectIndex, pos) => {
+    void _projectId;
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj) return;
+
+    const seedValue = getObjectVoxelAt(
+      obj.id,
+      Math.floor(pos.x),
+      Math.floor(pos.y),
+      Math.floor(pos.z)
+    );
+
+    if (seedValue === 0) {
+      selectedVoxelsByObject.delete(objectIndex);
+      notify();
+      return;
+    }
+
+    const { x: maxX, y: maxY, z: maxZ } = state.project.dimensions;
+    const totalVoxels = maxX * maxY * maxZ;
+    const selected = new Uint8Array(totalVoxels);
+    const visited = new Uint8Array(totalVoxels);
+    const queue: Vector3[] = [
+      { x: Math.floor(pos.x), y: Math.floor(pos.y), z: Math.floor(pos.z) },
+    ];
+    const directions = [
+      { x: 1, y: 0, z: 0 },
+      { x: -1, y: 0, z: 0 },
+      { x: 0, y: 1, z: 0 },
+      { x: 0, y: -1, z: 0 },
+      { x: 0, y: 0, z: 1 },
+      { x: 0, y: 0, z: -1 },
+    ];
+
+    while (queue.length > 0) {
+      const current = queue.shift() as Vector3;
+      const worldIndex = getWorldIndex(
+        current.x,
+        current.y,
+        current.z,
+        state.project.dimensions
+      );
+      if (visited[worldIndex]) continue;
+      visited[worldIndex] = 1;
+
+      if (getObjectVoxelAt(obj.id, current.x, current.y, current.z) !== seedValue) {
+        continue;
+      }
+
+      selected[worldIndex] = 1;
+
+      for (const direction of directions) {
+        const nextX = current.x + direction.x;
+        const nextY = current.y + direction.y;
+        const nextZ = current.z + direction.z;
+        if (
+          nextX >= 0 &&
+          nextY >= 0 &&
+          nextZ >= 0 &&
+          nextX < maxX &&
+          nextY < maxY &&
+          nextZ < maxZ
+        ) {
+          queue.push({ x: nextX, y: nextY, z: nextZ });
+        }
+      }
+    }
+
+    selectedVoxelsByObject.set(objectIndex, selected);
+    notify();
+  },
   commitSelectionMove: () => {},
+  selectAllVoxels: (_projectId, objectIndex) => {
+    void _projectId;
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj) return;
+
+    const totalVoxels =
+      state.project.dimensions.x *
+      state.project.dimensions.y *
+      state.project.dimensions.z;
+    const selected = new Uint8Array(totalVoxels);
+
+    for (const chunk of state.chunks.values()) {
+      if (chunk.objectId !== obj.id) continue;
+
+      for (let localX = 0; localX < chunk.size.x; localX++) {
+        for (let localY = 0; localY < chunk.size.y; localY++) {
+          for (let localZ = 0; localZ < chunk.size.z; localZ++) {
+            const localIndex =
+              localX * chunk.size.y * chunk.size.z +
+              localY * chunk.size.z +
+              localZ;
+            if (chunk.voxels[localIndex] === 0) continue;
+
+            const worldX = chunk.minPos.x + localX;
+            const worldY = chunk.minPos.y + localY;
+            const worldZ = chunk.minPos.z + localZ;
+            selected[getWorldIndex(worldX, worldY, worldZ, state.project.dimensions)] = 1;
+          }
+        }
+      }
+    }
+
+    selectedVoxelsByObject.set(objectIndex, selected);
+    notify();
+  },
+  deleteSelectedVoxels: (_projectId, objectIndex) => {
+    void _projectId;
+    const obj = getObjectByIndex(objectIndex);
+    const selected = selectedVoxelsByObject.get(objectIndex);
+    if (!obj || !selected) return;
+
+    updateState((current) => {
+      for (const chunk of current.chunks.values()) {
+        if (chunk.objectId !== obj.id) continue;
+
+        for (let localX = 0; localX < chunk.size.x; localX++) {
+          for (let localY = 0; localY < chunk.size.y; localY++) {
+            for (let localZ = 0; localZ < chunk.size.z; localZ++) {
+              const worldX = chunk.minPos.x + localX;
+              const worldY = chunk.minPos.y + localY;
+              const worldZ = chunk.minPos.z + localZ;
+              const worldIndex = getWorldIndex(
+                worldX,
+                worldY,
+                worldZ,
+                current.project.dimensions
+              );
+
+              if (selected[worldIndex]) {
+                const localIndex =
+                  localX * chunk.size.y * chunk.size.z +
+                  localY * chunk.size.z +
+                  localZ;
+                chunk.voxels[localIndex] = 0;
+              }
+            }
+          }
+        }
+      }
+      selectedVoxelsByObject.delete(objectIndex);
+    });
+  },
   updateBlockColor: (blockIndex: number, color: number) => {
     updateState((current) => {
       if (blockIndex >= 0 && blockIndex < current.blocks.colors.length) {
@@ -387,5 +566,6 @@ export const useGlobalState = <T,>(
 
 export const resetState = () => {
   state = createInitialState();
+  selectedVoxelsByObject.clear();
   notify();
 };

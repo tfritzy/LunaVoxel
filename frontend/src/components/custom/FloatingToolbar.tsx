@@ -71,6 +71,9 @@ export const FloatingToolbar = ({
       ) {
         return;
       }
+      if (event.ctrlKey || event.metaKey) {
+        return;
+      }
       switch (event.key) {
         case "m":
           onToolChange("MoveSelection");

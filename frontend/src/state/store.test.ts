@@ -25,4 +25,23 @@ describe("stateStore renameObject reducer", () => {
     expect(after).not.toBe(before);
     expect(after.colors).not.toBe(beforeColors);
   });
+
+  it("selects all and deletes all voxels in the current object", () => {
+    const { project } = stateStore.getState();
+    const objectIndex = 0;
+    const objectId = stateStore.getState().objects[objectIndex].id;
+    const chunkBefore = Array.from(stateStore.getState().chunks.values()).find(
+      (chunk) => chunk.objectId === objectId
+    );
+    expect(chunkBefore).toBeDefined();
+    expect(chunkBefore?.voxels.some((voxel) => voxel !== 0)).toBe(true);
+
+    stateStore.reducers.selectAllVoxels?.(project.id, objectIndex);
+    stateStore.reducers.deleteSelectedVoxels?.(project.id, objectIndex);
+
+    const chunkAfter = Array.from(stateStore.getState().chunks.values()).find(
+      (chunk) => chunk.objectId === objectId
+    );
+    expect(chunkAfter?.voxels.every((voxel) => voxel === 0)).toBe(true);
+  });
 });
