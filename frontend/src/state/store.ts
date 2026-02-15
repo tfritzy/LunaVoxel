@@ -215,95 +215,12 @@ const applyBlockAt = (
 const getWorldIndex = (x: number, y: number, z: number, dimensions: Vector3): number =>
   x * dimensions.y * dimensions.z + y * dimensions.z + z;
 
-const createSelectionFrameFromIndices = (
-  indices: Set<number>,
-  projectDimensions: Vector3
-): SelectionFrame | null => {
-  if (indices.size === 0) return null;
-
-  const yz = projectDimensions.y * projectDimensions.z;
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let minZ = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  let maxZ = Number.NEGATIVE_INFINITY;
-
-  for (const index of indices) {
-    const x = Math.floor(index / yz);
-    const remainder = index % yz;
-    const y = Math.floor(remainder / projectDimensions.z);
-    const z = remainder % projectDimensions.z;
-
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    minZ = Math.min(minZ, z);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-    maxZ = Math.max(maxZ, z);
-  }
-
-  const dimensions = {
-    x: maxX - minX + 1,
-    y: maxY - minY + 1,
-    z: maxZ - minZ + 1,
-  };
-  const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
-  const frameYZ = dimensions.y * dimensions.z;
-
-  for (const index of indices) {
-    const x = Math.floor(index / yz);
-    const remainder = index % yz;
-    const y = Math.floor(remainder / projectDimensions.z);
-    const z = remainder % projectDimensions.z;
-    const localX = x - minX;
-    const localY = y - minY;
-    const localZ = z - minZ;
-    const frameIndex = localX * frameYZ + localY * dimensions.z + localZ;
-    voxelData[frameIndex] = 1;
-  }
-
-  return {
-    minPos: { x: minX, y: minY, z: minZ },
-    dimensions,
-    voxelData,
-  };
-};
-
-const getObjectVoxelMap = (
-  objectId: string,
-  dimensions: Vector3
-): Map<number, number> => {
-  const voxels = new Map<number, number>();
-
-  for (const chunk of state.chunks.values()) {
-    if (chunk.objectId !== objectId) continue;
-    for (let localX = 0; localX < chunk.size.x; localX++) {
-      for (let localY = 0; localY < chunk.size.y; localY++) {
-        for (let localZ = 0; localZ < chunk.size.z; localZ++) {
-          const localIndex =
-            localX * chunk.size.y * chunk.size.z +
-            localY * chunk.size.z +
-            localZ;
-          const value = chunk.voxels[localIndex];
-          if (value === 0) continue;
-
-          const worldX = chunk.minPos.x + localX;
-          const worldY = chunk.minPos.y + localY;
-          const worldZ = chunk.minPos.z + localZ;
-          voxels.set(getWorldIndex(worldX, worldY, worldZ, dimensions), value);
-        }
-      }
-    }
-  }
-
-  return voxels;
-};
-
 const createSelectionFrameForObject = (
   objectId: string,
   dimensions: Vector3
 ): SelectionFrame | null => {
+  const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
+  const projectSelection = new Uint8Array(totalVoxels);
   let hasVoxels = false;
   let minX = Number.POSITIVE_INFINITY;
   let minY = Number.POSITIVE_INFINITY;
@@ -328,6 +245,8 @@ const createSelectionFrameForObject = (
           const worldX = chunk.minPos.x + localX;
           const worldY = chunk.minPos.y + localY;
           const worldZ = chunk.minPos.z + localZ;
+          const worldIndex = getWorldIndex(worldX, worldY, worldZ, dimensions);
+          projectSelection[worldIndex] = 1;
           minX = Math.min(minX, worldX);
           minY = Math.min(minY, worldY);
           minZ = Math.min(minZ, worldZ);
@@ -346,37 +265,26 @@ const createSelectionFrameForObject = (
     y: maxY - minY + 1,
     z: maxZ - minZ + 1,
   };
+  const frameMinPos = { x: minX, y: minY, z: minZ };
   const frameYZ = selectionDimensions.y * selectionDimensions.z;
   const voxelData = new Uint8Array(
     selectionDimensions.x * selectionDimensions.y * selectionDimensions.z
   );
-
-  for (const chunk of state.chunks.values()) {
-    if (chunk.objectId !== objectId) continue;
-
-    for (let localX = 0; localX < chunk.size.x; localX++) {
-      for (let localY = 0; localY < chunk.size.y; localY++) {
-        for (let localZ = 0; localZ < chunk.size.z; localZ++) {
-          const localIndex =
-            localX * chunk.size.y * chunk.size.z +
-            localY * chunk.size.z +
-            localZ;
-          if (chunk.voxels[localIndex] === 0) continue;
-
-          const worldX = chunk.minPos.x + localX;
-          const worldY = chunk.minPos.y + localY;
-          const worldZ = chunk.minPos.z + localZ;
-          const frameX = worldX - minX;
-          const frameY = worldY - minY;
-          const frameZ = worldZ - minZ;
-          voxelData[frameX * frameYZ + frameY * selectionDimensions.z + frameZ] = 1;
-        }
+  for (let worldX = minX; worldX <= maxX; worldX++) {
+    for (let worldY = minY; worldY <= maxY; worldY++) {
+      for (let worldZ = minZ; worldZ <= maxZ; worldZ++) {
+        const worldIndex = getWorldIndex(worldX, worldY, worldZ, dimensions);
+        if (projectSelection[worldIndex] === 0) continue;
+        const frameX = worldX - frameMinPos.x;
+        const frameY = worldY - frameMinPos.y;
+        const frameZ = worldZ - frameMinPos.z;
+        voxelData[frameX * frameYZ + frameY * selectionDimensions.z + frameZ] = 1;
       }
     }
   }
 
   return {
-    minPos: { x: minX, y: minY, z: minZ },
+    minPos: frameMinPos,
     dimensions: selectionDimensions,
     voxelData,
   };
@@ -528,90 +436,7 @@ const reducers: Reducers = {
     notify();
   },
   updateCursorPos: () => {},
-  magicSelect: (_projectId, objectIndex, pos) => {
-    void _projectId;
-    const obj = getObjectByIndex(objectIndex);
-    if (!obj) return;
-    const dimensions = state.project.dimensions;
-    const yz = dimensions.y * dimensions.z;
-
-    const voxelMap = getObjectVoxelMap(obj.id, dimensions);
-    const seedWorldPos = {
-      x: Math.floor(pos.x),
-      y: Math.floor(pos.y),
-      z: Math.floor(pos.z),
-    };
-    const seedIndex = getWorldIndex(
-      seedWorldPos.x,
-      seedWorldPos.y,
-      seedWorldPos.z,
-      dimensions
-    );
-    const seedValue = voxelMap.get(seedIndex);
-
-    if (!seedValue) {
-      selectedFramesByObjectId.delete(obj.id);
-      notify();
-      return;
-    }
-
-    const visited = new Set<number>();
-    const selectedIndices = new Set<number>();
-    const queue: number[] = [seedIndex];
-    let queueReadIndex = 0;
-    const directions = [
-      { x: 1, y: 0, z: 0 },
-      { x: -1, y: 0, z: 0 },
-      { x: 0, y: 1, z: 0 },
-      { x: 0, y: -1, z: 0 },
-      { x: 0, y: 0, z: 1 },
-      { x: 0, y: 0, z: -1 },
-    ];
-
-    while (queueReadIndex < queue.length) {
-      const currentIndex = queue[queueReadIndex];
-      queueReadIndex++;
-      if (visited.has(currentIndex)) continue;
-      visited.add(currentIndex);
-
-      if (voxelMap.get(currentIndex) !== seedValue) {
-        continue;
-      }
-
-      selectedIndices.add(currentIndex);
-      const currentX = Math.floor(currentIndex / yz);
-      const currentRemainder = currentIndex % yz;
-      const currentY = Math.floor(currentRemainder / dimensions.z);
-      const currentZ = currentRemainder % dimensions.z;
-
-      for (const direction of directions) {
-        const nextX = currentX + direction.x;
-        const nextY = currentY + direction.y;
-        const nextZ = currentZ + direction.z;
-        if (
-          nextX >= 0 &&
-          nextY >= 0 &&
-          nextZ >= 0 &&
-          nextX < dimensions.x &&
-          nextY < dimensions.y &&
-          nextZ < dimensions.z
-        ) {
-          queue.push(getWorldIndex(nextX, nextY, nextZ, dimensions));
-        }
-      }
-    }
-
-    const selectionFrame = createSelectionFrameFromIndices(
-      selectedIndices,
-      dimensions
-    );
-    if (!selectionFrame) {
-      selectedFramesByObjectId.delete(obj.id);
-    } else {
-      selectedFramesByObjectId.set(obj.id, selectionFrame);
-    }
-    notify();
-  },
+  magicSelect: () => {},
   commitSelectionMove: () => {},
   selectAllVoxels: (_projectId, objectIndex) => {
     void _projectId;
