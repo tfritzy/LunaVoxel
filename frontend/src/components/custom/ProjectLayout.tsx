@@ -6,13 +6,6 @@ import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
-import { Texture } from "three";
-
-interface AtlasData {
-  blockAtlasMapping: number[];
-  texture: Texture | null;
-  colors: number[];
-}
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -27,7 +20,6 @@ interface ProjectLayoutProps {
   onUndo: () => void;
   onRedo: () => void;
   children: React.ReactNode;
-  atlasData: AtlasData;
   toolOptions: ToolOption[];
   onToolOptionChange: (name: string, value: string) => void;
 }
@@ -45,7 +37,6 @@ export const ProjectLayout = ({
   onUndo,
   onRedo,
   children,
-  atlasData,
   toolOptions,
   onToolOptionChange,
 }: ProjectLayoutProps) => {
@@ -61,7 +52,6 @@ export const ProjectLayout = ({
         <BlockDrawer
           selectedBlock={selectedBlock}
           setSelectedBlock={setSelectedBlock}
-          atlasData={atlasData}
         />
 
         <div className="flex-1 relative bg-muted/5 min-w-0">

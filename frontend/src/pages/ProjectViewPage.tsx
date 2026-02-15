@@ -174,7 +174,6 @@ export const ProjectViewPage = () => {
       onSelectObject={handleObjectSelect}
       onUndo={handleUndo}
       onRedo={handleRedo}
-      atlasData={atlasData}
       toolOptions={toolOptions}
       onToolOptionChange={handleToolOptionChange}
     >
