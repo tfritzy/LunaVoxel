@@ -319,11 +319,17 @@ export const Builder = class {
 
       this.throttledUpdateCursorPos(faceCenter, voxelResult.normal);
 
-      return this.currentTool.calculateGridPosition(
+      const gridPos = this.currentTool.calculateGridPosition(
         voxelResult.gridPosition.clone(),
         voxelResult.normal.clone(),
         this.currentMode
       );
+
+      gridPos.x = Math.max(0, Math.min(gridPos.x, this.dimensions.x - 1));
+      gridPos.y = Math.max(0, Math.min(gridPos.y, this.dimensions.y - 1));
+      gridPos.z = Math.max(0, Math.min(gridPos.z, this.dimensions.z - 1));
+
+      return gridPos;
     }
 
     return null;

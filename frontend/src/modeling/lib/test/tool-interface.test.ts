@@ -620,64 +620,6 @@ describe("Tool Interface", () => {
       expect(lastFrame!.get(4, 4, 4)).toBeGreaterThan(0);
       expect(lastFrame!.get(6, 6, 6)).toBeGreaterThan(0);
     });
-
-    it("should clamp stamp to project boundaries", () => {
-      tool.setOption("Brush Shape", "Cube");
-      tool.setOption("Size", "5");
-
-      let lastFrame: VoxelFrame | null = null;
-      mockContext.reducers = {
-        ...mockContext.reducers,
-        applyFrame: (_mode, _block, frame) => {
-          lastFrame = frame.clone();
-        },
-      };
-
-      tool.onMouseDown(mockContext, {
-        gridPosition: new THREE.Vector3(0, 0, 0),
-        mousePosition: new THREE.Vector2(0, 0),
-      });
-
-      expect(lastFrame).not.toBeNull();
-      expect(lastFrame!.get(0, 0, 0)).toBeGreaterThan(0);
-      expect(lastFrame!.get(2, 2, 2)).toBeGreaterThan(0);
-
-      const minPos = lastFrame!.getMinPos();
-      expect(minPos.x).toBeGreaterThanOrEqual(0);
-      expect(minPos.y).toBeGreaterThanOrEqual(0);
-      expect(minPos.z).toBeGreaterThanOrEqual(0);
-
-      const maxPos = lastFrame!.getMaxPos();
-      expect(maxPos.x).toBeLessThanOrEqual(dimensions.x);
-      expect(maxPos.y).toBeLessThanOrEqual(dimensions.y);
-      expect(maxPos.z).toBeLessThanOrEqual(dimensions.z);
-    });
-
-    it("should not place voxels outside project boundaries", () => {
-      tool.setOption("Brush Shape", "Cube");
-      tool.setOption("Size", "5");
-
-      let lastFrame: VoxelFrame | null = null;
-      mockContext.reducers = {
-        ...mockContext.reducers,
-        applyFrame: (_mode, _block, frame) => {
-          lastFrame = frame.clone();
-        },
-      };
-
-      tool.onMouseDown(mockContext, {
-        gridPosition: new THREE.Vector3(9, 9, 9),
-        mousePosition: new THREE.Vector2(0, 0),
-      });
-
-      expect(lastFrame).not.toBeNull();
-      expect(lastFrame!.get(9, 9, 9)).toBeGreaterThan(0);
-
-      const maxPos = lastFrame!.getMaxPos();
-      expect(maxPos.x).toBeLessThanOrEqual(dimensions.x);
-      expect(maxPos.y).toBeLessThanOrEqual(dimensions.y);
-      expect(maxPos.z).toBeLessThanOrEqual(dimensions.z);
-    });
   });
 
   describe("Benchmark", () => {

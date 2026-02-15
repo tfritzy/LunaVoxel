@@ -5,7 +5,6 @@ import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } fro
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
-import { calculateRectBounds } from "@/lib/rect-utils";
 
 const BRUSH_SHAPE_TO_FILL_SHAPE: Record<BrushShape, FillShape> = {
   Sphere: "Sphere",
@@ -74,40 +73,41 @@ export class BrushTool implements Tool {
     const halfBelow = Math.ceil(this.size / 2) - 1;
     const halfAbove = Math.floor(this.size / 2);
 
-    const stampStart = {
-      x: center.x - halfBelow,
-      y: center.y - halfBelow,
-      z: center.z - halfBelow,
-    };
-    const stampEnd = {
-      x: center.x + halfAbove,
-      y: center.y + halfAbove,
-      z: center.z + halfAbove,
-    };
+    const boundsMinX = center.x - halfBelow;
+    const boundsMinY = center.y - halfBelow;
+    const boundsMinZ = center.z - halfBelow;
+    const boundsMaxX = center.x + halfAbove;
+    const boundsMaxY = center.y + halfAbove;
+    const boundsMaxZ = center.z + halfAbove;
 
-    const bounds = calculateRectBounds(stampStart, stampEnd, context.dimensions);
+    const minX = Math.max(0, boundsMinX);
+    const minY = Math.max(0, boundsMinY);
+    const minZ = Math.max(0, boundsMinZ);
+    const maxX = Math.min(context.dimensions.x - 1, boundsMaxX);
+    const maxY = Math.min(context.dimensions.y - 1, boundsMaxY);
+    const maxZ = Math.min(context.dimensions.z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
 
     const frameSize = {
-      x: bounds.maxX - bounds.minX + 1,
-      y: bounds.maxY - bounds.minY + 1,
-      z: bounds.maxZ - bounds.minZ + 1,
+      x: maxX - minX + 1,
+      y: maxY - minY + 1,
+      z: maxZ - minZ + 1,
     };
-    const frameMinPos = { x: bounds.minX, y: bounds.minY, z: bounds.minZ };
+    const frameMinPos = { x: minX, y: minY, z: minZ };
 
     context.previewFrame.clear();
     context.previewFrame.resize(frameSize, frameMinPos);
 
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
           if (isInsideFillShape(
             fillShape, x, y, z,
-            stampStart.x, stampEnd.x,
-            stampStart.y, stampEnd.y,
-            stampStart.z, stampEnd.z
+            boundsMinX, boundsMaxX,
+            boundsMinY, boundsMaxY,
+            boundsMinZ, boundsMaxZ
           )) {
             context.previewFrame.set(x, y, z, blockValue);
           }
