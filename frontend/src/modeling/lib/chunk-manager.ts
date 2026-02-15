@@ -5,6 +5,7 @@ import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
 import { Chunk } from "./chunk";
+import { RAYCASTABLE_BIT } from "./voxel-constants";
 
 export class ChunkManager {
   private scene: THREE.Scene;
@@ -19,6 +20,8 @@ export class ChunkManager {
   private chunksWithPreview: Set<string> = new Set();
   private unsubscribe?: () => void;
   private readonly maxObjects = 10;
+  private floatingSelection: VoxelFrame | null = null;
+  private floatingSelectionObjectIndex: number = -1;
 
   constructor(
     scene: THREE.Scene,
@@ -290,6 +293,151 @@ export class ChunkManager {
     }
   }
 
+  public liftSelection(objectIndex: number): void {
+    const obj = this.getObject(objectIndex);
+    if (!obj) return;
+
+    const floatingFrame = new VoxelFrame(
+      { x: this.dimensions.x, y: this.dimensions.y, z: this.dimensions.z },
+      { x: 0, y: 0, z: 0 }
+    );
+
+    let hasAny = false;
+    for (const chunk of this.chunks.values()) {
+      const objectChunk = chunk.getObjectChunk(obj.index);
+      if (!objectChunk) continue;
+
+      const sizeY = chunk.size.y;
+      const sizeZ = chunk.size.z;
+      const sizeYZ = sizeY * sizeZ;
+
+      for (let i = 0; i < objectChunk.voxels.length; i++) {
+        if (objectChunk.voxels[i] !== 0) {
+          const localX = Math.floor(i / sizeYZ);
+          const localY = Math.floor((i % sizeYZ) / sizeZ);
+          const localZ = i % sizeZ;
+          const worldX = chunk.minPos.x + localX;
+          const worldY = chunk.minPos.y + localY;
+          const worldZ = chunk.minPos.z + localZ;
+
+          floatingFrame.set(worldX, worldY, worldZ, objectChunk.voxels[i]);
+          objectChunk.voxels[i] = 0;
+          hasAny = true;
+        }
+      }
+    }
+
+    if (hasAny) {
+      this.floatingSelection = floatingFrame;
+      this.floatingSelectionObjectIndex = objectIndex;
+      this.updateAllChunks();
+    }
+  }
+
+  public renderFloatingSelection(offset: THREE.Vector3): void {
+    if (!this.floatingSelection) return;
+
+    const offsetFrame = new VoxelFrame(
+      this.floatingSelection.getDimensions(),
+      {
+        x: this.floatingSelection.getMinPos().x + Math.round(offset.x),
+        y: this.floatingSelection.getMinPos().y + Math.round(offset.y),
+        z: this.floatingSelection.getMinPos().z + Math.round(offset.z),
+      }
+    );
+
+    const dims = this.floatingSelection.getDimensions();
+    const srcMin = this.floatingSelection.getMinPos();
+    for (let x = 0; x < dims.x; x++) {
+      for (let y = 0; y < dims.y; y++) {
+        for (let z = 0; z < dims.z; z++) {
+          const val = this.floatingSelection.get(srcMin.x + x, srcMin.y + y, srcMin.z + z);
+          if (val !== 0) {
+            offsetFrame.set(
+              srcMin.x + x + Math.round(offset.x),
+              srcMin.y + y + Math.round(offset.y),
+              srcMin.z + z + Math.round(offset.z),
+              val
+            );
+          }
+        }
+      }
+    }
+
+    this.setPreview(offsetFrame);
+  }
+
+  public commitFloatingSelection(objectIndex: number, offset: THREE.Vector3): void {
+    if (!this.floatingSelection) return;
+
+    const obj = this.getObject(objectIndex);
+    if (!obj) return;
+
+    const dims = this.floatingSelection.getDimensions();
+    const srcMin = this.floatingSelection.getMinPos();
+    const ox = Math.round(offset.x);
+    const oy = Math.round(offset.y);
+    const oz = Math.round(offset.z);
+
+    for (let x = 0; x < dims.x; x++) {
+      for (let y = 0; y < dims.y; y++) {
+        for (let z = 0; z < dims.z; z++) {
+          const val = this.floatingSelection.get(srcMin.x + x, srcMin.y + y, srcMin.z + z);
+          if (val !== 0) {
+            const worldX = srcMin.x + x + ox;
+            const worldY = srcMin.y + y + oy;
+            const worldZ = srcMin.z + z + oz;
+
+            const chunkMinPos = this.getChunkMinPos({ x: worldX, y: worldY, z: worldZ });
+            const key = this.getChunkKey(chunkMinPos);
+            const chunk = this.chunks.get(key);
+            if (!chunk) continue;
+
+            const objectChunk = chunk.getObjectChunk(obj.index);
+            if (!objectChunk) continue;
+
+            const localX = worldX - chunkMinPos.x;
+            const localY = worldY - chunkMinPos.y;
+            const localZ = worldZ - chunkMinPos.z;
+
+            if (localX >= 0 && localX < chunk.size.x &&
+                localY >= 0 && localY < chunk.size.y &&
+                localZ >= 0 && localZ < chunk.size.z) {
+              const index = localX * chunk.size.y * chunk.size.z + localY * chunk.size.z + localZ;
+              objectChunk.voxels[index] = val;
+            }
+          }
+        }
+      }
+    }
+
+    this.floatingSelection = null;
+    this.floatingSelectionObjectIndex = -1;
+    this.clearPreview();
+    this.updateAllChunks();
+  }
+
+  public cancelFloatingSelection(): void {
+    if (!this.floatingSelection) return;
+
+    const objectIndex = this.floatingSelectionObjectIndex;
+    this.commitFloatingSelection(objectIndex, new THREE.Vector3(0, 0, 0));
+  }
+
+  public hasFloatingSelection(): boolean {
+    return this.floatingSelection !== null;
+  }
+
+  private clearPreview(): void {
+    for (const chunkKey of this.chunksWithPreview) {
+      const chunk = this.chunks.get(chunkKey);
+      if (chunk) {
+        chunk.clearPreviewData();
+      }
+    }
+    this.chunksWithPreview.clear();
+  }
+
   dispose = () => {
     this.unsubscribe?.();
     this.unsubscribe = undefined;
@@ -299,5 +447,7 @@ export class ChunkManager {
     }
     this.chunks.clear();
     this.chunksWithPreview.clear();
+    this.floatingSelection = null;
+    this.floatingSelectionObjectIndex = -1;
   };
 }

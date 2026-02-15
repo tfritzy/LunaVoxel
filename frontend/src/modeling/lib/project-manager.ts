@@ -187,6 +187,26 @@ export class ProjectManager {
     this.moveSelectionBoxHelper = null;
   };
 
+  public liftSelection = (objectIndex: number) => {
+    this.chunkManager.liftSelection(objectIndex);
+  };
+
+  public renderFloatingSelection = (offset: THREE.Vector3) => {
+    this.chunkManager.renderFloatingSelection(offset);
+  };
+
+  public commitFloatingSelection = (objectIndex: number, offset: THREE.Vector3) => {
+    this.chunkManager.commitFloatingSelection(objectIndex, offset);
+  };
+
+  public cancelFloatingSelection = () => {
+    this.chunkManager.cancelFloatingSelection();
+  };
+
+  public hasFloatingSelection = (): boolean => {
+    return this.chunkManager.hasFloatingSelection();
+  };
+
   dispose(): void {
     this.clearMoveSelectionBox();
     this.builder.dispose();

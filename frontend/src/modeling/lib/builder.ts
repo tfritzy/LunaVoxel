@@ -112,6 +112,9 @@ export const Builder = class {
       this.previewFrame.clear();
       this.projectManager.chunkManager.setPreview(this.previewFrame);
     }
+    if (this.projectManager.hasFloatingSelection()) {
+      this.projectManager.cancelFloatingSelection();
+    }
     this.projectManager.clearMoveSelectionBox();
     this.isMouseDown = false;
     this.startPosition = null;

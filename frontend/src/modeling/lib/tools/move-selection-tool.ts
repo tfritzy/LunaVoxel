@@ -7,6 +7,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
   private lastOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+  private isLifted: boolean = false;
 
   getType(): ToolType {
     return "MoveSelection";
@@ -28,10 +29,10 @@ export class MoveSelectionTool implements Tool {
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
-    void context;
     void event;
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
+    this.isLifted = false;
     context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
   }
 
@@ -42,25 +43,36 @@ export class MoveSelectionTool implements Tool {
       context.camera
     );
 
+    if (!this.isLifted && offset.length() > 0.1) {
+      context.projectManager.liftSelection(context.selectedObject);
+      this.isLifted = true;
+    }
+
     this.lastOffset.copy(offset);
+
+    if (this.isLifted) {
+      context.projectManager.renderFloatingSelection(this.lastOffset);
+    }
+
     context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     void event;
-    if (this.lastOffset.length() > 0.1) {
-      context.reducers.commitSelectionMove(
-        context.projectId,
-        {
-          x: Math.round(this.lastOffset.x),
-          y: Math.round(this.lastOffset.y),
-          z: Math.round(this.lastOffset.z),
-        }
-      );
+    if (this.isLifted) {
+      if (this.lastOffset.length() > 0.1) {
+        context.projectManager.commitFloatingSelection(
+          context.selectedObject,
+          this.lastOffset
+        );
+      } else {
+        context.projectManager.cancelFloatingSelection();
+      }
     }
 
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
+    this.isLifted = false;
     context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
   }
 
