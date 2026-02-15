@@ -1,11 +1,10 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
-import type { ToolType, BrushShape } from "../tool-type";
+import type { ToolType, BrushShape, FillShape } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
-import type { FillShape } from "../tool-type";
 
 const BRUSH_SHAPE_TO_FILL_SHAPE: Record<BrushShape, FillShape> = {
   Sphere: "Sphere",
@@ -68,20 +67,22 @@ export class BrushTool implements Tool {
   }
 
   private stampAtPosition(context: ToolContext, center: THREE.Vector3): void {
-    const halfSize = Math.floor(this.size / 2);
-    const minX = Math.max(0, center.x - halfSize);
-    const minY = Math.max(0, center.y - halfSize);
-    const minZ = Math.max(0, center.z - halfSize);
-    const maxX = Math.min(context.dimensions.x - 1, center.x + halfSize);
-    const maxY = Math.min(context.dimensions.y - 1, center.y + halfSize);
-    const maxZ = Math.min(context.dimensions.z - 1, center.z + halfSize);
+    const halfBelow = Math.ceil(this.size / 2) - 1;
+    const halfAbove = Math.floor(this.size / 2);
 
-    const boundsMinX = center.x - halfSize;
-    const boundsMinY = center.y - halfSize;
-    const boundsMinZ = center.z - halfSize;
-    const boundsMaxX = center.x + halfSize;
-    const boundsMaxY = center.y + halfSize;
-    const boundsMaxZ = center.z + halfSize;
+    const boundsMinX = center.x - halfBelow;
+    const boundsMinY = center.y - halfBelow;
+    const boundsMinZ = center.z - halfBelow;
+    const boundsMaxX = center.x + halfAbove;
+    const boundsMaxY = center.y + halfAbove;
+    const boundsMaxZ = center.z + halfAbove;
+
+    const minX = Math.max(0, boundsMinX);
+    const minY = Math.max(0, boundsMinY);
+    const minZ = Math.max(0, boundsMinZ);
+    const maxX = Math.min(context.dimensions.x - 1, boundsMaxX);
+    const maxY = Math.min(context.dimensions.y - 1, boundsMaxY);
+    const maxZ = Math.min(context.dimensions.z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
@@ -99,7 +100,12 @@ export class BrushTool implements Tool {
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
-          if (isInsideFillShape(fillShape, x, y, z, boundsMinX, boundsMaxX, boundsMinY, boundsMaxY, boundsMinZ, boundsMaxZ)) {
+          if (isInsideFillShape(
+            fillShape, x, y, z,
+            boundsMinX, boundsMaxX,
+            boundsMinY, boundsMaxY,
+            boundsMinZ, boundsMaxZ
+          )) {
             context.previewFrame.set(x, y, z, blockValue);
           }
         }
