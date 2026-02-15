@@ -5,7 +5,6 @@ import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
 import { Chunk } from "./chunk";
-import { RAYCASTABLE_BIT } from "./voxel-constants";
 
 export class ChunkManager {
   private scene: THREE.Scene;
