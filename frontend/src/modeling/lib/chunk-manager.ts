@@ -4,7 +4,7 @@ import type { StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { VoxelFrame } from "./voxel-frame";
-import { Chunk } from "./chunk";
+import { Chunk, type SelectionData } from "./chunk";
 
 export class ChunkManager {
   private scene: THREE.Scene;
@@ -229,6 +229,12 @@ export class ChunkManager {
     return Array.from(this.chunks.values());
   }
 
+  public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
+    for (const chunk of this.chunks.values()) {
+      chunk.setSelectionFrame(identityId, selectionData);
+    }
+  }
+
   public getVoxelAtWorldPos(x: number, y: number, z: number): number {
     const chunkMinPos = this.getChunkMinPos({ x, y, z });
     const key = this.getChunkKey(chunkMinPos);
@@ -296,6 +302,15 @@ export class ChunkManager {
     const obj = this.getObject(objectIndex);
     if (!obj) return;
 
+    let hasSelection = false;
+    for (const chunk of this.chunks.values()) {
+      if (chunk.hasSelectionForObject(obj.index)) {
+        hasSelection = true;
+        break;
+      }
+    }
+    if (!hasSelection) return;
+
     const floatingFrame = new VoxelFrame(
       { x: this.dimensions.x, y: this.dimensions.y, z: this.dimensions.z },
       { x: 0, y: 0, z: 0 }
@@ -311,7 +326,7 @@ export class ChunkManager {
       const sizeYZ = sizeY * sizeZ;
 
       for (let i = 0; i < objectChunk.voxels.length; i++) {
-        if (objectChunk.voxels[i] !== 0) {
+        if (objectChunk.voxels[i] !== 0 && chunk.isVoxelSelected(obj.index, i)) {
           const localX = Math.floor(i / sizeYZ);
           const localY = Math.floor((i % sizeYZ) / sizeZ);
           const localZ = i % sizeZ;

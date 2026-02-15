@@ -3,9 +3,32 @@ import { ChunkManager } from "../chunk-manager";
 import * as THREE from "three";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import { stateStore, resetState } from "@/state/store";
+import { CHUNK_SIZE } from "@/state/constants";
+import type { SelectionData } from "../chunk";
+
+function createSelectionForVoxels(
+  chunkSize: Vector3,
+  positions: { x: number; y: number; z: number }[]
+): SelectionData {
+  const voxelData = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+  for (const pos of positions) {
+    const index = pos.x * chunkSize.y * chunkSize.z + pos.y * chunkSize.z + pos.z;
+    voxelData[index] = 1;
+  }
+  return {
+    object: 0,
+    frame: {
+      minPos: { x: 0, y: 0, z: 0 },
+      dimensions: { ...chunkSize },
+      voxelData,
+    },
+    offset: { x: 0, y: 0, z: 0 },
+  };
+}
 
 describe("ChunkManager floating selection", () => {
   const dimensions: Vector3 = { x: 64, y: 64, z: 64 };
+  const chunkSize: Vector3 = { x: CHUNK_SIZE, y: CHUNK_SIZE, z: CHUNK_SIZE };
   let scene: THREE.Scene;
   let chunkManager: ChunkManager;
 
@@ -25,125 +48,103 @@ describe("ChunkManager floating selection", () => {
     expect(chunkManager.hasFloatingSelection()).toBe(false);
   });
 
-  it("should lift selection and clear original voxels", () => {
+  it("should lift only selected voxels and clear them from chunk", () => {
+    const selectedPositions = [
+      { x: 10, y: 0, z: 10 },
+      { x: 11, y: 0, z: 10 },
+      { x: 12, y: 0, z: 10 },
+    ];
+    const selectionData = createSelectionForVoxels(chunkSize, selectedPositions);
+    chunkManager.setSelectionFrame("local", selectionData);
+
     chunkManager.liftSelection(0);
 
     expect(chunkManager.hasFloatingSelection()).toBe(true);
 
-    for (const chunk of chunkManager.getChunks()) {
-      const objectChunk = chunk.getObjectChunk(0);
-      if (!objectChunk) continue;
-      for (let i = 0; i < objectChunk.voxels.length; i++) {
-        expect(objectChunk.voxels[i]).toBe(0);
-      }
+    const chunk = chunkManager.getChunks()[0];
+    const objectChunk = chunk?.getObjectChunk(0);
+    expect(objectChunk).not.toBeNull();
+
+    for (const pos of selectedPositions) {
+      const idx = pos.x * chunkSize.y * chunkSize.z + pos.y * chunkSize.z + pos.z;
+      expect(objectChunk!.voxels[idx]).toBe(0);
     }
+
+    const unselectedIdx = 13 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    expect(objectChunk!.voxels[unselectedIdx]).not.toBe(0);
+  });
+
+  it("should not lift anything if no selection exists", () => {
+    chunkManager.liftSelection(0);
+    expect(chunkManager.hasFloatingSelection()).toBe(false);
   });
 
   it("should commit floating selection at offset", () => {
-    const voxelsBefore = new Map<string, number>();
-    for (const chunk of chunkManager.getChunks()) {
-      const objectChunk = chunk.getObjectChunk(0);
-      if (!objectChunk) continue;
-      const sizeY = chunk.size.y;
-      const sizeZ = chunk.size.z;
-      const sizeYZ = sizeY * sizeZ;
-      for (let i = 0; i < objectChunk.voxels.length; i++) {
-        if (objectChunk.voxels[i] !== 0) {
-          const localX = Math.floor(i / sizeYZ);
-          const localY = Math.floor((i % sizeYZ) / sizeZ);
-          const localZ = i % sizeZ;
-          const worldX = chunk.minPos.x + localX;
-          const worldY = chunk.minPos.y + localY;
-          const worldZ = chunk.minPos.z + localZ;
-          voxelsBefore.set(`${worldX},${worldY},${worldZ}`, objectChunk.voxels[i]);
-        }
-      }
-    }
+    const selectedPositions = [
+      { x: 10, y: 0, z: 10 },
+      { x: 11, y: 0, z: 10 },
+    ];
+    const selectionData = createSelectionForVoxels(chunkSize, selectedPositions);
+    chunkManager.setSelectionFrame("local", selectionData);
 
-    expect(voxelsBefore.size).toBeGreaterThan(0);
+    const chunk = chunkManager.getChunks()[0];
+    const objectChunk = chunk?.getObjectChunk(0);
+    const srcIdx0 = 10 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    const srcIdx1 = 11 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    const origVal0 = objectChunk!.voxels[srcIdx0];
+    const origVal1 = objectChunk!.voxels[srcIdx1];
 
     chunkManager.liftSelection(0);
-    const offset = new THREE.Vector3(2, 0, 0);
-    chunkManager.commitFloatingSelection(0, offset);
+    chunkManager.commitFloatingSelection(0, new THREE.Vector3(2, 0, 0));
 
     expect(chunkManager.hasFloatingSelection()).toBe(false);
 
-    const voxelsAfter = new Map<string, number>();
-    for (const chunk of chunkManager.getChunks()) {
-      const objectChunk = chunk.getObjectChunk(0);
-      if (!objectChunk) continue;
-      const sizeY = chunk.size.y;
-      const sizeZ = chunk.size.z;
-      const sizeYZ = sizeY * sizeZ;
-      for (let i = 0; i < objectChunk.voxels.length; i++) {
-        if (objectChunk.voxels[i] !== 0) {
-          const localX = Math.floor(i / sizeYZ);
-          const localY = Math.floor((i % sizeYZ) / sizeZ);
-          const localZ = i % sizeZ;
-          const worldX = chunk.minPos.x + localX;
-          const worldY = chunk.minPos.y + localY;
-          const worldZ = chunk.minPos.z + localZ;
-          voxelsAfter.set(`${worldX},${worldY},${worldZ}`, objectChunk.voxels[i]);
-        }
-      }
-    }
-
-    expect(voxelsAfter.size).toBe(voxelsBefore.size);
-
-    for (const [key, value] of voxelsBefore) {
-      const [x, y, z] = key.split(",").map(Number);
-      const newKey = `${x + 2},${y},${z}`;
-      expect(voxelsAfter.has(newKey)).toBe(true);
-      expect(voxelsAfter.get(newKey)).toBe(value);
-    }
+    const dstIdx0 = 12 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    const dstIdx1 = 13 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    expect(objectChunk!.voxels[srcIdx0]).toBe(0);
+    expect(objectChunk!.voxels[srcIdx1]).toBe(0);
+    expect(objectChunk!.voxels[dstIdx0]).toBe(origVal0);
+    expect(objectChunk!.voxels[dstIdx1]).toBe(origVal1);
   });
 
   it("should cancel floating selection and restore original voxels", () => {
-    const originalVoxels = new Map<string, Uint8Array>();
-    for (const chunk of chunkManager.getChunks()) {
-      const objectChunk = chunk.getObjectChunk(0);
-      if (objectChunk) {
-        const key = `${chunk.minPos.x},${chunk.minPos.y},${chunk.minPos.z}`;
-        originalVoxels.set(key, new Uint8Array(objectChunk.voxels));
-      }
-    }
+    const selectedPositions = [
+      { x: 10, y: 0, z: 10 },
+      { x: 11, y: 0, z: 10 },
+    ];
+    const selectionData = createSelectionForVoxels(chunkSize, selectedPositions);
+    chunkManager.setSelectionFrame("local", selectionData);
+
+    const chunk = chunkManager.getChunks()[0];
+    const objectChunk = chunk?.getObjectChunk(0);
+    const origVoxels = new Uint8Array(objectChunk!.voxels);
 
     chunkManager.liftSelection(0);
     chunkManager.cancelFloatingSelection();
 
     expect(chunkManager.hasFloatingSelection()).toBe(false);
-
-    for (const chunk of chunkManager.getChunks()) {
-      const objectChunk = chunk.getObjectChunk(0);
-      if (objectChunk) {
-        const key = `${chunk.minPos.x},${chunk.minPos.y},${chunk.minPos.z}`;
-        const original = originalVoxels.get(key);
-        if (original) {
-          expect(objectChunk.voxels).toEqual(original);
-        }
-      }
-    }
+    expect(objectChunk!.voxels).toEqual(origVoxels);
   });
 
   it("should not lift if object does not exist", () => {
+    const selectionData = createSelectionForVoxels(chunkSize, [{ x: 10, y: 0, z: 10 }]);
+    chunkManager.setSelectionFrame("local", selectionData);
     chunkManager.liftSelection(99);
     expect(chunkManager.hasFloatingSelection()).toBe(false);
   });
 
   it("should overwrite existing voxels when committing at destination", () => {
-    const state = stateStore.getState();
-    const obj = state.objects[0];
-    const chunkData = Array.from(state.chunks.values()).find(
-      c => c.objectId === obj.id
-    );
-    if (!chunkData) return;
+    const selectedPositions = [{ x: 10, y: 0, z: 10 }];
+    const selectionData = createSelectionForVoxels(chunkSize, selectedPositions);
+    chunkManager.setSelectionFrame("local", selectionData);
 
-    const sizeY = chunkData.size.y;
-    const sizeZ = chunkData.size.z;
-    const srcIdx = 10 * sizeY * sizeZ + 0 * sizeZ + 10;
-    const dstIdx = 12 * sizeY * sizeZ + 0 * sizeZ + 10;
-    const srcVal = chunkData.voxels[srcIdx];
-    const dstVal = chunkData.voxels[dstIdx];
+    const chunk = chunkManager.getChunks()[0];
+    const objectChunk = chunk?.getObjectChunk(0);
+
+    const srcIdx = 10 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    const dstIdx = 12 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    const srcVal = objectChunk!.voxels[srcIdx];
+    const dstVal = objectChunk!.voxels[dstIdx];
 
     expect(srcVal & 0x7F).toBeGreaterThan(0);
     expect(dstVal & 0x7F).toBeGreaterThan(0);
@@ -151,26 +152,31 @@ describe("ChunkManager floating selection", () => {
     chunkManager.liftSelection(0);
     chunkManager.commitFloatingSelection(0, new THREE.Vector3(2, 0, 0));
 
-    const afterChunk = chunkManager.getChunks()[0]?.getObjectChunk(0);
-    if (afterChunk) {
-      expect(afterChunk.voxels[srcIdx]).toBe(0);
-      expect(afterChunk.voxels[dstIdx]).toBe(srcVal);
-    }
+    expect(objectChunk!.voxels[srcIdx]).toBe(0);
+    expect(objectChunk!.voxels[dstIdx]).toBe(srcVal);
   });
 
-  it("should not clear other voxels while dragging through them", () => {
+  it("should not clear non-selected voxels while dragging through them", () => {
+    const selectedPositions = [
+      { x: 10, y: 0, z: 10 },
+      { x: 11, y: 0, z: 10 },
+    ];
+    const selectionData = createSelectionForVoxels(chunkSize, selectedPositions);
+    chunkManager.setSelectionFrame("local", selectionData);
+
+    const chunk = chunkManager.getChunks()[0];
+    const objectChunk = chunk?.getObjectChunk(0);
+
+    const unselectedIdx = 13 * chunkSize.y * chunkSize.z + 0 * chunkSize.z + 10;
+    const unselectedVal = objectChunk!.voxels[unselectedIdx];
+    expect(unselectedVal & 0x7F).toBeGreaterThan(0);
+
     chunkManager.liftSelection(0);
     chunkManager.renderFloatingSelection(new THREE.Vector3(5, 0, 0));
     chunkManager.renderFloatingSelection(new THREE.Vector3(10, 0, 0));
     chunkManager.renderFloatingSelection(new THREE.Vector3(3, 0, 0));
 
-    for (const chunk of chunkManager.getChunks()) {
-      const objectChunk = chunk.getObjectChunk(0);
-      if (!objectChunk) continue;
-      for (let i = 0; i < objectChunk.voxels.length; i++) {
-        expect(objectChunk.voxels[i]).toBe(0);
-      }
-    }
+    expect(objectChunk!.voxels[unselectedIdx]).toBe(unselectedVal);
 
     chunkManager.cancelFloatingSelection();
     expect(chunkManager.hasFloatingSelection()).toBe(false);

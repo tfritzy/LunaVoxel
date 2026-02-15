@@ -231,6 +231,23 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
+  public isVoxelSelected(objectIndex: number, flatIndex: number): boolean {
+    for (const selectionData of this.selectionFrames.values()) {
+      if (selectionData.object !== objectIndex) continue;
+      if (flatIndex < selectionData.frame.voxelData.length && selectionData.frame.voxelData[flatIndex] > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public hasSelectionForObject(objectIndex: number): boolean {
+    for (const selectionData of this.selectionFrames.values()) {
+      if (selectionData.object === objectIndex) return true;
+    }
+    return false;
+  }
+
   private clearBlocks(blocks: Uint8Array) {
     blocks.fill(0);
   }
