@@ -4,7 +4,7 @@ import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import { VoxelFrame } from "./voxel-frame";
+import { VoxelFrame } from "./flat-voxel-frame";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { MagicSelectTool } from "./tools/magic-select-tool";

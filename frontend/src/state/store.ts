@@ -9,8 +9,7 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
-import type { VoxelFrame } from "@/modeling/lib/voxel-frame";
-import { FlatVoxelFrame } from "@/modeling/lib/flat-voxel-frame";
+import { VoxelFrame } from "@/modeling/lib/flat-voxel-frame";
 
 export type GlobalState = {
   project: Project;
@@ -102,6 +101,7 @@ const createInitialState = (): GlobalState => {
       locked: false,
       position: { x: 0, y: 0, z: 0 },
       dimensions: { x: 64, y: 64, z: 64 },
+      selection: null,
     },
   ];
 
@@ -152,7 +152,6 @@ const createInitialState = (): GlobalState => {
 let state = createInitialState();
 let version = 0;
 const listeners = new Set<() => void>();
-const selectionByObjectId = new Map<string, FlatVoxelFrame>();
 
 const notify = () => {
   version += 1;
@@ -222,6 +221,7 @@ const reducers: Reducers = {
         locked: false,
         position: { x: 0, y: 0, z: 0 },
         dimensions: { x: 64, y: 64, z: 64 },
+        selection: null,
       });
     });
   },
@@ -229,7 +229,6 @@ const reducers: Reducers = {
     updateState((current) => {
       const target = current.objects.find((obj) => obj.id === objectId);
       if (!target) return;
-      selectionByObjectId.delete(objectId);
       current.objects = current.objects
         .filter((obj) => obj.id !== objectId)
         .map((obj, index) => ({ ...obj, index }));
@@ -385,7 +384,7 @@ const reducers: Reducers = {
     }
 
     if (maxX < 0) {
-      selectionByObjectId.delete(obj.id);
+      obj.selection = null;
       notify();
       return;
     }
@@ -401,17 +400,14 @@ const reducers: Reducers = {
       }
     }
 
-    selectionByObjectId.set(
-      obj.id,
-      new FlatVoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData)
-    );
+    obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     notify();
   },
   deleteSelectedVoxels: (_projectId, objectIndex) => {
     const obj = getObjectByIndex(objectIndex);
-    const sel = obj ? selectionByObjectId.get(obj.id) : undefined;
-    if (!obj || !sel) return;
+    if (!obj?.selection) return;
 
+    const sel = obj.selection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
 
@@ -434,7 +430,7 @@ const reducers: Reducers = {
           }
         }
       }
-      selectionByObjectId.delete(obj.id);
+      obj.selection = null;
     });
   },
   updateBlockColor: (blockIndex: number, color: number) => {
@@ -473,6 +469,5 @@ export const useGlobalState = <T,>(
 
 export const resetState = () => {
   state = createInitialState();
-  selectionByObjectId.clear();
   notify();
 };

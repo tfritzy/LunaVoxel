@@ -9,7 +9,7 @@ import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
-import { VoxelFrame } from "../voxel-frame";
+import { VoxelFrame } from "../flat-voxel-frame";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;

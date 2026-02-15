@@ -3,7 +3,7 @@ import type { BlockModificationMode, VoxelObject, Vector3 } from "@/state/types"
 import type { StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
-import { VoxelFrame } from "./voxel-frame";
+import { VoxelFrame } from "./flat-voxel-frame";
 import { Chunk } from "./chunk";
 
 export class ChunkManager {

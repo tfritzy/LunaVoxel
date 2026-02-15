@@ -6,7 +6,7 @@ import {
   calculateAmbientOcclusion,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
-import { FlatVoxelFrame } from "./flat-voxel-frame";
+import { VoxelFrame } from "./flat-voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
@@ -35,7 +35,7 @@ export class ExteriorFacesFinder {
     blockAtlasMapping: number[],
     dimensions: Vector3,
     meshArrays: MeshArrays,
-    selectionFrame: FlatVoxelFrame
+    selectionFrame: VoxelFrame
   ): void {
     meshArrays.reset();
 

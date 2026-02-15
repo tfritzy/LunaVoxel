@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { ExteriorFacesFinder } from "../find-exterior-faces";
 import { MeshArrays } from "../mesh-arrays";
-import { FlatVoxelFrame } from "../flat-voxel-frame";
+import { VoxelFrame } from "../flat-voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
@@ -29,7 +29,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -61,7 +61,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -101,7 +101,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -132,7 +132,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -156,7 +156,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -182,7 +182,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -207,7 +207,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Set selection at position with no real block
       selectionFrame.set(0, 0, 0, 1);
@@ -239,7 +239,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -275,7 +275,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -300,7 +300,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -323,7 +323,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -356,7 +356,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -380,7 +380,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Set every other voxel with polka dot pattern
       for (let x = 0; x < dimensions.x; x++) {
@@ -432,7 +432,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Fill entire cube with real blocks
       for (let x = 0; x < dimensions.x; x++) {
@@ -482,7 +482,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
-      const selectionFrame = new FlatVoxelFrame(dimensions);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Fill entire cube with blocks that have block type but not raycastable (preview attach)
       for (let x = 0; x < dimensions.x; x++) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { VoxelFrame } from "../voxel-frame";
+import { VoxelFrame } from "../flat-voxel-frame";
 
 describe("VoxelFrame", () => {
   describe("offset functionality", () => {
