@@ -358,11 +358,6 @@ export const Builder = class {
     const corner = this.resizingCorner;
     const base = this.resizeBaseBounds;
 
-    const anchorX = corner.xSide === "min" ? base.maxX : base.minX;
-    const anchorY = corner.ySide === "min" ? base.maxY : base.minY;
-    const anchorZ = corner.zSide === "min" ? base.maxZ : base.minZ;
-    const anchor = new THREE.Vector3(anchorX + 0.5, anchorY + 0.5, anchorZ + 0.5);
-
     const dragX = corner.xSide === "min" ? base.minX : base.maxX;
     const dragY = corner.ySide === "min" ? base.minY : base.maxY;
     const dragZ = corner.zSide === "min" ? base.minZ : base.maxZ;
@@ -372,7 +367,6 @@ export const Builder = class {
     this.camera.getWorldDirection(viewDir);
 
     const normal = new THREE.Vector3();
-    const toCorner = dragCorner.clone().sub(anchor);
 
     const absX = Math.abs(viewDir.x);
     const absY = Math.abs(viewDir.y);
@@ -429,9 +423,6 @@ export const Builder = class {
       newBounds.minZ = newBounds.maxZ;
       newBounds.maxZ = tmp;
     }
-
-    void toCorner;
-    void anchor;
 
     this.currentTool.resizePendingBounds?.(this.toolContext, newBounds);
     this.updatePendingBoundsBox();
