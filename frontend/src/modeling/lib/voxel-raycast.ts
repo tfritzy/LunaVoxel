@@ -65,22 +65,16 @@ export function performRaycast(
            pz >= 0 && pz < dimensions.z;
   };
 
-  const isInRange = (value: number, dim: number): boolean => {
-    return value >= 0 && value < dim;
+  const crossedPlane = (prev: number, curr: number, dim: number): boolean => {
+    return (prev >= 0 && prev < dim) && (curr < 0 || curr >= dim);
   };
-
-  let wasInsideX = isInRange(x, dimensions.x);
-  let wasInsideY = isInRange(y, dimensions.y);
-  let wasInsideZ = isInRange(z, dimensions.z);
 
   const maxIterations = Math.ceil(maxDistance) * 3 + dimensions.x + dimensions.y + dimensions.z;
   for (let i = 0; i < maxIterations; i++) {
     const minT = Math.min(tMaxX, tMaxY, tMaxZ);
     if (minT > maxDistance) break;
 
-    const currentlyInsideBounds = isInsideBounds(x, y, z);
-
-    if (currentlyInsideBounds) {
+    if (isInsideBounds(x, y, z)) {
       const blockValue = getVoxel(x, y, z);
       if (isBlockRaycastable(blockValue)) {
         const normal = new THREE.Vector3(0, 0, 0);
@@ -113,68 +107,56 @@ export function performRaycast(
 
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {
+        const prevX = x;
         x += stepX;
         tMaxX += tDeltaX;
         lastStepAxis = 0;
+        if (crossedPlane(prevX, x, dimensions.x)) {
+          return {
+            gridPosition: new THREE.Vector3(prevX, y, z),
+            normal: new THREE.Vector3(-stepX, 0, 0),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       } else {
+        const prevZ = z;
         z += stepZ;
         tMaxZ += tDeltaZ;
         lastStepAxis = 2;
+        if (crossedPlane(prevZ, z, dimensions.z)) {
+          return {
+            gridPosition: new THREE.Vector3(x, y, prevZ),
+            normal: new THREE.Vector3(0, 0, -stepZ),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       }
     } else {
       if (tMaxY < tMaxZ) {
+        const prevY = y;
         y += stepY;
         tMaxY += tDeltaY;
         lastStepAxis = 1;
+        if (crossedPlane(prevY, y, dimensions.y)) {
+          return {
+            gridPosition: new THREE.Vector3(x, prevY, z),
+            normal: new THREE.Vector3(0, -stepY, 0),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       } else {
+        const prevZ = z;
         z += stepZ;
         tMaxZ += tDeltaZ;
         lastStepAxis = 2;
+        if (crossedPlane(prevZ, z, dimensions.z)) {
+          return {
+            gridPosition: new THREE.Vector3(x, y, prevZ),
+            normal: new THREE.Vector3(0, 0, -stepZ),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       }
-    }
-
-    const nowInsideX = isInRange(x, dimensions.x);
-    const nowInsideY = isInRange(y, dimensions.y);
-    const nowInsideZ = isInRange(z, dimensions.z);
-
-    if (lastStepAxis === 0 && wasInsideX && !nowInsideX) {
-      const boundaryX = x < 0 ? 0 : dimensions.x - 1;
-      return {
-        gridPosition: new THREE.Vector3(boundaryX, y, z),
-        normal: new THREE.Vector3(-stepX, 0, 0),
-        blockValue: RAYCASTABLE_BIT,
-      };
-    }
-    if (lastStepAxis === 1 && wasInsideY && !nowInsideY) {
-      const boundaryY = y < 0 ? 0 : dimensions.y - 1;
-      return {
-        gridPosition: new THREE.Vector3(x, boundaryY, z),
-        normal: new THREE.Vector3(0, -stepY, 0),
-        blockValue: RAYCASTABLE_BIT,
-      };
-    }
-    if (lastStepAxis === 2 && wasInsideZ && !nowInsideZ) {
-      const boundaryZ = z < 0 ? 0 : dimensions.z - 1;
-      return {
-        gridPosition: new THREE.Vector3(x, y, boundaryZ),
-        normal: new THREE.Vector3(0, 0, -stepZ),
-        blockValue: RAYCASTABLE_BIT,
-      };
-    }
-
-    wasInsideX = nowInsideX;
-    wasInsideY = nowInsideY;
-    wasInsideZ = nowInsideZ;
-
-    if (
-      (stepX > 0 && x > dimensions.x && !wasInsideY && !wasInsideZ) ||
-      (stepX < 0 && x < 0 && !wasInsideY && !wasInsideZ) ||
-      (stepY > 0 && y > dimensions.y && !wasInsideX && !wasInsideZ) ||
-      (stepY < 0 && y < 0 && !wasInsideX && !wasInsideZ) ||
-      (stepZ > 0 && z > dimensions.z && !wasInsideX && !wasInsideY) ||
-      (stepZ < 0 && z < 0 && !wasInsideX && !wasInsideY)
-    ) {
-      break;
     }
   }
 
