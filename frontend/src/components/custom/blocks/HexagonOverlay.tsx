@@ -6,9 +6,6 @@ export const points = {
   topLeft: { x: 5.350000000000001, y: 24.445000000000004 },
   topRight: { x: 94.175, y: 24.445000000000004 },
 };
-
-export const hexViewBox = `0 ${points.top} 100 ${points.bottom - points.top}`;
-
 export const HexagonOverlay = ({
   onClick,
   stroke,
@@ -31,7 +28,7 @@ export const HexagonOverlay = ({
         <svg
           width="100%"
           height="100%"
-          viewBox={hexViewBox}
+          viewBox="0 0 100 100"
           className="absolute inset-0"
         >
           <polygon
