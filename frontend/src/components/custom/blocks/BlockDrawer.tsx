@@ -1,4 +1,4 @@
-import { HexagonOverlay, points } from "./HexagonOverlay";
+import { HexagonOverlay, points, hexViewBox } from "./HexagonOverlay";
 import { Eraser } from "lucide-react";
 import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
@@ -43,7 +43,7 @@ const EraserBlock = memo(
           <svg
             width="100%"
             height="100%"
-            viewBox="0 0 100 100"
+            viewBox={hexViewBox}
             className="absolute inset-0"
           >
             <polygon
@@ -84,7 +84,7 @@ const ShadedBlock = memo(
       <svg
         width="100%"
         height="100%"
-        viewBox="0 0 100 100"
+        viewBox={hexViewBox}
         className="absolute inset-0"
         preserveAspectRatio="none"
       >
