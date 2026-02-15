@@ -4,10 +4,16 @@ import type { ToolType } from "../tool-type";
 import type { FillShape } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { RectBounds } from "@/lib/rect-utils";
-import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent, PendingBounds } from "../tool-interface";
+import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
+
+type ResizeCorner = {
+  xSide: "min" | "max";
+  ySide: "min" | "max";
+  zSide: "min" | "max";
+};
 
 export class RectTool implements Tool {
   private fillShape: FillShape = "Rect";
@@ -20,6 +26,11 @@ export class RectTool implements Tool {
     selectedBlock: number;
     selectedObject: number;
   } | null = null;
+  private resizingCorner: ResizeCorner | null = null;
+  private resizeBaseBounds: RectBounds | null = null;
+  private boundsBoxHelper: THREE.Box3Helper | null = null;
+
+  private static readonly HANDLE_SCREEN_THRESHOLD = 0.05;
 
   getType(): ToolType {
     return "Rect";
@@ -146,18 +157,114 @@ export class RectTool implements Tool {
       selectedBlock: context.selectedBlock,
       selectedObject: context.selectedObject,
     };
+
+    this.updateBoundsBox(context);
   }
 
   hasPendingOperation(): boolean {
     return this.pending !== null;
   }
 
-  getPendingBounds(): PendingBounds | null {
+  getPendingBounds(): RectBounds | null {
     if (!this.pending) return null;
     return { ...this.pending.bounds };
   }
 
-  resizePendingBounds(context: ToolContext, bounds: PendingBounds): void {
+  onPendingMouseDown(context: ToolContext, mousePos: THREE.Vector2): boolean {
+    if (!this.pending) return false;
+
+    const corner = this.findResizeHandle(context, mousePos);
+    if (corner) {
+      this.resizingCorner = corner;
+      this.resizeBaseBounds = { ...this.pending.bounds };
+      return true;
+    }
+
+    return false;
+  }
+
+  onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2): void {
+    if (!this.resizingCorner || !this.resizeBaseBounds) return;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mousePos, context.camera);
+    const ray = raycaster.ray;
+
+    const corner = this.resizingCorner;
+    const base = this.resizeBaseBounds;
+
+    const dragX = corner.xSide === "min" ? base.minX : base.maxX;
+    const dragY = corner.ySide === "min" ? base.minY : base.maxY;
+    const dragZ = corner.zSide === "min" ? base.minZ : base.maxZ;
+    const dragCorner = new THREE.Vector3(dragX + 0.5, dragY + 0.5, dragZ + 0.5);
+
+    const viewDir = new THREE.Vector3();
+    context.camera.getWorldDirection(viewDir);
+
+    const normal = new THREE.Vector3();
+    const absX = Math.abs(viewDir.x);
+    const absY = Math.abs(viewDir.y);
+    const absZ = Math.abs(viewDir.z);
+
+    if (absX >= absY && absX >= absZ) {
+      normal.set(Math.sign(viewDir.x), 0, 0);
+    } else if (absY >= absX && absY >= absZ) {
+      normal.set(0, Math.sign(viewDir.y), 0);
+    } else {
+      normal.set(0, 0, Math.sign(viewDir.z));
+    }
+
+    const plane = new THREE.Plane();
+    plane.setFromNormalAndCoplanarPoint(normal, dragCorner);
+
+    const intersection = new THREE.Vector3();
+    if (!ray.intersectPlane(plane, intersection)) return;
+
+    const diff = intersection.clone().sub(dragCorner);
+    const newBounds = { ...base };
+    const snapToGrid = (val: number) => Math.round(val);
+
+    if (corner.xSide === "min") {
+      newBounds.minX = snapToGrid(base.minX + diff.x);
+    } else {
+      newBounds.maxX = snapToGrid(base.maxX + diff.x);
+    }
+    if (corner.ySide === "min") {
+      newBounds.minY = snapToGrid(base.minY + diff.y);
+    } else {
+      newBounds.maxY = snapToGrid(base.maxY + diff.y);
+    }
+    if (corner.zSide === "min") {
+      newBounds.minZ = snapToGrid(base.minZ + diff.z);
+    } else {
+      newBounds.maxZ = snapToGrid(base.maxZ + diff.z);
+    }
+
+    if (newBounds.minX > newBounds.maxX) {
+      const tmp = newBounds.minX;
+      newBounds.minX = newBounds.maxX;
+      newBounds.maxX = tmp;
+    }
+    if (newBounds.minY > newBounds.maxY) {
+      const tmp = newBounds.minY;
+      newBounds.minY = newBounds.maxY;
+      newBounds.maxY = tmp;
+    }
+    if (newBounds.minZ > newBounds.maxZ) {
+      const tmp = newBounds.minZ;
+      newBounds.minZ = newBounds.maxZ;
+      newBounds.maxZ = tmp;
+    }
+
+    this.resizePendingBounds(context, newBounds);
+  }
+
+  onPendingMouseUp(_context: ToolContext, _mousePos: THREE.Vector2): void {
+    this.resizingCorner = null;
+    this.resizeBaseBounds = null;
+  }
+
+  resizePendingBounds(context: ToolContext, bounds: RectBounds): void {
     if (!this.pending) return;
 
     const clamp = (val: number, max: number) =>
@@ -174,6 +281,7 @@ export class RectTool implements Tool {
 
     this.buildFrameFromBounds(context, this.pending.bounds);
     context.projectManager.chunkManager.setPreview(context.previewFrame);
+    this.updateBoundsBox(context);
   }
 
   commitPendingOperation(context: ToolContext): void {
@@ -190,6 +298,7 @@ export class RectTool implements Tool {
 
     context.previewFrame.clear();
     this.pending = null;
+    this.clearBoundsBox(context);
   }
 
   cancelPendingOperation(context: ToolContext): void {
@@ -197,5 +306,88 @@ export class RectTool implements Tool {
     context.previewFrame.clear();
     context.projectManager.chunkManager.setPreview(context.previewFrame);
     this.pending = null;
+    this.resizingCorner = null;
+    this.resizeBaseBounds = null;
+    this.clearBoundsBox(context);
+  }
+
+  dispose(): void {
+    if (this.boundsBoxHelper) {
+      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
+      this.boundsBoxHelper.geometry.dispose();
+      (this.boundsBoxHelper.material as THREE.Material).dispose();
+      this.boundsBoxHelper = null;
+    }
+  }
+
+  private findResizeHandle(context: ToolContext, mousePos: THREE.Vector2): ResizeCorner | null {
+    if (!this.pending) return null;
+
+    const bounds = this.pending.bounds;
+    const corners: { corner: ResizeCorner; world: THREE.Vector3 }[] = [];
+    const sides: ("min" | "max")[] = ["min", "max"];
+
+    for (const xSide of sides) {
+      for (const ySide of sides) {
+        for (const zSide of sides) {
+          const wx = xSide === "min" ? bounds.minX : bounds.maxX + 1;
+          const wy = ySide === "min" ? bounds.minY : bounds.maxY + 1;
+          const wz = zSide === "min" ? bounds.minZ : bounds.maxZ + 1;
+          corners.push({
+            corner: { xSide, ySide, zSide },
+            world: new THREE.Vector3(wx, wy, wz),
+          });
+        }
+      }
+    }
+
+    let closest: ResizeCorner | null = null;
+    let closestDist = Infinity;
+
+    for (const { corner, world } of corners) {
+      const screen = world.clone().project(context.camera);
+      const dx = screen.x - mousePos.x;
+      const dy = screen.y - mousePos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = corner;
+      }
+    }
+
+    if (closestDist < RectTool.HANDLE_SCREEN_THRESHOLD) {
+      return closest;
+    }
+
+    return null;
+  }
+
+  private updateBoundsBox(context: ToolContext): void {
+    if (!this.pending) {
+      this.clearBoundsBox(context);
+      return;
+    }
+
+    if (!this.boundsBoxHelper) {
+      this.boundsBoxHelper = new THREE.Box3Helper(
+        new THREE.Box3(),
+        0xffaa00
+      );
+      context.scene.add(this.boundsBoxHelper);
+    }
+
+    const bounds = this.pending.bounds;
+    this.boundsBoxHelper.box.min.set(bounds.minX, bounds.minY, bounds.minZ);
+    this.boundsBoxHelper.box.max.set(bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1);
+    this.boundsBoxHelper.updateMatrixWorld(true);
+  }
+
+  private clearBoundsBox(context: ToolContext): void {
+    if (!this.boundsBoxHelper) return;
+    context.scene.remove(this.boundsBoxHelper);
+    this.boundsBoxHelper.geometry.dispose();
+    (this.boundsBoxHelper.material as THREE.Material).dispose();
+    this.boundsBoxHelper = null;
   }
 }

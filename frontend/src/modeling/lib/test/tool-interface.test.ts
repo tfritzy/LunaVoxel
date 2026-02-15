@@ -58,6 +58,7 @@ describe("Tool Interface", () => {
       setSelectedBlockInParent: () => {},
       mode: attachMode,
       camera,
+      scene: new THREE.Scene(),
     };
   });
 

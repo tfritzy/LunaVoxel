@@ -16,6 +16,7 @@ export interface ToolContext {
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
   camera: THREE.Camera;
+  scene: THREE.Scene;
 }
 
 export interface ToolMouseEvent {
@@ -39,15 +40,6 @@ export interface ToolOption {
   max?: number;
 }
 
-export interface PendingBounds {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-  minZ: number;
-  maxZ: number;
-}
-
 export interface Tool {
   getType(): ToolType;
 
@@ -69,11 +61,15 @@ export interface Tool {
 
   hasPendingOperation?(): boolean;
 
-  getPendingBounds?(): PendingBounds | null;
+  onPendingMouseDown?(context: ToolContext, mousePos: THREE.Vector2): boolean;
 
-  resizePendingBounds?(context: ToolContext, bounds: PendingBounds): void;
+  onPendingMouseMove?(context: ToolContext, mousePos: THREE.Vector2): void;
+
+  onPendingMouseUp?(context: ToolContext, mousePos: THREE.Vector2): void;
 
   commitPendingOperation?(context: ToolContext): void;
 
   cancelPendingOperation?(context: ToolContext): void;
+
+  dispose?(): void;
 }
