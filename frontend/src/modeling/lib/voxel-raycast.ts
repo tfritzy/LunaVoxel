@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Vector3 } from "@/state/types";
 import { isBlockRaycastable } from "./voxel-data-utils";
+import { RAYCASTABLE_BIT } from "./voxel-constants";
 
 export interface VoxelRaycastResult {
   gridPosition: THREE.Vector3;
@@ -64,16 +65,16 @@ export function performRaycast(
            pz >= 0 && pz < dimensions.z;
   };
 
-  let wasInsideBounds = isInsideBounds(x, y, z);
+  const crossedPlane = (prev: number, curr: number, dim: number): boolean => {
+    return (prev >= 0 && prev < dim) && (curr < 0 || curr >= dim);
+  };
 
   const maxIterations = Math.ceil(maxDistance) * 3 + dimensions.x + dimensions.y + dimensions.z;
   for (let i = 0; i < maxIterations; i++) {
     const minT = Math.min(tMaxX, tMaxY, tMaxZ);
     if (minT > maxDistance) break;
 
-    const currentlyInsideBounds = isInsideBounds(x, y, z);
-
-    if (currentlyInsideBounds) {
+    if (isInsideBounds(x, y, z)) {
       const blockValue = getVoxel(x, y, z);
       if (isBlockRaycastable(blockValue)) {
         const normal = new THREE.Vector3(0, 0, 0);
@@ -102,57 +103,60 @@ export function performRaycast(
           blockValue,
         };
       }
-    } else if (wasInsideBounds && !currentlyInsideBounds) {
-      const normal = new THREE.Vector3(0, 0, 0);
-      if (lastStepAxis === 0) normal.x = -stepX;
-      else if (lastStepAxis === 1) normal.y = -stepY;
-      else if (lastStepAxis === 2) normal.z = -stepZ;
-
-      const boundaryX = x < 0 ? 0 : (x >= dimensions.x ? dimensions.x - 1 : x);
-      const boundaryY = y < 0 ? 0 : (y >= dimensions.y ? dimensions.y - 1 : y);
-      const boundaryZ = z < 0 ? 0 : (z >= dimensions.z ? dimensions.z - 1 : z);
-
-      return {
-        gridPosition: new THREE.Vector3(boundaryX, boundaryY, boundaryZ),
-        normal,
-        blockValue: 0x80,
-      };
     }
-
-    wasInsideBounds = currentlyInsideBounds;
 
     if (tMaxX < tMaxY) {
       if (tMaxX < tMaxZ) {
+        const prevX = x;
         x += stepX;
         tMaxX += tDeltaX;
         lastStepAxis = 0;
+        if (crossedPlane(prevX, x, dimensions.x)) {
+          return {
+            gridPosition: new THREE.Vector3(prevX, y, z),
+            normal: new THREE.Vector3(-stepX, 0, 0),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       } else {
+        const prevZ = z;
         z += stepZ;
         tMaxZ += tDeltaZ;
         lastStepAxis = 2;
+        if (crossedPlane(prevZ, z, dimensions.z)) {
+          return {
+            gridPosition: new THREE.Vector3(x, y, prevZ),
+            normal: new THREE.Vector3(0, 0, -stepZ),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       }
     } else {
       if (tMaxY < tMaxZ) {
+        const prevY = y;
         y += stepY;
         tMaxY += tDeltaY;
         lastStepAxis = 1;
+        if (crossedPlane(prevY, y, dimensions.y)) {
+          return {
+            gridPosition: new THREE.Vector3(x, prevY, z),
+            normal: new THREE.Vector3(0, -stepY, 0),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       } else {
+        const prevZ = z;
         z += stepZ;
         tMaxZ += tDeltaZ;
         lastStepAxis = 2;
+        if (crossedPlane(prevZ, z, dimensions.z)) {
+          return {
+            gridPosition: new THREE.Vector3(x, y, prevZ),
+            normal: new THREE.Vector3(0, 0, -stepZ),
+            blockValue: RAYCASTABLE_BIT,
+          };
+        }
       }
-    }
-
-    const padding = 10;
-    if (
-      (stepX > 0 && x > dimensions.x + padding) ||
-      (stepX < 0 && x < -padding) ||
-      (stepY > 0 && y > dimensions.y + padding) ||
-      (stepY < 0 && y < -padding) ||
-      (stepZ > 0 && z > dimensions.z + padding) ||
-      (stepZ < 0 && z < -padding)
-    ) {
-      break;
     }
   }
 
