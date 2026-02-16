@@ -6,9 +6,8 @@ import { stateStore, useGlobalState } from "@/state/store";
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
-const VERTICAL_OVERLAP = "-2.88rem";
+const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
-const SELECTED_RAISE = "-0.95rem";
 
 const darkenColor = (hex: string, factor: number): string => {
   const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
@@ -79,11 +78,6 @@ const HexagonGrid = memo(
               style={{
                 width: BLOCK_WIDTH,
                 height: BLOCK_HEIGHT,
-                transform: isSelected
-                  ? `translateY(${SELECTED_RAISE})`
-                  : undefined,
-                zIndex: isSelected ? 1 : 0,
-                transition: "transform 0.15s ease-out",
               }}
             >
               <ShadedBlock color={color} />
