@@ -9,8 +9,7 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
-import type { VoxelFrame } from "@/modeling/lib/voxel-frame";
-import { FlatVoxelFrame } from "@/modeling/lib/flat-voxel-frame";
+import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 
 export type GlobalState = {
   project: Project;
@@ -401,7 +400,7 @@ const reducers: Reducers = {
       }
     }
 
-    obj.selection = new FlatVoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
+    obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     notify();
   },
   deleteSelectedVoxels: (_projectId, objectIndex) => {
