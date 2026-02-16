@@ -1,8 +1,6 @@
 import { HexagonOverlay, points } from "./HexagonOverlay";
-import { FileQuestion, Eraser } from "lucide-react";
-import { useMemo, memo } from "react";
-import { useBlockTextures } from "@/lib/useBlockTextures";
-import { AtlasData } from "@/lib/useAtlas";
+import { Eraser } from "lucide-react";
+import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
 import { stateStore, useGlobalState } from "@/state/store";
 
@@ -62,20 +60,53 @@ const EraserBlock = memo(
   }
 );
 
+const darkenColor = (hex: string, factor: number): string => {
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
+  return `rgb(${r},${g},${b})`;
+};
+
+const cx = 50;
+const cy = 50;
+
+const topFace = `50,${points.top} ${points.topRight.x},${points.topRight.y} ${cx},${cy} ${points.topLeft.x},${points.topLeft.y}`;
+const rightFace = `${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${cx},${cy}`;
+const leftFace = `${points.topLeft.x},${points.topLeft.y} ${cx},${cy} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y}`;
+
+const ShadedBlock = memo(
+  ({ color }: { color: string }) => {
+    const top = darkenColor(color, 1.0);
+    const right = darkenColor(color, 0.7);
+    const left = darkenColor(color, 0.5);
+
+    return (
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100"
+        className="absolute inset-0"
+      >
+        <polygon points={topFace} fill={top} />
+        <polygon points={rightFace} fill={right} />
+        <polygon points={leftFace} fill={left} />
+      </svg>
+    );
+  }
+);
+
 const HexagonGrid = memo(
   ({
     blockCount,
     selectedBlock,
     onSelectBlock,
-    atlasData,
+    colors,
   }: {
     blockCount: number;
     selectedBlock: number;
     onSelectBlock: (index: number) => void;
-    atlasData: AtlasData;
+    colors: number[];
   }) => {
-    const { getBlockTexture, isReady } = useBlockTextures(atlasData, 256);
-
     const rows = useMemo(() => {
       const result = [];
       let currentIndex = -1;
@@ -100,7 +131,7 @@ const HexagonGrid = memo(
             currentIndex++;
           } else {
             const blockIndex = currentIndex + 1;
-            const blockTexture = isReady ? getBlockTexture(currentIndex) : null;
+            const color = `#${colors[currentIndex].toString(16).padStart(6, "0")}`;
 
             rowItems.push(
               <div
@@ -111,17 +142,7 @@ const HexagonGrid = memo(
                   height: BLOCK_HEIGHT,
                 }}
               >
-                {blockTexture ? (
-                  <img
-                    src={blockTexture}
-                    alt={`Block ${blockIndex}`}
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FileQuestion className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                )}
+                <ShadedBlock color={color} />
 
                 <HexagonOverlay
                   onClick={() => onSelectBlock(blockIndex)}
@@ -151,14 +172,7 @@ const HexagonGrid = memo(
         rowIndex++;
       }
       return result;
-    }, [
-      blockCount,
-      selectedBlock,
-      onSelectBlock,
-      getBlockTexture,
-      isReady,
-      atlasData,
-    ]);
+    }, [blockCount, selectedBlock, onSelectBlock, colors]);
 
     return <div className="flex flex-col">{rows}</div>;
   }
@@ -167,11 +181,9 @@ const HexagonGrid = memo(
 export const BlockDrawer = ({
   selectedBlock,
   setSelectedBlock,
-  atlasData,
 }: {
   selectedBlock: number;
   setSelectedBlock: (index: number) => void;
-  atlasData: AtlasData;
 }) => {
   const blocks = useGlobalState((state) => state.blocks);
   const selectedBlockColorIndex = selectedBlock > 0 ? selectedBlock - 1 : -1;
@@ -180,12 +192,23 @@ export const BlockDrawer = ({
       ? `#${blocks.colors[selectedBlockColorIndex].toString(16).padStart(6, "0")}`
       : "#000000";
 
-  const handleColorChange = (color: string) => {
-    if (selectedBlockColorIndex >= 0) {
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const handleColorChange = useCallback(
+    (color: string) => {
+      if (selectedBlockColorIndex < 0) return;
       const colorValue = parseInt(color.replace("#", ""), 16);
-      stateStore.reducers.updateBlockColor(selectedBlockColorIndex, colorValue);
-    }
-  };
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        stateStore.reducers.updateBlockColor(selectedBlockColorIndex, colorValue);
+      });
+    },
+    [selectedBlockColorIndex]
+  );
 
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
@@ -195,10 +218,10 @@ export const BlockDrawer = ({
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <HexagonGrid
-            blockCount={atlasData.blockAtlasMapping.length}
+            blockCount={blocks.colors.length}
             selectedBlock={selectedBlock}
             onSelectBlock={setSelectedBlock}
-            atlasData={atlasData}
+            colors={blocks.colors}
           />
         </div>
         {selectedBlock > 0 && (
