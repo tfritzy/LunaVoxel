@@ -2,21 +2,26 @@ import type { Vector3 } from "@/state/types";
 
 /**
  * Uses a 1D Uint8Array for voxel data storage.
+ * Internally uses capacity-based allocation (like ArrayList) to reduce
+ * reallocations when the frame is resized incrementally.
  */
 export class VoxelFrame {
   private dimensions: Vector3;
   private minPos: Vector3;
-  private data: Uint8Array; // Flat 1D array: index = x * sizeY * sizeZ + y * sizeZ + z
+  private capDimensions: Vector3;
+  private capMinPos: Vector3;
+  private data: Uint8Array;
   private empty: boolean = true;
 
   constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
     this.dimensions = { ...dimensions };
     this.minPos = minPos ? { ...minPos } : { x: 0, y: 0, z: 0 };
+    this.capDimensions = { ...this.dimensions };
+    this.capMinPos = { ...this.minPos };
     const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
     
     if (data) {
       this.data = data;
-      // Check if data is non-empty
       for (let i = 0; i < data.length; i++) {
         if (data[i] !== 0) {
           this.empty = false;
@@ -51,7 +56,10 @@ export class VoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return false;
     }
-    const index = localX * this.dimensions.y * this.dimensions.z + localY * this.dimensions.z + localZ;
+    const capLocalX = x - this.capMinPos.x;
+    const capLocalY = y - this.capMinPos.y;
+    const capLocalZ = z - this.capMinPos.z;
+    const index = capLocalX * this.capDimensions.y * this.capDimensions.z + capLocalY * this.capDimensions.z + capLocalZ;
     return this.data[index] !== 0;
   }
 
@@ -71,7 +79,10 @@ export class VoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return 0;
     }
-    const index = localX * this.dimensions.y * this.dimensions.z + localY * this.dimensions.z + localZ;
+    const capLocalX = x - this.capMinPos.x;
+    const capLocalY = y - this.capMinPos.y;
+    const capLocalZ = z - this.capMinPos.z;
+    const index = capLocalX * this.capDimensions.y * this.capDimensions.z + capLocalY * this.capDimensions.z + capLocalZ;
     return this.data[index];
   }
 
@@ -91,7 +102,10 @@ export class VoxelFrame {
         localZ < 0 || localZ >= this.dimensions.z) {
       return;
     }
-    const index = localX * this.dimensions.y * this.dimensions.z + localY * this.dimensions.z + localZ;
+    const capLocalX = x - this.capMinPos.x;
+    const capLocalY = y - this.capMinPos.y;
+    const capLocalZ = z - this.capMinPos.z;
+    const index = capLocalX * this.capDimensions.y * this.capDimensions.z + capLocalY * this.capDimensions.z + capLocalZ;
     this.data[index] = blockIndex;
     if (blockIndex !== 0) {
       this.empty = false;
@@ -180,35 +194,76 @@ export class VoxelFrame {
       return;
     }
 
-    const newTotal = newDimensions.x * newDimensions.y * newDimensions.z;
-    const newData = new Uint8Array(newTotal);
+    const newMaxX = targetMinPos.x + newDimensions.x;
+    const newMaxY = targetMinPos.y + newDimensions.y;
+    const newMaxZ = targetMinPos.z + newDimensions.z;
+    const capMaxX = this.capMinPos.x + this.capDimensions.x;
+    const capMaxY = this.capMinPos.y + this.capDimensions.y;
+    const capMaxZ = this.capMinPos.z + this.capDimensions.z;
 
-    const overlapMinX = Math.max(this.minPos.x, targetMinPos.x);
-    const overlapMinY = Math.max(this.minPos.y, targetMinPos.y);
-    const overlapMinZ = Math.max(this.minPos.z, targetMinPos.z);
-    const overlapMaxX = Math.min(this.minPos.x + this.dimensions.x, targetMinPos.x + newDimensions.x);
-    const overlapMaxY = Math.min(this.minPos.y + this.dimensions.y, targetMinPos.y + newDimensions.y);
-    const overlapMaxZ = Math.min(this.minPos.z + this.dimensions.z, targetMinPos.z + newDimensions.z);
+    const fitsInCapacity =
+      targetMinPos.x >= this.capMinPos.x && newMaxX <= capMaxX &&
+      targetMinPos.y >= this.capMinPos.y && newMaxY <= capMaxY &&
+      targetMinPos.z >= this.capMinPos.z && newMaxZ <= capMaxZ;
 
-    for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
-      for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
-        for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
-          const oldLocalX = worldX - this.minPos.x;
-          const oldLocalY = worldY - this.minPos.y;
-          const oldLocalZ = worldZ - this.minPos.z;
-          const newLocalX = worldX - targetMinPos.x;
-          const newLocalY = worldY - targetMinPos.y;
-          const newLocalZ = worldZ - targetMinPos.z;
-          const oldIndex = oldLocalX * this.dimensions.y * this.dimensions.z + oldLocalY * this.dimensions.z + oldLocalZ;
-          const newIndex = newLocalX * newDimensions.y * newDimensions.z + newLocalY * newDimensions.z + newLocalZ;
-          newData[newIndex] = this.data[oldIndex];
+    if (!fitsInCapacity) {
+      const reqMinX = Math.min(this.capMinPos.x, targetMinPos.x);
+      const reqMinY = Math.min(this.capMinPos.y, targetMinPos.y);
+      const reqMinZ = Math.min(this.capMinPos.z, targetMinPos.z);
+      const reqMaxX = Math.max(capMaxX, newMaxX);
+      const reqMaxY = Math.max(capMaxY, newMaxY);
+      const reqMaxZ = Math.max(capMaxZ, newMaxZ);
+      const reqDimX = reqMaxX - reqMinX;
+      const reqDimY = reqMaxY - reqMinY;
+      const reqDimZ = reqMaxZ - reqMinZ;
+
+      const newCapDimX = Math.max(reqDimX, this.capDimensions.x * 2);
+      const newCapDimY = Math.max(reqDimY, this.capDimensions.y * 2);
+      const newCapDimZ = Math.max(reqDimZ, this.capDimensions.z * 2);
+
+      const padX = newCapDimX - reqDimX;
+      const padY = newCapDimY - reqDimY;
+      const padZ = newCapDimZ - reqDimZ;
+      const newCapMinX = reqMinX - Math.floor(padX / 2);
+      const newCapMinY = reqMinY - Math.floor(padY / 2);
+      const newCapMinZ = reqMinZ - Math.floor(padZ / 2);
+
+      const newCapDimensions = { x: newCapDimX, y: newCapDimY, z: newCapDimZ };
+      const newCapMinPos = { x: newCapMinX, y: newCapMinY, z: newCapMinZ };
+      const newData = new Uint8Array(newCapDimX * newCapDimY * newCapDimZ);
+
+      if (!this.empty) {
+        const overlapMinX = Math.max(this.minPos.x, newCapMinPos.x);
+        const overlapMinY = Math.max(this.minPos.y, newCapMinPos.y);
+        const overlapMinZ = Math.max(this.minPos.z, newCapMinPos.z);
+        const overlapMaxX = Math.min(this.minPos.x + this.dimensions.x, newCapMinPos.x + newCapDimX);
+        const overlapMaxY = Math.min(this.minPos.y + this.dimensions.y, newCapMinPos.y + newCapDimY);
+        const overlapMaxZ = Math.min(this.minPos.z + this.dimensions.z, newCapMinPos.z + newCapDimZ);
+
+        for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
+          for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
+            for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
+              const oldCapX = worldX - this.capMinPos.x;
+              const oldCapY = worldY - this.capMinPos.y;
+              const oldCapZ = worldZ - this.capMinPos.z;
+              const newCapX = worldX - newCapMinPos.x;
+              const newCapY = worldY - newCapMinPos.y;
+              const newCapZ = worldZ - newCapMinPos.z;
+              const oldIndex = oldCapX * this.capDimensions.y * this.capDimensions.z + oldCapY * this.capDimensions.z + oldCapZ;
+              const newIndex = newCapX * newCapDimensions.y * newCapDimensions.z + newCapY * newCapDimensions.z + newCapZ;
+              newData[newIndex] = this.data[oldIndex];
+            }
+          }
         }
       }
+
+      this.data = newData;
+      this.capDimensions = newCapDimensions;
+      this.capMinPos = newCapMinPos;
     }
 
     this.dimensions = { ...newDimensions };
     this.minPos = { ...targetMinPos };
-    this.data = newData;
   }
 
   public hasAnySet(): boolean {
@@ -230,8 +285,12 @@ export class VoxelFrame {
       return false;
     }
 
-    for (let i = 0; i < this.data.length; i++) {
-      if (this.data[i] !== other.data[i]) return false;
+    for (let x = this.minPos.x; x < this.minPos.x + this.dimensions.x; x++) {
+      for (let y = this.minPos.y; y < this.minPos.y + this.dimensions.y; y++) {
+        for (let z = this.minPos.z; z < this.minPos.z + this.dimensions.z; z++) {
+          if (this.get(x, y, z) !== other.get(x, y, z)) return false;
+        }
+      }
     }
 
     return true;
@@ -259,7 +318,17 @@ export class VoxelFrame {
 
       return cloned;
     } else {
-      const cloned = new VoxelFrame(this.dimensions, this.minPos, new Uint8Array(this.data));
+      const cloned = new VoxelFrame(this.dimensions, this.minPos);
+      for (let x = this.minPos.x; x < this.minPos.x + this.dimensions.x; x++) {
+        for (let y = this.minPos.y; y < this.minPos.y + this.dimensions.y; y++) {
+          for (let z = this.minPos.z; z < this.minPos.z + this.dimensions.z; z++) {
+            const value = this.get(x, y, z);
+            if (value !== 0) {
+              cloned.set(x, y, z, value);
+            }
+          }
+        }
+      }
       return cloned;
     }
   }
