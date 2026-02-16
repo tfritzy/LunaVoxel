@@ -110,10 +110,9 @@ const createInitialState = (): GlobalState => {
   const DEFAULT_PALETTE = colorPalettes[0];
   const blocks: ProjectBlocks = {
     projectId,
-    colors: Array.from({ length: 127 }, (_, i) =>
-      i < DEFAULT_PALETTE.colors.length
-        ? DEFAULT_PALETTE.colors[i]
-        : DEFAULT_PALETTE.colors[i % DEFAULT_PALETTE.colors.length]
+    colors: Array.from(
+      { length: 127 },
+      (_, i) => DEFAULT_PALETTE.colors[i % DEFAULT_PALETTE.colors.length]
     ),
   };
 

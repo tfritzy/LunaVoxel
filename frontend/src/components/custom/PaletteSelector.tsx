@@ -13,7 +13,7 @@ const PalettePreview = ({ palette }: { palette: ColorPalette }) => {
     <div className="flex gap-0.5">
       {previewColors.map((color, i) => (
         <div
-          key={i}
+          key={`${color}-${i}`}
           className="w-3.5 h-3.5 rounded-sm"
           style={{
             backgroundColor: `#${color.toString(16).padStart(6, "0")}`,
