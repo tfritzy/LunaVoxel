@@ -46,15 +46,18 @@ export const DirectionPicker = ({
           onClick={() =>
             onDirectionChange(centerDir === "+z" ? "-z" : "+z")
           }
-          className={`w-9 h-9 p-0 border-2 rounded-none text-[10px] leading-tight flex flex-col items-center justify-center ${
+          className={`w-9 h-9 p-0 border-2 rounded-none text-xs flex flex-row items-center justify-center gap-0 ${
             currentDirection === "+z" || currentDirection === "-z"
               ? "border-accent"
               : "border-secondary"
           }`}
           title={centerDir === "+z" ? "Switch to -Z" : "Switch to +Z"}
         >
-          <span className={currentDirection === "+z" ? "text-accent" : "text-muted-foreground"}>+Z</span>
-          <span className={currentDirection === "-z" ? "text-accent" : "text-muted-foreground"}>−Z</span>
+          <div className="flex flex-col items-center leading-none text-[10px]">
+            <span className={currentDirection === "+z" ? "text-accent" : "text-muted-foreground"}>+</span>
+            <span className={currentDirection === "-z" ? "text-accent" : "text-muted-foreground"}>−</span>
+          </div>
+          <span className={currentDirection === "+z" || currentDirection === "-z" ? "text-accent" : "text-secondary"}>Z</span>
         </Button>
         <Button
           variant="ghost"
