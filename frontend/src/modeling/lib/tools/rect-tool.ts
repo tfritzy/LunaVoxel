@@ -23,6 +23,8 @@ export class RectTool implements Tool {
     mode: BlockModificationMode;
     selectedBlock: number;
     selectedObject: number;
+    fillShape: FillShape;
+    direction: ShapeDirection;
   } | null = null;
   private resizingCorner: ResizeCorner | null = null;
   private resizeBaseBounds: RectBounds | null = null;
@@ -81,7 +83,16 @@ export class RectTool implements Tool {
     }
   }
 
-  private buildFrameFromBounds(context: ToolContext, bounds: RectBounds): void {
+  private buildFrameFromBounds(
+    context: ToolContext,
+    bounds: RectBounds,
+    overrides?: { fillShape: FillShape; direction: ShapeDirection; mode: BlockModificationMode; selectedBlock: number }
+  ): void {
+    const fillShape = overrides?.fillShape ?? this.fillShape;
+    const direction = overrides?.direction ?? this.direction;
+    const mode = overrides?.mode ?? context.mode;
+    const selectedBlock = overrides?.selectedBlock ?? context.selectedBlock;
+
     const frameSize = {
       x: bounds.maxX - bounds.minX + 1,
       y: bounds.maxY - bounds.minY + 1,
@@ -96,7 +107,7 @@ export class RectTool implements Tool {
     context.previewFrame.clear();
     context.previewFrame.resize(frameSize, frameMinPos);
 
-    const previewValue = this.getPreviewBlockValue(context.mode, context.selectedBlock);
+    const previewValue = this.getPreviewBlockValue(mode, selectedBlock);
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
@@ -105,7 +116,7 @@ export class RectTool implements Tool {
           let sMinY = bounds.minY, sMaxY = bounds.maxY;
           let sMinZ = bounds.minZ, sMaxZ = bounds.maxZ;
 
-          switch (this.direction) {
+          switch (direction) {
             case "+y":
               break;
             case "-y":
@@ -133,7 +144,7 @@ export class RectTool implements Tool {
               break;
           }
 
-          if (isInsideFillShape(this.fillShape, sx, sy, sz, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ)) {
+          if (isInsideFillShape(fillShape, sx, sy, sz, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ)) {
             context.previewFrame.set(x, y, z, previewValue);
           }
         }
@@ -174,6 +185,8 @@ export class RectTool implements Tool {
       mode: context.mode,
       selectedBlock: context.selectedBlock,
       selectedObject: context.selectedObject,
+      fillShape: this.fillShape,
+      direction: this.direction,
     };
 
     this.updateBoundsBox(context);
@@ -291,15 +304,18 @@ export class RectTool implements Tool {
       maxZ: clamp(bounds.maxZ, context.dimensions.z),
     };
 
-    this.buildFrameFromBounds(context, this.pending.bounds);
+    this.buildFrameFromBounds(context, this.pending.bounds, {
+      fillShape: this.pending.fillShape,
+      direction: this.pending.direction,
+      mode: this.pending.mode,
+      selectedBlock: this.pending.selectedBlock,
+    });
     context.projectManager.chunkManager.setPreview(context.previewFrame);
     this.updateBoundsBox(context);
   }
 
   commitPendingOperation(context: ToolContext): void {
     if (!this.pending) return;
-
-    this.buildFrameFromBounds(context, this.pending.bounds);
 
     context.reducers.applyFrame(
       this.pending.mode,
