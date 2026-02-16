@@ -195,7 +195,7 @@ describe("Rect Tool Benchmark", () => {
     console.log(`  Min: ${min.toFixed(2)}ms`);
     console.log(`  Max: ${max.toFixed(2)}ms`);
 
-    expect(avg).toBeLessThan(500);
+    expect(avg).toBeLessThan(100);
   });
 
   it("should benchmark full rect drag from corner to corner on 128x64x128", () => {
@@ -246,6 +246,6 @@ describe("Rect Tool Benchmark", () => {
     console.log(`  Min: ${min.toFixed(2)}ms`);
     console.log(`  Max: ${max.toFixed(2)}ms`);
 
-    expect(avg).toBeLessThan(2000);
+    expect(avg).toBeLessThan(500);
   });
 });
