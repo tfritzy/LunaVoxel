@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 import { VoxelFrame } from "@/modeling/lib/voxel-frame";
-import { colorPalettes } from "@/components/custom/colorPalettes";
+import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 
 export type GlobalState = {
   project: Project;
@@ -110,9 +110,8 @@ const createInitialState = (): GlobalState => {
   const DEFAULT_PALETTE = colorPalettes[0];
   const blocks: ProjectBlocks = {
     projectId,
-    colors: Array.from(
-      { length: 127 },
-      (_, i) => DEFAULT_PALETTE.colors[i % DEFAULT_PALETTE.colors.length]
+    colors: Array.from({ length: 127 }, (_, i) =>
+      i < DEFAULT_PALETTE.colors.length ? DEFAULT_PALETTE.colors[i] : EMPTY_COLOR
     ),
   };
 
@@ -454,7 +453,7 @@ const reducers: Reducers = {
     updateState((current) => {
       const total = current.blocks.colors.length;
       const nextColors = Array.from({ length: total }, (_, i) =>
-        i < colors.length ? colors[i] : colors[i % colors.length]
+        i < colors.length ? colors[i] : EMPTY_COLOR
       );
       current.blocks = {
         ...current.blocks,

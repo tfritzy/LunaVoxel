@@ -1,3 +1,5 @@
+export const EMPTY_COLOR = 0x393a4b;
+
 export interface ColorPalette {
   name: string;
   colors: number[];

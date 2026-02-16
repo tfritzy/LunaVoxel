@@ -37,7 +37,7 @@ export const PaletteSelector = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+        <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-2 py-1.5 -mx-2 -my-1.5 rounded">
           <span>Palette</span>
           <ChevronDown className="size-3" />
         </button>
