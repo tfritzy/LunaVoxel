@@ -98,13 +98,17 @@ describe("Tool Interface", () => {
       const tool = new RectTool();
       const options = tool.getOptions();
       
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
       expect(options[0].name).toBe("Fill Shape");
       expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"]);
       expect(options[0].currentValue).toBe("Rect");
       expect(options[1].name).toBe("Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
       expect(options[1].currentValue).toBe("+y");
+      expect(options[2].name).toBe("Adjust Before Apply");
+      expect(options[2].values).toEqual(["true", "false"]);
+      expect(options[2].currentValue).toBe("true");
+      expect(options[2].type).toBe("checkbox");
     });
 
     it("should update fill shape option on RectTool", () => {
@@ -121,6 +125,14 @@ describe("Tool Interface", () => {
       
       const options = tool.getOptions();
       expect(options[1].currentValue).toBe("-y");
+    });
+
+    it("should update adjust before apply option on RectTool", () => {
+      const tool = new RectTool();
+      tool.setOption("Adjust Before Apply", "false");
+
+      const options = tool.getOptions();
+      expect(options[2].currentValue).toBe("false");
     });
 
     it("should return empty options for BlockPicker", () => {
@@ -318,6 +330,27 @@ describe("Tool Interface", () => {
 
       expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
       expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+    });
+
+    it("should apply immediately on mouse up when adjust before apply is disabled", () => {
+      let applied = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applied = true;
+        },
+      };
+
+      tool.setOption("Adjust Before Apply", "false");
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(applied).toBe(true);
+      expect(tool.hasPendingOperation()).toBe(false);
     });
 
     it("should commit pending operation with applyFrame", () => {

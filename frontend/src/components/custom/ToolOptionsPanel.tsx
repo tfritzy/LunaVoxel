@@ -1,5 +1,6 @@
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DirectionPicker } from "./DirectionPicker";
 import type { ShapeDirection } from "@/modeling/lib/tool-type";
 import {
@@ -38,6 +39,10 @@ function isDirectionOption(option: ToolOption): boolean {
   return option.type === "direction";
 }
 
+function isCheckboxOption(option: ToolOption): boolean {
+  return option.type === "checkbox";
+}
+
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
@@ -49,9 +54,10 @@ export const ToolOptionsPanel = ({
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
-  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o));
+  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o) && !isCheckboxOption(o));
   const sliderOptions = options.filter((o) => isSliderOption(o));
   const directionOptions = options.filter((o) => isDirectionOption(o));
+  const checkboxOptions = options.filter((o) => isCheckboxOption(o));
 
   return (
     <div className="border-t border-border">
@@ -113,6 +119,22 @@ export const ToolOptionsPanel = ({
             />
           </div>
         ))}
+        {checkboxOptions.length > 0 && (
+          <div className="mt-2">
+            <div className="text-sm text-muted-foreground mb-2">Options</div>
+            <div className="space-y-2">
+              {checkboxOptions.map((option) => (
+                <label key={option.name} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={option.currentValue === "true"}
+                    onCheckedChange={(checked) => onOptionChange(option.name, checked === true ? "true" : "false")}
+                  />
+                  <span>{option.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
