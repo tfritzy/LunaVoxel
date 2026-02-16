@@ -50,6 +50,11 @@ export type Reducers = {
   deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
   setBlockColors: (colors: number[]) => void;
+  restoreObject: (
+    object: VoxelObject,
+    atIndex: number,
+    chunks: Map<string, { key: string; minPos: Vector3; size: Vector3; voxels: Uint8Array }>
+  ) => void;
 };
 
 export type StateStore = {
@@ -460,6 +465,28 @@ const reducers: Reducers = {
         ...current.blocks,
         colors: nextColors,
       };
+    });
+  },
+  restoreObject: (object, atIndex, chunks) => {
+    updateState((current) => {
+      const restored: VoxelObject = {
+        ...object,
+        index: atIndex,
+        selection: null,
+      };
+      current.objects.splice(atIndex, 0, restored);
+      current.objects = current.objects.map((obj, i) => ({ ...obj, index: i }));
+
+      for (const [key, chunkData] of chunks.entries()) {
+        current.chunks.set(key, {
+          key: chunkData.key,
+          projectId: current.project.id,
+          objectId: object.id,
+          minPos: { ...chunkData.minPos },
+          size: { ...chunkData.size },
+          voxels: new Uint8Array(chunkData.voxels),
+        });
+      }
     });
   },
 };

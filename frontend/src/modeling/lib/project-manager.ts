@@ -5,7 +5,7 @@ import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
-import { EditHistory } from "./edit-history";
+import { editHistory } from "@/state/edit-history-instance";
 import { AtlasData } from "@/lib/useAtlas";
 
 export class ProjectManager {
@@ -16,7 +16,6 @@ export class ProjectManager {
   private stateStore: StateStore;
   private project: Project;
   private atlasData: AtlasData | null = null;
-  private editHistory: EditHistory;
   private keydownHandler: (event: KeyboardEvent) => void;
   private moveSelectionBoxHelper: THREE.Box3Helper | null = null;
 
@@ -38,7 +37,6 @@ export class ProjectManager {
       () => this.builder.getMode()
     );
     this.cursorManager = new CursorManager(scene);
-    this.editHistory = new EditHistory(stateStore, project.id);
     this.keydownHandler = this.setupKeyboardEvents();
 
     this.builder = new Builder(
@@ -60,11 +58,11 @@ export class ProjectManager {
   };
 
   public undo = (): void => {
-    this.editHistory.undo();
+    editHistory.undo();
   };
 
   public redo = (): void => {
-    this.editHistory.redo();
+    editHistory.redo();
   };
 
   private setupKeyboardEvents = () => {
@@ -81,10 +79,10 @@ export class ProjectManager {
       if (event.ctrlKey || event.metaKey) {
         if ((event.shiftKey && event.key === "Z") || event.key === "y") {
           event.preventDefault();
-          this.editHistory.redo();
+          editHistory.redo();
         } else if (event.key === "z") {
           event.preventDefault();
-          this.editHistory.undo();
+          editHistory.undo();
         } else if (event.key === "a" || event.key === "A") {
           event.preventDefault();
           this.stateStore.reducers.selectAllVoxels(

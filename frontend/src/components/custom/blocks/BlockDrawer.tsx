@@ -3,6 +3,7 @@ import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
 import { stateStore, useGlobalState } from "@/state/store";
 import { PaletteSelector } from "../PaletteSelector";
+import { editHistory } from "@/state/edit-history-instance";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
@@ -148,12 +149,34 @@ export const BlockDrawer = ({
     [selectedBlockColorIndex]
   );
 
+  const handleColorChangeComplete = useCallback(
+    (beforeColor: string) => {
+      if (selectedBlockColorIndex < 0) return;
+      const previousColor = parseInt(beforeColor.replace("#", ""), 16);
+      const newColor = stateStore.getState().blocks.colors[selectedBlockColorIndex];
+      if (previousColor !== newColor) {
+        editHistory.addColorChange(selectedBlockColorIndex, previousColor, newColor);
+      }
+    },
+    [selectedBlockColorIndex]
+  );
+
+  const handlePaletteSelect = useCallback(
+    (colors: number[]) => {
+      const previousColors = stateStore.getState().blocks.colors;
+      stateStore.reducers.setBlockColors(colors);
+      const newColors = stateStore.getState().blocks.colors;
+      editHistory.addPaletteChange(previousColors, newColors);
+    },
+    []
+  );
+
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Blocks</h2>
         <PaletteSelector
-          onSelect={(colors) => stateStore.reducers.setBlockColors(colors)}
+          onSelect={handlePaletteSelect}
         />
       </div>
       <div className="flex flex-col flex-1 min-h-0">
@@ -168,7 +191,11 @@ export const BlockDrawer = ({
         {selectedBlock > 0 && (
           <div className="mt-4 pt-4 border-t border-border">
             <h3 className="text-sm font-medium mb-2">Block Color</h3>
-            <ColorPicker color={selectedBlockColor} onChange={handleColorChange} />
+            <ColorPicker
+              color={selectedBlockColor}
+              onChange={handleColorChange}
+              onChangeComplete={handleColorChangeComplete}
+            />
           </div>
         )}
       </div>

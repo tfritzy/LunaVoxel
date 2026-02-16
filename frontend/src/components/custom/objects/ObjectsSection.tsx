@@ -23,6 +23,7 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
+import { editHistory } from "@/state/edit-history-instance";
 
 interface ObjectsSectionProps {
   onSelectObject?: (objectIndex: number) => void;
@@ -53,11 +54,32 @@ export const ObjectsSection = ({
 
   const addObject = React.useCallback(() => {
     stateStore.reducers.addObject(projectId);
+    const newObjects = stateStore.getState().objects;
+    const added = newObjects[newObjects.length - 1];
+    if (added) {
+      editHistory.addObjectAdd(added);
+    }
   }, [projectId]);
 
   const onDelete = React.useCallback(
     (obj: VoxelObject) => {
+      const chunks = new Map<string, { key: string; minPos: { x: number; y: number; z: number }; size: { x: number; y: number; z: number }; voxels: Uint8Array }>();
+      const state = stateStore.getState();
+      for (const [key, chunk] of state.chunks.entries()) {
+        if (chunk.objectId === obj.id) {
+          chunks.set(key, {
+            key: chunk.key,
+            minPos: { ...chunk.minPos },
+            size: { ...chunk.size },
+            voxels: new Uint8Array(chunk.voxels),
+          });
+        }
+      }
+      const previousIndex = obj.index;
+
       stateStore.reducers.deleteObject(obj.id);
+      editHistory.addObjectDelete(obj, previousIndex, chunks);
+
       if (selectedObject >= sortedObjects.length - 1) {
         setSelectedObject(Math.max(0, selectedObject - 1));
       }
@@ -80,7 +102,9 @@ export const ObjectsSection = ({
   );
 
   const renameObject = React.useCallback((obj: VoxelObject, name: string) => {
+    const previousName = obj.name;
     stateStore.reducers.renameObject(obj.id, name);
+    editHistory.addObjectRename(obj.id, previousName, name);
   }, []);
 
   const handleDragEnd = React.useCallback(
@@ -97,6 +121,8 @@ export const ObjectsSection = ({
         const selectedId = currentObjects[selectedObject].id;
 
         if (oldIndex !== -1 && newIndex !== -1) {
+          const previousOrder = currentObjects.map((obj) => obj.id);
+
           let newObjects = arrayMove(currentObjects, oldIndex, newIndex);
           newObjects = newObjects.map((o, i) => ({ ...o, index: i }));
           const newSelectedIndex = newObjects.findIndex(
@@ -106,6 +132,7 @@ export const ObjectsSection = ({
 
           const newOrder = newObjects.map((obj) => obj.id);
           stateStore.reducers.reorderObjects(projectId, newOrder);
+          editHistory.addObjectReorder(previousOrder, newOrder);
         }
       }
     },
