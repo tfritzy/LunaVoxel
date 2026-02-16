@@ -7,8 +7,9 @@ import { stateStore, useGlobalState } from "@/state/store";
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
-const VERTICAL_OVERLAP = "-1.63rem";
+const VERTICAL_OVERLAP = "-3.0rem";
 const HORIZONTAL_GAP = "-1.5rem";
+const SELECTED_RAISE = "-0.95rem";
 
 const EraserBlock = memo(
   ({
@@ -73,10 +74,9 @@ const cy = 50;
 const topFace = `50,${points.top} ${points.topRight.x},${points.topRight.y} ${cx},${cy} ${points.topLeft.x},${points.topLeft.y}`;
 const rightFace = `${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${cx},${cy}`;
 const leftFace = `${points.topLeft.x},${points.topLeft.y} ${cx},${cy} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y}`;
-const flatHex = `50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`;
 
 const ShadedBlock = memo(
-  ({ color, raised }: { color: string; raised: boolean }) => {
+  ({ color }: { color: string }) => {
     const top = darkenColor(color, 1.0);
     const right = darkenColor(color, 0.7);
     const left = darkenColor(color, 0.5);
@@ -88,15 +88,9 @@ const ShadedBlock = memo(
         viewBox="0 0 100 100"
         className="absolute inset-0"
       >
-        {raised ? (
-          <>
-            <polygon points={topFace} fill={top} />
-            <polygon points={rightFace} fill={right} />
-            <polygon points={leftFace} fill={left} />
-          </>
-        ) : (
-          <polygon points={flatHex} fill={top} />
-        )}
+        <polygon points={topFace} fill={top} />
+        <polygon points={rightFace} fill={right} />
+        <polygon points={leftFace} fill={left} />
       </svg>
     );
   }
@@ -148,12 +142,14 @@ const HexagonGrid = memo(
                 style={{
                   width: BLOCK_WIDTH,
                   height: BLOCK_HEIGHT,
-                  transform: isSelected ? "translateY(-4px)" : undefined,
+                  transform: isSelected
+                    ? `translateY(${SELECTED_RAISE})`
+                    : undefined,
                   zIndex: isSelected ? 1 : 0,
                   transition: "transform 0.15s ease-out",
                 }}
               >
-                <ShadedBlock color={color} raised={isSelected} />
+                <ShadedBlock color={color} />
 
                 <HexagonOverlay
                   onClick={() => onSelectBlock(blockIndex)}
