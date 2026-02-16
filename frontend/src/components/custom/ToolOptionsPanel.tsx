@@ -118,22 +118,24 @@ export const ToolOptionsPanel = ({
             />
           </div>
         ))}
-        {checkboxOptions.map((option) => (
-          <div key={option.name} className="mt-2">
+        {checkboxOptions.length > 0 && (
+          <div className="mt-2">
             <div className="text-sm text-muted-foreground mb-2">
-              {option.name}
+              Options
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={option.currentValue === "true"}
-                onChange={(e) => onOptionChange(option.name, String(e.target.checked))}
-                className="accent-accent w-4 h-4"
-              />
-              <span className="text-sm text-muted-foreground">Enabled</span>
-            </label>
+            {checkboxOptions.map((option) => (
+              <label key={option.name} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={option.currentValue === "true"}
+                  onChange={(e) => onOptionChange(option.name, String(e.target.checked))}
+                  className="accent-accent w-4 h-4"
+                />
+                <span className="text-sm text-muted-foreground">{option.name}</span>
+              </label>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
