@@ -88,7 +88,7 @@ function isInsideTriangle(
 ): boolean {
   const height = maxY - minY + 1;
   const width = maxX - minX + 1;
-  const row = y - minY;
+  const row = maxY - y;
   const fraction = (row + 0.5) / height;
   const rowWidth = width * fraction;
   const centerX = (minX + maxX + 1) / 2;

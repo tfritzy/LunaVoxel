@@ -93,20 +93,17 @@ describe("Tool Interface", () => {
   });
 
   describe("Tool Options", () => {
-    it("should return fill shape and flip options for RectTool", () => {
+    it("should return fill shape and direction options for RectTool", () => {
       const tool = new RectTool();
       const options = tool.getOptions();
       
-      expect(options).toHaveLength(4);
+      expect(options).toHaveLength(2);
       expect(options[0].name).toBe("Fill Shape");
       expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"]);
       expect(options[0].currentValue).toBe("Rect");
-      expect(options[1].name).toBe("Flip X");
-      expect(options[1].currentValue).toBe("Off");
-      expect(options[2].name).toBe("Flip Y");
-      expect(options[2].currentValue).toBe("Off");
-      expect(options[3].name).toBe("Flip Z");
-      expect(options[3].currentValue).toBe("Off");
+      expect(options[1].name).toBe("Direction");
+      expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
+      expect(options[1].currentValue).toBe("+y");
     });
 
     it("should update fill shape option on RectTool", () => {
@@ -117,14 +114,12 @@ describe("Tool Interface", () => {
       expect(options[0].currentValue).toBe("Sphere");
     });
 
-    it("should toggle flip options on RectTool", () => {
+    it("should update direction option on RectTool", () => {
       const tool = new RectTool();
-      tool.setOption("Flip Y", "On");
+      tool.setOption("Direction", "-y");
       
       const options = tool.getOptions();
-      expect(options[1].currentValue).toBe("Off");
-      expect(options[2].currentValue).toBe("On");
-      expect(options[3].currentValue).toBe("Off");
+      expect(options[1].currentValue).toBe("-y");
     });
 
     it("should return empty options for BlockPicker", () => {
