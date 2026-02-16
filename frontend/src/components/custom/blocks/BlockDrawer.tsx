@@ -1,4 +1,5 @@
 import { HexagonOverlay, points } from "./HexagonOverlay";
+import { Eraser } from "lucide-react";
 import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
 import { stateStore, useGlobalState } from "@/state/store";
@@ -8,6 +9,56 @@ const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
 const VERTICAL_OVERLAP = "-1.63rem";
 const HORIZONTAL_GAP = "-1.5rem";
+
+const EraserBlock = memo(
+  ({
+    isSelected,
+    onSelect,
+  }: {
+    isSelected: boolean;
+    onSelect: () => void;
+  }) => {
+    return (
+      <div
+        className="relative pointer-events-none"
+        style={{
+          width: BLOCK_WIDTH,
+          height: BLOCK_HEIGHT,
+        }}
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
+          <Eraser className="w-4 h-4 text-muted-foreground" />
+          <span className="text-[7px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Erase
+          </span>
+        </div>
+        <div className="absolute inset-0 pointer-events-none text-muted-foreground">
+          <div
+            className="absolute inset-0 cursor-pointer pointer-events-auto"
+            style={{
+              clipPath: `polygon(50% ${points.top}%, ${points.topRight.x}% ${points.topRight.y}%, ${points.bottomRight.x}% ${points.bottomRight.y}%, 50% ${points.bottom}%, ${points.bottomLeft.x}% ${points.bottomLeft.y}%, ${points.topLeft.x}% ${points.topLeft.y}%)`,
+            }}
+            onMouseDown={onSelect}
+          />
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 100 100"
+            className="absolute inset-0"
+          >
+            <polygon
+              className="fill-transparent"
+              points={`50,${points.top} ${points.topRight.x},${points.topRight.y} ${points.bottomRight.x},${points.bottomRight.y} 50,${points.bottom} ${points.bottomLeft.x},${points.bottomLeft.y} ${points.topLeft.x},${points.topLeft.y}`}
+              stroke={isSelected ? "white" : "currentColor"}
+              strokeWidth={isSelected ? 4 : 2}
+              strokeDasharray={isSelected ? undefined : "6 4"}
+            />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+);
 
 const darkenColor = (hex: string, factor: number): string => {
   const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
@@ -58,37 +109,49 @@ const HexagonGrid = memo(
   }) => {
     const rows = useMemo(() => {
       const result = [];
-      let currentIndex = 0;
+      let currentIndex = -1;
       let rowIndex = 0;
 
-      while (currentIndex < blockCount) {
+      const totalItems = blockCount + 1;
+
+      while (currentIndex < totalItems - 1) {
         const itemsInRow = rowIndex % 2 === 0 ? 6 : 5;
         const isOddRow = rowIndex % 2 === 1;
         const rowItems = [];
 
-        for (let i = 0; i < itemsInRow && currentIndex < blockCount; i++) {
-          const blockIndex = currentIndex + 1;
-          const color = `#${colors[currentIndex].toString(16).padStart(6, "0")}`;
-
-          const isSelected = blockIndex === selectedBlock;
-          rowItems.push(
-            <div
-              key={blockIndex}
-              className="relative pointer-events-none"
-              style={{
-                width: BLOCK_WIDTH,
-                height: BLOCK_HEIGHT,
-              }}
-            >
-              <ShadedBlock color={color} />
-
-              <HexagonOverlay
-                onClick={() => onSelectBlock(blockIndex)}
-                stroke={isSelected}
+        for (let i = 0; i < itemsInRow && currentIndex < totalItems - 1; i++) {
+          if (currentIndex === -1) {
+            rowItems.push(
+              <EraserBlock
+                key="eraser"
+                isSelected={selectedBlock === 0}
+                onSelect={() => onSelectBlock(0)}
               />
-            </div>
-          );
-          currentIndex++;
+            );
+            currentIndex++;
+          } else {
+            const blockIndex = currentIndex + 1;
+            const color = `#${colors[currentIndex].toString(16).padStart(6, "0")}`;
+
+            rowItems.push(
+              <div
+                key={blockIndex}
+                className="relative pointer-events-none"
+                style={{
+                  width: BLOCK_WIDTH,
+                  height: BLOCK_HEIGHT,
+                }}
+              >
+                <ShadedBlock color={color} />
+
+                <HexagonOverlay
+                  onClick={() => onSelectBlock(blockIndex)}
+                  stroke={blockIndex === selectedBlock}
+                />
+              </div>
+            );
+            currentIndex++;
+          }
         }
 
         result.push(
