@@ -52,7 +52,7 @@ export class RectTool implements Tool {
         type: "direction",
       },
       {
-        name: "Pending Preview",
+        name: "Adjust Before Apply",
         values: ["true", "false"],
         currentValue: String(this.pendingPreview),
         type: "checkbox",
@@ -65,7 +65,7 @@ export class RectTool implements Tool {
       this.fillShape = value as FillShape;
     } else if (name === "Direction") {
       this.direction = value as ShapeDirection;
-    } else if (name === "Pending Preview") {
+    } else if (name === "Adjust Before Apply") {
       this.pendingPreview = value === "true";
     }
   }

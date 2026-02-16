@@ -93,7 +93,7 @@ describe("Tool Interface", () => {
   });
 
   describe("Tool Options", () => {
-    it("should return fill shape, direction, and pending preview options for RectTool", () => {
+    it("should return fill shape, direction, and adjust before apply options for RectTool", () => {
       const tool = new RectTool();
       const options = tool.getOptions();
       
@@ -104,7 +104,7 @@ describe("Tool Interface", () => {
       expect(options[1].name).toBe("Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
       expect(options[1].currentValue).toBe("+y");
-      expect(options[2].name).toBe("Pending Preview");
+      expect(options[2].name).toBe("Adjust Before Apply");
       expect(options[2].type).toBe("checkbox");
       expect(options[2].currentValue).toBe("true");
     });
@@ -411,7 +411,7 @@ describe("Tool Interface", () => {
         },
       };
 
-      tool.setOption("Pending Preview", "false");
+      tool.setOption("Adjust Before Apply", "false");
 
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 1, 1),
@@ -433,7 +433,7 @@ describe("Tool Interface", () => {
         },
       };
 
-      tool.setOption("Pending Preview", "true");
+      tool.setOption("Adjust Before Apply", "true");
 
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 1, 1),
