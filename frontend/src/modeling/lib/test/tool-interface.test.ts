@@ -398,6 +398,91 @@ describe("Tool Interface", () => {
       expect(bounds.minY).toBe(0);
       expect(bounds.maxY).toBe(9);
     });
+
+    it("should commit with original shape even if fill shape is changed after preview", () => {
+      tool.setOption("Fill Shape", "Sphere");
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 4, 4),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const previewCorner = mockContext.previewFrame.get(0, 0, 0);
+      const previewCenter = mockContext.previewFrame.get(2, 2, 2);
+      expect(previewCorner).toBe(0);
+      expect(previewCenter).toBeGreaterThan(0);
+
+      tool.setOption("Fill Shape", "Rect");
+
+      let committedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode, _block, frame) => {
+          committedFrame = frame.clone();
+        },
+      };
+
+      tool.commitPendingOperation(mockContext);
+
+      expect(committedFrame).not.toBeNull();
+      expect(committedFrame!.get(0, 0, 0)).toBe(0);
+      expect(committedFrame!.get(2, 2, 2)).toBeGreaterThan(0);
+    });
+
+    it("should commit with original color even if selected block is changed after preview", () => {
+      mockContext.selectedBlock = 5;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const previewValue = mockContext.previewFrame.get(2, 2, 2);
+      expect(previewValue).toBe(5);
+
+      mockContext.selectedBlock = 9;
+
+      let committedMode: BlockModificationMode | null = null;
+      let committedBlock: number | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (mode, block) => {
+          committedMode = mode;
+          committedBlock = block;
+        },
+      };
+
+      tool.commitPendingOperation(mockContext);
+
+      expect(committedMode).not.toBeNull();
+      expect(committedBlock).toBe(5);
+    });
+
+    it("should use original shape when resizing pending bounds after shape change", () => {
+      tool.setOption("Fill Shape", "Sphere");
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 4, 4),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      tool.setOption("Fill Shape", "Rect");
+
+      tool.resizePendingBounds(mockContext, {
+        minX: 0, maxX: 6,
+        minY: 0, maxY: 6,
+        minZ: 0, maxZ: 6,
+      });
+
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+      expect(mockContext.previewFrame.get(3, 3, 3)).toBeGreaterThan(0);
+    });
   });
 
   describe("BlockPicker Tool", () => {
