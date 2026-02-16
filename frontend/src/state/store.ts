@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 import { VoxelFrame } from "@/modeling/lib/voxel-frame";
+import { colorPalettes } from "@/components/custom/colorPalettes";
 
 export type GlobalState = {
   project: Project;
@@ -48,6 +49,7 @@ export type Reducers = {
   selectAllVoxels: (projectId: string, objectIndex: number) => void;
   deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
+  setBlockColors: (colors: number[]) => void;
 };
 
 export type StateStore = {
@@ -105,10 +107,14 @@ const createInitialState = (): GlobalState => {
     },
   ];
 
-  const DEFAULT_BLOCK_COLOR = 0x3d3852;
+  const DEFAULT_PALETTE = colorPalettes[0];
   const blocks: ProjectBlocks = {
     projectId,
-    colors: Array.from({ length: 127 }, () => DEFAULT_BLOCK_COLOR),
+    colors: Array.from({ length: 127 }, (_, i) =>
+      i < DEFAULT_PALETTE.colors.length
+        ? DEFAULT_PALETTE.colors[i]
+        : DEFAULT_PALETTE.colors[i % DEFAULT_PALETTE.colors.length]
+    ),
   };
 
   const chunks = new Map<string, ChunkData>();
@@ -443,6 +449,18 @@ const reducers: Reducers = {
           colors: nextColors,
         };
       }
+    });
+  },
+  setBlockColors: (colors: number[]) => {
+    updateState((current) => {
+      const total = current.blocks.colors.length;
+      const nextColors = Array.from({ length: total }, (_, i) =>
+        i < colors.length ? colors[i] : colors[i % colors.length]
+      );
+      current.blocks = {
+        ...current.blocks,
+        colors: nextColors,
+      };
     });
   },
 };

@@ -2,6 +2,7 @@ import { HexagonOverlay, points } from "./HexagonOverlay";
 import { useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { ColorPicker } from "../ColorPicker";
 import { stateStore, useGlobalState } from "@/state/store";
+import { PaletteSelector } from "../PaletteSelector";
 
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
@@ -149,8 +150,11 @@ export const BlockDrawer = ({
 
   return (
     <div className="h-full bg-background border-r border-border overflow-y-auto overflow-x-hidden p-4 flex flex-col w-80">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Blocks</h2>
+        <PaletteSelector
+          onSelect={(colors) => stateStore.reducers.setBlockColors(colors)}
+        />
       </div>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
