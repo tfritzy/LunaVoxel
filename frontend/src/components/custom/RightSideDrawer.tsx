@@ -7,6 +7,7 @@ interface RightSideDrawerProps {
   projectId: string;
   toolOptions: ToolOption[];
   onToolOptionChange: (name: string, value: string) => void;
+  cameraTheta?: number;
 }
 
 export const RightSideDrawer = ({
@@ -14,6 +15,7 @@ export const RightSideDrawer = ({
   projectId,
   toolOptions,
   onToolOptionChange,
+  cameraTheta,
 }: RightSideDrawerProps) => {
   return (
     <div className="h-full bg-background border-l border-border overflow-y-auto w-56 flex flex-col">
@@ -23,6 +25,7 @@ export const RightSideDrawer = ({
       <ToolOptionsPanel
         options={toolOptions}
         onOptionChange={onToolOptionChange}
+        cameraTheta={cameraTheta}
       />
     </div>
   );

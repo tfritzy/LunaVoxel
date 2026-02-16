@@ -1,5 +1,7 @@
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { Button } from "@/components/ui/button";
+import { DirectionPicker } from "./DirectionPicker";
+import type { ShapeDirection } from "@/modeling/lib/tool-type";
 import {
   Square,
   Circle,
@@ -11,8 +13,6 @@ import {
   Hexagon,
   Star,
   Cross,
-  FlipHorizontal2,
-  FlipVertical2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,34 +30,30 @@ const fillShapeIcons: Record<string, LucideIcon> = {
   Cross: Cross,
 };
 
-const flipIcons: Record<string, LucideIcon> = {
-  "Flip X": FlipHorizontal2,
-  "Flip Y": FlipVertical2,
-  "Flip Z": FlipHorizontal2,
-};
-
-function isToggleOption(option: ToolOption): boolean {
-  return option.values.length === 2 && option.values[0] === "Off" && option.values[1] === "On";
-}
-
 function isSliderOption(option: ToolOption): boolean {
   return option.type === "slider";
+}
+
+function isDirectionOption(option: ToolOption): boolean {
+  return option.type === "direction";
 }
 
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
+  cameraTheta?: number;
 }
 
 export const ToolOptionsPanel = ({
   options,
   onOptionChange,
+  cameraTheta = 0,
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
-  const regularOptions = options.filter((o) => !isToggleOption(o) && !isSliderOption(o));
+  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o));
   const sliderOptions = options.filter((o) => isSliderOption(o));
-  const toggleOptions = options.filter((o) => isToggleOption(o));
+  const directionOptions = options.filter((o) => isDirectionOption(o));
 
   return (
     <div className="border-t border-border">
@@ -111,37 +107,15 @@ export const ToolOptionsPanel = ({
             />
           </div>
         ))}
-        {toggleOptions.length > 0 && (
-          <div className="mt-2">
-            <div className="text-sm text-muted-foreground mb-2">
-              Flip
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {toggleOptions.map((option) => {
-                const Icon = flipIcons[option.name];
-                const isOn = option.currentValue === "On";
-                return (
-                  <Button
-                    key={option.name}
-                    variant="ghost"
-                    onClick={() =>
-                      onOptionChange(option.name, isOn ? "Off" : "On")
-                    }
-                    className={`h-10 px-2 border-2 rounded-none gap-1 ${
-                      isOn
-                        ? "border-accent text-accent"
-                        : "border-secondary text-secondary"
-                    }`}
-                    title={option.name}
-                  >
-                    {Icon && <Icon className="w-4 h-4" />}
-                    <span className="text-xs">{option.name.replace("Flip ", "")}</span>
-                  </Button>
-                );
-              })}
-            </div>
+        {directionOptions.map((option) => (
+          <div key={option.name} className="mt-2">
+            <DirectionPicker
+              currentDirection={option.currentValue as ShapeDirection}
+              cameraTheta={cameraTheta}
+              onDirectionChange={(dir) => onOptionChange(option.name, dir)}
+            />
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

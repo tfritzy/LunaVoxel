@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
-import type { FillShape } from "../tool-type";
+import type { FillShape, ShapeDirection } from "../tool-type";
 import { calculateRectBounds } from "@/lib/rect-utils";
 import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
@@ -17,9 +17,7 @@ type ResizeCorner = {
 
 export class RectTool implements Tool {
   private fillShape: FillShape = "Rect";
-  private flipX: boolean = false;
-  private flipY: boolean = false;
-  private flipZ: boolean = false;
+  private direction: ShapeDirection = "+y";
   private pending: {
     bounds: RectBounds;
     mode: BlockModificationMode;
@@ -47,19 +45,10 @@ export class RectTool implements Tool {
         currentValue: this.fillShape,
       },
       {
-        name: "Flip X",
-        values: ["Off", "On"],
-        currentValue: this.flipX ? "On" : "Off",
-      },
-      {
-        name: "Flip Y",
-        values: ["Off", "On"],
-        currentValue: this.flipY ? "On" : "Off",
-      },
-      {
-        name: "Flip Z",
-        values: ["Off", "On"],
-        currentValue: this.flipZ ? "On" : "Off",
+        name: "Direction",
+        values: ["+x", "-x", "+y", "-y", "+z", "-z"],
+        currentValue: this.direction,
+        type: "direction",
       },
     ];
   }
@@ -67,12 +56,8 @@ export class RectTool implements Tool {
   setOption(name: string, value: string): void {
     if (name === "Fill Shape") {
       this.fillShape = value as FillShape;
-    } else if (name === "Flip X") {
-      this.flipX = value === "On";
-    } else if (name === "Flip Y") {
-      this.flipY = value === "On";
-    } else if (name === "Flip Z") {
-      this.flipZ = value === "On";
+    } else if (name === "Direction") {
+      this.direction = value as ShapeDirection;
     }
   }
 
@@ -115,10 +100,40 @@ export class RectTool implements Tool {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          const sx = this.flipX ? bounds.minX + bounds.maxX - x : x;
-          const sy = this.flipY ? bounds.minY + bounds.maxY - y : y;
-          const sz = this.flipZ ? bounds.minZ + bounds.maxZ - z : z;
-          if (isInsideFillShape(this.fillShape, sx, sy, sz, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ)) {
+          let sx = x, sy = y, sz = z;
+          let sMinX = bounds.minX, sMaxX = bounds.maxX;
+          let sMinY = bounds.minY, sMaxY = bounds.maxY;
+          let sMinZ = bounds.minZ, sMaxZ = bounds.maxZ;
+
+          switch (this.direction) {
+            case "+y":
+              break;
+            case "-y":
+              sy = bounds.minY + bounds.maxY - y;
+              break;
+            case "+x":
+              sx = y; sy = x;
+              sMinX = bounds.minY; sMaxX = bounds.maxY;
+              sMinY = bounds.minX; sMaxY = bounds.maxX;
+              break;
+            case "-x":
+              sx = y; sy = bounds.minX + bounds.maxX - x;
+              sMinX = bounds.minY; sMaxX = bounds.maxY;
+              sMinY = bounds.minX; sMaxY = bounds.maxX;
+              break;
+            case "+z":
+              sz = y; sy = z;
+              sMinZ = bounds.minY; sMaxZ = bounds.maxY;
+              sMinY = bounds.minZ; sMaxY = bounds.maxZ;
+              break;
+            case "-z":
+              sz = y; sy = bounds.minZ + bounds.maxZ - z;
+              sMinZ = bounds.minY; sMaxZ = bounds.maxY;
+              sMinY = bounds.minZ; sMaxY = bounds.maxZ;
+              break;
+          }
+
+          if (isInsideFillShape(this.fillShape, sx, sy, sz, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ)) {
             context.previewFrame.set(x, y, z, previewValue);
           }
         }
