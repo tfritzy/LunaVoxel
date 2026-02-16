@@ -17,7 +17,6 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
-  const [cameraTheta, setCameraTheta] = useState<number>(Math.PI / 4);
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
   const atlasData = useAtlas();
@@ -124,16 +123,6 @@ export const ProjectViewPage = () => {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (engineRef.current) {
-        const state = engineRef.current.getCameraState();
-        setCameraTheta(state.theta);
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
     if (engineRef.current) {
       engineRef.current.projectManager.builder.setTool(currentTool);
     }
@@ -187,7 +176,6 @@ export const ProjectViewPage = () => {
       onRedo={handleRedo}
       toolOptions={toolOptions}
       onToolOptionChange={handleToolOptionChange}
-      cameraTheta={cameraTheta}
     >
       <div
         ref={containerCallbackRef}

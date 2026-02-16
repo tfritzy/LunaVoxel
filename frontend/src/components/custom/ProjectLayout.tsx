@@ -22,7 +22,6 @@ interface ProjectLayoutProps {
   children: React.ReactNode;
   toolOptions: ToolOption[];
   onToolOptionChange: (name: string, value: string) => void;
-  cameraTheta?: number;
 }
 
 export const ProjectLayout = ({
@@ -40,7 +39,6 @@ export const ProjectLayout = ({
   children,
   toolOptions,
   onToolOptionChange,
-  cameraTheta,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
@@ -71,7 +69,6 @@ export const ProjectLayout = ({
           projectId={projectId}
           toolOptions={toolOptions}
           onToolOptionChange={onToolOptionChange}
-          cameraTheta={cameraTheta}
         />
       </div>
     </div>

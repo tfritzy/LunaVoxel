@@ -41,13 +41,11 @@ function isDirectionOption(option: ToolOption): boolean {
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
-  cameraTheta?: number;
 }
 
 export const ToolOptionsPanel = ({
   options,
   onOptionChange,
-  cameraTheta = 0,
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
@@ -111,7 +109,6 @@ export const ToolOptionsPanel = ({
           <div key={option.name} className="mt-2">
             <DirectionPicker
               currentDirection={option.currentValue as ShapeDirection}
-              cameraTheta={cameraTheta}
               onDirectionChange={(dir) => onOptionChange(option.name, dir)}
             />
           </div>
