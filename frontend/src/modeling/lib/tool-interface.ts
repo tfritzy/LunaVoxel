@@ -3,14 +3,14 @@ import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
-import type { FlatVoxelFrame } from "./flat-voxel-frame";
+import type { VoxelFrame } from "./voxel-frame";
 
 export interface ToolContext {
   reducers: Reducers;
   projectId: string;
   dimensions: Vector3;
   projectManager: ProjectManager;
-  previewFrame: FlatVoxelFrame;
+  previewFrame: VoxelFrame;
   selectedBlock: number;
   selectedObject: number;
   setSelectedBlockInParent: (index: number) => void;
