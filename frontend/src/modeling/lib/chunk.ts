@@ -42,6 +42,7 @@ export class Chunk {
   private previewFrame: VoxelFrame;
   private renderedPreviewFrame: VoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
+  private atlasChanged: boolean = false;
   private getMode: () => BlockModificationMode;
   private getObjectVisible: (objectIndex: number) => boolean;
 
@@ -165,6 +166,7 @@ export class Chunk {
 
   public setTextureAtlas = (atlasData: AtlasData) => {
     this.atlasData = atlasData;
+    this.atlasChanged = true;
 
     if (this.material) {
       this.material.uniforms.map.value = atlasData.texture;
@@ -392,6 +394,10 @@ export class Chunk {
   };
 
   private needsRender(): boolean {
+    if (this.atlasChanged) {
+      return true;
+    }
+
     for (let i = 0; i < this.blocksToRender.length; i++) {
       if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
         return true;
@@ -436,6 +442,7 @@ export class Chunk {
         this.copyChunkData(this.blocksToRender);
         this.updateMeshes(this.atlasData);
         this.renderedBlocks.set(this.blocksToRender);
+        this.atlasChanged = false;
 
         if (this.previewFrame.isEmpty()) {
           this.renderedPreviewFrame = null;
