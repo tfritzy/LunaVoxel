@@ -83,15 +83,11 @@ export class RectTool implements Tool {
     }
   }
 
-  private buildFrameFromBounds(
-    context: ToolContext,
-    bounds: RectBounds,
-    overrides?: { fillShape: FillShape; direction: ShapeDirection; mode: BlockModificationMode; selectedBlock: number }
-  ): void {
-    const fillShape = overrides?.fillShape ?? this.fillShape;
-    const direction = overrides?.direction ?? this.direction;
-    const mode = overrides?.mode ?? context.mode;
-    const selectedBlock = overrides?.selectedBlock ?? context.selectedBlock;
+  private buildFrameFromBounds(context: ToolContext, bounds: RectBounds): void {
+    const fillShape = this.pending?.fillShape ?? this.fillShape;
+    const direction = this.pending?.direction ?? this.direction;
+    const mode = this.pending?.mode ?? context.mode;
+    const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
 
     const frameSize = {
       x: bounds.maxX - bounds.minX + 1,
@@ -304,12 +300,7 @@ export class RectTool implements Tool {
       maxZ: clamp(bounds.maxZ, context.dimensions.z),
     };
 
-    this.buildFrameFromBounds(context, this.pending.bounds, {
-      fillShape: this.pending.fillShape,
-      direction: this.pending.direction,
-      mode: this.pending.mode,
-      selectedBlock: this.pending.selectedBlock,
-    });
+    this.buildFrameFromBounds(context, this.pending.bounds);
     context.projectManager.chunkManager.setPreview(context.previewFrame);
     this.updateBoundsBox(context);
   }
