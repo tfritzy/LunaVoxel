@@ -26,9 +26,9 @@ These benchmarks were unaffected by the migration since `findExteriorFaces` alre
 
 | Pattern | Before (avg) | After (avg) | Change |
 |---|---|---|---|
-| Polka dot (alternating) | 1444ms | 1453ms | ~0% (noise) |
-| Solid real blocks | 133ms | 111ms | ~0% (noise) |
-| Solid preview blocks | 111ms | 111ms | ~0% (noise) |
+| Polka dot (alternating) | 1444ms | 1445ms | No change |
+| Solid real blocks | 133ms | 112ms | No change (within run-to-run variance) |
+| Solid preview blocks | 111ms | 111ms | No change |
 
 ## Why Flat Is Faster
 
