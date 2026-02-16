@@ -18,6 +18,7 @@ type ResizeCorner = {
 export class RectTool implements Tool {
   private fillShape: FillShape = "Rect";
   private direction: ShapeDirection = "+y";
+  private pendingPreview: boolean = true;
   private pending: {
     bounds: RectBounds;
     mode: BlockModificationMode;
@@ -28,10 +29,10 @@ export class RectTool implements Tool {
   private resizeBaseBounds: RectBounds | null = null;
   private boundsBoxHelper: THREE.Box3Helper | null = null;
   private handleMeshes: THREE.Mesh[] = [];
-  private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.15, 8, 8);
+  private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.25, 8, 8);
   private static readonly HANDLE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
-  private static readonly HANDLE_SCREEN_THRESHOLD = 0.05;
+  private static readonly HANDLE_SCREEN_THRESHOLD = 0.08;
 
   getType(): ToolType {
     return "Rect";
@@ -50,6 +51,12 @@ export class RectTool implements Tool {
         currentValue: this.direction,
         type: "direction",
       },
+      {
+        name: "Pending Preview",
+        values: ["true", "false"],
+        currentValue: String(this.pendingPreview),
+        type: "checkbox",
+      },
     ];
   }
 
@@ -58,6 +65,8 @@ export class RectTool implements Tool {
       this.fillShape = value as FillShape;
     } else if (name === "Direction") {
       this.direction = value as ShapeDirection;
+    } else if (name === "Pending Preview") {
+      this.pendingPreview = value === "true";
     }
   }
 
@@ -168,6 +177,17 @@ export class RectTool implements Tool {
     );
     this.buildFrameFromBounds(context, bounds);
     context.projectManager.chunkManager.setPreview(context.previewFrame);
+
+    if (!this.pendingPreview) {
+      context.reducers.applyFrame(
+        context.mode,
+        context.selectedBlock,
+        context.previewFrame,
+        context.selectedObject
+      );
+      context.previewFrame.clear();
+      return;
+    }
 
     this.pending = {
       bounds,

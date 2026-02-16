@@ -93,17 +93,20 @@ describe("Tool Interface", () => {
   });
 
   describe("Tool Options", () => {
-    it("should return fill shape and direction options for RectTool", () => {
+    it("should return fill shape, direction, and pending preview options for RectTool", () => {
       const tool = new RectTool();
       const options = tool.getOptions();
       
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
       expect(options[0].name).toBe("Fill Shape");
       expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"]);
       expect(options[0].currentValue).toBe("Rect");
       expect(options[1].name).toBe("Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
       expect(options[1].currentValue).toBe("+y");
+      expect(options[2].name).toBe("Pending Preview");
+      expect(options[2].type).toBe("checkbox");
+      expect(options[2].currentValue).toBe("true");
     });
 
     it("should update fill shape option on RectTool", () => {
@@ -397,6 +400,50 @@ describe("Tool Interface", () => {
       expect(bounds.maxX).toBe(9);
       expect(bounds.minY).toBe(0);
       expect(bounds.maxY).toBe(9);
+    });
+
+    it("should apply immediately when pending preview is disabled", () => {
+      let applied = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applied = true;
+        },
+      };
+
+      tool.setOption("Pending Preview", "false");
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(applied).toBe(true);
+      expect(tool.hasPendingOperation()).toBe(false);
+    });
+
+    it("should enter pending state when pending preview is enabled", () => {
+      let applied = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applied = true;
+        },
+      };
+
+      tool.setOption("Pending Preview", "true");
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(applied).toBe(false);
+      expect(tool.hasPendingOperation()).toBe(true);
     });
   });
 

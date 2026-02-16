@@ -38,6 +38,10 @@ function isDirectionOption(option: ToolOption): boolean {
   return option.type === "direction";
 }
 
+function isCheckboxOption(option: ToolOption): boolean {
+  return option.type === "checkbox";
+}
+
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
@@ -49,9 +53,10 @@ export const ToolOptionsPanel = ({
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
-  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o));
+  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o) && !isCheckboxOption(o));
   const sliderOptions = options.filter((o) => isSliderOption(o));
   const directionOptions = options.filter((o) => isDirectionOption(o));
+  const checkboxOptions = options.filter((o) => isCheckboxOption(o));
 
   return (
     <div className="border-t border-border">
@@ -112,6 +117,17 @@ export const ToolOptionsPanel = ({
               onDirectionChange={(dir) => onOptionChange(option.name, dir)}
             />
           </div>
+        ))}
+        {checkboxOptions.map((option) => (
+          <label key={option.name} className="mt-2 flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={option.currentValue === "true"}
+              onChange={(e) => onOptionChange(option.name, String(e.target.checked))}
+              className="accent-accent w-4 h-4"
+            />
+            <span className="text-sm text-muted-foreground">{option.name}</span>
+          </label>
         ))}
       </div>
     </div>
