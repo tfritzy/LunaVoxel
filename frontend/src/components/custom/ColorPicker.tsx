@@ -25,8 +25,9 @@ export const ColorPicker = ({
   onChangeComplete?: (color: string) => void;
 }) => {
   const [inputValue, setInputValue] = useState(color);
-  const colorBeforeDragRef = useRef<string>(color);
+  const colorBeforeEditRef = useRef<string>(color);
   const isDraggingRef = useRef(false);
+  const isEditingInputRef = useRef(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,8 +37,8 @@ export const ColorPicker = ({
   }, [color]);
 
   useEffect(() => {
-    if (!isDraggingRef.current) {
-      colorBeforeDragRef.current = color;
+    if (!isDraggingRef.current && !isEditingInputRef.current) {
+      colorBeforeEditRef.current = color;
     }
   }, [color]);
 
@@ -47,13 +48,13 @@ export const ColorPicker = ({
 
     const handleMouseDown = () => {
       isDraggingRef.current = true;
-      colorBeforeDragRef.current = color;
+      colorBeforeEditRef.current = color;
     };
 
     const handleMouseUp = () => {
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
-        onChangeComplete?.(colorBeforeDragRef.current);
+        onChangeComplete?.(colorBeforeEditRef.current);
       }
     };
 
@@ -83,12 +84,14 @@ export const ColorPicker = ({
     if (!isValidHex(inputValue)) {
       setInputValue(color);
     } else {
-      onChangeComplete?.(colorBeforeDragRef.current);
+      onChangeComplete?.(colorBeforeEditRef.current);
     }
+    isEditingInputRef.current = false;
   };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    colorBeforeDragRef.current = color;
+    isEditingInputRef.current = true;
+    colorBeforeEditRef.current = color;
     e.target.select();
   };
 
