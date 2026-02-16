@@ -285,10 +285,25 @@ export class VoxelFrame {
       return false;
     }
 
-    for (let x = this.minPos.x; x < this.minPos.x + this.dimensions.x; x++) {
-      for (let y = this.minPos.y; y < this.minPos.y + this.dimensions.y; y++) {
-        for (let z = this.minPos.z; z < this.minPos.z + this.dimensions.z; z++) {
-          if (this.get(x, y, z) !== other.get(x, y, z)) return false;
+    const dimY = this.dimensions.y;
+    const dimZ = this.dimensions.z;
+    const thisOffX = this.minPos.x - this.capMinPos.x;
+    const thisOffY = this.minPos.y - this.capMinPos.y;
+    const thisOffZ = this.minPos.z - this.capMinPos.z;
+    const otherOffX = other.minPos.x - other.capMinPos.x;
+    const otherOffY = other.minPos.y - other.capMinPos.y;
+    const otherOffZ = other.minPos.z - other.capMinPos.z;
+    const thisCapYZ = this.capDimensions.y * this.capDimensions.z;
+    const thisCapZ = this.capDimensions.z;
+    const otherCapYZ = other.capDimensions.y * other.capDimensions.z;
+    const otherCapZ = other.capDimensions.z;
+
+    for (let lx = 0; lx < this.dimensions.x; lx++) {
+      for (let ly = 0; ly < dimY; ly++) {
+        for (let lz = 0; lz < dimZ; lz++) {
+          const thisIdx = (lx + thisOffX) * thisCapYZ + (ly + thisOffY) * thisCapZ + (lz + thisOffZ);
+          const otherIdx = (lx + otherOffX) * otherCapYZ + (ly + otherOffY) * otherCapZ + (lz + otherOffZ);
+          if (this.data[thisIdx] !== other.data[otherIdx]) return false;
         }
       }
     }
@@ -318,18 +333,20 @@ export class VoxelFrame {
 
       return cloned;
     } else {
-      const cloned = new VoxelFrame(this.dimensions, this.minPos);
-      for (let x = this.minPos.x; x < this.minPos.x + this.dimensions.x; x++) {
-        for (let y = this.minPos.y; y < this.minPos.y + this.dimensions.y; y++) {
-          for (let z = this.minPos.z; z < this.minPos.z + this.dimensions.z; z++) {
-            const value = this.get(x, y, z);
-            if (value !== 0) {
-              cloned.set(x, y, z, value);
-            }
+      const newData = new Uint8Array(this.dimensions.x * this.dimensions.y * this.dimensions.z);
+      for (let lx = 0; lx < this.dimensions.x; lx++) {
+        for (let ly = 0; ly < this.dimensions.y; ly++) {
+          for (let lz = 0; lz < this.dimensions.z; lz++) {
+            const capX = lx + this.minPos.x - this.capMinPos.x;
+            const capY = ly + this.minPos.y - this.capMinPos.y;
+            const capZ = lz + this.minPos.z - this.capMinPos.z;
+            const srcIndex = capX * this.capDimensions.y * this.capDimensions.z + capY * this.capDimensions.z + capZ;
+            const dstIndex = lx * this.dimensions.y * this.dimensions.z + ly * this.dimensions.z + lz;
+            newData[dstIndex] = this.data[srcIndex];
           }
         }
       }
-      return cloned;
+      return new VoxelFrame(this.dimensions, this.minPos, newData);
     }
   }
 }
