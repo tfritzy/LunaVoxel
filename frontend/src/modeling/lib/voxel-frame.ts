@@ -151,6 +151,32 @@ export class VoxelFrame {
     this.empty = true;
   }
 
+  public fill(value: number): void {
+    if (
+      this.dimensions.x === this.capDimensions.x &&
+      this.dimensions.y === this.capDimensions.y &&
+      this.dimensions.z === this.capDimensions.z &&
+      this.minPos.x === this.capMinPos.x &&
+      this.minPos.y === this.capMinPos.y &&
+      this.minPos.z === this.capMinPos.z
+    ) {
+      this.data.fill(value);
+    } else {
+      const offX = this.minPos.x - this.capMinPos.x;
+      const offY = this.minPos.y - this.capMinPos.y;
+      const offZ = this.minPos.z - this.capMinPos.z;
+      const capYZ = this.capDimensions.y * this.capDimensions.z;
+      const capZ = this.capDimensions.z;
+      for (let lx = 0; lx < this.dimensions.x; lx++) {
+        for (let ly = 0; ly < this.dimensions.y; ly++) {
+          const rowStart = (lx + offX) * capYZ + (ly + offY) * capZ + offZ;
+          this.data.fill(value, rowStart, rowStart + this.dimensions.z);
+        }
+      }
+    }
+    this.empty = value === 0;
+  }
+
   /**
    * Get the dimensions of this frame
    */

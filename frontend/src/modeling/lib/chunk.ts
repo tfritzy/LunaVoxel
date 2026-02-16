@@ -40,7 +40,7 @@ export class Chunk {
   private selectionFrames: Map<string, SelectionData> = new Map();
   private mergedSelectionFrame: VoxelFrame;
   private previewFrame: VoxelFrame;
-  private renderedPreviewFrame: VoxelFrame | null = null;
+  private previewDirty: boolean = false;
   private atlasData: AtlasData | undefined;
   private atlasChanged: boolean = false;
   private getMode: () => BlockModificationMode;
@@ -189,6 +189,7 @@ export class Chunk {
   public clearPreviewData()
   {
     this.previewFrame.clear();
+    this.previewDirty = true;
     this.update();
   }
 
@@ -203,6 +204,9 @@ export class Chunk {
   ): void {
     this.previewFrame.clear();
 
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+
     for (let worldX = sourceMinX; worldX < sourceMaxX; worldX++) {
       for (let worldY = sourceMinY; worldY < sourceMaxY; worldY++) {
         for (let worldZ = sourceMinZ; worldZ < sourceMaxZ; worldZ++) {
@@ -211,12 +215,14 @@ export class Chunk {
             const localX = worldX - this.minPos.x;
             const localY = worldY - this.minPos.y;
             const localZ = worldZ - this.minPos.z;
-            this.previewFrame.set(localX, localY, localZ, blockValue);
+            const index = localX * sizeY * sizeZ + localY * sizeZ + localZ;
+            this.previewFrame.setByIndex(index, blockValue);
           }
         }
       }
     }
 
+    this.previewDirty = true;
     this.update();
   }
 
@@ -268,46 +274,28 @@ export class Chunk {
     if (this.previewFrame.isEmpty()) return;
 
     const buildMode = this.getMode();
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-    const sizeYZ = sizeY * sizeZ;
+    const previewData = this.previewFrame.getData();
+    const len = Math.min(blocks.length, previewData.length);
 
     if (buildMode.tag === "Attach") {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const x = Math.floor(voxelIndex / sizeYZ);
-        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
-        const z = voxelIndex % sizeZ;
-
-        const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0) {
-          if (!isBlockVisible(blocks[voxelIndex])) {
-            blocks[voxelIndex] = previewBlockValue;
-          }
+      for (let i = 0; i < len; i++) {
+        const pv = previewData[i];
+        if (pv !== 0 && !isBlockVisible(blocks[i])) {
+          blocks[i] = pv;
         }
       }
     } else if (buildMode.tag === "Erase") {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const x = Math.floor(voxelIndex / sizeYZ);
-        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
-        const z = voxelIndex % sizeZ;
-
-        const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0) {
-          const realBlockValue = blocks[voxelIndex];
-          if (isBlockVisible(realBlockValue)) {
-            blocks[voxelIndex] = previewBlockValue;
-          }
+      for (let i = 0; i < len; i++) {
+        const pv = previewData[i];
+        if (pv !== 0 && isBlockVisible(blocks[i])) {
+          blocks[i] = pv;
         }
       }
     } else if (buildMode.tag === "Paint") {
-      for (let voxelIndex = 0; voxelIndex < blocks.length; voxelIndex++) {
-        const x = Math.floor(voxelIndex / sizeYZ);
-        const y = Math.floor((voxelIndex % sizeYZ) / sizeZ);
-        const z = voxelIndex % sizeZ;
-
-        const previewBlockValue = this.previewFrame.get(x, y, z);
-        if (previewBlockValue !== 0 && isBlockVisible(blocks[voxelIndex])) {
-          blocks[voxelIndex] = previewBlockValue;
+      for (let i = 0; i < len; i++) {
+        const pv = previewData[i];
+        if (pv !== 0 && isBlockVisible(blocks[i])) {
+          blocks[i] = pv;
         }
       }
     }
@@ -398,22 +386,14 @@ export class Chunk {
       return true;
     }
 
+    if (this.previewDirty) {
+      return true;
+    }
+
     for (let i = 0; i < this.blocksToRender.length; i++) {
       if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
         return true;
       }
-    }
-
-    if (this.previewFrame.isEmpty() && this.renderedPreviewFrame === null) {
-      return false;
-    }
-
-    if (this.previewFrame.isEmpty() !== (this.renderedPreviewFrame === null)) {
-      return true;
-    }
-
-    if (this.renderedPreviewFrame && !this.previewFrame.equals(this.renderedPreviewFrame)) {
-      return true;
     }
 
     return false;
@@ -443,12 +423,7 @@ export class Chunk {
         this.updateMeshes(this.atlasData);
         this.renderedBlocks.set(this.blocksToRender);
         this.atlasChanged = false;
-
-        if (this.previewFrame.isEmpty()) {
-          this.renderedPreviewFrame = null;
-        } else {
-          this.renderedPreviewFrame = this.previewFrame.clone();
-        }
+        this.previewDirty = false;
       }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);

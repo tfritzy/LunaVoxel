@@ -113,6 +113,12 @@ export class RectTool implements Tool {
     context.previewFrame.resize(frameSize, frameMinPos);
 
     const previewValue = this.getPreviewBlockValue(mode, selectedBlock);
+
+    if (fillShape === "Rect") {
+      context.previewFrame.fill(previewValue);
+      return;
+    }
+
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
