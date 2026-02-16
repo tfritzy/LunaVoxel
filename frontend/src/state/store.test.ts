@@ -25,6 +25,24 @@ describe("stateStore renameObject reducer", () => {
     expect(after).not.toBe(before);
     expect(after.colors).not.toBe(beforeColors);
   });
+
+  it("sets all block colors from a palette via setBlockColors", () => {
+    const palette = [0xaa0000, 0x00bb00, 0x0000cc];
+    stateStore.reducers.setBlockColors(palette);
+
+    const colors = stateStore.getState().blocks.colors;
+    expect(colors[0]).toBe(0xaa0000);
+    expect(colors[1]).toBe(0x00bb00);
+    expect(colors[2]).toBe(0x0000cc);
+    expect(colors[3]).toBe(0xaa0000);
+    expect(colors.length).toBe(127);
+  });
+
+  it("initializes with non-uniform default palette colors", () => {
+    const colors = stateStore.getState().blocks.colors;
+    const unique = new Set(colors);
+    expect(unique.size).toBeGreaterThan(1);
+  });
 });
 
 describe("selectAllVoxels and deleteSelectedVoxels", () => {
