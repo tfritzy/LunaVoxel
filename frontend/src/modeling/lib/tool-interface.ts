@@ -71,5 +71,7 @@ export interface Tool {
 
   cancelPendingOperation?(context: ToolContext): void;
 
+  updatePendingPreview?(context: ToolContext): void;
+
   dispose?(): void;
 }

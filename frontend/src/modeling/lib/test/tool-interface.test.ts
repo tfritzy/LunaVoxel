@@ -433,7 +433,7 @@ describe("Tool Interface", () => {
       expect(bounds.maxY).toBe(9);
     });
 
-    it("should commit with original shape even if fill shape is changed after preview", () => {
+    it("should update preview shape when fill shape is changed during pending", () => {
       tool.setOption("Fill Shape", "Sphere");
 
       tool.onMouseUp(mockContext, {
@@ -461,11 +461,11 @@ describe("Tool Interface", () => {
       tool.commitPendingOperation(mockContext);
 
       expect(committedFrame).not.toBeNull();
-      expect(committedFrame!.get(0, 0, 0)).toBe(0);
+      expect(committedFrame!.get(0, 0, 0)).toBeGreaterThan(0);
       expect(committedFrame!.get(2, 2, 2)).toBeGreaterThan(0);
     });
 
-    it("should commit with original color even if selected block is changed after preview", () => {
+    it("should update pending color when selected block is changed during pending", () => {
       mockContext.selectedBlock = 5;
 
       tool.onMouseUp(mockContext, {
@@ -479,24 +479,22 @@ describe("Tool Interface", () => {
       expect(previewValue).toBe(5);
 
       mockContext.selectedBlock = 9;
+      (tool as RectTool).updatePendingPreview(mockContext);
 
-      let committedMode: BlockModificationMode | null = null;
       let committedBlock: number | null = null;
       mockContext.reducers = {
         ...mockContext.reducers,
-        applyFrame: (mode, block) => {
-          committedMode = mode;
+        applyFrame: (_mode, block) => {
           committedBlock = block;
         },
       };
 
       tool.commitPendingOperation(mockContext);
 
-      expect(committedMode).not.toBeNull();
-      expect(committedBlock).toBe(5);
+      expect(committedBlock).toBe(9);
     });
 
-    it("should use original shape when resizing pending bounds after shape change", () => {
+    it("should use new shape when resizing pending bounds after shape change", () => {
       tool.setOption("Fill Shape", "Sphere");
 
       tool.onMouseUp(mockContext, {
@@ -508,13 +506,13 @@ describe("Tool Interface", () => {
 
       tool.setOption("Fill Shape", "Rect");
 
-      tool.resizePendingBounds(mockContext, {
+      (tool as RectTool).resizePendingBounds(mockContext, {
         minX: 0, maxX: 6,
         minY: 0, maxY: 6,
         minZ: 0, maxZ: 6,
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
       expect(mockContext.previewFrame.get(3, 3, 3)).toBeGreaterThan(0);
     });
   });
