@@ -6,7 +6,7 @@ import { stateStore, useGlobalState } from "@/state/store";
 const BLOCK_WIDTH = "3em";
 const BLOCK_HEIGHT = "4.1rem";
 const HORIZONTAL_OFFSET = "1.44rem";
-const VERTICAL_OVERLAP = "-2.75rem";
+const VERTICAL_OVERLAP = "-2.88rem";
 const HORIZONTAL_GAP = "-1.5rem";
 const SELECTED_RAISE = "-0.95rem";
 
