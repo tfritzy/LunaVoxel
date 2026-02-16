@@ -9,7 +9,7 @@ import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
-import { VoxelFrame } from "../voxel-frame";
+import { FlatVoxelFrame } from "../flat-voxel-frame";
 
 describe("Tool Interface", () => {
   let mockContext: ToolContext;
@@ -54,7 +54,7 @@ describe("Tool Interface", () => {
           setPreview: () => {},
         },
       } as unknown as ProjectManager,
-      previewFrame: new VoxelFrame(dimensions),
+      previewFrame: new FlatVoxelFrame(dimensions),
       selectedBlock: 1,
       selectedObject: 0,
       setSelectedBlockInParent: () => {},
@@ -712,7 +712,7 @@ describe("Tool Interface", () => {
     it("should create sphere-shaped stamp with default settings", () => {
       tool.setOption("Size", "3");
 
-      let lastFrame: VoxelFrame | null = null;
+      let lastFrame: FlatVoxelFrame | null = null;
       mockContext.reducers = {
         ...mockContext.reducers,
         applyFrame: (_mode, _block, frame) => {
@@ -734,7 +734,7 @@ describe("Tool Interface", () => {
       tool.setOption("Brush Shape", "Cube");
       tool.setOption("Size", "3");
 
-      let lastFrame: VoxelFrame | null = null;
+      let lastFrame: FlatVoxelFrame | null = null;
       mockContext.reducers = {
         ...mockContext.reducers,
         applyFrame: (_mode, _block, frame) => {
@@ -764,7 +764,7 @@ describe("Tool Interface", () => {
       const benchContext: ToolContext = {
         ...mockContext,
         dimensions: benchDimensions,
-        previewFrame: new VoxelFrame(benchDimensions),
+        previewFrame: new FlatVoxelFrame(benchDimensions),
       };
 
       const start = performance.now();

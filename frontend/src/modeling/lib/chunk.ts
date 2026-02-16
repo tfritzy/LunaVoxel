@@ -7,7 +7,6 @@ import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
-import { VoxelFrame } from "./voxel-frame";
 import { FlatVoxelFrame } from "./flat-voxel-frame";
 
 type SelectionFrameData = {
@@ -40,8 +39,8 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private mergedSelectionFrame: FlatVoxelFrame;
-  private previewFrame: VoxelFrame;
-  private renderedPreviewFrame: VoxelFrame | null = null;
+  private previewFrame: FlatVoxelFrame;
+  private renderedPreviewFrame: FlatVoxelFrame | null = null;
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private getObjectVisible: (objectIndex: number) => boolean;
@@ -75,7 +74,7 @@ export class Chunk {
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
     this.mergedSelectionFrame = new FlatVoxelFrame(size);
-    this.previewFrame = new VoxelFrame(size);
+    this.previewFrame = new FlatVoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
     const maxVertices = maxFaces * 4;
@@ -192,7 +191,7 @@ export class Chunk {
   }
 
   public setPreviewData(
-    sourceFrame: VoxelFrame,
+    sourceFrame: FlatVoxelFrame,
     sourceMinX: number,
     sourceMinY: number,
     sourceMinZ: number,

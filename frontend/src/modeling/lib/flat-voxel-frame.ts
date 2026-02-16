@@ -158,4 +158,110 @@ export class FlatVoxelFrame {
   public getData(): Uint8Array {
     return this.data;
   }
+
+  public getMaxPos(): Vector3 {
+    return {
+      x: this.minPos.x + this.dimensions.x,
+      y: this.minPos.y + this.dimensions.y,
+      z: this.minPos.z + this.dimensions.z,
+    };
+  }
+
+  public resize(newDimensions: Vector3, newMinPos?: Vector3): void {
+    const targetMinPos = newMinPos || this.minPos;
+
+    if (
+      newDimensions.x === this.dimensions.x &&
+      newDimensions.y === this.dimensions.y &&
+      newDimensions.z === this.dimensions.z &&
+      targetMinPos.x === this.minPos.x &&
+      targetMinPos.y === this.minPos.y &&
+      targetMinPos.z === this.minPos.z
+    ) {
+      return;
+    }
+
+    const newTotal = newDimensions.x * newDimensions.y * newDimensions.z;
+    const newData = new Uint8Array(newTotal);
+
+    const overlapMinX = Math.max(this.minPos.x, targetMinPos.x);
+    const overlapMinY = Math.max(this.minPos.y, targetMinPos.y);
+    const overlapMinZ = Math.max(this.minPos.z, targetMinPos.z);
+    const overlapMaxX = Math.min(this.minPos.x + this.dimensions.x, targetMinPos.x + newDimensions.x);
+    const overlapMaxY = Math.min(this.minPos.y + this.dimensions.y, targetMinPos.y + newDimensions.y);
+    const overlapMaxZ = Math.min(this.minPos.z + this.dimensions.z, targetMinPos.z + newDimensions.z);
+
+    for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
+      for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
+        for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
+          const oldLocalX = worldX - this.minPos.x;
+          const oldLocalY = worldY - this.minPos.y;
+          const oldLocalZ = worldZ - this.minPos.z;
+          const newLocalX = worldX - targetMinPos.x;
+          const newLocalY = worldY - targetMinPos.y;
+          const newLocalZ = worldZ - targetMinPos.z;
+          const oldIndex = oldLocalX * this.dimensions.y * this.dimensions.z + oldLocalY * this.dimensions.z + oldLocalZ;
+          const newIndex = newLocalX * newDimensions.y * newDimensions.z + newLocalY * newDimensions.z + newLocalZ;
+          newData[newIndex] = this.data[oldIndex];
+        }
+      }
+    }
+
+    this.dimensions = { ...newDimensions };
+    this.minPos = { ...targetMinPos };
+    this.data = newData;
+  }
+
+  public hasAnySet(): boolean {
+    for (let i = 0; i < this.data.length; i++) {
+      if (this.data[i] !== 0) return true;
+    }
+    return false;
+  }
+
+  public equals(other: FlatVoxelFrame): boolean {
+    if (this.empty && other.empty) return true;
+    if (this.empty !== other.empty) return false;
+
+    if (
+      this.dimensions.x !== other.dimensions.x ||
+      this.dimensions.y !== other.dimensions.y ||
+      this.dimensions.z !== other.dimensions.z
+    ) {
+      return false;
+    }
+
+    for (let i = 0; i < this.data.length; i++) {
+      if (this.data[i] !== other.data[i]) return false;
+    }
+
+    return true;
+  }
+
+  public clone(newMinPos?: Vector3, newMaxPos?: Vector3): FlatVoxelFrame {
+    if (newMinPos && newMaxPos) {
+      const newDimensions = {
+        x: newMaxPos.x - newMinPos.x,
+        y: newMaxPos.y - newMinPos.y,
+        z: newMaxPos.z - newMinPos.z,
+      };
+      const cloned = new FlatVoxelFrame(newDimensions, newMinPos);
+
+      for (let worldX = newMinPos.x; worldX < newMaxPos.x; worldX++) {
+        for (let worldY = newMinPos.y; worldY < newMaxPos.y; worldY++) {
+          for (let worldZ = newMinPos.z; worldZ < newMaxPos.z; worldZ++) {
+            const value = this.get(worldX, worldY, worldZ);
+            if (value !== 0) {
+              cloned.set(worldX, worldY, worldZ, value);
+            }
+          }
+        }
+      }
+
+      return cloned;
+    } else {
+      const cloned = new FlatVoxelFrame(this.dimensions, this.minPos, new Uint8Array(this.data));
+      return cloned;
+    }
+  }
 }

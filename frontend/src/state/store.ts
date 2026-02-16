@@ -9,7 +9,6 @@ import type {
   Vector3,
 } from "./types";
 import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
-import type { VoxelFrame } from "@/modeling/lib/voxel-frame";
 import { FlatVoxelFrame } from "@/modeling/lib/flat-voxel-frame";
 
 export type GlobalState = {
@@ -29,7 +28,7 @@ export type Reducers = {
   applyFrame: (
     mode: BlockModificationMode,
     blockType: number,
-    frame: VoxelFrame,
+    frame: FlatVoxelFrame,
     objectIndex: number
   ) => void;
   undoEdit: (
