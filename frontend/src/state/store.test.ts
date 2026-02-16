@@ -34,7 +34,7 @@ describe("stateStore renameObject reducer", () => {
     expect(colors[0]).toBe(0xaa0000);
     expect(colors[1]).toBe(0x00bb00);
     expect(colors[2]).toBe(0x0000cc);
-    expect(colors[3]).toBe(0xaa0000);
+    expect(colors[3]).toBe(0x393a4b);
     expect(colors.length).toBe(127);
   });
 
