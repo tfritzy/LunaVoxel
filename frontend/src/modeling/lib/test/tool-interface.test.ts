@@ -725,7 +725,7 @@ describe("Tool Interface", () => {
       expect(gridPos.y).toBe(2);
     });
 
-    it("should apply voxels on mouse down", () => {
+    it("should not apply voxels on mouse down", () => {
       let applyFrameCalled = false;
       mockContext.reducers = {
         ...mockContext.reducers,
@@ -739,10 +739,10 @@ describe("Tool Interface", () => {
         mousePosition: new THREE.Vector2(0, 0),
       });
 
-      expect(applyFrameCalled).toBe(true);
+      expect(applyFrameCalled).toBe(false);
     });
 
-    it("should apply voxels on drag to new positions", () => {
+    it("should apply voxels once on mouse up after stroke", () => {
       let applyCount = 0;
       mockContext.reducers = {
         ...mockContext.reducers,
@@ -763,22 +763,25 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.1, 0),
       });
 
-      expect(applyCount).toBe(2);
+      expect(applyCount).toBe(0);
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(5, 5, 5),
+        currentGridPosition: new THREE.Vector3(6, 5, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.1, 0),
+      });
+
+      expect(applyCount).toBe(1);
     });
 
-    it("should not re-apply at the same position", () => {
-      let applyCount = 0;
-      mockContext.reducers = {
-        ...mockContext.reducers,
-        applyFrame: () => {
-          applyCount++;
-        },
-      };
-
+    it("should not re-stamp at the same position during drag", () => {
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(5, 5, 5),
         mousePosition: new THREE.Vector2(0, 0),
       });
+
+      const valueBefore = mockContext.previewFrame.get(5, 5, 5);
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(5, 5, 5),
@@ -787,7 +790,29 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0, 0),
       });
 
-      expect(applyCount).toBe(1);
+      expect(mockContext.previewFrame.get(5, 5, 5)).toBe(valueBefore);
+    });
+
+    it("should accumulate stamps in preview frame during stroke", () => {
+      tool.setOption("Brush Shape", "Cube");
+      tool.setOption("Size", "1");
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(2, 2, 2),
+        currentGridPosition: new THREE.Vector3(5, 5, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.1, 0.1),
+      });
+
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(5, 5, 5)).toBeGreaterThan(0);
     });
 
     it("should create sphere-shaped stamp with default settings", () => {
@@ -804,6 +829,13 @@ describe("Tool Interface", () => {
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(5, 5, 5),
         mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(5, 5, 5),
+        currentGridPosition: new THREE.Vector3(5, 5, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(lastFrame).not.toBeNull();
@@ -826,6 +858,13 @@ describe("Tool Interface", () => {
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(5, 5, 5),
         mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(5, 5, 5),
+        currentGridPosition: new THREE.Vector3(5, 5, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(lastFrame).not.toBeNull();
