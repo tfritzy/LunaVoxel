@@ -45,7 +45,7 @@ export interface Tool {
 
   getOptions(): ToolOption[];
 
-  setOption(name: string, value: string, context?: ToolContext): void;
+  setOption(name: string, value: string): void;
 
   calculateGridPosition(
     gridPosition: THREE.Vector3,
@@ -70,6 +70,8 @@ export interface Tool {
   commitPendingOperation?(context: ToolContext): void;
 
   cancelPendingOperation?(context: ToolContext): void;
+
+  updatePendingPreview?(context: ToolContext): void;
 
   dispose?(): void;
 }

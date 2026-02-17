@@ -182,11 +182,8 @@ export const Builder = class {
   }
 
   public setToolOption(name: string, value: string): void {
-    this.currentTool.setOption(name, value, this.toolContext);
-  }
-
-  private updateToolContext(): void {
-    this.currentTool.setOption("", "", this.toolContext);
+    this.currentTool.setOption(name, value);
+    this.currentTool.updatePendingPreview?.(this.toolContext);
   }
 
   public setSelectedBlock(
@@ -197,7 +194,7 @@ export const Builder = class {
     this.setSelectedBlockInParent = setter;
     this.toolContext.selectedBlock = block;
     this.toolContext.setSelectedBlockInParent = setter;
-    this.updateToolContext();
+    this.currentTool.updatePendingPreview?.(this.toolContext);
   }
 
   public setSelectedObject(objectIndex: number): void {
