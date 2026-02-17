@@ -389,12 +389,6 @@ export const Builder = class {
         this.currentMode
       );
 
-      if (gridPos.x < 0 || gridPos.x >= this.dimensions.x ||
-          gridPos.y < 0 || gridPos.y >= this.dimensions.y ||
-          gridPos.z < 0 || gridPos.z >= this.dimensions.z) {
-        return null;
-      }
-
       return gridPos;
     }
 

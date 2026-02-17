@@ -199,6 +199,36 @@ describe("Tool Interface", () => {
       
       expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
     });
+
+    it("should clamp rect bounds when dragging outside world bounds", () => {
+      const tool = new RectTool();
+      tool.setOption("Adjust Before Apply", "false");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(5, 0, 5),
+        currentGridPosition: new THREE.Vector3(15, 0, 15),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(5, 0, 5)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(9, 0, 9)).toBeGreaterThan(0);
+    });
+
+    it("should clamp rect bounds when both start and end are outside world bounds", () => {
+      const tool = new RectTool();
+      tool.setOption("Adjust Before Apply", "false");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(-5, 0, -5),
+        currentGridPosition: new THREE.Vector3(15, 0, 15),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(9, 0, 9)).toBeGreaterThan(0);
+    });
   });
 
   describe("RectTool Fill Shapes", () => {

@@ -114,7 +114,7 @@ export function performRaycast(
         if (crossedPlane(prevX, x, dimensions.x)) {
           return {
             gridPosition: new THREE.Vector3(prevX, y, z),
-            normal: new THREE.Vector3(-stepX, 0, 0),
+            normal: new THREE.Vector3(0, 0, 0),
             blockValue: RAYCASTABLE_BIT,
           };
         }
@@ -126,7 +126,7 @@ export function performRaycast(
         if (crossedPlane(prevZ, z, dimensions.z)) {
           return {
             gridPosition: new THREE.Vector3(x, y, prevZ),
-            normal: new THREE.Vector3(0, 0, -stepZ),
+            normal: new THREE.Vector3(0, 0, 0),
             blockValue: RAYCASTABLE_BIT,
           };
         }
@@ -140,7 +140,7 @@ export function performRaycast(
         if (crossedPlane(prevY, y, dimensions.y)) {
           return {
             gridPosition: new THREE.Vector3(x, prevY, z),
-            normal: new THREE.Vector3(0, -stepY, 0),
+            normal: new THREE.Vector3(0, 0, 0),
             blockValue: RAYCASTABLE_BIT,
           };
         }
@@ -152,7 +152,7 @@ export function performRaycast(
         if (crossedPlane(prevZ, z, dimensions.z)) {
           return {
             gridPosition: new THREE.Vector3(x, y, prevZ),
-            normal: new THREE.Vector3(0, 0, -stepZ),
+            normal: new THREE.Vector3(0, 0, 0),
             blockValue: RAYCASTABLE_BIT,
           };
         }
