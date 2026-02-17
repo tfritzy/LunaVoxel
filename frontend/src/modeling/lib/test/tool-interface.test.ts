@@ -41,6 +41,7 @@ describe("Tool Interface", () => {
       updateBlockColor: () => {},
       setBlockColors: () => {},
       restoreObject: () => {},
+      resizeProject: () => {},
     };
 
     mockContext = {

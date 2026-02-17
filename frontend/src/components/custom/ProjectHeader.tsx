@@ -7,12 +7,14 @@ interface ProjectHeaderProps {
   onExport: (format: ExportType) => void;
   onUndo: () => void;
   onRedo: () => void;
+  onResizeProject: () => void;
 }
 
 export function ProjectHeader({
   onExport,
   onUndo,
   onRedo,
+  onResizeProject,
 }: ProjectHeaderProps) {
   const handleExport = useCallback(
     (type: ExportType) => {
@@ -30,7 +32,7 @@ export function ProjectHeader({
               onExport={handleExport}
             />
             {onUndo && onRedo && (
-              <EditDropdown onUndo={onUndo} onRedo={onRedo} />
+              <EditDropdown onUndo={onUndo} onRedo={onRedo} onResizeProject={onResizeProject} />
             )}
           </div>
         </div>

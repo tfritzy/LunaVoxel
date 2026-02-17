@@ -90,3 +90,93 @@ describe("selectAllVoxels and deleteSelectedVoxels", () => {
     expect(chunksAfter[0].voxels).toEqual(voxelsBefore);
   });
 });
+
+describe("resizeProject", () => {
+  beforeEach(() => {
+    resetState();
+  });
+
+  const getVoxelAt = (x: number, y: number, z: number) => {
+    const dims = stateStore.getState().project.dimensions;
+    const objectId = stateStore.getState().objects[0].id;
+    for (const chunk of stateStore.getState().chunks.values()) {
+      if (chunk.objectId !== objectId) continue;
+      const lx = x - chunk.minPos.x;
+      const ly = y - chunk.minPos.y;
+      const lz = z - chunk.minPos.z;
+      if (lx < 0 || ly < 0 || lz < 0 ||
+          lx >= chunk.size.x || ly >= chunk.size.y || lz >= chunk.size.z) continue;
+      void dims;
+      return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
+    }
+    return 0;
+  };
+
+  it("updates project and object dimensions", () => {
+    stateStore.reducers.resizeProject(
+      { x: 128, y: 128, z: 128 },
+      { x: 0, y: 0, z: 0 }
+    );
+
+    const { project, objects } = stateStore.getState();
+    expect(project.dimensions).toEqual({ x: 128, y: 128, z: 128 });
+    expect(objects[0].dimensions).toEqual({ x: 128, y: 128, z: 128 });
+  });
+
+  it("preserves voxels when expanding with anchor at origin", () => {
+    stateStore.reducers.resizeProject(
+      { x: 128, y: 128, z: 128 },
+      { x: 0, y: 0, z: 0 }
+    );
+
+    expect(getVoxelAt(10, 0, 10)).not.toBe(0);
+    expect(getVoxelAt(14, 3, 14)).not.toBe(0);
+    expect(getVoxelAt(12, 5, 12)).not.toBe(0);
+  });
+
+  it("shifts voxels when expanding with anchor at 1,1,1", () => {
+    stateStore.reducers.resizeProject(
+      { x: 128, y: 128, z: 128 },
+      { x: 1, y: 1, z: 1 }
+    );
+
+    const offset = 128 - 64;
+    expect(getVoxelAt(10 + offset, 0 + offset, 10 + offset)).not.toBe(0);
+    expect(getVoxelAt(14 + offset, 3 + offset, 14 + offset)).not.toBe(0);
+  });
+
+  it("shifts voxels when expanding with centered anchor", () => {
+    stateStore.reducers.resizeProject(
+      { x: 128, y: 128, z: 128 },
+      { x: 0.5, y: 0.5, z: 0.5 }
+    );
+
+    const offset = 32;
+    expect(getVoxelAt(10 + offset, 0 + offset, 10 + offset)).not.toBe(0);
+  });
+
+  it("shrinks project and clips out-of-bounds voxels", () => {
+    stateStore.reducers.resizeProject(
+      { x: 12, y: 12, z: 12 },
+      { x: 0, y: 0, z: 0 }
+    );
+
+    const { project } = stateStore.getState();
+    expect(project.dimensions).toEqual({ x: 12, y: 12, z: 12 });
+    expect(getVoxelAt(10, 0, 10)).not.toBe(0);
+    expect(getVoxelAt(11, 1, 11)).not.toBe(0);
+    expect(getVoxelAt(14, 3, 14)).toBe(0);
+  });
+
+  it("clears selections on resize", () => {
+    stateStore.reducers.selectAllVoxels("local-project", 0);
+    expect(stateStore.getState().objects[0].selection).not.toBeNull();
+
+    stateStore.reducers.resizeProject(
+      { x: 128, y: 128, z: 128 },
+      { x: 0, y: 0, z: 0 }
+    );
+
+    expect(stateStore.getState().objects[0].selection).toBeNull();
+  });
+});

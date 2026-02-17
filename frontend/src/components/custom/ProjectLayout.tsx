@@ -19,6 +19,7 @@ interface ProjectLayoutProps {
   onSelectObject?: (objectIndex: number) => void;
   onUndo: () => void;
   onRedo: () => void;
+  onResizeProject: () => void;
   children: React.ReactNode;
   toolOptions: ToolOption[];
   onToolOptionChange: (name: string, value: string) => void;
@@ -36,6 +37,7 @@ export const ProjectLayout = ({
   onSelectObject,
   onUndo,
   onRedo,
+  onResizeProject,
   children,
   toolOptions,
   onToolOptionChange,
@@ -46,6 +48,7 @@ export const ProjectLayout = ({
         onExport={onExport}
         onUndo={onUndo}
         onRedo={onRedo}
+        onResizeProject={onResizeProject}
       />
 
       <div className="flex flex-1 min-h-0">

@@ -3,10 +3,11 @@ import { VoxelEngine } from "../modeling/voxel-engine";
 import { CameraStatePersistence } from "@/modeling/lib/camera-controller-persistence";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { ProjectLayout } from "@/components/custom/ProjectLayout";
+import { ResizeProjectModal } from "@/components/custom/ResizeProjectModal";
 import { useAtlas } from "@/lib/useAtlas";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
-import type { BlockModificationMode } from "@/state/types";
+import type { BlockModificationMode, Vector3 } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
 
 export const ProjectViewPage = () => {
@@ -17,6 +18,7 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
+  const [resizeModalOpen, setResizeModalOpen] = useState(false);
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
   const atlasData = useAtlas();
@@ -41,6 +43,10 @@ export const ProjectViewPage = () => {
     if (engineRef.current?.projectManager) {
       engineRef.current.projectManager.redo();
     }
+  }, []);
+
+  const handleResizeProject = useCallback((newDimensions: Vector3, anchor: Vector3) => {
+    stateStore.reducers.resizeProject(newDimensions, anchor);
   }, []);
 
   const disposeEngine = useCallback(() => {
@@ -174,12 +180,19 @@ export const ProjectViewPage = () => {
       onSelectObject={handleObjectSelect}
       onUndo={handleUndo}
       onRedo={handleRedo}
+      onResizeProject={() => setResizeModalOpen(true)}
       toolOptions={toolOptions}
       onToolOptionChange={handleToolOptionChange}
     >
       <div
         ref={containerCallbackRef}
         className="w-full h-full bg-background"
+      />
+      <ResizeProjectModal
+        isOpen={resizeModalOpen}
+        onClose={() => setResizeModalOpen(false)}
+        currentDimensions={project.dimensions}
+        onResize={handleResizeProject}
       />
     </ProjectLayout>
   );

@@ -1,19 +1,21 @@
-import { Undo2, Redo2 } from "lucide-react";
+import { Undo2, Redo2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuShortcut,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 interface EditDropdownProps {
   onUndo: () => void;
   onRedo: () => void;
+  onResizeProject: () => void;
 }
 
-export const EditDropdown = ({ onUndo, onRedo }: EditDropdownProps) => {
+export const EditDropdown = ({ onUndo, onRedo, onResizeProject }: EditDropdownProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -31,6 +33,11 @@ export const EditDropdown = ({ onUndo, onRedo }: EditDropdownProps) => {
           <Redo2 className="mr-2 h-4 w-4" />
           Redo
           <DropdownMenuShortcut>⌘⇧Z</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onResizeProject}>
+          <Maximize2 className="mr-2 h-4 w-4" />
+          Resize Project
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

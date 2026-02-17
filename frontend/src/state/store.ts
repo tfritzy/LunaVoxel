@@ -55,6 +55,7 @@ export type Reducers = {
     atIndex: number,
     chunks: Map<string, { key: string; minPos: Vector3; size: Vector3; voxels: Uint8Array }>
   ) => void;
+  resizeProject: (newDimensions: Vector3, anchor: Vector3) => void;
 };
 
 export type StateStore = {
@@ -486,6 +487,117 @@ const reducers: Reducers = {
           voxels: new Uint8Array(chunkData.voxels),
         });
       }
+    });
+  },
+  resizeProject: (newDimensions, anchor) => {
+    updateState((current) => {
+      const oldDims = current.project.dimensions;
+      const dx = newDimensions.x - oldDims.x;
+      const dy = newDimensions.y - oldDims.y;
+      const dz = newDimensions.z - oldDims.z;
+
+      const offsetX = Math.round(dx * anchor.x);
+      const offsetY = Math.round(dy * anchor.y);
+      const offsetZ = Math.round(dz * anchor.z);
+
+      if (offsetX !== 0 || offsetY !== 0 || offsetZ !== 0) {
+        const newChunks = new Map<string, ChunkData>();
+        for (const [, chunkData] of current.chunks) {
+          const oldVoxels = chunkData.voxels;
+          const oldMinPos = chunkData.minPos;
+          const oldSize = chunkData.size;
+
+          for (let lx = 0; lx < oldSize.x; lx++) {
+            for (let ly = 0; ly < oldSize.y; ly++) {
+              for (let lz = 0; lz < oldSize.z; lz++) {
+                const idx = lx * oldSize.y * oldSize.z + ly * oldSize.z + lz;
+                const val = oldVoxels[idx];
+                if (val === 0) continue;
+
+                const wx = oldMinPos.x + lx + offsetX;
+                const wy = oldMinPos.y + ly + offsetY;
+                const wz = oldMinPos.z + lz + offsetZ;
+
+                if (wx < 0 || wy < 0 || wz < 0 ||
+                    wx >= newDimensions.x || wy >= newDimensions.y || wz >= newDimensions.z) {
+                  continue;
+                }
+
+                const chunkX = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
+                const chunkY = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
+                const chunkZ = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
+                const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
+                const key = getChunkKey(chunkData.objectId, chunkMinPos);
+
+                let newChunk = newChunks.get(key);
+                if (!newChunk) {
+                  const size = {
+                    x: Math.min(CHUNK_SIZE, newDimensions.x - chunkX),
+                    y: Math.min(CHUNK_SIZE, newDimensions.y - chunkY),
+                    z: Math.min(CHUNK_SIZE, newDimensions.z - chunkZ),
+                  };
+                  newChunk = {
+                    key,
+                    projectId: chunkData.projectId,
+                    objectId: chunkData.objectId,
+                    minPos: chunkMinPos,
+                    size,
+                    voxels: new Uint8Array(size.x * size.y * size.z),
+                  };
+                  newChunks.set(key, newChunk);
+                }
+
+                const nlx = wx - chunkX;
+                const nly = wy - chunkY;
+                const nlz = wz - chunkZ;
+                const nIdx = nlx * newChunk.size.y * newChunk.size.z + nly * newChunk.size.z + nlz;
+                newChunk.voxels[nIdx] = val;
+              }
+            }
+          }
+        }
+        current.chunks = newChunks;
+      } else {
+        const updatedChunks = new Map<string, ChunkData>();
+        for (const [key, chunkData] of current.chunks) {
+          const newSize = {
+            x: Math.min(CHUNK_SIZE, newDimensions.x - chunkData.minPos.x),
+            y: Math.min(CHUNK_SIZE, newDimensions.y - chunkData.minPos.y),
+            z: Math.min(CHUNK_SIZE, newDimensions.z - chunkData.minPos.z),
+          };
+
+          if (newSize.x <= 0 || newSize.y <= 0 || newSize.z <= 0) continue;
+          if (chunkData.minPos.x >= newDimensions.x ||
+              chunkData.minPos.y >= newDimensions.y ||
+              chunkData.minPos.z >= newDimensions.z) continue;
+
+          if (newSize.x === chunkData.size.x &&
+              newSize.y === chunkData.size.y &&
+              newSize.z === chunkData.size.z) {
+            updatedChunks.set(key, chunkData);
+          } else {
+            const newVoxels = new Uint8Array(newSize.x * newSize.y * newSize.z);
+            for (let lx = 0; lx < newSize.x; lx++) {
+              for (let ly = 0; ly < newSize.y; ly++) {
+                for (let lz = 0; lz < newSize.z; lz++) {
+                  const oldIdx = lx * chunkData.size.y * chunkData.size.z + ly * chunkData.size.z + lz;
+                  const newIdx = lx * newSize.y * newSize.z + ly * newSize.z + lz;
+                  newVoxels[newIdx] = chunkData.voxels[oldIdx];
+                }
+              }
+            }
+            updatedChunks.set(key, { ...chunkData, size: newSize, voxels: newVoxels });
+          }
+        }
+        current.chunks = updatedChunks;
+      }
+
+      current.project = { ...current.project, dimensions: { ...newDimensions } };
+      current.objects = current.objects.map((obj) => ({
+        ...obj,
+        dimensions: { ...newDimensions },
+        selection: null,
+      }));
     });
   },
 };
