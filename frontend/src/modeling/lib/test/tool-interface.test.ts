@@ -40,6 +40,7 @@ describe("Tool Interface", () => {
       deleteSelectedVoxels: () => {},
       updateBlockColor: () => {},
       setBlockColors: () => {},
+      restoreObject: () => {},
     };
 
     mockContext = {

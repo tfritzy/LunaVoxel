@@ -1,5 +1,5 @@
 import { HexColorPicker } from "react-colorful";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "@/components/custom/color-picker.css";
 
 const getTextColor = (hexColor: string): string => {
@@ -18,17 +18,53 @@ const isValidHex = (hex: string): boolean => {
 export const ColorPicker = ({
   color,
   onChange,
+  onChangeComplete,
 }: {
   color: string;
   onChange: (color: string) => void;
+  onChangeComplete?: (color: string) => void;
 }) => {
   const [inputValue, setInputValue] = useState(color);
+  const colorBeforeEditRef = useRef<string>(color);
+  const isDraggingRef = useRef(false);
+  const isEditingInputRef = useRef(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isValidHex(color)) {
       setInputValue(color);
     }
   }, [color]);
+
+  useEffect(() => {
+    if (!isDraggingRef.current && !isEditingInputRef.current) {
+      colorBeforeEditRef.current = color;
+    }
+  }, [color]);
+
+  useEffect(() => {
+    const el = pickerRef.current;
+    if (!el) return;
+
+    const handleMouseDown = () => {
+      isDraggingRef.current = true;
+      colorBeforeEditRef.current = color;
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        onChangeComplete?.(colorBeforeEditRef.current);
+      }
+    };
+
+    el.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      el.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [color, onChangeComplete]);
 
   const handleColorChange = (newColor: string) => {
     onChange(newColor);
@@ -47,10 +83,15 @@ export const ColorPicker = ({
   const handleInputBlur = () => {
     if (!isValidHex(inputValue)) {
       setInputValue(color);
+    } else {
+      onChangeComplete?.(colorBeforeEditRef.current);
     }
+    isEditingInputRef.current = false;
   };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    isEditingInputRef.current = true;
+    colorBeforeEditRef.current = color;
     e.target.select();
   };
 
@@ -59,7 +100,9 @@ export const ColorPicker = ({
 
   return (
     <div className="w-full">
-      <HexColorPicker color={color} onChange={handleColorChange} />
+      <div ref={pickerRef}>
+        <HexColorPicker color={color} onChange={handleColorChange} />
+      </div>
       <div className="mt-3 flex items-center gap-2">
         <div
           className="w-10 h-10 rounded-md border border-border shrink-0 shadow-sm"
