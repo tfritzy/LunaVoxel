@@ -163,7 +163,7 @@ describe("voxel-raycast", () => {
       expect(result!.gridPosition.x).toBe(15);
       expect(result!.gridPosition.y).toBe(8);
       expect(result!.gridPosition.z).toBe(8);
-      expect(result!.normal.x).toBe(-1);
+      expect(result!.normal.x).toBe(0);
       expect(result!.blockValue).toBe(0x80);
     });
 
@@ -284,7 +284,7 @@ describe("voxel-raycast", () => {
       expect(result!.gridPosition.y).toBe(0);
       expect(result!.gridPosition.x).toBe(50);
       expect(result!.gridPosition.z).toBe(50);
-      expect(result!.normal.y).toBe(1);
+      expect(result!.normal.y).toBe(0);
       expect(result!.blockValue).toBe(0x80);
     });
 
@@ -305,7 +305,7 @@ describe("voxel-raycast", () => {
       expect(result!.gridPosition.y).toBe(0);
       expect(result!.gridPosition.x).toBe(500);
       expect(result!.gridPosition.z).toBe(500);
-      expect(result!.normal.y).toBe(1);
+      expect(result!.normal.y).toBe(0);
       expect(result!.blockValue).toBe(0x80);
     });
 
@@ -340,6 +340,69 @@ describe("voxel-raycast", () => {
       );
 
       expect(result).toBeNull();
+    });
+
+    it("should return zero normal for boundary hits so voxels place directly on ground", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(8.5, 10, 8.5);
+      const direction = new THREE.Vector3(0, -1, 0);
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.gridPosition.y).toBe(0);
+      expect(result!.normal.x).toBe(0);
+      expect(result!.normal.y).toBe(0);
+      expect(result!.normal.z).toBe(0);
+      expect(result!.blockValue).toBe(0x80);
+    });
+
+    it("should return zero normal for boundary hits on x axis", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(-5, 8.5, 8.5);
+      const direction = new THREE.Vector3(1, 0, 0);
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.gridPosition.x).toBe(15);
+      expect(result!.normal.x).toBe(0);
+      expect(result!.normal.y).toBe(0);
+      expect(result!.normal.z).toBe(0);
+      expect(result!.blockValue).toBe(0x80);
+    });
+
+    it("should return zero normal for boundary hits on z axis", () => {
+      const grid = createVoxelGrid();
+
+      const origin = new THREE.Vector3(8.5, 8.5, -5);
+      const direction = new THREE.Vector3(0, 0, 1);
+
+      const result = performRaycast(
+        origin,
+        direction,
+        dimensions,
+        getVoxel(grid)
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.gridPosition.z).toBe(15);
+      expect(result!.normal.x).toBe(0);
+      expect(result!.normal.y).toBe(0);
+      expect(result!.normal.z).toBe(0);
+      expect(result!.blockValue).toBe(0x80);
     });
   });
 });
