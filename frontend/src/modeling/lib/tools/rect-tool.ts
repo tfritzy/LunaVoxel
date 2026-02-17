@@ -338,8 +338,6 @@ export class RectTool implements Tool {
   commitPendingOperation(context: ToolContext): void {
     if (!this.pending) return;
 
-    this.buildFrameFromBounds(context, this.pending.bounds);
-
     context.reducers.applyFrame(
       this.pending.mode,
       this.pending.selectedBlock,

@@ -449,6 +449,7 @@ describe("Tool Interface", () => {
       expect(previewCenter).toBeGreaterThan(0);
 
       tool.setOption("Fill Shape", "Rect");
+      (tool as RectTool).updatePendingPreview(mockContext);
 
       let committedFrame: VoxelFrame | null = null;
       mockContext.reducers = {
