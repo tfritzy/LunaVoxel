@@ -19,6 +19,7 @@ export class RectTool implements Tool {
   private fillShape: FillShape = "Rect";
   private direction: ShapeDirection = "+y";
   private adjustBeforeApply = true;
+  private lastContext: ToolContext | null = null;
   private pending: {
     bounds: RectBounds;
     mode: BlockModificationMode;
@@ -62,7 +63,7 @@ export class RectTool implements Tool {
     ];
   }
 
-  setOption(name: string, value: string, context?: ToolContext): void {
+  setOption(name: string, value: string): void {
     if (name === "Fill Shape") {
       this.fillShape = value as FillShape;
       if (this.pending) {
@@ -77,12 +78,12 @@ export class RectTool implements Tool {
       this.adjustBeforeApply = value === "true";
     }
 
-    if (context && this.pending) {
-      this.pending.selectedBlock = context.selectedBlock;
-      this.pending.selectedObject = context.selectedObject;
-      this.pending.mode = context.mode;
-      this.buildFrameFromBounds(context, this.pending.bounds);
-      context.projectManager.chunkManager.setPreview(context.previewFrame);
+    if (this.lastContext && this.pending) {
+      this.pending.selectedBlock = this.lastContext.selectedBlock;
+      this.pending.selectedObject = this.lastContext.selectedObject;
+      this.pending.mode = this.lastContext.mode;
+      this.buildFrameFromBounds(this.lastContext, this.pending.bounds);
+      this.lastContext.projectManager.chunkManager.setPreview(this.lastContext.previewFrame);
     }
   }
 
@@ -210,10 +211,12 @@ export class RectTool implements Tool {
       context.previewFrame.clear();
       context.projectManager.chunkManager.setPreview(context.previewFrame);
       this.pending = null;
+      this.lastContext = null;
       this.clearBoundsBox(context);
       return;
     }
 
+    this.lastContext = context;
     this.pending = {
       bounds,
       mode: context.mode,
@@ -355,6 +358,7 @@ export class RectTool implements Tool {
 
     context.previewFrame.clear();
     this.pending = null;
+    this.lastContext = null;
     this.clearBoundsBox(context);
   }
 
@@ -363,6 +367,7 @@ export class RectTool implements Tool {
     context.previewFrame.clear();
     context.projectManager.chunkManager.setPreview(context.previewFrame);
     this.pending = null;
+    this.lastContext = null;
     this.resizingCorner = null;
     this.resizeBaseBounds = null;
     this.clearBoundsBox(context);

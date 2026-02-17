@@ -448,7 +448,7 @@ describe("Tool Interface", () => {
       expect(previewCorner).toBe(0);
       expect(previewCenter).toBeGreaterThan(0);
 
-      tool.setOption("Fill Shape", "Rect", mockContext);
+      tool.setOption("Fill Shape", "Rect");
 
       let committedFrame: VoxelFrame | null = null;
       mockContext.reducers = {
@@ -479,7 +479,7 @@ describe("Tool Interface", () => {
       expect(previewValue).toBe(5);
 
       mockContext.selectedBlock = 9;
-      tool.setOption("", "", mockContext);
+      tool.setOption("", "");
 
       let committedBlock: number | null = null;
       mockContext.reducers = {
