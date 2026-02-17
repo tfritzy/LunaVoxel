@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { Vector3 } from "@/state/types";
 import { useGlobalState } from "@/state/store";
 import { AnchorPreview3D } from "./AnchorPreview3D";
@@ -19,16 +18,35 @@ export const ResizeProjectModal = ({
   currentDimensions,
   onResize,
 }: ResizeProjectModalProps) => {
-  const [dimensions, setDimensions] = useState<Vector3>({
-    ...currentDimensions,
+  const [dimText, setDimText] = useState({
+    x: String(currentDimensions.x),
+    y: String(currentDimensions.y),
+    z: String(currentDimensions.z),
   });
   const [anchor, setAnchor] = useState<Vector3>({ x: 0, y: 0, z: 0 });
   const colors = useGlobalState((state) => state.blocks.colors);
 
+  const parseDim = (val: string) => {
+    const n = parseInt(val, 10);
+    return !isNaN(n) && n > 0 && n <= 512 ? n : null;
+  };
+
+  const dimensions: Vector3 = {
+    x: parseDim(dimText.x) ?? currentDimensions.x,
+    y: parseDim(dimText.y) ?? currentDimensions.y,
+    z: parseDim(dimText.z) ?? currentDimensions.z,
+  };
+
   const handleDimensionChange = (axis: keyof Vector3, value: string) => {
-    const num = parseInt(value, 10);
-    if (!isNaN(num) && num > 0 && num <= 512) {
-      setDimensions((prev) => ({ ...prev, [axis]: num }));
+    if (value === "" || /^\d+$/.test(value)) {
+      setDimText((prev) => ({ ...prev, [axis]: value }));
+    }
+  };
+
+  const handleBlur = (axis: keyof Vector3) => {
+    const parsed = parseDim(dimText[axis]);
+    if (parsed === null) {
+      setDimText((prev) => ({ ...prev, [axis]: String(currentDimensions[axis]) }));
     }
   };
 
@@ -47,7 +65,7 @@ export const ResizeProjectModal = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Resize Project"
-      size="xl"
+      size="4xl"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
@@ -60,45 +78,36 @@ export const ResizeProjectModal = ({
       }
     >
       <div className="px-6 pb-4 space-y-4">
-        <div>
-          <div className="text-sm font-medium text-foreground mb-3">
-            New Dimensions
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {(["x", "y", "z"] as const).map((axis) => (
-              <div key={axis}>
-                <label className="text-xs text-muted-foreground uppercase mb-1 block">
-                  {axis}
-                </label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={512}
-                  value={dimensions[axis]}
-                  onChange={(e) => handleDimensionChange(axis, e.target.value)}
-                />
-              </div>
-            ))}
-          </div>
+        <div className="flex gap-4 items-end">
+          {(["x", "y", "z"] as const).map((axis) => (
+            <div key={axis} className="flex-1">
+              <label className="text-xs text-muted-foreground uppercase mb-1 block">
+                {axis}
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dimText[axis]}
+                onChange={(e) => handleDimensionChange(axis, e.target.value)}
+                onBlur={() => handleBlur(axis)}
+                className="w-full h-9 rounded-md border border-input bg-card px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              />
+            </div>
+          ))}
         </div>
 
-        <div>
-          <div className="text-sm font-medium text-foreground mb-2">
-            Anchor Point
-          </div>
-          <div className="text-xs text-muted-foreground mb-2">
-            Click a sphere to set the anchor. Drag to orbit. Scroll to zoom.
-          </div>
-          {isOpen && (
-            <AnchorPreview3D
-              currentDimensions={currentDimensions}
-              newDimensions={dimensions}
-              anchor={anchor}
-              onAnchorChange={setAnchor}
-              colors={colors}
-            />
-          )}
+        <div className="text-xs text-muted-foreground">
+          Click a point to set anchor. Drag to orbit. Scroll to zoom.
         </div>
+        {isOpen && (
+          <AnchorPreview3D
+            currentDimensions={currentDimensions}
+            newDimensions={dimensions}
+            anchor={anchor}
+            onAnchorChange={setAnchor}
+            colors={colors}
+          />
+        )}
       </div>
     </Modal>
   );

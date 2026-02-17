@@ -22,6 +22,7 @@ export const ProjectViewPage = () => {
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
   const atlasData = useAtlas();
+  const dimensionsKey = `${project.dimensions.x}-${project.dimensions.y}-${project.dimensions.z}`;
 
   const handleObjectSelect = useCallback((objectIndex: number) => {
     engineRef.current?.projectManager?.builder.setSelectedObject(objectIndex);
@@ -45,10 +46,6 @@ export const ProjectViewPage = () => {
     }
   }, []);
 
-  const handleResizeProject = useCallback((newDimensions: Vector3, anchor: Vector3) => {
-    stateStore.reducers.resizeProject(newDimensions, anchor);
-  }, []);
-
   const disposeEngine = useCallback(() => {
     if (engineRef.current) {
       if (projectId) {
@@ -60,6 +57,11 @@ export const ProjectViewPage = () => {
       isInitializedRef.current = false;
     }
   }, [projectId]);
+
+  const handleResizeProject = useCallback((newDimensions: Vector3, anchor: Vector3) => {
+    stateStore.reducers.resizeProject(newDimensions, anchor);
+    disposeEngine();
+  }, [disposeEngine]);
 
   useEffect(() => {
     engineRef.current?.projectManager?.builder?.setSelectedBlock(
@@ -185,6 +187,7 @@ export const ProjectViewPage = () => {
       onToolOptionChange={handleToolOptionChange}
     >
       <div
+        key={dimensionsKey}
         ref={containerCallbackRef}
         className="w-full h-full bg-background"
       />

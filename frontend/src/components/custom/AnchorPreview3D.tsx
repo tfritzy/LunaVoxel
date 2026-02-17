@@ -16,9 +16,8 @@ type AnchorValue = 0 | 0.5 | 1;
 
 const ANCHOR_VALUES: AnchorValue[] = [0, 0.5, 1];
 
-const ANCHOR_RADIUS = 0.6;
-const ANCHOR_COLOR_DEFAULT = 0x666688;
-const ANCHOR_COLOR_HOVERED = 0x8888cc;
+const ANCHOR_COLOR_DEFAULT = 0x8888aa;
+const ANCHOR_COLOR_HOVERED = 0xaaaaee;
 const ANCHOR_COLOR_SELECTED = 0x44bbff;
 
 export const AnchorPreview3D = ({
@@ -101,7 +100,9 @@ export const AnchorPreview3D = ({
       }
       anchorMeshesRef.current = [];
 
-      const geo = new THREE.SphereGeometry(ANCHOR_RADIUS, 12, 8);
+      const maxDim = Math.max(dims.x, dims.y, dims.z);
+      const radius = maxDim * 0.04;
+      const geo = new THREE.SphereGeometry(radius, 16, 12);
 
       for (const ax of ANCHOR_VALUES) {
         for (const ay of ANCHOR_VALUES) {
@@ -113,7 +114,7 @@ export const AnchorPreview3D = ({
             const mat = new THREE.MeshLambertMaterial({
               color: isSelected ? ANCHOR_COLOR_SELECTED : ANCHOR_COLOR_DEFAULT,
               transparent: true,
-              opacity: isSelected ? 0.95 : 0.5,
+              opacity: isSelected ? 1.0 : 0.6,
             });
             const sphere = new THREE.Mesh(geo, mat);
             sphere.position.set(
@@ -144,13 +145,13 @@ export const AnchorPreview3D = ({
       const mat = mesh.material as THREE.MeshLambertMaterial;
       if (isSelected) {
         mat.color.setHex(ANCHOR_COLOR_SELECTED);
-        mat.opacity = 0.95;
+        mat.opacity = 1.0;
       } else if (isHovered) {
         mat.color.setHex(ANCHOR_COLOR_HOVERED);
-        mat.opacity = 0.7;
+        mat.opacity = 0.85;
       } else {
         mat.color.setHex(ANCHOR_COLOR_DEFAULT);
-        mat.opacity = 0.5;
+        mat.opacity = 0.6;
       }
     }
   }, []);
@@ -403,7 +404,7 @@ export const AnchorPreview3D = ({
     <div
       ref={containerRef}
       className="w-full rounded-lg overflow-hidden border border-border"
-      style={{ height: 300 }}
+      style={{ height: 500 }}
     />
   );
 };
