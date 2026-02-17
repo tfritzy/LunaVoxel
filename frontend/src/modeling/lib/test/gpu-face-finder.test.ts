@@ -97,7 +97,7 @@ describe("GPU face finder", () => {
 
       const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
       console.log(`CPU 64x64x64 polka dot: avg=${avg.toFixed(2)}ms, vertices=${meshArrays.vertexCount}, indices=${meshArrays.indexCount}`);
-    }, 60000);
+    });
 
     it("should benchmark CPU path for 64x64x64 solid cube", () => {
       const dimensions: Vector3 = { x: 64, y: 64, z: 64 };
