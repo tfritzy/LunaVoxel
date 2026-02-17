@@ -46,8 +46,10 @@ export const AnchorPreview3D = ({
   const thetaRef = useRef(Math.PI / 4);
   const distanceRef = useRef(0);
   const targetRef = useRef(new THREE.Vector3());
+  const onAnchorChangeRef = useRef(onAnchorChange);
 
   anchorRef.current = anchor;
+  onAnchorChangeRef.current = onAnchorChange;
 
   const buildVoxelMesh = useCallback(
     (scene: THREE.Scene) => {
@@ -324,7 +326,7 @@ export const AnchorPreview3D = ({
     const onMouseUp = () => {
       if (!isDraggingRef.current && hoveredRef.current) {
         const { anchorX, anchorY, anchorZ } = hoveredRef.current.userData;
-        onAnchorChange({ x: anchorX, y: anchorY, z: anchorZ });
+        onAnchorChangeRef.current({ x: anchorX, y: anchorY, z: anchorZ });
       }
       isDraggingRef.current = false;
     };
@@ -381,7 +383,11 @@ export const AnchorPreview3D = ({
   useEffect(() => {
     if (!sceneRef.current) return;
     buildAnchorSpheres(sceneRef.current, currentDimensions);
-  }, [anchor, currentDimensions, buildAnchorSpheres]);
+  }, [currentDimensions, buildAnchorSpheres]);
+
+  useEffect(() => {
+    updateAnchorColors();
+  }, [anchor, updateAnchorColors]);
 
   useEffect(() => {
     if (!sceneRef.current) return;
