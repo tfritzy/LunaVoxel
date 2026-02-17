@@ -97,7 +97,6 @@ describe("resizeProject", () => {
   });
 
   const getVoxelAt = (x: number, y: number, z: number) => {
-    const dims = stateStore.getState().project.dimensions;
     const objectId = stateStore.getState().objects[0].id;
     for (const chunk of stateStore.getState().chunks.values()) {
       if (chunk.objectId !== objectId) continue;
@@ -106,7 +105,6 @@ describe("resizeProject", () => {
       const lz = z - chunk.minPos.z;
       if (lx < 0 || ly < 0 || lz < 0 ||
           lx >= chunk.size.x || ly >= chunk.size.y || lz >= chunk.size.z) continue;
-      void dims;
       return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
     }
     return 0;

@@ -80,7 +80,7 @@ export const ResizeProjectModal = ({
 
   const handleDimensionChange = (axis: keyof Vector3, value: string) => {
     const num = parseInt(value, 10);
-    if (!isNaN(num) && num > 0) {
+    if (!isNaN(num) && num > 0 && num <= 512) {
       setDimensions((prev) => ({ ...prev, [axis]: num }));
     }
   };
