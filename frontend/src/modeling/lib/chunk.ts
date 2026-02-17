@@ -8,6 +8,7 @@ import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
+import { isGPUAvailable } from "./gpu-device";
 
 type SelectionFrameData = {
   minPos: Vector3;
@@ -368,7 +369,37 @@ export class Chunk {
     this.updateMeshGeometry(this.meshData.meshArrays);
   };
 
+  private gpuUpdatePending = false;
+
   private updateMeshes = (atlasData: AtlasData) => {
+    const gpuAvailable = isGPUAvailable();
+
+    if (gpuAvailable === true && !this.gpuUpdatePending) {
+      this.gpuUpdatePending = true;
+      this.facesFinder.findExteriorFacesGPU(
+        this.voxelData,
+        atlasData.texture?.image.width,
+        atlasData.blockAtlasMapping,
+        this.size,
+        this.meshData.meshArrays,
+        this.mergedSelectionFrame
+      ).then((usedGPU) => {
+        this.gpuUpdatePending = false;
+        if (!usedGPU) {
+          this.facesFinder.findExteriorFaces(
+            this.voxelData,
+            atlasData.texture?.image.width,
+            atlasData.blockAtlasMapping,
+            this.size,
+            this.meshData.meshArrays,
+            this.mergedSelectionFrame
+          );
+        }
+        this.updateMesh(atlasData);
+      });
+      return;
+    }
+
     this.facesFinder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,

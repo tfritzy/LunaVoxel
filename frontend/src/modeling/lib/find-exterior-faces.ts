@@ -7,10 +7,30 @@ import {
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
 import { VoxelFrame } from "./voxel-frame";
+import type { GPUFaceFinder } from "./gpu-face-finder";
+import { getGPUDevice } from "./gpu-device";
 
 export const DISABLE_GREEDY_MESHING = false;
 
+let gpuFaceFinderInstance: GPUFaceFinder | null = null;
+let gpuInitAttempted = false;
 
+async function getGPUFaceFinder(): Promise<GPUFaceFinder | null> {
+  if (gpuFaceFinderInstance) return gpuFaceFinderInstance;
+  if (gpuInitAttempted) return null;
+
+  gpuInitAttempted = true;
+  const device = await getGPUDevice();
+  if (!device) return null;
+
+  const { GPUFaceFinder } = await import("./gpu-face-finder");
+  gpuFaceFinderInstance = new GPUFaceFinder(device);
+  return gpuFaceFinderInstance;
+}
+
+export function initGPUFaceFinder(): void {
+  getGPUFaceFinder();
+}
 
 export class ExteriorFacesFinder {
   private mask: Int16Array;
@@ -148,6 +168,132 @@ export class ExteriorFacesFinder {
                   hasFaces = true;
                 }
               }
+            }
+          }
+
+          if (hasFaces) {
+            this.generateGreedyMesh(
+              this.mask,
+              this.aoMask,
+              this.isSelectedMask,
+              this.processed,
+              uSize,
+              vSize,
+              d,
+              axis,
+              u,
+              v,
+              dir,
+              faceDir,
+              textureWidth,
+              meshArrays
+            );
+          }
+        }
+      }
+    }
+  }
+
+  public async findExteriorFacesGPU(
+    voxelData: Uint8Array,
+    textureWidth: number,
+    blockAtlasMapping: number[],
+    dimensions: Vector3,
+    meshArrays: MeshArrays,
+    selectionFrame: VoxelFrame
+  ): Promise<boolean> {
+    const gpuFinder = await getGPUFaceFinder();
+    if (!gpuFinder) return false;
+
+    try {
+      const gpuData = await gpuFinder.computeFaceData(
+        voxelData,
+        selectionFrame.getData(),
+        selectionFrame.isEmpty(),
+        blockAtlasMapping,
+        dimensions
+      );
+      this.buildMeshFromGPUData(
+        gpuData,
+        textureWidth,
+        dimensions,
+        meshArrays
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private buildMeshFromGPUData(
+    gpuData: Uint32Array,
+    textureWidth: number,
+    dimensions: Vector3,
+    meshArrays: MeshArrays
+  ): void {
+    meshArrays.reset();
+
+    const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
+    const currentMaskSize = maxDimension ** 2;
+
+    if (currentMaskSize > this.maskSize) {
+      this.maskSize = currentMaskSize;
+      this.maxDim = maxDimension;
+      this.mask = new Int16Array(currentMaskSize);
+      this.processed = new Uint8Array(currentMaskSize);
+      this.aoMask = new Uint8Array(currentMaskSize);
+      this.isSelectedMask = new Uint8Array(currentMaskSize);
+    }
+
+    const dimX = dimensions.x;
+    const dimY = dimensions.y;
+    const dimZ = dimensions.z;
+    const maxDim = this.maxDim;
+
+    for (let axis = 0; axis < 3; axis++) {
+      const u = (axis + 1) % 3;
+      const v = (axis + 2) % 3;
+
+      const axisSize = axis === 0 ? dimX : axis === 1 ? dimY : dimZ;
+      const uSize = u === 0 ? dimX : u === 1 ? dimY : dimZ;
+      const vSize = v === 0 ? dimX : v === 1 ? dimY : dimZ;
+
+      for (let dir = -1; dir <= 1; dir += 2) {
+        const faceDir = axis * 2 + (dir > 0 ? 0 : 1);
+        const xIsDepth = axis === 0;
+        const yIsDepth = axis === 1;
+        const zIsDepth = axis === 2;
+        const xIsUAxis = !xIsDepth && u === 0;
+        const yIsUAxis = !yIsDepth && u === 1;
+        const zIsUAxis = !zIsDepth && u === 2;
+
+        for (let d = 0; d < axisSize; d++) {
+          for (let iv = 0; iv < vSize; iv++) {
+            const rowOffset = iv * maxDim;
+            this.mask.fill(-1, rowOffset, rowOffset + uSize);
+            this.aoMask.fill(0, rowOffset, rowOffset + uSize);
+            this.isSelectedMask.fill(0, rowOffset, rowOffset + uSize);
+          }
+
+          let hasFaces = false;
+
+          for (let iu = 0; iu < uSize; iu++) {
+            for (let iv = 0; iv < vSize; iv++) {
+              const x = xIsDepth ? d : xIsUAxis ? iu : iv;
+              const y = yIsDepth ? d : yIsUAxis ? iu : iv;
+              const z = zIsDepth ? d : zIsUAxis ? iu : iv;
+
+              const voxelIdx =
+                x * dimY * dimZ + y * dimZ + z;
+              const gpuBase = (voxelIdx * 6 + faceDir) * 4;
+              const faceActive = gpuData[gpuBase];
+              if (!faceActive) continue;
+
+              const maskIdx = iv * maxDim + iu;
+              this.mask[maskIdx] = gpuData[gpuBase + 1];
+              this.aoMask[maskIdx] = gpuData[gpuBase + 2];
+              this.isSelectedMask[maskIdx] = gpuData[gpuBase + 3];
+              hasFaces = true;
             }
           }
 

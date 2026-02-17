@@ -5,6 +5,7 @@ import { layers } from "./lib/layers";
 import type { Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { ProjectManager } from "./lib/project-manager";
+import { initGPUFaceFinder } from "./lib/find-exterior-faces";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
@@ -29,6 +30,8 @@ export class VoxelEngine {
     this.container = options.container;
     this.stateStore = options.stateStore;
     this.project = options.project;
+
+    initGPUFaceFinder();
 
     this.renderer = this.setupRenderer(this.container);
     this.scene = new THREE.Scene();
