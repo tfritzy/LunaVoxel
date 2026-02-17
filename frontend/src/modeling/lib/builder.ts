@@ -182,12 +182,11 @@ export const Builder = class {
   }
 
   public setToolOption(name: string, value: string): void {
-    this.currentTool.setOption(name, value);
-    this.updateToolContext();
+    this.currentTool.setOption(name, value, this.toolContext);
   }
 
   private updateToolContext(): void {
-    this.currentTool.updatePendingPreview?.(this.toolContext);
+    this.currentTool.setOption("", "", this.toolContext);
   }
 
   public setSelectedBlock(

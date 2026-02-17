@@ -62,7 +62,7 @@ export class RectTool implements Tool {
     ];
   }
 
-  setOption(name: string, value: string): void {
+  setOption(name: string, value: string, context?: ToolContext): void {
     if (name === "Fill Shape") {
       this.fillShape = value as FillShape;
       if (this.pending) {
@@ -75,6 +75,14 @@ export class RectTool implements Tool {
       }
     } else if (name === "Adjust Before Apply") {
       this.adjustBeforeApply = value === "true";
+    }
+
+    if (context && this.pending) {
+      this.pending.selectedBlock = context.selectedBlock;
+      this.pending.selectedObject = context.selectedObject;
+      this.pending.mode = context.mode;
+      this.buildFrameFromBounds(context, this.pending.bounds);
+      context.projectManager.chunkManager.setPreview(context.previewFrame);
     }
   }
 
@@ -358,15 +366,6 @@ export class RectTool implements Tool {
     this.resizingCorner = null;
     this.resizeBaseBounds = null;
     this.clearBoundsBox(context);
-  }
-
-  updatePendingPreview(context: ToolContext): void {
-    if (!this.pending) return;
-    this.pending.selectedBlock = context.selectedBlock;
-    this.pending.selectedObject = context.selectedObject;
-    this.pending.mode = context.mode;
-    this.buildFrameFromBounds(context, this.pending.bounds);
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
   }
 
   dispose(): void {
