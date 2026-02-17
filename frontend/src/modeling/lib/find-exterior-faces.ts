@@ -220,7 +220,8 @@ export class ExteriorFacesFinder {
         meshArrays
       );
       return true;
-    } catch {
+    } catch (e) {
+      console.error("[ExteriorFacesFinder] GPU computation failed:", e);
       return false;
     }
   }

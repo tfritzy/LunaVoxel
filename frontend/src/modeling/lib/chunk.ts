@@ -370,12 +370,19 @@ export class Chunk {
   };
 
   private gpuUpdatePending = false;
+  private gpuUpdateQueued = false;
 
   private updateMeshes = (atlasData: AtlasData) => {
     const gpuAvailable = isGPUAvailable();
 
-    if (gpuAvailable === true && !this.gpuUpdatePending) {
+    if (gpuAvailable === true) {
+      if (this.gpuUpdatePending) {
+        this.gpuUpdateQueued = true;
+        return;
+      }
+
       this.gpuUpdatePending = true;
+      this.gpuUpdateQueued = false;
       this.facesFinder.findExteriorFacesGPU(
         this.voxelData,
         atlasData.texture?.image.width,
@@ -396,6 +403,11 @@ export class Chunk {
           );
         }
         this.updateMesh(atlasData);
+
+        if (this.gpuUpdateQueued && this.atlasData) {
+          this.gpuUpdateQueued = false;
+          this.updateMeshes(this.atlasData);
+        }
       });
       return;
     }

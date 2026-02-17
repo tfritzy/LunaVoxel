@@ -218,6 +218,14 @@ export class GPUFaceFinder {
       code: FACE_SHADER,
     });
 
+    shaderModule.getCompilationInfo().then((info) => {
+      for (const msg of info.messages) {
+        if (msg.type === "error") {
+          console.error(`[GPUFaceFinder] Shader error: ${msg.message}`);
+        }
+      }
+    });
+
     this.pipeline = this.device.createComputePipeline({
       layout: "auto",
       compute: {
