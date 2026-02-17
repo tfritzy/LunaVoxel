@@ -81,10 +81,11 @@ export const ResizeProjectModal = ({
         <div className="flex gap-4 items-end">
           {(["x", "y", "z"] as const).map((axis) => (
             <div key={axis} className="flex-1">
-              <label className="text-xs text-muted-foreground uppercase mb-1 block">
+              <label htmlFor={`resize-dim-${axis}`} className="text-xs text-muted-foreground uppercase mb-1 block">
                 {axis}
               </label>
               <input
+                id={`resize-dim-${axis}`}
                 type="text"
                 inputMode="numeric"
                 value={dimText[axis]}
