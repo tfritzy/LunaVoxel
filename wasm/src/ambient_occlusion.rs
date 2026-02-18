@@ -67,7 +67,7 @@ pub fn calculate_ambient_occlusion(
 
     #[inline(always)]
     fn is_solid(voxel_data: &[u8], idx: i32) -> bool {
-        (voxel_data[idx as usize] & 0x7F) != 0
+        unsafe { (*voxel_data.get_unchecked(idx as usize) & 0x7F) != 0 }
     }
 
     let side1_neg = u_neg_ok && is_solid(voxel_data, center_idx + ao_offsets[0]);
