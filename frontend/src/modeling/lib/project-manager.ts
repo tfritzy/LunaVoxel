@@ -90,7 +90,7 @@ export class ProjectManager {
             this.builder.getSelectedObject()
           );
         }
-      } else if (event.key === "Delete") {
+      } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         this.stateStore.reducers.deleteSelectedVoxels(
           this.project.id,
