@@ -91,10 +91,10 @@ export const ResizeProjectModal = ({
       }
     >
       <div className="px-6 pb-4 space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-end gap-2">
           {(["x", "y", "z"] as const).map((axis, i) => (
-            <div key={axis} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted-foreground text-xs">×</span>}
+            <div key={axis} className="flex items-end gap-2">
+              {i > 0 && <span className="text-muted-foreground text-xs pb-1.5">×</span>}
               <div className="w-20">
                 <label
                   htmlFor={`resize-dim-${axis}`}
@@ -117,7 +117,7 @@ export const ResizeProjectModal = ({
           <button
             type="button"
             onClick={() => setLinked((l) => !l)}
-            className="ml-1 p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="ml-1 p-1.5 mb-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             title={linked ? "Unlink dimensions" : "Link dimensions"}
           >
             {linked ? <Link className="w-3.5 h-3.5" /> : <Unlink className="w-3.5 h-3.5" />}
