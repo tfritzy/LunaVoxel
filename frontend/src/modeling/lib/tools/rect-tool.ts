@@ -346,6 +346,7 @@ export class RectTool implements Tool {
     );
 
     context.previewFrame.clear();
+    context.projectManager.chunkManager.setPreview(context.previewFrame);
     this.pending = null;
     this.clearBoundsBox(context);
   }

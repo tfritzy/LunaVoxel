@@ -407,6 +407,31 @@ describe("Tool Interface", () => {
       expect(tool.hasPendingOperation()).toBe(false);
     });
 
+    it("should clear preview in chunk manager after commit", () => {
+      let previewUpdated = false;
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          setPreview: () => {
+            previewUpdated = true;
+          },
+        },
+      } as unknown as ProjectManager;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      previewUpdated = false;
+      tool.commitPendingOperation(mockContext);
+      expect(previewUpdated).toBe(true);
+      expect(mockContext.previewFrame.get(2, 2, 2)).toBe(0);
+    });
+
     it("should cancel pending operation and clear preview", () => {
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 1, 1),
