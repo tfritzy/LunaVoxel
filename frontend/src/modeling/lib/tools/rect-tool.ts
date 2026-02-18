@@ -169,7 +169,7 @@ export class RectTool implements Tool {
       event.currentGridPosition,
       context.dimensions
     );
-    if (event.ctrlKey) {
+    if (event.shiftKey) {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
     }
     this.buildFrameFromBounds(context, bounds);
@@ -191,7 +191,7 @@ export class RectTool implements Tool {
       event.currentGridPosition,
       context.dimensions
     );
-    if (event.ctrlKey) {
+    if (event.shiftKey) {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
     }
     this.buildFrameFromBounds(context, bounds);
@@ -246,7 +246,7 @@ export class RectTool implements Tool {
     return false;
   }
 
-  onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2, ctrlKey?: boolean): void {
+  onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2, shiftKey?: boolean): void {
     if (!this.resizingCorner || !this.resizeBaseBounds) return;
 
     const raycaster = new THREE.Raycaster();
@@ -313,7 +313,7 @@ export class RectTool implements Tool {
       [newBounds.minZ, newBounds.maxZ] = [newBounds.maxZ, newBounds.minZ];
     }
 
-    if (ctrlKey) {
+    if (shiftKey) {
       const anchor = {
         x: corner.xSide === "min" ? newBounds.maxX : newBounds.minX,
         y: corner.ySide === "min" ? newBounds.maxY : newBounds.minY,

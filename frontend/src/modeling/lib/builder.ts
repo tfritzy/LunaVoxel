@@ -62,7 +62,6 @@ export const Builder = class {
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
   private lastSentCursorPos: THREE.Vector3 | null = null;
   private lastSentCursorNormal: THREE.Vector3 | null = null;
-  private lastCtrlKey: boolean = false;
 
   constructor(
     stateStore: StateStore,
@@ -231,17 +230,16 @@ export const Builder = class {
 
   private onMouseMove(event: MouseEvent): void {
     this.updateMousePosition(event);
-    this.lastCtrlKey = event.ctrlKey || event.metaKey;
 
     if (this.isPendingHandled) {
-      this.currentTool.onPendingMouseMove?.(this.toolContext, this.mouse.clone(), this.lastCtrlKey);
+      this.currentTool.onPendingMouseMove?.(this.toolContext, this.mouse.clone(), event.shiftKey);
       return;
     }
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
     if (gridPos) {
-      this.handleMouseDrag(gridPos);
+      this.handleMouseDrag(gridPos, event.shiftKey);
     }
   }
 
@@ -251,7 +249,6 @@ export const Builder = class {
     }
 
     this.updateMousePosition(event);
-    this.lastCtrlKey = event.ctrlKey || event.metaKey;
 
     if (this.isPendingHandled) {
       this.currentTool.onPendingMouseUp?.(this.toolContext, this.mouse.clone());
@@ -264,14 +261,13 @@ export const Builder = class {
 
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
-      this.handleMouseUp(position);
+      this.handleMouseUp(position, event.shiftKey);
     }
   }
 
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
       this.updateMousePosition(event);
-      this.lastCtrlKey = event.ctrlKey || event.metaKey;
 
       if (this.currentTool.hasPendingOperation?.()) {
         const handled = this.currentTool.onPendingMouseDown?.(this.toolContext, this.mouse.clone());
@@ -399,7 +395,7 @@ export const Builder = class {
     return null;
   }
 
-  private handleMouseDrag(gridPos: THREE.Vector3): void {
+  private handleMouseDrag(gridPos: THREE.Vector3, shiftKey: boolean): void {
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
       this.startMousePos = this.mouse.clone();
@@ -421,14 +417,14 @@ export const Builder = class {
         currentGridPosition: gridPos,
         startMousePosition: this.startMousePos,
         currentMousePosition: this.mouse.clone(),
-        ctrlKey: this.lastCtrlKey,
+        shiftKey,
       });
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
   }
 
-  private handleMouseUp(position: THREE.Vector3): void {
+  private handleMouseUp(position: THREE.Vector3, shiftKey: boolean): void {
     const endPos = position;
     const startPos = this.startPosition || position;
     const startMousePos = this.startMousePos || this.mouse.clone();
@@ -439,7 +435,7 @@ export const Builder = class {
       currentGridPosition: endPos,
       startMousePosition: startMousePos,
       currentMousePosition: endMousePos,
-      ctrlKey: this.lastCtrlKey,
+      shiftKey,
     });
 
     this.isMouseDown = false;

@@ -550,33 +550,33 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("RectTool Ctrl Snap", () => {
+  describe("RectTool Shift Snap", () => {
     let tool: RectTool;
 
     beforeEach(() => {
       tool = new RectTool();
     });
 
-    it("should snap drag bounds to equal dimensions when ctrlKey is held", () => {
+    it("should snap drag bounds to equal dimensions when shiftKey is held", () => {
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(0, 0, 0),
         currentGridPosition: new THREE.Vector3(4, 2, 1),
         startMousePosition: new THREE.Vector2(0, 0),
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
-        ctrlKey: true,
+        shiftKey: true,
       });
 
       expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
       expect(mockContext.previewFrame.get(4, 4, 4)).toBeGreaterThan(0);
     });
 
-    it("should not snap bounds when ctrlKey is not held", () => {
+    it("should not snap bounds when shiftKey is not held", () => {
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(0, 0, 0),
         currentGridPosition: new THREE.Vector3(4, 2, 1),
         startMousePosition: new THREE.Vector2(0, 0),
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
-        ctrlKey: false,
+        shiftKey: false,
       });
 
       expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
@@ -584,14 +584,14 @@ describe("Tool Interface", () => {
       expect(mockContext.previewFrame.get(4, 4, 4)).toBe(0);
     });
 
-    it("should snap mouseUp bounds to equal dimensions when ctrlKey is held", () => {
+    it("should snap mouseUp bounds to equal dimensions when shiftKey is held", () => {
       tool.setOption("Adjust Before Apply", "true");
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 1, 1),
         currentGridPosition: new THREE.Vector3(4, 2, 1),
         startMousePosition: new THREE.Vector2(0, 0),
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
-        ctrlKey: true,
+        shiftKey: true,
       });
 
       const bounds = tool.getPendingBounds()!;
@@ -608,7 +608,7 @@ describe("Tool Interface", () => {
         currentGridPosition: new THREE.Vector3(5, 2, 3),
         startMousePosition: new THREE.Vector2(0, 0),
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
-        ctrlKey: true,
+        shiftKey: true,
       });
 
       expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
