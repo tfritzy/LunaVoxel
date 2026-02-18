@@ -232,10 +232,12 @@ export class Chunk {
     } else {
       this.selectionFrames.set(identityId, selectionData);
     }
+    this.update();
   }
 
   public clearAllSelectionFrames(): void {
     this.selectionFrames.clear();
+    this.update();
   }
 
   private clearBlocks(blocks: Uint8Array) {
