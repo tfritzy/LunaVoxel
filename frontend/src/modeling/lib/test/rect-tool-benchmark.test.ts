@@ -94,9 +94,6 @@ function simulateSetPreview(
         const sizeX = Math.min(chunkSize, dimensionsX - chunkX);
         const sizeY = Math.min(chunkSize, dimensionsY - chunkY);
         const sizeZ = Math.min(chunkSize, dimensionsZ - chunkZ);
-        const chunkPreview = new VoxelFrame(
-          { x: sizeX, y: sizeY, z: sizeZ }
-        );
 
         const copyMinX = Math.max(chunkX, frameMinPos.x);
         const copyMinY = Math.max(chunkY, frameMinPos.y);
@@ -105,51 +102,55 @@ function simulateSetPreview(
         const copyMaxY = Math.min(chunkY + sizeY, frameMaxPos.y);
         const copyMaxZ = Math.min(chunkZ + sizeZ, frameMaxPos.z);
 
-        for (let worldX = copyMinX; worldX < copyMaxX; worldX++) {
-          for (let worldY = copyMinY; worldY < copyMaxY; worldY++) {
-            for (
-              let worldZ = copyMinZ;
-              worldZ < copyMaxZ;
-              worldZ++
-            ) {
-              const blockValue = previewFrame.get(
-                worldX,
-                worldY,
-                worldZ
-              );
-              if (blockValue !== 0) {
-                const localX = worldX - chunkX;
-                const localY = worldY - chunkY;
-                const localZ = worldZ - chunkZ;
-                const index = localX * sizeY * sizeZ + localY * sizeZ + localZ;
-                chunkPreview.setByIndex(index, blockValue);
-              }
-            }
-          }
-        }
-
-        simulateMergePreview(chunkPreview, sizeX, sizeY, sizeZ);
+        simulateMergePreviewDirect(
+          previewFrame,
+          sizeX, sizeY, sizeZ,
+          chunkX, chunkY, chunkZ,
+          copyMinX, copyMinY, copyMinZ,
+          copyMaxX, copyMaxY, copyMaxZ
+        );
       }
     }
   }
 }
 
-function simulateMergePreview(
-  previewFrame: VoxelFrame,
-  sizeX: number,
+function simulateMergePreviewDirect(
+  sourceFrame: VoxelFrame,
+  _sizeX: number,
   sizeY: number,
-  sizeZ: number
+  sizeZ: number,
+  chunkMinX: number,
+  chunkMinY: number,
+  chunkMinZ: number,
+  overlapMinX: number,
+  overlapMinY: number,
+  overlapMinZ: number,
+  overlapMaxX: number,
+  overlapMaxY: number,
+  overlapMaxZ: number,
 ): void {
-  if (previewFrame.isEmpty()) return;
+  if (sourceFrame.isEmpty()) return;
 
-  const blocks = new Uint8Array(sizeX * sizeY * sizeZ);
-  const previewData = previewFrame.getData();
-  const len = Math.min(blocks.length, previewData.length);
+  const sourceData = sourceFrame.getData();
+  const sourceCapMinPos = sourceFrame.getCapMinPos();
+  const sourceCapDims = sourceFrame.getCapDimensions();
+  const sourceCapYZ = sourceCapDims.y * sourceCapDims.z;
+  const sourceCapZ = sourceCapDims.z;
 
-  for (let i = 0; i < len; i++) {
-    const pv = previewData[i];
-    if (pv !== 0) {
-      blocks[i] = pv;
+  const blocks = new Uint8Array(_sizeX * sizeY * sizeZ);
+
+  for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
+    const srcXOff = (worldX - sourceCapMinPos.x) * sourceCapYZ;
+    const dstXOff = (worldX - chunkMinX) * sizeY * sizeZ;
+    for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
+      const srcXYOff = srcXOff + (worldY - sourceCapMinPos.y) * sourceCapZ;
+      const dstXYOff = dstXOff + (worldY - chunkMinY) * sizeZ;
+      for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
+        const pv = sourceData[srcXYOff + (worldZ - sourceCapMinPos.z)];
+        if (pv !== 0) {
+          blocks[dstXYOff + (worldZ - chunkMinZ)] = pv;
+        }
+      }
     }
   }
 }

@@ -42,7 +42,13 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private mergedSelectionFrame: VoxelFrame;
-  private previewFrame: VoxelFrame;
+  private previewSourceFrame: VoxelFrame | null = null;
+  private previewOverlapMinX: number = 0;
+  private previewOverlapMinY: number = 0;
+  private previewOverlapMinZ: number = 0;
+  private previewOverlapMaxX: number = 0;
+  private previewOverlapMaxY: number = 0;
+  private previewOverlapMaxZ: number = 0;
   private previewDirty: boolean = false;
   private atlasData: AtlasData | undefined;
   private atlasChanged: boolean = false;
@@ -79,7 +85,6 @@ export class Chunk {
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
     this.mergedSelectionFrame = new VoxelFrame(size);
-    this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
     const maxVertices = maxFaces * 4;
@@ -193,7 +198,7 @@ export class Chunk {
 
   public clearPreviewData()
   {
-    this.previewFrame.clear();
+    this.previewSourceFrame = null;
     this.previewDirty = true;
     this.update();
   }
@@ -207,25 +212,13 @@ export class Chunk {
     sourceMaxY: number,
     sourceMaxZ: number
   ): void {
-    this.previewFrame.clear();
-
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-
-    for (let worldX = sourceMinX; worldX < sourceMaxX; worldX++) {
-      for (let worldY = sourceMinY; worldY < sourceMaxY; worldY++) {
-        for (let worldZ = sourceMinZ; worldZ < sourceMaxZ; worldZ++) {
-          const blockValue = sourceFrame.get(worldX, worldY, worldZ);
-          if (blockValue !== 0) {
-            const localX = worldX - this.minPos.x;
-            const localY = worldY - this.minPos.y;
-            const localZ = worldZ - this.minPos.z;
-            const index = localX * sizeY * sizeZ + localY * sizeZ + localZ;
-            this.previewFrame.setByIndex(index, blockValue);
-          }
-        }
-      }
-    }
+    this.previewSourceFrame = sourceFrame;
+    this.previewOverlapMinX = sourceMinX;
+    this.previewOverlapMinY = sourceMinY;
+    this.previewOverlapMinZ = sourceMinZ;
+    this.previewOverlapMaxX = sourceMaxX;
+    this.previewOverlapMaxY = sourceMaxY;
+    this.previewOverlapMaxZ = sourceMaxZ;
 
     this.previewDirty = true;
     this.update();
@@ -276,31 +269,62 @@ export class Chunk {
   }
 
   private mergePreviewIntoVoxelData(blocks: Uint8Array): void {
-    if (this.previewFrame.isEmpty()) return;
+    if (!this.previewSourceFrame || this.previewSourceFrame.isEmpty()) return;
 
     const buildMode = this.getMode();
-    const previewData = this.previewFrame.getData();
-    const len = Math.min(blocks.length, previewData.length);
+    const sourceData = this.previewSourceFrame.getData();
+    const sourceCapMinPos = this.previewSourceFrame.getCapMinPos();
+    const sourceCapDims = this.previewSourceFrame.getCapDimensions();
+    const sourceCapYZ = sourceCapDims.y * sourceCapDims.z;
+    const sourceCapZ = sourceCapDims.z;
+
+    const chunkMinX = this.minPos.x;
+    const chunkMinY = this.minPos.y;
+    const chunkMinZ = this.minPos.z;
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+
+    const overlapMinX = this.previewOverlapMinX;
+    const overlapMinY = this.previewOverlapMinY;
+    const overlapMinZ = this.previewOverlapMinZ;
+    const overlapMaxX = this.previewOverlapMaxX;
+    const overlapMaxY = this.previewOverlapMaxY;
+    const overlapMaxZ = this.previewOverlapMaxZ;
 
     if (buildMode.tag === "Attach") {
-      for (let i = 0; i < len; i++) {
-        const pv = previewData[i];
-        if (pv !== 0 && !isBlockVisible(blocks[i])) {
-          blocks[i] = pv;
+      for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
+        const srcXOff = (worldX - sourceCapMinPos.x) * sourceCapYZ;
+        const dstXOff = (worldX - chunkMinX) * sizeY * sizeZ;
+        for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
+          const srcXYOff = srcXOff + (worldY - sourceCapMinPos.y) * sourceCapZ;
+          const dstXYOff = dstXOff + (worldY - chunkMinY) * sizeZ;
+          for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
+            const pv = sourceData[srcXYOff + (worldZ - sourceCapMinPos.z)];
+            if (pv !== 0) {
+              const dstIdx = dstXYOff + (worldZ - chunkMinZ);
+              if (!isBlockVisible(blocks[dstIdx])) {
+                blocks[dstIdx] = pv;
+              }
+            }
+          }
         }
       }
-    } else if (buildMode.tag === "Erase") {
-      for (let i = 0; i < len; i++) {
-        const pv = previewData[i];
-        if (pv !== 0 && isBlockVisible(blocks[i])) {
-          blocks[i] = pv;
-        }
-      }
-    } else if (buildMode.tag === "Paint") {
-      for (let i = 0; i < len; i++) {
-        const pv = previewData[i];
-        if (pv !== 0 && isBlockVisible(blocks[i])) {
-          blocks[i] = pv;
+    } else {
+      for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
+        const srcXOff = (worldX - sourceCapMinPos.x) * sourceCapYZ;
+        const dstXOff = (worldX - chunkMinX) * sizeY * sizeZ;
+        for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
+          const srcXYOff = srcXOff + (worldY - sourceCapMinPos.y) * sourceCapZ;
+          const dstXYOff = dstXOff + (worldY - chunkMinY) * sizeZ;
+          for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
+            const pv = sourceData[srcXYOff + (worldZ - sourceCapMinPos.z)];
+            if (pv !== 0) {
+              const dstIdx = dstXYOff + (worldZ - chunkMinZ);
+              if (isBlockVisible(blocks[dstIdx])) {
+                blocks[dstIdx] = pv;
+              }
+            }
+          }
         }
       }
     }
