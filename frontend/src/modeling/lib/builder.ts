@@ -62,6 +62,7 @@ export const Builder = class {
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
   private lastSentCursorPos: THREE.Vector3 | null = null;
   private lastSentCursorNormal: THREE.Vector3 | null = null;
+  private lastCtrlKey: boolean = false;
 
   constructor(
     stateStore: StateStore,
@@ -230,9 +231,10 @@ export const Builder = class {
 
   private onMouseMove(event: MouseEvent): void {
     this.updateMousePosition(event);
+    this.lastCtrlKey = event.ctrlKey || event.metaKey;
 
     if (this.isPendingHandled) {
-      this.currentTool.onPendingMouseMove?.(this.toolContext, this.mouse.clone());
+      this.currentTool.onPendingMouseMove?.(this.toolContext, this.mouse.clone(), this.lastCtrlKey);
       return;
     }
 
@@ -249,6 +251,7 @@ export const Builder = class {
     }
 
     this.updateMousePosition(event);
+    this.lastCtrlKey = event.ctrlKey || event.metaKey;
 
     if (this.isPendingHandled) {
       this.currentTool.onPendingMouseUp?.(this.toolContext, this.mouse.clone());
@@ -268,6 +271,7 @@ export const Builder = class {
   private onMouseDown(event: MouseEvent): void {
     if (event.button === 0) {
       this.updateMousePosition(event);
+      this.lastCtrlKey = event.ctrlKey || event.metaKey;
 
       if (this.currentTool.hasPendingOperation?.()) {
         const handled = this.currentTool.onPendingMouseDown?.(this.toolContext, this.mouse.clone());
@@ -416,7 +420,8 @@ export const Builder = class {
         startGridPosition: this.startPosition,
         currentGridPosition: gridPos,
         startMousePosition: this.startMousePos,
-        currentMousePosition: this.mouse.clone()
+        currentMousePosition: this.mouse.clone(),
+        ctrlKey: this.lastCtrlKey,
       });
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
@@ -433,7 +438,8 @@ export const Builder = class {
       startGridPosition: startPos,
       currentGridPosition: endPos,
       startMousePosition: startMousePos,
-      currentMousePosition: endMousePos
+      currentMousePosition: endMousePos,
+      ctrlKey: this.lastCtrlKey,
     });
 
     this.isMouseDown = false;

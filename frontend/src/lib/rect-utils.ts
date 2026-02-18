@@ -34,3 +34,35 @@ export const calculateRectBounds = (
     maxZ: Math.max(sz, ez),
   };
 };
+
+export const snapBoundsToEqual = (
+  bounds: RectBounds,
+  start: Vector3
+): RectBounds => {
+  const sizeX = bounds.maxX - bounds.minX;
+  const sizeY = bounds.maxY - bounds.minY;
+  const sizeZ = bounds.maxZ - bounds.minZ;
+  const maxSize = Math.max(sizeX, sizeY, sizeZ);
+
+  const result = { ...bounds };
+
+  if (start.x <= bounds.minX) {
+    result.maxX = bounds.minX + maxSize;
+  } else {
+    result.minX = bounds.maxX - maxSize;
+  }
+
+  if (start.y <= bounds.minY) {
+    result.maxY = bounds.minY + maxSize;
+  } else {
+    result.minY = bounds.maxY - maxSize;
+  }
+
+  if (start.z <= bounds.minZ) {
+    result.maxZ = bounds.minZ + maxSize;
+  } else {
+    result.minZ = bounds.maxZ - maxSize;
+  }
+
+  return result;
+};
