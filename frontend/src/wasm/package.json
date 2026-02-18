@@ -1,0 +1,15 @@
+{
+  "name": "lunavoxel-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "lunavoxel_wasm_bg.wasm",
+    "lunavoxel_wasm.js",
+    "lunavoxel_wasm.d.ts"
+  ],
+  "main": "lunavoxel_wasm.js",
+  "types": "lunavoxel_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

@@ -8,6 +8,9 @@ import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
 import { VoxelFrame } from "./voxel-frame";
+import { WasmExteriorFacesFinderWrapper, isWasmReady, initWasm } from "./find-exterior-faces-wasm";
+
+initWasm();
 
 type SelectionFrameData = {
   minPos: Vector3;
@@ -52,6 +55,7 @@ export class Chunk {
   private meshData: MeshData;
   private voxelData: Uint8Array;
   private facesFinder: ExteriorFacesFinder;
+  private wasmFacesFinder: WasmExteriorFacesFinderWrapper;
 
   constructor(
     scene: THREE.Scene,
@@ -90,6 +94,7 @@ export class Chunk {
 
     const maxDimension = Math.max(size.x, size.y, size.z);
     this.facesFinder = new ExteriorFacesFinder(maxDimension);
+    this.wasmFacesFinder = new WasmExteriorFacesFinderWrapper(maxDimension);
   }
 
   public setObjectChunk(objectIndex: number, voxels: Uint8Array | null): void {
@@ -369,7 +374,8 @@ export class Chunk {
   };
 
   private updateMeshes = (atlasData: AtlasData) => {
-    this.facesFinder.findExteriorFaces(
+    const finder = isWasmReady() ? this.wasmFacesFinder : this.facesFinder;
+    finder.findExteriorFaces(
       this.voxelData,
       atlasData.texture?.image.width,
       atlasData.blockAtlasMapping,
