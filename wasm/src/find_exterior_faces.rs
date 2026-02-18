@@ -350,41 +350,136 @@ impl ExteriorFacesFinder {
 
                 let start_vertex_index = mesh_arrays.vertex_count as u32;
 
-                let vert_u_mult: [f64; 4];
-                let vert_v_mult: [f64; 4];
-                if dir < 0 {
-                    vert_u_mult = [0.0, 0.0, 1.0, 1.0];
-                    vert_v_mult = [0.0, 1.0, 1.0, 0.0];
-                } else {
-                    vert_u_mult = [0.0, 1.0, 1.0, 0.0];
-                    vert_v_mult = [0.0, 0.0, 1.0, 1.0];
-                }
-
-                for vi in 0..4usize {
-                    let u_m = vert_u_mult[vi];
-                    let v_m = vert_v_mult[vi];
+                for vi in 0..4u32 {
+                    let actual_vi = if dir < 0 && (vi == 1 || vi == 3) {
+                        if vi == 1 { 3 } else { 1 }
+                    } else {
+                        vi
+                    };
 
                     let (vx, vy, vz): (f32, f32, f32);
 
                     if axis == 0 {
                         vx = x as f32 + face_offset;
-                        vy = y as f32 + (if u == 1 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
-                        vz = z as f32 + (if u == 2 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
+                        match actual_vi {
+                            0 => {
+                                vy = y as f32;
+                                vz = z as f32;
+                            }
+                            1 => {
+                                vy = y as f32
+                                    + if u == 1 { quad_width as f32 } else { 0.0 };
+                                vz = z as f32
+                                    + if u == 2 { quad_width as f32 } else { 0.0 };
+                            }
+                            2 => {
+                                vy = y as f32
+                                    + if u == 1 {
+                                        quad_width as f32
+                                    } else if v == 1 {
+                                        quad_height as f32
+                                    } else {
+                                        0.0
+                                    };
+                                vz = z as f32
+                                    + if u == 2 {
+                                        quad_width as f32
+                                    } else if v == 2 {
+                                        quad_height as f32
+                                    } else {
+                                        0.0
+                                    };
+                            }
+                            _ => {
+                                vy = y as f32
+                                    + if v == 1 { quad_height as f32 } else { 0.0 };
+                                vz = z as f32
+                                    + if v == 2 { quad_height as f32 } else { 0.0 };
+                            }
+                        }
                     } else if axis == 1 {
-                        vx = x as f32 + (if u == 0 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
                         vy = y as f32 + face_offset;
-                        vz = z as f32 + (if u == 2 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
+                        match actual_vi {
+                            0 => {
+                                vx = x as f32;
+                                vz = z as f32;
+                            }
+                            1 => {
+                                vx = x as f32
+                                    + if u == 0 { quad_width as f32 } else { 0.0 };
+                                vz = z as f32
+                                    + if u == 2 { quad_width as f32 } else { 0.0 };
+                            }
+                            2 => {
+                                vx = x as f32
+                                    + if u == 0 {
+                                        quad_width as f32
+                                    } else if v == 0 {
+                                        quad_height as f32
+                                    } else {
+                                        0.0
+                                    };
+                                vz = z as f32
+                                    + if u == 2 {
+                                        quad_width as f32
+                                    } else if v == 2 {
+                                        quad_height as f32
+                                    } else {
+                                        0.0
+                                    };
+                            }
+                            _ => {
+                                vx = x as f32
+                                    + if v == 0 { quad_height as f32 } else { 0.0 };
+                                vz = z as f32
+                                    + if v == 2 { quad_height as f32 } else { 0.0 };
+                            }
+                        }
                     } else {
-                        vx = x as f32 + (if u == 0 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
-                        vy = y as f32 + (if u == 1 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
                         vz = z as f32 + face_offset;
+                        match actual_vi {
+                            0 => {
+                                vx = x as f32;
+                                vy = y as f32;
+                            }
+                            1 => {
+                                vx = x as f32
+                                    + if u == 0 { quad_width as f32 } else { 0.0 };
+                                vy = y as f32
+                                    + if u == 1 { quad_width as f32 } else { 0.0 };
+                            }
+                            2 => {
+                                vx = x as f32
+                                    + if u == 0 {
+                                        quad_width as f32
+                                    } else if v == 0 {
+                                        quad_height as f32
+                                    } else {
+                                        0.0
+                                    };
+                                vy = y as f32
+                                    + if u == 1 {
+                                        quad_width as f32
+                                    } else if v == 1 {
+                                        quad_height as f32
+                                    } else {
+                                        0.0
+                                    };
+                            }
+                            _ => {
+                                vx = x as f32
+                                    + if v == 0 { quad_height as f32 } else { 0.0 };
+                                vy = y as f32
+                                    + if v == 1 { quad_height as f32 } else { 0.0 };
+                            }
+                        }
                     }
 
                     mesh_arrays.push_vertex(vx, vy, vz);
                     mesh_arrays.push_normal(normal[0], normal[1], normal[2]);
                     mesh_arrays.push_uv(
-                        texture_coords[vi * 2] as f32,
-                        texture_coords[vi * 2 + 1] as f32,
+                        texture_coords[(vi * 2) as usize] as f32,
+                        texture_coords[(vi * 2 + 1) as usize] as f32,
                     );
 
                     let packed_ao = ao_val;

@@ -10,23 +10,30 @@ import { VoxelFrame } from "./voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
+const PACKED_PRESENT_BIT = 1 << 19;
 
+const AO_CORNER_TABLE: number[][] = [
+  [0, 1, 2, 3], // faceDir 0
+  [0, 3, 2, 1], // faceDir 1
+  [0, 3, 2, 1], // faceDir 2
+  [0, 1, 2, 3], // faceDir 3
+  [0, 1, 2, 3], // faceDir 4
+  [0, 3, 2, 1], // faceDir 5
+];
 
 export class ExteriorFacesFinder {
-  private mask: Int16Array;
+  private packedMask: Int32Array;
   private processed: Uint8Array;
-  private aoMask: Uint8Array;
-  private isSelectedMask: Uint8Array;
+  private dirtyIndices: Int32Array;
   private maskSize: number;
   private maxDim: number;
 
   constructor(maxDimension: number) {
     this.maskSize = maxDimension ** 2;
     this.maxDim = maxDimension;
-    this.mask = new Int16Array(this.maskSize);
+    this.packedMask = new Int32Array(this.maskSize);
     this.processed = new Uint8Array(this.maskSize);
-    this.aoMask = new Uint8Array(this.maskSize);
-    this.isSelectedMask = new Uint8Array(this.maskSize);
+    this.dirtyIndices = new Int32Array(this.maskSize);
   }
 
   public findExteriorFaces(
@@ -45,10 +52,9 @@ export class ExteriorFacesFinder {
     if (currentMaskSize > this.maskSize) {
       this.maskSize = currentMaskSize;
       this.maxDim = maxDimension;
-      this.mask = new Int16Array(currentMaskSize);
+      this.packedMask = new Int32Array(currentMaskSize);
       this.processed = new Uint8Array(currentMaskSize);
-      this.aoMask = new Uint8Array(currentMaskSize);
-      this.isSelectedMask = new Uint8Array(currentMaskSize);
+      this.dirtyIndices = new Int32Array(currentMaskSize);
     }
 
     const dimX = dimensions.x;
@@ -57,6 +63,8 @@ export class ExteriorFacesFinder {
     const strideX = dimY * dimZ;
     const maxDim = this.maxDim;
     const selectionEmpty = selectionFrame.isEmpty();
+    const packedMask = this.packedMask;
+    const dirtyIndices = this.dirtyIndices;
 
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3;
@@ -81,14 +89,8 @@ export class ExteriorFacesFinder {
         const zIsUAxis = !zIsDepth && u === 2;
 
         for (let d = 0; d < axisSize; d++) {
-          for (let iv = 0; iv < vSize; iv++) {
-            const rowOffset = iv * maxDim;
-            this.mask.fill(-1, rowOffset, rowOffset + uSize);
-            this.aoMask.fill(0, rowOffset, rowOffset + uSize);
-            this.isSelectedMask.fill(0, rowOffset, rowOffset + uSize);
-          }
-
           let hasFaces = false;
+          let dirtyCount = 0;
 
           for (let iu = 0; iu < uSize; iu++) {
             for (let iv = 0; iv < vSize; iv++) {
@@ -121,12 +123,12 @@ export class ExteriorFacesFinder {
                   const textureIndex =
                     blockAtlasMapping[Math.max(selectionBlockType, 1) - 1];
                   
-                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
+                  const ao = calculateAmbientOcclusion(
                     nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX
                   );
                   
-                  this.mask[maskIdx] = textureIndex;
-                  this.isSelectedMask[maskIdx] = 1;
+                  packedMask[maskIdx] = PACKED_PRESENT_BIT | (textureIndex & 0x3FF) | ((ao & 0xFF) << 10) | (1 << 18);
+                  dirtyIndices[dirtyCount++] = maskIdx;
                   hasFaces = true;
                 }
               } else if (blockVisible) {
@@ -137,14 +139,13 @@ export class ExteriorFacesFinder {
                 if (!neighborVisible) {
                   const textureIndex = blockAtlasMapping[blockType - 1];
 
-                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
+                  const ao = calculateAmbientOcclusion(
                     nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX
                   );
 
-                  this.mask[maskIdx] = textureIndex;
-                  if (blockIsSelected) {
-                    this.isSelectedMask[maskIdx] = 1;
-                  }
+                  const sel = blockIsSelected ? 1 : 0;
+                  packedMask[maskIdx] = PACKED_PRESENT_BIT | (textureIndex & 0x3FF) | ((ao & 0xFF) << 10) | (sel << 18);
+                  dirtyIndices[dirtyCount++] = maskIdx;
                   hasFaces = true;
                 }
               }
@@ -153,9 +154,7 @@ export class ExteriorFacesFinder {
 
           if (hasFaces) {
             this.generateGreedyMesh(
-              this.mask,
-              this.aoMask,
-              this.isSelectedMask,
+              packedMask,
               this.processed,
               uSize,
               vSize,
@@ -169,15 +168,17 @@ export class ExteriorFacesFinder {
               meshArrays
             );
           }
+
+          for (let di = 0; di < dirtyCount; di++) {
+            packedMask[dirtyIndices[di]] = 0;
+          }
         }
       }
     }
   }
 
   private generateGreedyMesh(
-    mask: Int16Array,
-    aoMask: Uint8Array,
-    isSelectedMask: Uint8Array,
+    packedMask: Int32Array,
     processed: Uint8Array,
     width: number,
     height: number,
@@ -194,9 +195,18 @@ export class ExteriorFacesFinder {
     const faceData = faces[faceDir];
     const normal = faceData.normal;
     const faceOffset = dir > 0 ? 1 : 0;
+    const aoCorners = AO_CORNER_TABLE[faceDir];
 
-    const vertUMult = dir >= 0 ? [0, 1, 1, 0] : [0, 0, 1, 1];
-    const vertVMult = dir >= 0 ? [0, 0, 1, 1] : [0, 1, 1, 0];
+    const vertUMult = new Int8Array(4);
+    const vertVMult = new Int8Array(4);
+    vertUMult[0] = 0; vertVMult[0] = 0;
+    vertUMult[1] = 1; vertVMult[1] = 0;
+    vertUMult[2] = 1; vertVMult[2] = 1;
+    vertUMult[3] = 0; vertVMult[3] = 1;
+    if (dir < 0) {
+      const tmpU = vertUMult[1]; vertUMult[1] = vertUMult[3]; vertUMult[3] = tmpU;
+      const tmpV = vertVMult[1]; vertVMult[1] = vertVMult[3]; vertVMult[3] = tmpV;
+    }
 
     for (let iv = 0; iv < height; iv++) {
       const rowOffset = iv * stride;
@@ -207,24 +217,20 @@ export class ExteriorFacesFinder {
       const jOffset = j * stride;
       for (let i = 0; i < width; ) {
         const ji = jOffset + i;
-        if (processed[ji] || mask[ji] < 0) {
+        if (processed[ji] || (packedMask[ji] & PACKED_PRESENT_BIT) === 0) {
           i++;
           continue;
         }
 
-        const textureIndex = mask[ji];
-        const isSelected = isSelectedMask[ji];
-        const aoVal = aoMask[ji];
+        const packed = packedMask[ji];
+        const textureIndex = packed & 0x3FF;
+        const aoVal = (packed >> 10) & 0xFF;
+        const isSelected = (packed >> 18) & 1;
         let quadWidth = 1;
         if (!DISABLE_GREEDY_MESHING) {
           while (i + quadWidth < width) {
             const idx = jOffset + i + quadWidth;
-            if (
-              processed[idx] ||
-              mask[idx] !== textureIndex ||
-              aoMask[idx] !== aoVal ||
-              isSelectedMask[idx] !== isSelected
-            )
+            if (processed[idx] || packedMask[idx] !== packed)
               break;
             quadWidth++;
           }
@@ -236,12 +242,7 @@ export class ExteriorFacesFinder {
             const rowOff = (j + quadHeight) * stride;
             for (let w = 0; w < quadWidth; w++) {
               const idx = rowOff + i + w;
-              if (
-                processed[idx] ||
-                mask[idx] !== textureIndex ||
-                aoMask[idx] !== aoVal ||
-                isSelectedMask[idx] !== isSelected
-              )
+              if (processed[idx] || packedMask[idx] !== packed)
                 break outer;
             }
             quadHeight++;
@@ -289,16 +290,8 @@ export class ExteriorFacesFinder {
           meshArrays.pushNormal(normal[0], normal[1], normal[2]);
           meshArrays.pushUV(textureCoords[vi * 2], textureCoords[vi * 2 + 1]);
 
-          const packedAO = aoVal;
-
-          let aoCornerIndex: number;
-          if (faceDir === 1 || faceDir === 2 || faceDir === 5) {
-            aoCornerIndex = vi === 1 ? 3 : vi === 3 ? 1 : vi;
-          } else {
-            aoCornerIndex = vi;
-          }
-
-          const occlusionCount = (packedAO >> (aoCornerIndex * 2)) & 0x03;
+          const aoCornerIndex = aoCorners[vi];
+          const occlusionCount = (aoVal >> (aoCornerIndex * 2)) & 0x03;
           const aoFactor = OCCLUSION_LEVELS[occlusionCount];
           meshArrays.pushAO(aoFactor);
           meshArrays.pushIsSelected(isSelected);
