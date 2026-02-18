@@ -46,30 +46,19 @@ pub fn precompute_ao_offsets(face_dir: usize, stride_x: i32, dim_z: i32) -> AoOf
 
 #[inline(always)]
 pub fn calculate_ambient_occlusion(
-    nx: i32,
-    ny: i32,
-    nz: i32,
+    nn: i32,
+    nu: i32,
+    nv: i32,
+    dim_n: i32,
+    dim_u: i32,
+    dim_v: i32,
     voxel_data: &[u8],
-    dim_x: i32,
-    dim_y: i32,
-    dim_z: i32,
     center_idx: i32,
-    ao_offsets: &AoOffsets,
+    ao_offsets: &[i32; 8],
 ) -> u8 {
-    let offsets = &ao_offsets.offsets;
-    let n = [nx, ny, nz];
-    let dims = [dim_x, dim_y, dim_z];
-
-    let nn = n[ao_offsets.n_axis];
-    let dim_n = dims[ao_offsets.n_axis];
     if nn < 0 || nn >= dim_n {
         return 0;
     }
-
-    let nu = n[ao_offsets.u_axis];
-    let nv = n[ao_offsets.v_axis];
-    let dim_u = dims[ao_offsets.u_axis];
-    let dim_v = dims[ao_offsets.v_axis];
 
     let u_neg_ok = nu > 0;
     let u_pos_ok = nu < dim_u - 1;
@@ -81,33 +70,33 @@ pub fn calculate_ambient_occlusion(
         (voxel_data[idx as usize] & 0x7F) != 0
     }
 
-    let side1_neg = u_neg_ok && is_solid(voxel_data, center_idx + offsets[0]);
-    let side1_pos = u_pos_ok && is_solid(voxel_data, center_idx + offsets[1]);
-    let side2_neg = v_neg_ok && is_solid(voxel_data, center_idx + offsets[2]);
-    let side2_pos = v_pos_ok && is_solid(voxel_data, center_idx + offsets[3]);
+    let side1_neg = u_neg_ok && is_solid(voxel_data, center_idx + ao_offsets[0]);
+    let side1_pos = u_pos_ok && is_solid(voxel_data, center_idx + ao_offsets[1]);
+    let side2_neg = v_neg_ok && is_solid(voxel_data, center_idx + ao_offsets[2]);
+    let side2_pos = v_pos_ok && is_solid(voxel_data, center_idx + ao_offsets[3]);
 
     let occ00 = if side1_neg && side2_neg {
         3
     } else {
-        let corner_nn = u_neg_ok && v_neg_ok && is_solid(voxel_data, center_idx + offsets[4]);
+        let corner_nn = u_neg_ok && v_neg_ok && is_solid(voxel_data, center_idx + ao_offsets[4]);
         (side1_neg as u8) + (side2_neg as u8) + (corner_nn as u8)
     };
     let occ10 = if side1_pos && side2_neg {
         3
     } else {
-        let corner_pn = u_pos_ok && v_neg_ok && is_solid(voxel_data, center_idx + offsets[5]);
+        let corner_pn = u_pos_ok && v_neg_ok && is_solid(voxel_data, center_idx + ao_offsets[5]);
         (side1_pos as u8) + (side2_neg as u8) + (corner_pn as u8)
     };
     let occ11 = if side1_pos && side2_pos {
         3
     } else {
-        let corner_pp = u_pos_ok && v_pos_ok && is_solid(voxel_data, center_idx + offsets[7]);
+        let corner_pp = u_pos_ok && v_pos_ok && is_solid(voxel_data, center_idx + ao_offsets[7]);
         (side1_pos as u8) + (side2_pos as u8) + (corner_pp as u8)
     };
     let occ01 = if side1_neg && side2_pos {
         3
     } else {
-        let corner_np = u_neg_ok && v_pos_ok && is_solid(voxel_data, center_idx + offsets[6]);
+        let corner_np = u_neg_ok && v_pos_ok && is_solid(voxel_data, center_idx + ao_offsets[6]);
         (side1_neg as u8) + (side2_pos as u8) + (corner_np as u8)
     };
 

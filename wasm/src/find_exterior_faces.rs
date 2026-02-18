@@ -52,6 +52,8 @@ impl ExteriorFacesFinder {
             self.processed = vec![0; current_mask_size];
             self.ao_mask = vec![0; current_mask_size];
             self.is_selected_mask = vec![0; current_mask_size];
+        } else if selection_empty {
+            self.is_selected_mask[..current_mask_size].fill(0);
         }
 
         let stride_x = dim_y * dim_z;
@@ -76,6 +78,19 @@ impl ExteriorFacesFinder {
                 let ao_offsets = precompute_ao_offsets(face_dir, stride_x as i32, dim_z as i32);
                 let normal_flat_offset: i32 = dx * stride_x as i32 + dy * dim_z as i32 + dz;
 
+                let dims_i32 = [dim_x as i32, dim_y as i32, dim_z as i32];
+                let ao_dim_n = dims_i32[ao_offsets.n_axis];
+                let ao_dim_u = dims_i32[ao_offsets.u_axis];
+                let ao_dim_v = dims_i32[ao_offsets.v_axis];
+                let ao_off = ao_offsets.offsets;
+
+                let ao_nn_is_x = ao_offsets.n_axis == 0;
+                let ao_nn_is_y = ao_offsets.n_axis == 1;
+                let ao_nu_is_x = ao_offsets.u_axis == 0;
+                let ao_nu_is_y = ao_offsets.u_axis == 1;
+                let ao_nv_is_x = ao_offsets.v_axis == 0;
+                let ao_nv_is_y = ao_offsets.v_axis == 1;
+
                 let x_is_depth = axis == 0;
                 let y_is_depth = axis == 1;
                 let z_is_depth = axis == 2;
@@ -86,10 +101,10 @@ impl ExteriorFacesFinder {
                 for d in 0..axis_size {
                     for iv in 0..v_size {
                         let row_offset = iv * max_dim;
-                        for i in row_offset..row_offset + u_size {
-                            self.mask[i] = -1;
-                            self.ao_mask[i] = 0;
-                            self.is_selected_mask[i] = 0;
+                        self.mask[row_offset..row_offset + u_size].fill(-1);
+                        self.ao_mask[row_offset..row_offset + u_size].fill(0);
+                        if !selection_empty {
+                            self.is_selected_mask[row_offset..row_offset + u_size].fill(0);
                         }
                     }
 
@@ -127,19 +142,20 @@ impl ExteriorFacesFinder {
 
                             let mask_idx = iv * max_dim + iu;
 
+                            let neighbor_coord = if x_is_depth {
+                                nx
+                            } else if y_is_depth {
+                                ny
+                            } else {
+                                nz
+                            };
+                            let neighbor_in_bounds = if dir > 0 {
+                                neighbor_coord < neighbor_max
+                            } else {
+                                neighbor_coord >= 0
+                            };
+
                             if block_is_selected && !block_visible {
-                                let neighbor_coord = if x_is_depth {
-                                    nx
-                                } else if y_is_depth {
-                                    ny
-                                } else {
-                                    nz
-                                };
-                                let neighbor_in_bounds = if dir > 0 {
-                                    neighbor_coord < neighbor_max
-                                } else {
-                                    neighbor_coord >= 0
-                                };
                                 let neighbor_is_selected = neighbor_in_bounds
                                     && is_selection_set(
                                         selection_data,
@@ -164,16 +180,19 @@ impl ExteriorFacesFinder {
                                     let texture_index = block_atlas_mapping
                                         [(selection_block_type.max(1) - 1) as usize];
 
+                                    let ao_nn = if ao_nn_is_x { nx } else if ao_nn_is_y { ny } else { nz };
+                                    let ao_nu = if ao_nu_is_x { nx } else if ao_nu_is_y { ny } else { nz };
+                                    let ao_nv = if ao_nv_is_x { nx } else if ao_nv_is_y { ny } else { nz };
                                     self.ao_mask[mask_idx] = calculate_ambient_occlusion(
-                                        nx,
-                                        ny,
-                                        nz,
+                                        ao_nn,
+                                        ao_nu,
+                                        ao_nv,
+                                        ao_dim_n,
+                                        ao_dim_u,
+                                        ao_dim_v,
                                         voxel_data,
-                                        dim_x as i32,
-                                        dim_y as i32,
-                                        dim_z as i32,
                                         neighbor_idx,
-                                        &ao_offsets,
+                                        &ao_off,
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
@@ -181,18 +200,6 @@ impl ExteriorFacesFinder {
                                     has_faces = true;
                                 }
                             } else if block_visible {
-                                let neighbor_coord = if x_is_depth {
-                                    nx
-                                } else if y_is_depth {
-                                    ny
-                                } else {
-                                    nz
-                                };
-                                let neighbor_in_bounds = if dir > 0 {
-                                    neighbor_coord < neighbor_max
-                                } else {
-                                    neighbor_coord >= 0
-                                };
                                 let neighbor_visible = neighbor_in_bounds
                                     && (voxel_data[neighbor_idx as usize]
                                         & 0x7F)
@@ -202,16 +209,19 @@ impl ExteriorFacesFinder {
                                     let texture_index =
                                         block_atlas_mapping[(block_type - 1) as usize];
 
+                                    let ao_nn = if ao_nn_is_x { nx } else if ao_nn_is_y { ny } else { nz };
+                                    let ao_nu = if ao_nu_is_x { nx } else if ao_nu_is_y { ny } else { nz };
+                                    let ao_nv = if ao_nv_is_x { nx } else if ao_nv_is_y { ny } else { nz };
                                     self.ao_mask[mask_idx] = calculate_ambient_occlusion(
-                                        nx,
-                                        ny,
-                                        nz,
+                                        ao_nn,
+                                        ao_nu,
+                                        ao_nv,
+                                        ao_dim_n,
+                                        ao_dim_u,
+                                        ao_dim_v,
                                         voxel_data,
-                                        dim_x as i32,
-                                        dim_y as i32,
-                                        dim_z as i32,
                                         neighbor_idx,
-                                        &ao_offsets,
+                                        &ao_off,
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
@@ -260,20 +270,13 @@ impl ExteriorFacesFinder {
         let normal = FACES[face_dir].normal;
         let face_offset: f32 = if dir > 0 { 1.0 } else { 0.0 };
 
-        for iv in 0..height {
-            let row_offset = iv * stride;
-            for i in row_offset..row_offset + width {
-                self.processed[i] = 0;
-            }
-        }
-
         let mut j = 0;
         while j < height {
             let j_offset = j * stride;
             let mut i = 0;
             while i < width {
                 let ji = j_offset + i;
-                if self.processed[ji] != 0 || self.mask[ji] < 0 {
+                if self.mask[ji] < 0 {
                     i += 1;
                     continue;
                 }
@@ -285,8 +288,7 @@ impl ExteriorFacesFinder {
 
                 while i + quad_width < width {
                     let idx = j_offset + i + quad_width;
-                    if self.processed[idx] != 0
-                        || self.mask[idx] != texture_index
+                    if self.mask[idx] != texture_index
                         || self.ao_mask[idx] != ao_val
                         || self.is_selected_mask[idx] != is_selected
                     {
@@ -300,8 +302,7 @@ impl ExteriorFacesFinder {
                     let row_off = (j + quad_height) * stride;
                     for w in 0..quad_width {
                         let idx = row_off + i + w;
-                        if self.processed[idx] != 0
-                            || self.mask[idx] != texture_index
+                        if self.mask[idx] != texture_index
                             || self.ao_mask[idx] != ao_val
                             || self.is_selected_mask[idx] != is_selected
                         {
@@ -316,7 +317,7 @@ impl ExteriorFacesFinder {
                 for jj in j..end_j {
                     let row_off = jj * stride;
                     for ii in i..end_i {
-                        self.processed[row_off + ii] = 1;
+                        self.mask[row_off + ii] = -1;
                     }
                 }
 
@@ -481,8 +482,8 @@ impl ExteriorFacesFinder {
                     mesh_arrays.push_vertex(vx, vy, vz);
                     mesh_arrays.push_normal(normal[0], normal[1], normal[2]);
                     mesh_arrays.push_uv(
-                        texture_coords[(vi * 2) as usize] as f32,
-                        texture_coords[(vi * 2 + 1) as usize] as f32,
+                        texture_coords[(vi * 2) as usize],
+                        texture_coords[(vi * 2 + 1) as usize],
                     );
 
                     let packed_ao = ao_val;
