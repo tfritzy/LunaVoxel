@@ -307,9 +307,12 @@ export const Builder = class {
       return;
     }
 
-    if (event.key === "Enter" || event.key === "Escape") {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.commitPendingIfNeeded();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      this.cancelCurrentOperation();
     }
   }
 
