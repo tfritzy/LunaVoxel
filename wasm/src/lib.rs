@@ -422,4 +422,78 @@ mod tests {
         assert_eq!(ic, 36);
         assert_eq!(vc, 24);
     }
+
+    #[test]
+    fn bench_polka_dot_128() {
+        let (dx, dy, dz) = (128, 128, 128);
+        let mut data = create_voxel_data(dx, dy, dz);
+        for x in 0..dx {
+            for y in 0..dy {
+                for z in 0..dz {
+                    if (x + y + z) % 2 == 0 {
+                        set_voxel(&mut data, x, y, z, 1, dy, dz);
+                    }
+                }
+            }
+        }
+        let mapping = create_block_atlas_mapping(2);
+        let sel = vec![0u8; dx * dy * dz];
+
+        let max_dim = dx.max(dy).max(dz);
+        let mut finder = ExteriorFacesFinder::new(max_dim);
+        let total_voxels = dx * dy * dz;
+        let max_faces = total_voxels * 6;
+        let mut mesh_arrays = MeshArrays::new(max_faces * 4, max_faces * 6);
+
+        let iterations = 3;
+        let mut durations = Vec::new();
+        for _ in 0..iterations {
+            let start = std::time::Instant::now();
+            finder.find_exterior_faces(
+                &data, 4, &mapping, dx, dy, dz,
+                &mut mesh_arrays, &sel, dx, dy, dz, true,
+            );
+            durations.push(start.elapsed().as_secs_f64() * 1000.0);
+        }
+        let avg = durations.iter().sum::<f64>() / durations.len() as f64;
+        let min = durations.iter().cloned().fold(f64::INFINITY, f64::min);
+        println!("Rust 128x128x128 polka dot: avg={avg:.2}ms min={min:.2}ms verts={} indices={}",
+            mesh_arrays.vertex_count, mesh_arrays.index_count);
+    }
+
+    #[test]
+    fn bench_solid_128() {
+        let (dx, dy, dz) = (128, 128, 128);
+        let mut data = create_voxel_data(dx, dy, dz);
+        for x in 0..dx {
+            for y in 0..dy {
+                for z in 0..dz {
+                    set_voxel(&mut data, x, y, z, 1, dy, dz);
+                }
+            }
+        }
+        let mapping = create_block_atlas_mapping(2);
+        let sel = vec![0u8; dx * dy * dz];
+
+        let max_dim = dx.max(dy).max(dz);
+        let mut finder = ExteriorFacesFinder::new(max_dim);
+        let total_voxels = dx * dy * dz;
+        let max_faces = total_voxels * 6;
+        let mut mesh_arrays = MeshArrays::new(max_faces * 4, max_faces * 6);
+
+        let iterations = 3;
+        let mut durations = Vec::new();
+        for _ in 0..iterations {
+            let start = std::time::Instant::now();
+            finder.find_exterior_faces(
+                &data, 4, &mapping, dx, dy, dz,
+                &mut mesh_arrays, &sel, dx, dy, dz, true,
+            );
+            durations.push(start.elapsed().as_secs_f64() * 1000.0);
+        }
+        let avg = durations.iter().sum::<f64>() / durations.len() as f64;
+        let min = durations.iter().cloned().fold(f64::INFINITY, f64::min);
+        println!("Rust 128x128x128 solid: avg={avg:.2}ms min={min:.2}ms verts={} indices={}",
+            mesh_arrays.vertex_count, mesh_arrays.index_count);
+    }
 }
