@@ -69,7 +69,6 @@ node_modules/
 .dataconnect
 
 wasm/target/
-frontend/src/wasm
 
 # TypeScript build info
 *.tsbuildinfo
