@@ -16,8 +16,8 @@ type AnchorValue = 0 | 0.5 | 1;
 
 const ANCHOR_VALUES: AnchorValue[] = [0, 0.5, 1];
 
-const ANCHOR_COLOR_DEFAULT = 0x8888aa;
-const ANCHOR_COLOR_HOVERED = 0xaaaaee;
+const ANCHOR_COLOR_DEFAULT = 0x555566;
+const ANCHOR_COLOR_HOVERED = 0x7799cc;
 const ANCHOR_COLOR_SELECTED = 0x44bbff;
 
 export const AnchorPreview3D = ({
@@ -101,8 +101,8 @@ export const AnchorPreview3D = ({
       anchorMeshesRef.current = [];
 
       const maxDim = Math.max(dims.x, dims.y, dims.z);
-      const radius = maxDim * 0.04;
-      const geo = new THREE.SphereGeometry(radius, 16, 12);
+      const cubeSize = maxDim * 0.06;
+      const geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
 
       for (const ax of ANCHOR_VALUES) {
         for (const ay of ANCHOR_VALUES) {
@@ -114,17 +114,17 @@ export const AnchorPreview3D = ({
             const mat = new THREE.MeshLambertMaterial({
               color: isSelected ? ANCHOR_COLOR_SELECTED : ANCHOR_COLOR_DEFAULT,
               transparent: true,
-              opacity: isSelected ? 1.0 : 0.6,
+              opacity: isSelected ? 0.95 : 0.25,
             });
-            const sphere = new THREE.Mesh(geo, mat);
-            sphere.position.set(
+            const cube = new THREE.Mesh(geo, mat);
+            cube.position.set(
               ax * dims.x,
               ay * dims.y,
               az * dims.z
             );
-            sphere.userData = { anchorX: ax, anchorY: ay, anchorZ: az };
-            scene.add(sphere);
-            anchorMeshesRef.current.push(sphere);
+            cube.userData = { anchorX: ax, anchorY: ay, anchorZ: az };
+            scene.add(cube);
+            anchorMeshesRef.current.push(cube);
           }
         }
       }
@@ -145,13 +145,13 @@ export const AnchorPreview3D = ({
       const mat = mesh.material as THREE.MeshLambertMaterial;
       if (isSelected) {
         mat.color.setHex(ANCHOR_COLOR_SELECTED);
-        mat.opacity = 1.0;
+        mat.opacity = 0.95;
       } else if (isHovered) {
         mat.color.setHex(ANCHOR_COLOR_HOVERED);
-        mat.opacity = 0.85;
+        mat.opacity = 0.5;
       } else {
         mat.color.setHex(ANCHOR_COLOR_DEFAULT);
-        mat.opacity = 0.6;
+        mat.opacity = 0.25;
       }
     }
   }, []);

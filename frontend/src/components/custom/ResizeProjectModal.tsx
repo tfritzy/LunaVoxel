@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { Link, Unlink } from "lucide-react";
 import type { Vector3 } from "@/state/types";
 import { useGlobalState } from "@/state/store";
 import { AnchorPreview3D } from "./AnchorPreview3D";
@@ -23,6 +24,7 @@ export const ResizeProjectModal = ({
     y: String(currentDimensions.y),
     z: String(currentDimensions.z),
   });
+  const [linked, setLinked] = useState(true);
   const [anchor, setAnchor] = useState<Vector3>({ x: 0, y: 0, z: 0 });
   const colors = useGlobalState((state) => state.blocks.colors);
 
@@ -37,18 +39,26 @@ export const ResizeProjectModal = ({
     z: parseDim(dimText.z) ?? currentDimensions.z,
   };
 
-  const handleDimensionChange = (axis: keyof Vector3, value: string) => {
-    if (value === "" || /^\d+$/.test(value)) {
+  const handleDimensionChange = useCallback((axis: keyof Vector3, value: string) => {
+    if (value !== "" && !/^\d+$/.test(value)) return;
+    if (linked) {
+      setDimText({ x: value, y: value, z: value });
+    } else {
       setDimText((prev) => ({ ...prev, [axis]: value }));
     }
-  };
+  }, [linked]);
 
-  const handleBlur = (axis: keyof Vector3) => {
+  const handleBlur = useCallback((axis: keyof Vector3) => {
     const parsed = parseDim(dimText[axis]);
     if (parsed === null) {
-      setDimText((prev) => ({ ...prev, [axis]: String(currentDimensions[axis]) }));
+      if (linked) {
+        const fallback = String(currentDimensions[axis]);
+        setDimText({ x: fallback, y: fallback, z: fallback });
+      } else {
+        setDimText((prev) => ({ ...prev, [axis]: String(currentDimensions[axis]) }));
+      }
     }
-  };
+  }, [dimText, currentDimensions, linked]);
 
   const handleSubmit = () => {
     onResize(dimensions, anchor);
@@ -59,6 +69,9 @@ export const ResizeProjectModal = ({
     dimensions.x === currentDimensions.x &&
     dimensions.y === currentDimensions.y &&
     dimensions.z === currentDimensions.z;
+
+  const inputClass =
+    "w-full h-8 rounded border border-border bg-background px-2 text-sm text-center text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring/50";
 
   return (
     <Modal
@@ -77,29 +90,40 @@ export const ResizeProjectModal = ({
         </>
       }
     >
-      <div className="px-6 pb-4 space-y-4">
-        <div className="flex gap-4 items-end">
-          {(["x", "y", "z"] as const).map((axis) => (
-            <div key={axis} className="flex-1">
-              <label htmlFor={`resize-dim-${axis}`} className="text-xs text-muted-foreground uppercase mb-1 block">
-                {axis}
-              </label>
-              <input
-                id={`resize-dim-${axis}`}
-                type="text"
-                inputMode="numeric"
-                value={dimText[axis]}
-                onChange={(e) => handleDimensionChange(axis, e.target.value)}
-                onBlur={() => handleBlur(axis)}
-                className="w-full h-9 rounded-md border border-input bg-card px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-              />
+      <div className="px-6 pb-4 space-y-3">
+        <div className="flex items-center gap-2">
+          {(["x", "y", "z"] as const).map((axis, i) => (
+            <div key={axis} className="flex items-center gap-2">
+              {i > 0 && <span className="text-muted-foreground text-xs">×</span>}
+              <div className="w-20">
+                <label
+                  htmlFor={`resize-dim-${axis}`}
+                  className="text-[10px] text-muted-foreground uppercase block text-center mb-0.5"
+                >
+                  {axis}
+                </label>
+                <input
+                  id={`resize-dim-${axis}`}
+                  type="text"
+                  inputMode="numeric"
+                  value={dimText[axis]}
+                  onChange={(e) => handleDimensionChange(axis, e.target.value)}
+                  onBlur={() => handleBlur(axis)}
+                  className={inputClass}
+                />
+              </div>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={() => setLinked((l) => !l)}
+            className="ml-1 p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title={linked ? "Unlink dimensions" : "Link dimensions"}
+          >
+            {linked ? <Link className="w-3.5 h-3.5" /> : <Unlink className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
-        <div className="text-xs text-muted-foreground">
-          Click a point to set anchor. Drag to orbit. Scroll to zoom.
-        </div>
         {isOpen && (
           <AnchorPreview3D
             currentDimensions={currentDimensions}
