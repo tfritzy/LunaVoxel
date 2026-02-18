@@ -28,8 +28,8 @@ const leftFace = `${points.topLeft.x},${points.topLeft.y} ${cx},${cy} 50,${point
 const ShadedBlock = memo(
   ({ color }: { color: string }) => {
     const top = darkenColor(color, 1.0);
-    const right = darkenColor(color, 0.7);
-    const left = darkenColor(color, 0.5);
+    const right = darkenColor(color, 0.95);
+    const left = darkenColor(color, 0.8);
 
     return (
       <svg
