@@ -16,9 +16,7 @@ type AnchorValue = 0 | 0.5 | 1;
 
 const ANCHOR_VALUES: AnchorValue[] = [0, 0.5, 1];
 
-const ANCHOR_COLOR_DEFAULT = 0x555566;
-const ANCHOR_COLOR_HOVERED = 0x7799cc;
-const ANCHOR_COLOR_SELECTED = 0x44bbff;
+const ANCHOR_COLOR = 0x888888;
 
 export const AnchorPreview3D = ({
   currentDimensions,
@@ -112,9 +110,9 @@ export const AnchorPreview3D = ({
               anchorRef.current.y === ay &&
               anchorRef.current.z === az;
             const mat = new THREE.MeshLambertMaterial({
-              color: isSelected ? ANCHOR_COLOR_SELECTED : ANCHOR_COLOR_DEFAULT,
+              color: ANCHOR_COLOR,
               transparent: true,
-              opacity: isSelected ? 0.95 : 0.25,
+              opacity: isSelected ? 0.95 : 0.35,
             });
             const cube = new THREE.Mesh(geo, mat);
             cube.position.set(
@@ -143,15 +141,13 @@ export const AnchorPreview3D = ({
         anchorRef.current.z === anchorZ;
       const isHovered = mesh === hoveredRef.current;
       const mat = mesh.material as THREE.MeshLambertMaterial;
+      mat.color.setHex(ANCHOR_COLOR);
       if (isSelected) {
-        mat.color.setHex(ANCHOR_COLOR_SELECTED);
         mat.opacity = 0.95;
       } else if (isHovered) {
-        mat.color.setHex(ANCHOR_COLOR_HOVERED);
-        mat.opacity = 0.5;
+        mat.opacity = 0.55;
       } else {
-        mat.color.setHex(ANCHOR_COLOR_DEFAULT);
-        mat.opacity = 0.25;
+        mat.opacity = 0.35;
       }
     }
   }, []);
