@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateAmbientOcclusion } from "../ambient-occlusion";
+import { calculateAmbientOcclusion, precomputeAoOffsets } from "../ambient-occlusion";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
 
@@ -26,7 +26,9 @@ function calcAO(
   const dimY = dimensions.y;
   const dimZ = dimensions.z;
   const strideX = dimY * dimZ;
-  return calculateAmbientOcclusion(nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX);
+  const aoOffsets = precomputeAoOffsets(faceDir, strideX, dimZ);
+  const centerIdx = nx * strideX + ny * dimZ + nz;
+  return calculateAmbientOcclusion(nx, ny, nz, voxelData, dimX, dimY, dimZ, centerIdx, aoOffsets);
 }
 
 describe("calculateAmbientOcclusion", () => {
