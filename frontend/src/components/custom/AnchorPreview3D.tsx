@@ -16,7 +16,7 @@ type AnchorValue = 0 | 0.5 | 1;
 
 const ANCHOR_VALUES: AnchorValue[] = [0, 0.5, 1];
 
-const ANCHOR_COLOR = 0x888888;
+const ANCHOR_COLOR = 0x44bbff;
 
 export const AnchorPreview3D = ({
   currentDimensions,
