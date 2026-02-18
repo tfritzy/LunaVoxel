@@ -162,6 +162,7 @@ export class ChunkManager {
 
               // Create selection data for this chunk
               const chunkSelectionData = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+              let selectedCount = 0;
               
               for (let x = 0; x < chunkSize.x; x++) {
                 for (let y = 0; y < chunkSize.y; y++) {
@@ -179,6 +180,9 @@ export class ChunkManager {
                       const selIndex = selX * selectionDims.y * selectionDims.z + selY * selectionDims.z + selZ;
                       const chunkIndex = x * chunkSize.y * chunkSize.z + y * chunkSize.z + z;
                       chunkSelectionData[chunkIndex] = selectionData[selIndex];
+                      if (selectionData[selIndex] > 0) {
+                        selectedCount++;
+                      }
                     }
                   }
                 }

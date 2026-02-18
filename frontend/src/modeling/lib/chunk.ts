@@ -264,7 +264,8 @@ export class Chunk {
       
       for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
         if (selectionVoxels[i] > 0) {
-          if (blocks[i] === 0) {
+          // Apply selection to filled voxels (not empty ones)
+          if (blocks[i] > 0) {
             this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
           }
         }
