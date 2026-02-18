@@ -3,11 +3,22 @@ use crate::mesh_arrays::MeshArrays;
 use crate::texture_coords::get_texture_coordinates;
 use crate::voxel_constants::FACES;
 
+const PACKED_PRESENT_BIT: i32 = 1 << 19;
+
+const AO_CORNER_TABLE: [[u32; 4]; 6] = [
+    [0, 1, 2, 3],
+    [0, 3, 2, 1],
+    [0, 3, 2, 1],
+    [0, 1, 2, 3],
+    [0, 1, 2, 3],
+    [0, 3, 2, 1],
+];
+
 pub struct ExteriorFacesFinder {
-    mask: Vec<i16>,
+    packed_mask: Vec<i32>,
     processed: Vec<u8>,
-    ao_mask: Vec<u8>,
-    is_selected_mask: Vec<u8>,
+    dirty_indices: Vec<usize>,
+    dirty_count: usize,
     mask_size: usize,
     max_dim: usize,
 }
@@ -16,10 +27,10 @@ impl ExteriorFacesFinder {
     pub fn new(max_dimension: usize) -> Self {
         let mask_size = max_dimension * max_dimension;
         Self {
-            mask: vec![0; mask_size],
+            packed_mask: vec![0; mask_size],
             processed: vec![0; mask_size],
-            ao_mask: vec![0; mask_size],
-            is_selected_mask: vec![0; mask_size],
+            dirty_indices: vec![0; mask_size],
+            dirty_count: 0,
             mask_size,
             max_dim: max_dimension,
         }
@@ -48,10 +59,10 @@ impl ExteriorFacesFinder {
         if current_mask_size > self.mask_size {
             self.mask_size = current_mask_size;
             self.max_dim = max_dimension;
-            self.mask = vec![0; current_mask_size];
+            self.packed_mask = vec![0; current_mask_size];
             self.processed = vec![0; current_mask_size];
-            self.ao_mask = vec![0; current_mask_size];
-            self.is_selected_mask = vec![0; current_mask_size];
+            self.dirty_indices = vec![0; current_mask_size];
+            self.dirty_count = 0;
         }
 
         let stride_x = dim_y * dim_z;
@@ -82,14 +93,11 @@ impl ExteriorFacesFinder {
                 let z_is_u_axis = !z_is_depth && u == 2;
 
                 for d in 0..axis_size {
-                    for iv in 0..v_size {
-                        let row_offset = iv * max_dim;
-                        for i in row_offset..row_offset + u_size {
-                            self.mask[i] = -1;
-                            self.ao_mask[i] = 0;
-                            self.is_selected_mask[i] = 0;
-                        }
+                    for di in 0..self.dirty_count {
+                        let idx = self.dirty_indices[di];
+                        self.packed_mask[idx] = 0;
                     }
+                    self.dirty_count = 0;
 
                     let mut has_faces = false;
 
@@ -160,7 +168,7 @@ impl ExteriorFacesFinder {
                                     let texture_index = block_atlas_mapping
                                         [(selection_block_type.max(1) - 1) as usize];
 
-                                    self.ao_mask[mask_idx] = calculate_ambient_occlusion(
+                                    let ao = calculate_ambient_occlusion(
                                         nx,
                                         ny,
                                         nz,
@@ -172,8 +180,12 @@ impl ExteriorFacesFinder {
                                         stride_x as i32,
                                     );
 
-                                    self.mask[mask_idx] = texture_index as i16;
-                                    self.is_selected_mask[mask_idx] = 1;
+                                    self.packed_mask[mask_idx] = PACKED_PRESENT_BIT
+                                        | (texture_index & 0x3FF)
+                                        | ((ao as i32 & 0xFF) << 10)
+                                        | (1 << 18);
+                                    self.dirty_indices[self.dirty_count] = mask_idx;
+                                    self.dirty_count += 1;
                                     has_faces = true;
                                 }
                             } else if block_visible {
@@ -199,7 +211,7 @@ impl ExteriorFacesFinder {
                                     let texture_index =
                                         block_atlas_mapping[(block_type - 1) as usize];
 
-                                    self.ao_mask[mask_idx] = calculate_ambient_occlusion(
+                                    let ao = calculate_ambient_occlusion(
                                         nx,
                                         ny,
                                         nz,
@@ -211,10 +223,13 @@ impl ExteriorFacesFinder {
                                         stride_x as i32,
                                     );
 
-                                    self.mask[mask_idx] = texture_index as i16;
-                                    if block_is_selected {
-                                        self.is_selected_mask[mask_idx] = 1;
-                                    }
+                                    let sel = if block_is_selected { 1i32 } else { 0i32 };
+                                    self.packed_mask[mask_idx] = PACKED_PRESENT_BIT
+                                        | (texture_index & 0x3FF)
+                                        | ((ao as i32 & 0xFF) << 10)
+                                        | (sel << 18);
+                                    self.dirty_indices[self.dirty_count] = mask_idx;
+                                    self.dirty_count += 1;
                                     has_faces = true;
                                 }
                             }
@@ -256,6 +271,17 @@ impl ExteriorFacesFinder {
         let stride = self.max_dim;
         let normal = FACES[face_dir].normal;
         let face_offset: f32 = if dir > 0 { 1.0 } else { 0.0 };
+        let ao_corners = &AO_CORNER_TABLE[face_dir];
+
+        let vert_u_mult: [f64; 4];
+        let vert_v_mult: [f64; 4];
+        if dir < 0 {
+            vert_u_mult = [0.0, 0.0, 1.0, 1.0];
+            vert_v_mult = [0.0, 1.0, 1.0, 0.0];
+        } else {
+            vert_u_mult = [0.0, 1.0, 1.0, 0.0];
+            vert_v_mult = [0.0, 0.0, 1.0, 1.0];
+        }
 
         for iv in 0..height {
             let row_offset = iv * stride;
@@ -270,22 +296,21 @@ impl ExteriorFacesFinder {
             let mut i = 0;
             while i < width {
                 let ji = j_offset + i;
-                if self.processed[ji] != 0 || self.mask[ji] < 0 {
+                let packed = self.packed_mask[ji];
+                if self.processed[ji] != 0 || (packed & PACKED_PRESENT_BIT) == 0 {
                     i += 1;
                     continue;
                 }
 
-                let texture_index = self.mask[ji];
-                let is_selected = self.is_selected_mask[ji];
-                let ao_val = self.ao_mask[ji];
+                let texture_index = packed & 0x3FF;
+                let ao_val = ((packed >> 10) & 0xFF) as u8;
+                let is_selected = ((packed >> 18) & 1) as u8;
                 let mut quad_width = 1usize;
 
                 while i + quad_width < width {
                     let idx = j_offset + i + quad_width;
                     if self.processed[idx] != 0
-                        || self.mask[idx] != texture_index
-                        || self.ao_mask[idx] != ao_val
-                        || self.is_selected_mask[idx] != is_selected
+                        || self.packed_mask[idx] != packed
                     {
                         break;
                     }
@@ -298,9 +323,7 @@ impl ExteriorFacesFinder {
                     for w in 0..quad_width {
                         let idx = row_off + i + w;
                         if self.processed[idx] != 0
-                            || self.mask[idx] != texture_index
-                            || self.ao_mask[idx] != ao_val
-                            || self.is_selected_mask[idx] != is_selected
+                            || self.packed_mask[idx] != packed
                         {
                             break 'outer;
                         }
@@ -350,149 +373,36 @@ impl ExteriorFacesFinder {
 
                 let start_vertex_index = mesh_arrays.vertex_count as u32;
 
-                for vi in 0..4u32 {
-                    let actual_vi = if dir < 0 && (vi == 1 || vi == 3) {
-                        if vi == 1 { 3 } else { 1 }
-                    } else {
-                        vi
-                    };
+                for vi in 0..4usize {
+                    let u_m = vert_u_mult[vi];
+                    let v_m = vert_v_mult[vi];
 
                     let (vx, vy, vz): (f32, f32, f32);
 
                     if axis == 0 {
                         vx = x as f32 + face_offset;
-                        match actual_vi {
-                            0 => {
-                                vy = y as f32;
-                                vz = z as f32;
-                            }
-                            1 => {
-                                vy = y as f32
-                                    + if u == 1 { quad_width as f32 } else { 0.0 };
-                                vz = z as f32
-                                    + if u == 2 { quad_width as f32 } else { 0.0 };
-                            }
-                            2 => {
-                                vy = y as f32
-                                    + if u == 1 {
-                                        quad_width as f32
-                                    } else if v == 1 {
-                                        quad_height as f32
-                                    } else {
-                                        0.0
-                                    };
-                                vz = z as f32
-                                    + if u == 2 {
-                                        quad_width as f32
-                                    } else if v == 2 {
-                                        quad_height as f32
-                                    } else {
-                                        0.0
-                                    };
-                            }
-                            _ => {
-                                vy = y as f32
-                                    + if v == 1 { quad_height as f32 } else { 0.0 };
-                                vz = z as f32
-                                    + if v == 2 { quad_height as f32 } else { 0.0 };
-                            }
-                        }
+                        vy = y as f32 + (if u == 1 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
+                        vz = z as f32 + (if u == 2 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
                     } else if axis == 1 {
                         vy = y as f32 + face_offset;
-                        match actual_vi {
-                            0 => {
-                                vx = x as f32;
-                                vz = z as f32;
-                            }
-                            1 => {
-                                vx = x as f32
-                                    + if u == 0 { quad_width as f32 } else { 0.0 };
-                                vz = z as f32
-                                    + if u == 2 { quad_width as f32 } else { 0.0 };
-                            }
-                            2 => {
-                                vx = x as f32
-                                    + if u == 0 {
-                                        quad_width as f32
-                                    } else if v == 0 {
-                                        quad_height as f32
-                                    } else {
-                                        0.0
-                                    };
-                                vz = z as f32
-                                    + if u == 2 {
-                                        quad_width as f32
-                                    } else if v == 2 {
-                                        quad_height as f32
-                                    } else {
-                                        0.0
-                                    };
-                            }
-                            _ => {
-                                vx = x as f32
-                                    + if v == 0 { quad_height as f32 } else { 0.0 };
-                                vz = z as f32
-                                    + if v == 2 { quad_height as f32 } else { 0.0 };
-                            }
-                        }
+                        vx = x as f32 + (if u == 0 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
+                        vz = z as f32 + (if u == 2 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
                     } else {
                         vz = z as f32 + face_offset;
-                        match actual_vi {
-                            0 => {
-                                vx = x as f32;
-                                vy = y as f32;
-                            }
-                            1 => {
-                                vx = x as f32
-                                    + if u == 0 { quad_width as f32 } else { 0.0 };
-                                vy = y as f32
-                                    + if u == 1 { quad_width as f32 } else { 0.0 };
-                            }
-                            2 => {
-                                vx = x as f32
-                                    + if u == 0 {
-                                        quad_width as f32
-                                    } else if v == 0 {
-                                        quad_height as f32
-                                    } else {
-                                        0.0
-                                    };
-                                vy = y as f32
-                                    + if u == 1 {
-                                        quad_width as f32
-                                    } else if v == 1 {
-                                        quad_height as f32
-                                    } else {
-                                        0.0
-                                    };
-                            }
-                            _ => {
-                                vx = x as f32
-                                    + if v == 0 { quad_height as f32 } else { 0.0 };
-                                vy = y as f32
-                                    + if v == 1 { quad_height as f32 } else { 0.0 };
-                            }
-                        }
+                        vx = x as f32 + (if u == 0 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
+                        vy = y as f32 + (if u == 1 { quad_width as f64 * u_m } else { quad_height as f64 * v_m }) as f32;
                     }
 
                     mesh_arrays.push_vertex(vx, vy, vz);
                     mesh_arrays.push_normal(normal[0], normal[1], normal[2]);
                     mesh_arrays.push_uv(
-                        texture_coords[(vi * 2) as usize] as f32,
-                        texture_coords[(vi * 2 + 1) as usize] as f32,
+                        texture_coords[vi * 2] as f32,
+                        texture_coords[vi * 2 + 1] as f32,
                     );
 
-                    let packed_ao = ao_val;
-
-                    let ao_corner_index =
-                        if face_dir == 1 || face_dir == 2 || face_dir == 5 {
-                            if vi == 1 { 3 } else if vi == 3 { 1 } else { vi }
-                        } else {
-                            vi
-                        };
-
+                    let ao_corner_index = ao_corners[vi];
                     let occlusion_count =
-                        (packed_ao >> (ao_corner_index * 2)) & 0x03;
+                        (ao_val >> (ao_corner_index * 2)) & 0x03;
                     let ao_factor = OCCLUSION_LEVELS[occlusion_count as usize];
                     mesh_arrays.push_ao(ao_factor);
                     mesh_arrays.push_is_selected(is_selected);
