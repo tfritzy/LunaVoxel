@@ -17,6 +17,7 @@ export class ChunkManager {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   private chunksWithPreview: Set<string> = new Set();
+  private prevChunksWithPreview: Set<string> = new Set();
   private unsubscribe?: () => void;
   private readonly maxObjects = 10;
 
@@ -170,7 +171,12 @@ export class ChunkManager {
     const maxChunkY = Math.floor((frameMaxPos.y - 1) / CHUNK_SIZE) * CHUNK_SIZE;
     const maxChunkZ = Math.floor((frameMaxPos.z - 1) / CHUNK_SIZE) * CHUNK_SIZE;
     
-    const currentChunksWithPreview = new Set<string>();
+    const temp = this.prevChunksWithPreview;
+    temp.clear();
+    for (const key of this.chunksWithPreview) {
+      temp.add(key);
+    }
+    this.chunksWithPreview.clear();
     
     for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += CHUNK_SIZE) {
       for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
@@ -187,21 +193,18 @@ export class ChunkManager {
           const copyMaxZ = Math.min(chunkZ + chunk.size.z, frameMaxPos.z);
           
           chunk.setPreviewData(previewFrame, copyMinX, copyMinY, copyMinZ, copyMaxX, copyMaxY, copyMaxZ);
-          currentChunksWithPreview.add(chunkKey);
+          this.chunksWithPreview.add(chunkKey);
+          temp.delete(chunkKey);
         }
       }
     }
     
-    for (const chunkKey of this.chunksWithPreview) {
-      if (!currentChunksWithPreview.has(chunkKey)) {
-        const chunk = this.chunks.get(chunkKey);
-        if (chunk) {
-          chunk.clearPreviewData();
-        }
+    for (const chunkKey of temp) {
+      const chunk = this.chunks.get(chunkKey);
+      if (chunk) {
+        chunk.clearPreviewData();
       }
     }
-    
-    this.chunksWithPreview = currentChunksWithPreview;
   }
 
   public getBlockAtPosition(position: THREE.Vector3, obj: VoxelObject): number | null {
