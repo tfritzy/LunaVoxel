@@ -1,4 +1,4 @@
-use crate::ambient_occlusion::{calculate_ambient_occlusion, OCCLUSION_LEVELS};
+use crate::ambient_occlusion::{calculate_ambient_occlusion, precompute_ao_offsets, OCCLUSION_LEVELS};
 use crate::mesh_arrays::MeshArrays;
 use crate::texture_coords::get_texture_coordinates;
 use crate::voxel_constants::FACES;
@@ -73,6 +73,7 @@ impl ExteriorFacesFinder {
                 let dy: i32 = if axis == 1 { dir } else { 0 };
                 let dz: i32 = if axis == 2 { dir } else { 0 };
                 let neighbor_max = dims[axis] as i32;
+                let ao_offsets = precompute_ao_offsets(face_dir, stride_x as i32, dim_z as i32);
 
                 let x_is_depth = axis == 0;
                 let y_is_depth = axis == 1;
@@ -164,12 +165,12 @@ impl ExteriorFacesFinder {
                                         nx,
                                         ny,
                                         nz,
-                                        face_dir,
                                         voxel_data,
                                         dim_x as i32,
                                         dim_y as i32,
                                         dim_z as i32,
-                                        stride_x as i32,
+                                        nx * stride_x as i32 + ny * dim_z as i32 + nz,
+                                        &ao_offsets,
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
@@ -203,12 +204,12 @@ impl ExteriorFacesFinder {
                                         nx,
                                         ny,
                                         nz,
-                                        face_dir,
                                         voxel_data,
                                         dim_x as i32,
                                         dim_y as i32,
                                         dim_z as i32,
-                                        stride_x as i32,
+                                        nx * stride_x as i32 + ny * dim_z as i32 + nz,
+                                        &ao_offsets,
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
