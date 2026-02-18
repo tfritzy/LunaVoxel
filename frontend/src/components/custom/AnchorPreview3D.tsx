@@ -109,7 +109,7 @@ export const AnchorPreview3D = ({
               anchorRef.current.x === ax &&
               anchorRef.current.y === ay &&
               anchorRef.current.z === az;
-            const mat = new THREE.MeshLambertMaterial({
+            const mat = new THREE.MeshBasicMaterial({
               color: ANCHOR_COLOR,
               transparent: true,
               opacity: isSelected ? 0.95 : 0.35,
@@ -140,7 +140,7 @@ export const AnchorPreview3D = ({
         anchorRef.current.y === anchorY &&
         anchorRef.current.z === anchorZ;
       const isHovered = mesh === hoveredRef.current;
-      const mat = mesh.material as THREE.MeshLambertMaterial;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
       mat.color.setHex(ANCHOR_COLOR);
       if (isSelected) {
         mat.opacity = 0.95;
