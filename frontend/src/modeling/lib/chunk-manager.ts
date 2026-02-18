@@ -135,10 +135,10 @@ export class ChunkManager {
     
     for (const obj of this.objects) {
       if (obj.selection) {
-        const selectionDims = obj.selection.getDimensions();
-        const selectionMin = obj.selection.getMinPos();
-        const selectionData = obj.selection.getData();
-
+        const selectionFrame = obj.selection;
+        const selectionMin = selectionFrame.getMinPos();
+        const selectionDims = selectionFrame.getDimensions();
+        
         // Find all chunks that intersect with the selection
         const minChunkX = Math.floor(selectionMin.x / CHUNK_SIZE) * CHUNK_SIZE;
         const minChunkY = Math.floor(selectionMin.y / CHUNK_SIZE) * CHUNK_SIZE;
@@ -147,6 +147,17 @@ export class ChunkManager {
         const maxChunkY = Math.floor((selectionMin.y + selectionDims.y - 1) / CHUNK_SIZE) * CHUNK_SIZE;
         const maxChunkZ = Math.floor((selectionMin.z + selectionDims.z - 1) / CHUNK_SIZE) * CHUNK_SIZE;
 
+        // Pass the same selection data to all intersecting chunks
+        const selectionData = {
+          object: obj.index,
+          frame: {
+            minPos: selectionMin,
+            dimensions: selectionDims,
+            voxelData: selectionFrame.getData(),
+          },
+          offset: { x: 0, y: 0, z: 0 },
+        };
+
         for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += CHUNK_SIZE) {
           for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
             for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
@@ -154,49 +165,7 @@ export class ChunkManager {
               const chunk = this.chunks.get(this.getChunkKey(chunkMinPos));
               if (!chunk) continue;
 
-              const chunkSize = {
-                x: Math.min(CHUNK_SIZE, this.dimensions.x - chunkX),
-                y: Math.min(CHUNK_SIZE, this.dimensions.y - chunkY),
-                z: Math.min(CHUNK_SIZE, this.dimensions.z - chunkZ),
-              };
-
-              // Create selection data for this chunk
-              const chunkSelectionData = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
-              let selectedCount = 0;
-              
-              for (let x = 0; x < chunkSize.x; x++) {
-                for (let y = 0; y < chunkSize.y; y++) {
-                  for (let z = 0; z < chunkSize.z; z++) {
-                    const worldX = chunkX + x;
-                    const worldY = chunkY + y;
-                    const worldZ = chunkZ + z;
-                    
-                    if (worldX >= selectionMin.x && worldX < selectionMin.x + selectionDims.x &&
-                        worldY >= selectionMin.y && worldY < selectionMin.y + selectionDims.y &&
-                        worldZ >= selectionMin.z && worldZ < selectionMin.z + selectionDims.z) {
-                      const selX = worldX - selectionMin.x;
-                      const selY = worldY - selectionMin.y;
-                      const selZ = worldZ - selectionMin.z;
-                      const selIndex = selX * selectionDims.y * selectionDims.z + selY * selectionDims.z + selZ;
-                      const chunkIndex = x * chunkSize.y * chunkSize.z + y * chunkSize.z + z;
-                      chunkSelectionData[chunkIndex] = selectionData[selIndex];
-                      if (selectionData[selIndex] > 0) {
-                        selectedCount++;
-                      }
-                    }
-                  }
-                }
-              }
-
-              chunk.setSelectionFrame(`obj_${obj.index}`, {
-                object: obj.index,
-                frame: {
-                  minPos: chunkMinPos,
-                  dimensions: chunkSize,
-                  voxelData: chunkSelectionData,
-                },
-                offset: { x: 0, y: 0, z: 0 },
-              });
+              chunk.setSelectionFrame(`obj_${obj.index}`, selectionData);
             }
           }
         }

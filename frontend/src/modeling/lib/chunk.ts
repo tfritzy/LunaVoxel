@@ -260,13 +260,35 @@ export class Chunk {
     for (const selectionData of this.selectionFrames.values()) {
       if (selectionData.object !== objectIndex) continue;
       
+      const selMin = selectionData.frame.minPos;
+      const selDims = selectionData.frame.dimensions;
       const selectionVoxels = selectionData.frame.voxelData;
       
-      for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
-        if (selectionVoxels[i] > 0) {
-          // Apply selection to filled voxels (not empty ones)
-          if (blocks[i] > 0) {
-            this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
+      // Iterate through chunk voxels and check if they're in the selection
+      for (let x = 0; x < this.size.x; x++) {
+        for (let y = 0; y < this.size.y; y++) {
+          for (let z = 0; z < this.size.z; z++) {
+            const worldX = this.minPos.x + x;
+            const worldY = this.minPos.y + y;
+            const worldZ = this.minPos.z + z;
+            
+            // Check if this world position is within the selection bounds
+            if (worldX >= selMin.x && worldX < selMin.x + selDims.x &&
+                worldY >= selMin.y && worldY < selMin.y + selDims.y &&
+                worldZ >= selMin.z && worldZ < selMin.z + selDims.z) {
+              const selX = worldX - selMin.x;
+              const selY = worldY - selMin.y;
+              const selZ = worldZ - selMin.z;
+              const selIndex = selX * selDims.y * selDims.z + selY * selDims.z + selZ;
+              const chunkIndex = x * this.size.y * this.size.z + y * this.size.z + z;
+              
+              if (selectionVoxels[selIndex] > 0) {
+                // Apply selection to filled voxels (not empty ones)
+                if (blocks[chunkIndex] > 0) {
+                  this.mergedSelectionFrame.setByIndex(chunkIndex, selectionVoxels[selIndex]);
+                }
+              }
+            }
           }
         }
       }
