@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { EditHistory } from "../edit-history";
-import { resetState, stateStore } from "@/state/store";
+import { resetState, stateStore, getChunkKey } from "@/state/store";
+import { RAYCASTABLE_BIT } from "../voxel-constants";
 import type { VoxelObject } from "@/state/types";
 
 describe("EditHistory", () => {
@@ -241,6 +242,59 @@ describe("EditHistory", () => {
 
       history.redo();
       expect(stateStore.getState().blocks.colors[0]).toBe(0x0000ff);
+    });
+  });
+
+  describe("voxel edits", () => {
+    const getVoxel = (x: number, y: number, z: number) => {
+      const obj = stateStore.getState().objects[0];
+      const key = getChunkKey(obj.id, { x: 0, y: 0, z: 0 });
+      const chunk = stateStore.getState().chunks.get(key);
+      if (!chunk) return 0;
+      return chunk.voxels[x * chunk.size.y * chunk.size.z + y * chunk.size.z + z];
+    };
+
+    it("undoes a voxel edit", () => {
+      const dims = stateStore.getState().project.dimensions;
+      const total = dims.x * dims.y * dims.z;
+      const previous = new Uint8Array(total);
+      const updated = new Uint8Array(total);
+      const idx = 5 * dims.y * dims.z + 5 * dims.z + 5;
+
+      const oldVal = getVoxel(5, 5, 5);
+      previous[idx] = oldVal;
+      const newVal = 1 | RAYCASTABLE_BIT;
+      updated[idx] = newVal;
+
+      stateStore.reducers.undoEdit("local-project", updated, previous, 0);
+      history.addEntry(new Uint8Array(previous), new Uint8Array(updated), 0);
+
+      expect(getVoxel(5, 5, 5)).toBe(newVal);
+
+      history.undo();
+      expect(getVoxel(5, 5, 5)).toBe(oldVal);
+    });
+
+    it("redoes a voxel edit", () => {
+      const dims = stateStore.getState().project.dimensions;
+      const total = dims.x * dims.y * dims.z;
+      const previous = new Uint8Array(total);
+      const updated = new Uint8Array(total);
+      const idx = 5 * dims.y * dims.z + 5 * dims.z + 5;
+
+      const oldVal = getVoxel(5, 5, 5);
+      previous[idx] = oldVal;
+      const newVal = 1 | RAYCASTABLE_BIT;
+      updated[idx] = newVal;
+
+      stateStore.reducers.undoEdit("local-project", updated, previous, 0);
+      history.addEntry(new Uint8Array(previous), new Uint8Array(updated), 0);
+
+      history.undo();
+      expect(getVoxel(5, 5, 5)).toBe(oldVal);
+
+      history.redo();
+      expect(getVoxel(5, 5, 5)).toBe(newVal);
     });
   });
 });

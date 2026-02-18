@@ -358,8 +358,34 @@ const reducers: Reducers = {
       }
     });
   },
-  undoEdit: () => {
-    notify();
+  undoEdit: (_projectId, beforeDiff, afterDiff, objectIndex) => {
+    updateState((current) => {
+      const obj = getObjectByIndex(objectIndex);
+      if (!obj) return;
+
+      const dims = current.project.dimensions;
+      const yz = dims.y * dims.z;
+
+      for (let i = 0; i < beforeDiff.length; i++) {
+        if (beforeDiff[i] === 0 && afterDiff[i] === 0) continue;
+
+        const x = Math.floor(i / yz);
+        const remainder = i % yz;
+        const y = Math.floor(remainder / dims.z);
+        const z = remainder % dims.z;
+
+        const cx = Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE;
+        const cy = Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE;
+        const cz = Math.floor(z / CHUNK_SIZE) * CHUNK_SIZE;
+
+        const chunk = getOrCreateChunk(obj.id, { x: cx, y: cy, z: cz });
+        const lx = x - cx;
+        const ly = y - cy;
+        const lz = z - cz;
+        const ci = lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz;
+        chunk.voxels[ci] = beforeDiff[i];
+      }
+    });
   },
   updateCursorPos: () => {},
   magicSelect: () => {},
