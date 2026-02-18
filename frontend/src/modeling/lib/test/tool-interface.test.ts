@@ -506,7 +506,7 @@ describe("Tool Interface", () => {
 
       tool.setOption("Fill Shape", "Rect");
 
-      (tool as RectTool).resizePendingBounds(mockContext, {
+      tool.resizePendingBounds(mockContext, {
         minX: 0, maxX: 6,
         minY: 0, maxY: 6,
         minZ: 0, maxZ: 6,
