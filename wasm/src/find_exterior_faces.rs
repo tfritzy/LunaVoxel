@@ -3,11 +3,11 @@ use crate::mesh_arrays::MeshArrays;
 use crate::texture_coords::get_texture_coordinates;
 use crate::voxel_constants::FACES;
 
-const PACKED_PRESENT_BIT: i32 = 1 << 19;
-
 pub struct ExteriorFacesFinder {
-    packed_mask: Vec<i32>,
+    mask: Vec<i16>,
     processed: Vec<u8>,
+    ao_mask: Vec<u8>,
+    is_selected_mask: Vec<u8>,
     mask_size: usize,
     max_dim: usize,
 }
@@ -16,8 +16,10 @@ impl ExteriorFacesFinder {
     pub fn new(max_dimension: usize) -> Self {
         let mask_size = max_dimension * max_dimension;
         Self {
-            packed_mask: vec![0; mask_size],
+            mask: vec![0; mask_size],
             processed: vec![0; mask_size],
+            ao_mask: vec![0; mask_size],
+            is_selected_mask: vec![0; mask_size],
             mask_size,
             max_dim: max_dimension,
         }
@@ -46,8 +48,10 @@ impl ExteriorFacesFinder {
         if current_mask_size > self.mask_size {
             self.mask_size = current_mask_size;
             self.max_dim = max_dimension;
-            self.packed_mask = vec![0; current_mask_size];
+            self.mask = vec![0; current_mask_size];
             self.processed = vec![0; current_mask_size];
+            self.ao_mask = vec![0; current_mask_size];
+            self.is_selected_mask = vec![0; current_mask_size];
         }
 
         let stride_x = dim_y * dim_z;
@@ -81,7 +85,9 @@ impl ExteriorFacesFinder {
                     for iv in 0..v_size {
                         let row_offset = iv * max_dim;
                         for i in row_offset..row_offset + u_size {
-                            self.packed_mask[i] = 0;
+                            self.mask[i] = -1;
+                            self.ao_mask[i] = 0;
+                            self.is_selected_mask[i] = 0;
                         }
                     }
 
@@ -154,7 +160,7 @@ impl ExteriorFacesFinder {
                                     let texture_index = block_atlas_mapping
                                         [(selection_block_type.max(1) - 1) as usize];
 
-                                    let ao = calculate_ambient_occlusion(
+                                    self.ao_mask[mask_idx] = calculate_ambient_occlusion(
                                         nx,
                                         ny,
                                         nz,
@@ -166,10 +172,8 @@ impl ExteriorFacesFinder {
                                         stride_x as i32,
                                     );
 
-                                    self.packed_mask[mask_idx] = PACKED_PRESENT_BIT
-                                        | (texture_index & 0x3FF)
-                                        | ((ao as i32 & 0xFF) << 10)
-                                        | (1 << 18);
+                                    self.mask[mask_idx] = texture_index as i16;
+                                    self.is_selected_mask[mask_idx] = 1;
                                     has_faces = true;
                                 }
                             } else if block_visible {
@@ -195,7 +199,7 @@ impl ExteriorFacesFinder {
                                     let texture_index =
                                         block_atlas_mapping[(block_type - 1) as usize];
 
-                                    let ao = calculate_ambient_occlusion(
+                                    self.ao_mask[mask_idx] = calculate_ambient_occlusion(
                                         nx,
                                         ny,
                                         nz,
@@ -207,11 +211,10 @@ impl ExteriorFacesFinder {
                                         stride_x as i32,
                                     );
 
-                                    let sel = if block_is_selected { 1i32 } else { 0i32 };
-                                    self.packed_mask[mask_idx] = PACKED_PRESENT_BIT
-                                        | (texture_index & 0x3FF)
-                                        | ((ao as i32 & 0xFF) << 10)
-                                        | (sel << 18);
+                                    self.mask[mask_idx] = texture_index as i16;
+                                    if block_is_selected {
+                                        self.is_selected_mask[mask_idx] = 1;
+                                    }
                                     has_faces = true;
                                 }
                             }
@@ -267,21 +270,22 @@ impl ExteriorFacesFinder {
             let mut i = 0;
             while i < width {
                 let ji = j_offset + i;
-                if self.processed[ji] != 0 || (self.packed_mask[ji] & PACKED_PRESENT_BIT) == 0 {
+                if self.processed[ji] != 0 || self.mask[ji] < 0 {
                     i += 1;
                     continue;
                 }
 
-                let packed = self.packed_mask[ji];
-                let texture_index = packed & 0x3FF;
-                let ao_val = ((packed >> 10) & 0xFF) as u8;
-                let is_selected = ((packed >> 18) & 0x1) as u8;
+                let texture_index = self.mask[ji];
+                let is_selected = self.is_selected_mask[ji];
+                let ao_val = self.ao_mask[ji];
                 let mut quad_width = 1usize;
 
                 while i + quad_width < width {
                     let idx = j_offset + i + quad_width;
                     if self.processed[idx] != 0
-                        || self.packed_mask[idx] != packed
+                        || self.mask[idx] != texture_index
+                        || self.ao_mask[idx] != ao_val
+                        || self.is_selected_mask[idx] != is_selected
                     {
                         break;
                     }
@@ -294,7 +298,9 @@ impl ExteriorFacesFinder {
                     for w in 0..quad_width {
                         let idx = row_off + i + w;
                         if self.processed[idx] != 0
-                            || self.packed_mask[idx] != packed
+                            || self.mask[idx] != texture_index
+                            || self.ao_mask[idx] != ao_val
+                            || self.is_selected_mask[idx] != is_selected
                         {
                             break 'outer;
                         }

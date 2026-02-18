@@ -10,19 +10,23 @@ import { VoxelFrame } from "./voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
-const PACKED_PRESENT_BIT = 1 << 19;
+
 
 export class ExteriorFacesFinder {
-  private packedMask: Int32Array;
+  private mask: Int16Array;
   private processed: Uint8Array;
+  private aoMask: Uint8Array;
+  private isSelectedMask: Uint8Array;
   private maskSize: number;
   private maxDim: number;
 
   constructor(maxDimension: number) {
     this.maskSize = maxDimension ** 2;
     this.maxDim = maxDimension;
-    this.packedMask = new Int32Array(this.maskSize);
+    this.mask = new Int16Array(this.maskSize);
     this.processed = new Uint8Array(this.maskSize);
+    this.aoMask = new Uint8Array(this.maskSize);
+    this.isSelectedMask = new Uint8Array(this.maskSize);
   }
 
   public findExteriorFaces(
@@ -41,8 +45,10 @@ export class ExteriorFacesFinder {
     if (currentMaskSize > this.maskSize) {
       this.maskSize = currentMaskSize;
       this.maxDim = maxDimension;
-      this.packedMask = new Int32Array(currentMaskSize);
+      this.mask = new Int16Array(currentMaskSize);
       this.processed = new Uint8Array(currentMaskSize);
+      this.aoMask = new Uint8Array(currentMaskSize);
+      this.isSelectedMask = new Uint8Array(currentMaskSize);
     }
 
     const dimX = dimensions.x;
@@ -77,7 +83,9 @@ export class ExteriorFacesFinder {
         for (let d = 0; d < axisSize; d++) {
           for (let iv = 0; iv < vSize; iv++) {
             const rowOffset = iv * maxDim;
-            this.packedMask.fill(0, rowOffset, rowOffset + uSize);
+            this.mask.fill(-1, rowOffset, rowOffset + uSize);
+            this.aoMask.fill(0, rowOffset, rowOffset + uSize);
+            this.isSelectedMask.fill(0, rowOffset, rowOffset + uSize);
           }
 
           let hasFaces = false;
@@ -113,11 +121,12 @@ export class ExteriorFacesFinder {
                   const textureIndex =
                     blockAtlasMapping[Math.max(selectionBlockType, 1) - 1];
                   
-                  const ao = calculateAmbientOcclusion(
+                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX
                   );
                   
-                  this.packedMask[maskIdx] = PACKED_PRESENT_BIT | (textureIndex & 0x3FF) | ((ao & 0xFF) << 10) | (1 << 18);
+                  this.mask[maskIdx] = textureIndex;
+                  this.isSelectedMask[maskIdx] = 1;
                   hasFaces = true;
                 }
               } else if (blockVisible) {
@@ -128,12 +137,14 @@ export class ExteriorFacesFinder {
                 if (!neighborVisible) {
                   const textureIndex = blockAtlasMapping[blockType - 1];
 
-                  const ao = calculateAmbientOcclusion(
+                  this.aoMask[maskIdx] = calculateAmbientOcclusion(
                     nx, ny, nz, faceDir, voxelData, dimX, dimY, dimZ, strideX
                   );
 
-                  const sel = blockIsSelected ? 1 : 0;
-                  this.packedMask[maskIdx] = PACKED_PRESENT_BIT | (textureIndex & 0x3FF) | ((ao & 0xFF) << 10) | (sel << 18);
+                  this.mask[maskIdx] = textureIndex;
+                  if (blockIsSelected) {
+                    this.isSelectedMask[maskIdx] = 1;
+                  }
                   hasFaces = true;
                 }
               }
@@ -142,7 +153,9 @@ export class ExteriorFacesFinder {
 
           if (hasFaces) {
             this.generateGreedyMesh(
-              this.packedMask,
+              this.mask,
+              this.aoMask,
+              this.isSelectedMask,
               this.processed,
               uSize,
               vSize,
@@ -162,7 +175,9 @@ export class ExteriorFacesFinder {
   }
 
   private generateGreedyMesh(
-    packedMask: Int32Array,
+    mask: Int16Array,
+    aoMask: Uint8Array,
+    isSelectedMask: Uint8Array,
     processed: Uint8Array,
     width: number,
     height: number,
@@ -179,7 +194,10 @@ export class ExteriorFacesFinder {
     const faceData = faces[faceDir];
     const normal = faceData.normal;
     const faceOffset = dir > 0 ? 1 : 0;
-    
+
+    const vertUMult = dir >= 0 ? [0, 1, 1, 0] : [0, 0, 1, 1];
+    const vertVMult = dir >= 0 ? [0, 0, 1, 1] : [0, 1, 1, 0];
+
     for (let iv = 0; iv < height; iv++) {
       const rowOffset = iv * stride;
       processed.fill(0, rowOffset, rowOffset + width);
@@ -189,22 +207,23 @@ export class ExteriorFacesFinder {
       const jOffset = j * stride;
       for (let i = 0; i < width; ) {
         const ji = jOffset + i;
-        if (processed[ji] || (packedMask[ji] & PACKED_PRESENT_BIT) === 0) {
+        if (processed[ji] || mask[ji] < 0) {
           i++;
           continue;
         }
 
-        const packed = packedMask[ji];
-        const textureIndex = packed & 0x3FF;
-        const isSelected = (packed >> 18) & 0x1;
-        const aoVal = (packed >> 10) & 0xFF;
+        const textureIndex = mask[ji];
+        const isSelected = isSelectedMask[ji];
+        const aoVal = aoMask[ji];
         let quadWidth = 1;
         if (!DISABLE_GREEDY_MESHING) {
           while (i + quadWidth < width) {
             const idx = jOffset + i + quadWidth;
             if (
               processed[idx] ||
-              packedMask[idx] !== packed
+              mask[idx] !== textureIndex ||
+              aoMask[idx] !== aoVal ||
+              isSelectedMask[idx] !== isSelected
             )
               break;
             quadWidth++;
@@ -219,7 +238,9 @@ export class ExteriorFacesFinder {
               const idx = rowOff + i + w;
               if (
                 processed[idx] ||
-                packedMask[idx] !== packed
+                mask[idx] !== textureIndex ||
+                aoMask[idx] !== aoVal ||
+                isSelectedMask[idx] !== isSelected
               )
                 break outer;
             }
@@ -245,58 +266,23 @@ export class ExteriorFacesFinder {
         const startVertexIndex = meshArrays.vertexCount;
 
         for (let vi = 0; vi < 4; vi++) {
-          let actualVi = vi;
-          if (dir < 0 && (vi === 1 || vi === 3)) {
-            actualVi = vi === 1 ? 3 : 1;
-          }
+          const uM = vertUMult[vi];
+          const vM = vertVMult[vi];
 
           let vx: number, vy: number, vz: number;
 
           if (axis === 0) {
             vx = x + faceOffset;
-            if (actualVi === 0) {
-              vy = y;
-              vz = z;
-            } else if (actualVi === 1) {
-              vy = y + (u === 1 ? quadWidth : 0);
-              vz = z + (u === 2 ? quadWidth : 0);
-            } else if (actualVi === 2) {
-              vy = y + (u === 1 ? quadWidth : v === 1 ? quadHeight : 0);
-              vz = z + (u === 2 ? quadWidth : v === 2 ? quadHeight : 0);
-            } else {
-              vy = y + (v === 1 ? quadHeight : 0);
-              vz = z + (v === 2 ? quadHeight : 0);
-            }
+            vy = y + (u === 1 ? quadWidth * uM : quadHeight * vM);
+            vz = z + (u === 2 ? quadWidth * uM : quadHeight * vM);
           } else if (axis === 1) {
+            vx = x + (u === 0 ? quadWidth * uM : quadHeight * vM);
             vy = y + faceOffset;
-            if (actualVi === 0) {
-              vx = x;
-              vz = z;
-            } else if (actualVi === 1) {
-              vx = x + (u === 0 ? quadWidth : 0);
-              vz = z + (u === 2 ? quadWidth : 0);
-            } else if (actualVi === 2) {
-              vx = x + (u === 0 ? quadWidth : v === 0 ? quadHeight : 0);
-              vz = z + (u === 2 ? quadWidth : v === 2 ? quadHeight : 0);
-            } else {
-              vx = x + (v === 0 ? quadHeight : 0);
-              vz = z + (v === 2 ? quadHeight : 0);
-            }
+            vz = z + (u === 2 ? quadWidth * uM : quadHeight * vM);
           } else {
+            vx = x + (u === 0 ? quadWidth * uM : quadHeight * vM);
+            vy = y + (u === 1 ? quadWidth * uM : quadHeight * vM);
             vz = z + faceOffset;
-            if (actualVi === 0) {
-              vx = x;
-              vy = y;
-            } else if (actualVi === 1) {
-              vx = x + (u === 0 ? quadWidth : 0);
-              vy = y + (u === 1 ? quadWidth : 0);
-            } else if (actualVi === 2) {
-              vx = x + (u === 0 ? quadWidth : v === 0 ? quadHeight : 0);
-              vy = y + (u === 1 ? quadWidth : v === 1 ? quadHeight : 0);
-            } else {
-              vx = x + (v === 0 ? quadHeight : 0);
-              vy = y + (v === 1 ? quadHeight : 0);
-            }
           }
 
           meshArrays.pushVertex(vx, vy, vz);
