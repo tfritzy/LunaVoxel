@@ -7,7 +7,7 @@ import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
-import { isInsideFillShape } from "../fill-shape-utils";
+import { isInsideFillShape, isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
 
 type ResizeCorner = {
   xSide: "min" | "max";
@@ -119,43 +119,52 @@ export class RectTool implements Tool {
       return;
     }
 
+    let sMinX = bounds.minX, sMaxX = bounds.maxX;
+    let sMinY = bounds.minY, sMaxY = bounds.maxY;
+    let sMinZ = bounds.minZ, sMaxZ = bounds.maxZ;
+    const yFlip = direction === "-y" ? bounds.minY + bounds.maxY : 0;
+    const xFlip = direction === "-x" ? bounds.minX + bounds.maxX : 0;
+    const zFlip = direction === "-z" ? bounds.minZ + bounds.maxZ : 0;
+
+    switch (direction) {
+      case "+x":
+      case "-x":
+        sMinX = bounds.minY; sMaxX = bounds.maxY;
+        sMinY = bounds.minX; sMaxY = bounds.maxX;
+        break;
+      case "+z":
+      case "-z":
+        sMinZ = bounds.minY; sMaxZ = bounds.maxY;
+        sMinY = bounds.minZ; sMaxY = bounds.maxZ;
+        break;
+    }
+
+    const shapeParams = precomputeShapeParams(fillShape, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ);
+
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
           let sx = x, sy = y, sz = z;
-          let sMinX = bounds.minX, sMaxX = bounds.maxX;
-          let sMinY = bounds.minY, sMaxY = bounds.maxY;
-          let sMinZ = bounds.minZ, sMaxZ = bounds.maxZ;
 
           switch (direction) {
-            case "+y":
-              break;
             case "-y":
-              sy = bounds.minY + bounds.maxY - y;
+              sy = yFlip - y;
               break;
             case "+x":
               sx = y; sy = x;
-              sMinX = bounds.minY; sMaxX = bounds.maxY;
-              sMinY = bounds.minX; sMaxY = bounds.maxX;
               break;
             case "-x":
-              sx = y; sy = bounds.minX + bounds.maxX - x;
-              sMinX = bounds.minY; sMaxX = bounds.maxY;
-              sMinY = bounds.minX; sMaxY = bounds.maxX;
+              sx = y; sy = xFlip - x;
               break;
             case "+z":
               sz = y; sy = z;
-              sMinZ = bounds.minY; sMaxZ = bounds.maxY;
-              sMinY = bounds.minZ; sMaxY = bounds.maxZ;
               break;
             case "-z":
-              sz = y; sy = bounds.minZ + bounds.maxZ - z;
-              sMinZ = bounds.minY; sMaxZ = bounds.maxY;
-              sMinY = bounds.minZ; sMaxY = bounds.maxZ;
+              sz = y; sy = zFlip - z;
               break;
           }
 
-          if (isInsideFillShape(fillShape, sx, sy, sz, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ)) {
+          if (isInsideFillShapePrecomputed(fillShape, sx, sy, sz, shapeParams)) {
             context.previewFrame.set(x, y, z, previewValue);
           }
         }

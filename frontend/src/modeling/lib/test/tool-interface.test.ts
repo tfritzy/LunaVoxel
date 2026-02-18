@@ -1030,7 +1030,7 @@ describe("Tool Interface", () => {
   });
 
   describe("Benchmark", () => {
-    it("should drag preview and apply across all fill shapes within 5 seconds", () => {
+    it("should drag preview and apply across all fill shapes within 4 seconds", () => {
       const shapes = ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"] as const;
       const SIZE = 150;
       const DRAG_STEPS = 8;
@@ -1072,7 +1072,7 @@ describe("Tool Interface", () => {
 
       const elapsed = performance.now() - start;
       console.log(`Preview drag + apply benchmark (all shapes, ${SIZE}^3, ${DRAG_STEPS} drag steps): ${elapsed.toFixed(0)}ms`);
-      expect(elapsed).toBeLessThan(5000);
+      expect(elapsed).toBeLessThan(4000);
     }, 10000);
   });
 });
