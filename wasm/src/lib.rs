@@ -1,8 +1,8 @@
-mod ambient_occlusion;
-mod find_exterior_faces;
-mod mesh_arrays;
-mod texture_coords;
-mod voxel_constants;
+pub mod ambient_occlusion;
+pub mod find_exterior_faces;
+pub mod mesh_arrays;
+pub mod texture_coords;
+pub mod voxel_constants;
 
 use find_exterior_faces::ExteriorFacesFinder;
 use mesh_arrays::MeshArrays;

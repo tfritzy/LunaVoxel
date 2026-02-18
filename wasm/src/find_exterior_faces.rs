@@ -1,4 +1,4 @@
-use crate::ambient_occlusion::{calculate_ambient_occlusion, OCCLUSION_LEVELS};
+use crate::ambient_occlusion::{calculate_ambient_occlusion, precompute_ao_offsets, OCCLUSION_LEVELS};
 use crate::mesh_arrays::MeshArrays;
 use crate::texture_coords::get_texture_coordinates;
 use crate::voxel_constants::FACES;
@@ -73,6 +73,8 @@ impl ExteriorFacesFinder {
                 let dy: i32 = if axis == 1 { dir } else { 0 };
                 let dz: i32 = if axis == 2 { dir } else { 0 };
                 let neighbor_max = dims[axis] as i32;
+                let ao_offsets = precompute_ao_offsets(face_dir, stride_x as i32, dim_z as i32);
+                let normal_flat_offset: i32 = dx * stride_x as i32 + dy * dim_z as i32 + dz;
 
                 let x_is_depth = axis == 0;
                 let y_is_depth = axis == 1;
@@ -99,7 +101,8 @@ impl ExteriorFacesFinder {
                             let y = if y_is_depth { d } else if y_is_u_axis { iu } else { iv };
                             let z = if z_is_depth { d } else if z_is_u_axis { iu } else { iv };
 
-                            let block_value = voxel_data[x * stride_x + y * dim_z + z];
+                            let block_idx = x * stride_x + y * dim_z + z;
+                            let block_value = voxel_data[block_idx];
                             let block_type = block_value & 0x7F;
                             let block_visible = block_type != 0;
                             let block_is_selected = !selection_empty
@@ -120,6 +123,7 @@ impl ExteriorFacesFinder {
                             let nx = x as i32 + dx;
                             let ny = y as i32 + dy;
                             let nz = z as i32 + dz;
+                            let neighbor_idx = block_idx as i32 + normal_flat_offset;
 
                             let mask_idx = iv * max_dim + iu;
 
@@ -164,12 +168,12 @@ impl ExteriorFacesFinder {
                                         nx,
                                         ny,
                                         nz,
-                                        face_dir,
                                         voxel_data,
                                         dim_x as i32,
                                         dim_y as i32,
                                         dim_z as i32,
-                                        stride_x as i32,
+                                        neighbor_idx,
+                                        &ao_offsets,
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
@@ -190,8 +194,7 @@ impl ExteriorFacesFinder {
                                     neighbor_coord >= 0
                                 };
                                 let neighbor_visible = neighbor_in_bounds
-                                    && (voxel_data
-                                        [(nx as usize) * stride_x + (ny as usize) * dim_z + (nz as usize)]
+                                    && (voxel_data[neighbor_idx as usize]
                                         & 0x7F)
                                         != 0;
 
@@ -203,12 +206,12 @@ impl ExteriorFacesFinder {
                                         nx,
                                         ny,
                                         nz,
-                                        face_dir,
                                         voxel_data,
                                         dim_x as i32,
                                         dim_y as i32,
                                         dim_z as i32,
-                                        stride_x as i32,
+                                        neighbor_idx,
+                                        &ao_offsets,
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
