@@ -575,6 +575,72 @@ describe("Tool Interface", () => {
     });
   });
 
+  describe("RectTool Shift Snap", () => {
+    let tool: RectTool;
+
+    beforeEach(() => {
+      tool = new RectTool();
+    });
+
+    it("should snap drag bounds to equal dimensions when shiftKey is held", () => {
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 2, 1),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+        shiftKey: true,
+      });
+
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(4, 4, 4)).toBeGreaterThan(0);
+    });
+
+    it("should not snap bounds when shiftKey is not held", () => {
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 2, 1),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+        shiftKey: false,
+      });
+
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(4, 2, 1)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(4, 4, 4)).toBe(0);
+    });
+
+    it("should snap mouseUp bounds to equal dimensions when shiftKey is held", () => {
+      tool.setOption("Adjust Before Apply", "true");
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(4, 2, 1),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+        shiftKey: true,
+      });
+
+      const bounds = tool.getPendingBounds()!;
+      const sizeX = bounds.maxX - bounds.minX;
+      const sizeY = bounds.maxY - bounds.minY;
+      const sizeZ = bounds.maxZ - bounds.minZ;
+      expect(sizeX).toBe(sizeY);
+      expect(sizeY).toBe(sizeZ);
+    });
+
+    it("should expand toward the end position when snapping", () => {
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(5, 2, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+        shiftKey: true,
+      });
+
+      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
+      expect(mockContext.previewFrame.get(5, 5, 5)).toBeGreaterThan(0);
+    });
+  });
+
   describe("BlockPicker Tool", () => {
     let tool: Tool;
 

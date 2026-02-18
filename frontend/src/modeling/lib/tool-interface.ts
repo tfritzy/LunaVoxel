@@ -29,6 +29,7 @@ export interface ToolDragEvent {
   currentGridPosition: THREE.Vector3;
   startMousePosition: THREE.Vector2;
   currentMousePosition: THREE.Vector2;
+  shiftKey?: boolean;
 }
 
 export interface ToolOption {
@@ -63,7 +64,7 @@ export interface Tool {
 
   onPendingMouseDown?(context: ToolContext, mousePos: THREE.Vector2): boolean;
 
-  onPendingMouseMove?(context: ToolContext, mousePos: THREE.Vector2): void;
+  onPendingMouseMove?(context: ToolContext, mousePos: THREE.Vector2, shiftKey?: boolean): void;
 
   onPendingMouseUp?(context: ToolContext, mousePos: THREE.Vector2): void;
 

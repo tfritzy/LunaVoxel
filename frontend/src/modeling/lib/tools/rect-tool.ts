@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { FillShape, ShapeDirection } from "../tool-type";
-import { calculateRectBounds } from "@/lib/rect-utils";
+import { calculateRectBounds, snapBoundsToEqual } from "@/lib/rect-utils";
 import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
@@ -34,7 +34,7 @@ export class RectTool implements Tool {
   private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.25, 8, 8);
   private static readonly HANDLE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
-  private static readonly HANDLE_SCREEN_THRESHOLD = 0.08;
+  private static readonly HANDLE_SCREEN_THRESHOLD = 0.04;
 
   getType(): ToolType {
     return "Rect";
@@ -164,11 +164,14 @@ export class RectTool implements Tool {
   }
 
   private buildFrame(context: ToolContext, event: ToolDragEvent): void {
-    const bounds = calculateRectBounds(
+    let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
       context.dimensions
     );
+    if (event.shiftKey) {
+      bounds = snapBoundsToEqual(bounds, event.startGridPosition);
+    }
     this.buildFrameFromBounds(context, bounds);
   }
 
@@ -183,11 +186,14 @@ export class RectTool implements Tool {
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    const bounds = calculateRectBounds(
+    let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
       context.dimensions
     );
+    if (event.shiftKey) {
+      bounds = snapBoundsToEqual(bounds, event.startGridPosition);
+    }
     this.buildFrameFromBounds(context, bounds);
     context.projectManager.chunkManager.setPreview(context.previewFrame);
 
@@ -240,7 +246,7 @@ export class RectTool implements Tool {
     return false;
   }
 
-  onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2): void {
+  onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2, shiftKey?: boolean): void {
     if (!this.resizingCorner || !this.resizeBaseBounds) return;
 
     const raycaster = new THREE.Raycaster();
@@ -278,7 +284,7 @@ export class RectTool implements Tool {
     if (!ray.intersectPlane(plane, intersection)) return;
 
     const diff = intersection.clone().sub(dragCorner);
-    const newBounds = { ...base };
+    let newBounds = { ...base };
     const snapToGrid = (val: number) => Math.round(val);
 
     if (corner.xSide === "min") {
@@ -305,6 +311,15 @@ export class RectTool implements Tool {
     }
     if (newBounds.minZ > newBounds.maxZ) {
       [newBounds.minZ, newBounds.maxZ] = [newBounds.maxZ, newBounds.minZ];
+    }
+
+    if (shiftKey) {
+      const anchor = {
+        x: corner.xSide === "min" ? newBounds.maxX : newBounds.minX,
+        y: corner.ySide === "min" ? newBounds.maxY : newBounds.minY,
+        z: corner.zSide === "min" ? newBounds.maxZ : newBounds.minZ,
+      };
+      newBounds = snapBoundsToEqual(newBounds, anchor);
     }
 
     this.resizePendingBounds(context, newBounds);

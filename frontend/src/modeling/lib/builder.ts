@@ -232,14 +232,14 @@ export const Builder = class {
     this.updateMousePosition(event);
 
     if (this.isPendingHandled) {
-      this.currentTool.onPendingMouseMove?.(this.toolContext, this.mouse.clone());
+      this.currentTool.onPendingMouseMove?.(this.toolContext, this.mouse.clone(), event.shiftKey);
       return;
     }
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
     if (gridPos) {
-      this.handleMouseDrag(gridPos);
+      this.handleMouseDrag(gridPos, event.shiftKey);
     }
   }
 
@@ -261,7 +261,7 @@ export const Builder = class {
 
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
-      this.handleMouseUp(position);
+      this.handleMouseUp(position, event.shiftKey);
     }
   }
 
@@ -398,7 +398,7 @@ export const Builder = class {
     return null;
   }
 
-  private handleMouseDrag(gridPos: THREE.Vector3): void {
+  private handleMouseDrag(gridPos: THREE.Vector3, shiftKey: boolean): void {
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
       this.startMousePos = this.mouse.clone();
@@ -419,14 +419,15 @@ export const Builder = class {
         startGridPosition: this.startPosition,
         currentGridPosition: gridPos,
         startMousePosition: this.startMousePos,
-        currentMousePosition: this.mouse.clone()
+        currentMousePosition: this.mouse.clone(),
+        shiftKey,
       });
       this.lastPreviewStart = this.startPosition.clone();
       this.lastPreviewEnd = gridPos.clone();
     }
   }
 
-  private handleMouseUp(position: THREE.Vector3): void {
+  private handleMouseUp(position: THREE.Vector3, shiftKey: boolean): void {
     const endPos = position;
     const startPos = this.startPosition || position;
     const startMousePos = this.startMousePos || this.mouse.clone();
@@ -436,7 +437,8 @@ export const Builder = class {
       startGridPosition: startPos,
       currentGridPosition: endPos,
       startMousePosition: startMousePos,
-      currentMousePosition: endMousePos
+      currentMousePosition: endMousePos,
+      shiftKey,
     });
 
     this.isMouseDown = false;
