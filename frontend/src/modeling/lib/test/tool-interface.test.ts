@@ -8,6 +8,7 @@ import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import type { Reducers } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
+import { RAYCASTABLE_BIT } from "../voxel-constants";
 import * as THREE from "three";
 import { VoxelFrame } from "../voxel-frame";
 
@@ -683,7 +684,7 @@ describe("Tool Interface", () => {
       expect(selectedBlock).toBe(5);
     });
 
-    it("should not pick out-of-range blocks on mouse up", () => {
+    it("should not pick empty block values on mouse up", () => {
       const startPos = new THREE.Vector3(1, 2, 3);
       const endPos = new THREE.Vector3(1, 2, 3);
       let selectedBlock = 0;
@@ -691,7 +692,7 @@ describe("Tool Interface", () => {
       mockContext.setSelectedBlockInParent = (block: number) => {
         selectedBlock = block;
       };
-      mockContext.projectManager.getBlockAtPosition = () => 999;
+      mockContext.projectManager.getBlockAtPosition = () => RAYCASTABLE_BIT;
 
       tool.onMouseUp(mockContext, {
         startGridPosition: startPos,
@@ -701,6 +702,26 @@ describe("Tool Interface", () => {
       });
 
       expect(selectedBlock).toBe(0);
+    });
+
+    it("should pick masked block type on mouse up", () => {
+      const startPos = new THREE.Vector3(1, 2, 3);
+      const endPos = new THREE.Vector3(1, 2, 3);
+      let selectedBlock = 0;
+
+      mockContext.setSelectedBlockInParent = (block: number) => {
+        selectedBlock = block;
+      };
+      mockContext.projectManager.getBlockAtPosition = () => RAYCASTABLE_BIT | 5;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: startPos,
+        currentGridPosition: endPos,
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(selectedBlock).toBe(5);
     });
   });
 
