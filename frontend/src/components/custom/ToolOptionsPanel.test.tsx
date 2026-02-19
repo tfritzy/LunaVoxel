@@ -58,6 +58,8 @@ describe("ToolOptionsPanel slider options", () => {
 
     expect(slider).not.toBeNull();
     expect(slider?.props.className).toContain("w-full");
+    expect(slider?.props.className).toContain("cursor-pointer");
+    expect(slider?.props.className).toContain("accent-accent");
     expect(slider?.props.min).toBe(1);
     expect(slider?.props.max).toBe(10);
 

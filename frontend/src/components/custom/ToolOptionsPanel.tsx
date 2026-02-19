@@ -107,7 +107,7 @@ export const ToolOptionsPanel = ({
               max={option.max ?? 10}
               value={Number(option.currentValue)}
               onChange={(e) => onOptionChange(option.name, e.target.value)}
-              className="w-full"
+              className="w-full cursor-pointer accent-accent"
             />
           </div>
         ))}
