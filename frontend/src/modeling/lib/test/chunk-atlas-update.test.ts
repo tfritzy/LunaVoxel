@@ -36,7 +36,9 @@ describe("Chunk atlas update", () => {
       3,
       atlasData1,
       () => ({ tag: "Attach" } as BlockModificationMode),
-      () => true
+      () => true,
+      new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z),
+      chunkSize
     );
   });
 

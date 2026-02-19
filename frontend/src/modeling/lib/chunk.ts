@@ -42,8 +42,15 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private mergedSelectionFrame: VoxelFrame;
-  private previewFrame: VoxelFrame;
+  private previewBuffer: Uint8Array;
+  private worldDimensions: Vector3;
   private previewDirty: boolean = false;
+  private previewAccMinX: number = -1;
+  private previewAccMinY: number = -1;
+  private previewAccMinZ: number = -1;
+  private previewAccMaxX: number = -1;
+  private previewAccMaxY: number = -1;
+  private previewAccMaxZ: number = -1;
   private atlasData: AtlasData | undefined;
   private atlasChanged: boolean = false;
   private getMode: () => BlockModificationMode;
@@ -64,7 +71,9 @@ export class Chunk {
     maxObjects: number,
     atlasData: AtlasData | undefined,
     getMode: () => BlockModificationMode,
-    getObjectVisible: (objectIndex: number) => boolean
+    getObjectVisible: (objectIndex: number) => boolean,
+    previewBuffer: Uint8Array,
+    worldDimensions: Vector3
   ) {
     this.scene = scene;
     this.minPos = minPos;
@@ -72,6 +81,8 @@ export class Chunk {
     this.atlasData = atlasData;
     this.getMode = getMode;
     this.getObjectVisible = getObjectVisible;
+    this.previewBuffer = previewBuffer;
+    this.worldDimensions = worldDimensions;
 
     this.objectChunks = new Array(maxObjects).fill(null);
 
@@ -79,7 +90,6 @@ export class Chunk {
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
     this.mergedSelectionFrame = new VoxelFrame(size);
-    this.previewFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
     const maxVertices = maxFaces * 4;
@@ -191,44 +201,45 @@ export class Chunk {
     return this.meshData.mesh;
   }
 
-  public clearPreviewData()
-  {
-    this.previewFrame.clear();
-    this.previewDirty = true;
-    this.update();
-  }
+  public expandPreviewBounds(worldMinX: number, worldMinY: number, worldMinZ: number, worldMaxX: number, worldMaxY: number, worldMaxZ: number): void {
+    const localMinX = Math.max(0, worldMinX - this.minPos.x);
+    const localMinY = Math.max(0, worldMinY - this.minPos.y);
+    const localMinZ = Math.max(0, worldMinZ - this.minPos.z);
+    const localMaxX = Math.min(this.size.x - 1, worldMaxX - this.minPos.x);
+    const localMaxY = Math.min(this.size.y - 1, worldMaxY - this.minPos.y);
+    const localMaxZ = Math.min(this.size.z - 1, worldMaxZ - this.minPos.z);
 
-  public setPreviewData(
-    sourceFrame: VoxelFrame,
-    sourceMinX: number,
-    sourceMinY: number,
-    sourceMinZ: number,
-    sourceMaxX: number,
-    sourceMaxY: number,
-    sourceMaxZ: number
-  ): void {
-    this.previewFrame.clear();
-
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-
-    for (let worldX = sourceMinX; worldX < sourceMaxX; worldX++) {
-      for (let worldY = sourceMinY; worldY < sourceMaxY; worldY++) {
-        for (let worldZ = sourceMinZ; worldZ < sourceMaxZ; worldZ++) {
-          const blockValue = sourceFrame.get(worldX, worldY, worldZ);
-          if (blockValue !== 0) {
-            const localX = worldX - this.minPos.x;
-            const localY = worldY - this.minPos.y;
-            const localZ = worldZ - this.minPos.z;
-            const index = localX * sizeY * sizeZ + localY * sizeZ + localZ;
-            this.previewFrame.setByIndex(index, blockValue);
-          }
-        }
-      }
+    if (this.previewAccMinX === -1) {
+      this.previewAccMinX = localMinX;
+      this.previewAccMinY = localMinY;
+      this.previewAccMinZ = localMinZ;
+      this.previewAccMaxX = localMaxX;
+      this.previewAccMaxY = localMaxY;
+      this.previewAccMaxZ = localMaxZ;
+    } else {
+      this.previewAccMinX = Math.min(this.previewAccMinX, localMinX);
+      this.previewAccMinY = Math.min(this.previewAccMinY, localMinY);
+      this.previewAccMinZ = Math.min(this.previewAccMinZ, localMinZ);
+      this.previewAccMaxX = Math.max(this.previewAccMaxX, localMaxX);
+      this.previewAccMaxY = Math.max(this.previewAccMaxY, localMaxY);
+      this.previewAccMaxZ = Math.max(this.previewAccMaxZ, localMaxZ);
     }
 
     this.previewDirty = true;
-    this.update();
+  }
+
+  public resetPreviewBounds(): void {
+    this.previewAccMinX = -1;
+    this.previewAccMinY = -1;
+    this.previewAccMinZ = -1;
+    this.previewAccMaxX = -1;
+    this.previewAccMaxY = -1;
+    this.previewAccMaxZ = -1;
+    this.previewDirty = true;
+  }
+
+  public hasPreviewBounds(): boolean {
+    return this.previewAccMinX !== -1;
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
@@ -276,31 +287,61 @@ export class Chunk {
   }
 
   private mergePreviewIntoVoxelData(blocks: Uint8Array): void {
-    if (this.previewFrame.isEmpty()) return;
+    if (this.previewAccMinX === -1) return;
 
     const buildMode = this.getMode();
-    const previewData = this.previewFrame.getData();
-    const len = Math.min(blocks.length, previewData.length);
+    const worldYZ = this.worldDimensions.y * this.worldDimensions.z;
+    const worldZ = this.worldDimensions.z;
+
+    const chunkMinX = this.minPos.x;
+    const chunkMinY = this.minPos.y;
+    const chunkMinZ = this.minPos.z;
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+
+    const startLX = this.previewAccMinX;
+    const endLX = this.previewAccMaxX;
+    const startLY = this.previewAccMinY;
+    const endLY = this.previewAccMaxY;
+    const startLZ = this.previewAccMinZ;
+    const endLZ = this.previewAccMaxZ;
 
     if (buildMode.tag === "Attach") {
-      for (let i = 0; i < len; i++) {
-        const pv = previewData[i];
-        if (pv !== 0 && !isBlockVisible(blocks[i])) {
-          blocks[i] = pv;
+      for (let lx = startLX; lx <= endLX; lx++) {
+        const worldX = chunkMinX + lx;
+        const srcXOff = worldX * worldYZ;
+        const dstXOff = lx * sizeY * sizeZ;
+        for (let ly = startLY; ly <= endLY; ly++) {
+          const srcXYOff = srcXOff + (chunkMinY + ly) * worldZ;
+          const dstXYOff = dstXOff + ly * sizeZ;
+          for (let lz = startLZ; lz <= endLZ; lz++) {
+            const pv = this.previewBuffer[srcXYOff + chunkMinZ + lz];
+            if (pv !== 0) {
+              const dstIdx = dstXYOff + lz;
+              if (!isBlockVisible(blocks[dstIdx])) {
+                blocks[dstIdx] = pv;
+              }
+            }
+          }
         }
       }
-    } else if (buildMode.tag === "Erase") {
-      for (let i = 0; i < len; i++) {
-        const pv = previewData[i];
-        if (pv !== 0 && isBlockVisible(blocks[i])) {
-          blocks[i] = pv;
-        }
-      }
-    } else if (buildMode.tag === "Paint") {
-      for (let i = 0; i < len; i++) {
-        const pv = previewData[i];
-        if (pv !== 0 && isBlockVisible(blocks[i])) {
-          blocks[i] = pv;
+    } else {
+      for (let lx = startLX; lx <= endLX; lx++) {
+        const worldX = chunkMinX + lx;
+        const srcXOff = worldX * worldYZ;
+        const dstXOff = lx * sizeY * sizeZ;
+        for (let ly = startLY; ly <= endLY; ly++) {
+          const srcXYOff = srcXOff + (chunkMinY + ly) * worldZ;
+          const dstXYOff = dstXOff + ly * sizeZ;
+          for (let lz = startLZ; lz <= endLZ; lz++) {
+            const pv = this.previewBuffer[srcXYOff + chunkMinZ + lz];
+            if (pv !== 0) {
+              const dstIdx = dstXYOff + lz;
+              if (isBlockVisible(blocks[dstIdx])) {
+                blocks[dstIdx] = pv;
+              }
+            }
+          }
         }
       }
     }

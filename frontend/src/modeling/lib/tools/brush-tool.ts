@@ -5,6 +5,7 @@ import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } fro
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
+import { VoxelFrame } from "../voxel-frame";
 
 const BRUSH_SHAPE_TO_FILL_SHAPE: Record<BrushShape, FillShape> = {
   Sphere: "Sphere",
@@ -22,12 +23,6 @@ export class BrushTool implements Tool {
   private strokeMode: BlockModificationMode | null = null;
   private strokeSelectedBlock: number = 0;
   private strokeSelectedObject: number = 0;
-  private accMinX: number = 0;
-  private accMinY: number = 0;
-  private accMinZ: number = 0;
-  private accMaxX: number = 0;
-  private accMaxY: number = 0;
-  private accMaxZ: number = 0;
 
   getType(): ToolType {
     return "Brush";
@@ -97,36 +92,10 @@ export class BrushTool implements Tool {
     const maxY = Math.min(context.dimensions.y - 1, boundsMaxY);
     const maxZ = Math.min(context.dimensions.z - 1, boundsMaxZ);
 
-    const newAccMinX = Math.min(this.accMinX, minX);
-    const newAccMinY = Math.min(this.accMinY, minY);
-    const newAccMinZ = Math.min(this.accMinZ, minZ);
-    const newAccMaxX = Math.max(this.accMaxX, maxX);
-    const newAccMaxY = Math.max(this.accMaxY, maxY);
-    const newAccMaxZ = Math.max(this.accMaxZ, maxZ);
-
-    const needsResize =
-      newAccMinX !== this.accMinX || newAccMinY !== this.accMinY || newAccMinZ !== this.accMinZ ||
-      newAccMaxX !== this.accMaxX || newAccMaxY !== this.accMaxY || newAccMaxZ !== this.accMaxZ;
-
-    if (needsResize) {
-      this.accMinX = newAccMinX;
-      this.accMinY = newAccMinY;
-      this.accMinZ = newAccMinZ;
-      this.accMaxX = newAccMaxX;
-      this.accMaxY = newAccMaxY;
-      this.accMaxZ = newAccMaxZ;
-
-      const frameSize = {
-        x: this.accMaxX - this.accMinX + 1,
-        y: this.accMaxY - this.accMinY + 1,
-        z: this.accMaxZ - this.accMinZ + 1,
-      };
-      const frameMinPos = { x: this.accMinX, y: this.accMinY, z: this.accMinZ };
-      context.previewFrame.resize(frameSize, frameMinPos);
-    }
-
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
+    const dimY = context.dimensions.y;
+    const dimZ = context.dimensions.z;
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
@@ -137,13 +106,13 @@ export class BrushTool implements Tool {
             boundsMinY, boundsMaxY,
             boundsMinZ, boundsMaxZ
           )) {
-            context.previewFrame.set(x, y, z, blockValue);
+            context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = blockValue;
           }
         }
       }
     }
 
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
+    context.projectManager.chunkManager.updatePreview(minX, minY, minZ, maxX, maxY, maxZ);
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
@@ -152,24 +121,6 @@ export class BrushTool implements Tool {
     this.strokeSelectedBlock = context.selectedBlock;
     this.strokeSelectedObject = context.selectedObject;
     this.lastAppliedPosition = event.gridPosition.clone();
-
-    const halfBelow = Math.ceil(this.size / 2) - 1;
-    const halfAbove = Math.floor(this.size / 2);
-    this.accMinX = Math.max(0, event.gridPosition.x - halfBelow);
-    this.accMinY = Math.max(0, event.gridPosition.y - halfBelow);
-    this.accMinZ = Math.max(0, event.gridPosition.z - halfBelow);
-    this.accMaxX = Math.min(context.dimensions.x - 1, event.gridPosition.x + halfAbove);
-    this.accMaxY = Math.min(context.dimensions.y - 1, event.gridPosition.y + halfAbove);
-    this.accMaxZ = Math.min(context.dimensions.z - 1, event.gridPosition.z + halfAbove);
-
-    const frameSize = {
-      x: this.accMaxX - this.accMinX + 1,
-      y: this.accMaxY - this.accMinY + 1,
-      z: this.accMaxZ - this.accMinZ + 1,
-    };
-    const frameMinPos = { x: this.accMinX, y: this.accMinY, z: this.accMinZ };
-    context.previewFrame.clear();
-    context.previewFrame.resize(frameSize, frameMinPos);
 
     this.stampAtPosition(context, event.gridPosition);
   }
@@ -188,15 +139,18 @@ export class BrushTool implements Tool {
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     if (this.isStrokeActive) {
+      const dims = context.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 }, new Uint8Array(context.previewBuffer));
+
       context.reducers.applyFrame(
         this.strokeMode!,
         this.strokeSelectedBlock,
-        context.previewFrame,
+        frame,
         this.strokeSelectedObject
       );
 
-      context.previewFrame.clear();
-      context.projectManager.chunkManager.setPreview(context.previewFrame);
+      context.previewBuffer.fill(0);
+      context.projectManager.chunkManager.clearPreview();
     }
 
     this.lastAppliedPosition = null;

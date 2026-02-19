@@ -24,7 +24,9 @@ describe("Chunk selection rendering", () => {
       3, // 3 objects
       mockAtlasData,
       () => ({ tag: "Attach" } as BlockModificationMode),
-      () => true // all objects visible
+      () => true, // all objects visible
+      new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z),
+      chunkSize
     );
   });
 
