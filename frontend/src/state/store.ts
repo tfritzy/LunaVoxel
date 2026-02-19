@@ -221,17 +221,20 @@ const reducers: Reducers = {
     void _projectId;
     updateState((current) => {
       const nextIndex = current.objects.length;
-      current.objects.push({
-        id: createId(),
-        projectId: current.project.id,
-        index: nextIndex,
-        name: `Object ${nextIndex + 1}`,
-        visible: true,
-        locked: false,
-        position: { x: 0, y: 0, z: 0 },
-        dimensions: { x: 64, y: 64, z: 64 },
-        selection: null,
-      });
+      current.objects = [
+        ...current.objects,
+        {
+          id: createId(),
+          projectId: current.project.id,
+          index: nextIndex,
+          name: `Object ${nextIndex + 1}`,
+          visible: true,
+          locked: false,
+          position: { x: 0, y: 0, z: 0 },
+          dimensions: { x: 64, y: 64, z: 64 },
+          selection: null,
+        },
+      ];
     });
   },
   deleteObject: (objectId) => {
