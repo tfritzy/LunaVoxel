@@ -17,6 +17,7 @@ export class ChunkManager {
   private getMode: () => BlockModificationMode;
   public readonly previewBuffer: Uint8Array;
   public readonly selectionBuffer: Uint8Array;
+  private selectionBufferEmpty: boolean = true;
   private unsubscribe?: () => void;
   private readonly maxObjects = 10;
 
@@ -138,7 +139,9 @@ export class ChunkManager {
   };
 
   private buildSelectionBuffer(): void {
+    const wasEmpty = this.selectionBufferEmpty;
     this.selectionBuffer.fill(0);
+    this.selectionBufferEmpty = true;
 
     for (const obj of this.objects) {
       if (!obj.selection || !obj.visible) continue;
@@ -162,9 +165,16 @@ export class ChunkManager {
             const val = sel.get(wx, wy, wz);
             if (val > 0) {
               this.selectionBuffer[wx * yz + wy * dimZ + wz] = val;
+              this.selectionBufferEmpty = false;
             }
           }
         }
+      }
+    }
+
+    if (!wasEmpty || !this.selectionBufferEmpty) {
+      for (const chunk of this.chunks.values()) {
+        chunk.markSelectionDirty(this.selectionBufferEmpty);
       }
     }
   }

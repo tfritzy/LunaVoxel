@@ -1,6 +1,5 @@
 import type { Vector3 } from "@/state/types";
 import type { MeshArrays } from "./mesh-arrays";
-import type { VoxelFrame } from "./voxel-frame";
 import init, {
   WasmExteriorFacesFinder,
 } from "@/wasm/lunavoxel_wasm";
@@ -33,6 +32,7 @@ export class WasmExteriorFacesFinderWrapper {
   private finder: WasmExteriorFacesFinder | null = null;
   private maxDimension: number;
   private int32AtlasMapping: Int32Array | null = null;
+  private chunkSelectionData: Uint8Array | null = null;
 
   constructor(maxDimension: number) {
     this.maxDimension = maxDimension;
@@ -54,7 +54,10 @@ export class WasmExteriorFacesFinderWrapper {
     blockAtlasMapping: number[],
     dimensions: Vector3,
     meshArrays: MeshArrays,
-    selectionFrame: VoxelFrame
+    selectionBuffer: Uint8Array,
+    selectionWorldDims: Vector3,
+    chunkOffset: Vector3,
+    selectionEmpty: boolean
   ): void {
     const finder = this.ensureFinder();
 
@@ -71,9 +74,31 @@ export class WasmExteriorFacesFinderWrapper {
     const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
     const maxFaces = totalVoxels * 6;
 
-    const selectionEmpty = selectionFrame.isEmpty();
-    const selectionData = selectionFrame.getData();
-    const selectionDims = selectionFrame.getDimensions();
+    let selectionData: Uint8Array;
+    if (selectionEmpty) {
+      selectionData = new Uint8Array(0);
+    } else {
+      if (!this.chunkSelectionData || this.chunkSelectionData.length !== totalVoxels) {
+        this.chunkSelectionData = new Uint8Array(totalVoxels);
+      }
+      this.chunkSelectionData.fill(0);
+      const selWorldYZ = selectionWorldDims.y * selectionWorldDims.z;
+      const selWorldZ = selectionWorldDims.z;
+      const sizeY = dimensions.y;
+      const sizeZ = dimensions.z;
+      for (let lx = 0; lx < dimensions.x; lx++) {
+        const srcXOff = (chunkOffset.x + lx) * selWorldYZ;
+        const dstXOff = lx * sizeY * sizeZ;
+        for (let ly = 0; ly < sizeY; ly++) {
+          const srcXYOff = srcXOff + (chunkOffset.y + ly) * selWorldZ;
+          const dstXYOff = dstXOff + ly * sizeZ;
+          for (let lz = 0; lz < sizeZ; lz++) {
+            this.chunkSelectionData[dstXYOff + lz] = selectionBuffer[srcXYOff + chunkOffset.z + lz];
+          }
+        }
+      }
+      selectionData = this.chunkSelectionData;
+    }
 
     finder.findExteriorFaces(
       voxelData,
@@ -84,10 +109,10 @@ export class WasmExteriorFacesFinderWrapper {
       dimensions.z,
       maxFaces * 4,
       maxFaces * 6,
-      selectionEmpty ? new Uint8Array(0) : selectionData,
-      selectionEmpty ? 0 : selectionDims.x,
-      selectionEmpty ? 0 : selectionDims.y,
-      selectionEmpty ? 0 : selectionDims.z,
+      selectionData,
+      selectionEmpty ? 0 : dimensions.x,
+      selectionEmpty ? 0 : dimensions.y,
+      selectionEmpty ? 0 : dimensions.z,
       selectionEmpty
     );
 

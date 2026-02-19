@@ -129,6 +129,7 @@ describe("Chunk selection buffer", () => {
     chunk.setObjectChunk(0, voxels);
 
     selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
+    chunk.markSelectionDirty(false);
     chunk.update();
 
     const mesh = chunk.getMesh();
@@ -194,6 +195,7 @@ describe("Chunk selection buffer", () => {
     chunk.setObjectChunk(1, voxels1);
 
     selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
+    chunk.markSelectionDirty(false);
     chunk.update();
 
     const mesh = chunk.getMesh();
@@ -231,6 +233,7 @@ describe("Chunk selection buffer", () => {
     expect(hasSelected).toBe(false);
 
     selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
+    chunk.markSelectionDirty(false);
     chunk.update();
 
     isSelectedArray = mesh!.geometry.getAttribute("isSelected").array as Float32Array;

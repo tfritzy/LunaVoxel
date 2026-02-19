@@ -7,7 +7,6 @@ import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
-import { VoxelFrame } from "./voxel-frame";
 import { WasmExteriorFacesFinderWrapper, isWasmReady, initWasm } from "./find-exterior-faces-wasm";
 
 initWasm();
@@ -41,13 +40,12 @@ export class Chunk {
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
-  private mergedSelectionFrame: VoxelFrame;
   private previewBuffer: Uint8Array;
   private worldDimensions: Vector3;
   private selectionBuffer: Uint8Array;
+  private selectionBufferEmpty: boolean = true;
   private previewDirty: boolean = false;
   private selectionDirty: boolean = true;
-  private lastRenderedSelectionEmpty: boolean = true;
   private previewAccMinX: number = -1;
   private previewAccMinY: number = -1;
   private previewAccMinZ: number = -1;
@@ -94,7 +92,6 @@ export class Chunk {
     const totalVoxels = size.x * size.y * size.z;
     this.renderedBlocks = new Uint8Array(totalVoxels);
     this.blocksToRender = new Uint8Array(totalVoxels);
-    this.mergedSelectionFrame = new VoxelFrame(size);
 
     const maxFaces = totalVoxels * 6;
     const maxVertices = maxFaces * 4;
@@ -259,8 +256,9 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
-  public markSelectionDirty(): void {
+  public markSelectionDirty(selectionBufferEmpty: boolean): void {
     this.selectionDirty = true;
+    this.selectionBufferEmpty = selectionBufferEmpty;
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -274,47 +272,6 @@ export class Chunk {
     for (let i = 0; i < blocks.length && i < objectChunk.voxels.length; i++) {
       if (objectChunk.voxels[i] > 0) {
         blocks[i] = objectChunk.voxels[i];
-      }
-    }
-  }
-
-  private applySelectionForObject(objectIndex: number, blocks: Uint8Array): void {
-    for (const selectionData of this.selectionFrames.values()) {
-      if (selectionData.object !== objectIndex) continue;
-      
-      const selectionVoxels = selectionData.frame.voxelData;
-      
-      for (let i = 0; i < selectionVoxels.length && i < blocks.length; i++) {
-        if (selectionVoxels[i] > 0) {
-          if (blocks[i] === 0) {
-            this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
-          }
-        }
-      }
-    }
-  }
-
-  private applySelectionFromBuffer(): void {
-    const worldYZ = this.worldDimensions.y * this.worldDimensions.z;
-    const worldZ = this.worldDimensions.z;
-    const sizeY = this.size.y;
-    const sizeZ = this.size.z;
-
-    for (let lx = 0; lx < this.size.x; lx++) {
-      const wx = this.minPos.x + lx;
-      const srcXOff = wx * worldYZ;
-      const dstXOff = lx * sizeY * sizeZ;
-      for (let ly = 0; ly < sizeY; ly++) {
-        const wy = this.minPos.y + ly;
-        const srcXYOff = srcXOff + wy * worldZ;
-        const dstXYOff = dstXOff + ly * sizeZ;
-        for (let lz = 0; lz < sizeZ; lz++) {
-          const wz = this.minPos.z + lz;
-          const val = this.selectionBuffer[srcXYOff + wz];
-          if (val > 0) {
-            this.mergedSelectionFrame.setByIndex(dstXYOff + lz, val);
-          }
-        }
       }
     }
   }
@@ -455,7 +412,10 @@ export class Chunk {
       atlasData.blockAtlasMapping,
       this.size,
       this.meshData.meshArrays,
-      this.mergedSelectionFrame
+      this.selectionBuffer,
+      this.worldDimensions,
+      this.minPos,
+      this.selectionBufferEmpty
     );
 
     this.updateMesh(atlasData);
@@ -474,10 +434,6 @@ export class Chunk {
       return true;
     }
 
-    if (this.mergedSelectionFrame.isEmpty() !== this.lastRenderedSelectionEmpty) {
-      return true;
-    }
-
     for (let i = 0; i < this.blocksToRender.length; i++) {
       if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
         return true;
@@ -490,7 +446,6 @@ export class Chunk {
   update = () => {
     try {
       this.clearBlocks(this.blocksToRender);
-      this.mergedSelectionFrame.clear();
 
       for (let objectIndex = 0; objectIndex < this.objectChunks.length; objectIndex++) {
         const chunk = this.objectChunks[objectIndex];
@@ -502,8 +457,6 @@ export class Chunk {
         }
       }
 
-      this.applySelectionFromBuffer();
-
       this.mergePreviewIntoVoxelData(this.blocksToRender);
 
       if (this.atlasData && this.needsRender()) {
@@ -513,7 +466,6 @@ export class Chunk {
         this.atlasChanged = false;
         this.previewDirty = false;
         this.selectionDirty = false;
-        this.lastRenderedSelectionEmpty = this.mergedSelectionFrame.isEmpty();
       }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);
