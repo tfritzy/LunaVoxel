@@ -8,7 +8,7 @@ import type {
   ProjectBlocks,
   Vector3,
 } from "./types";
-import { RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
+import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 
@@ -388,7 +388,85 @@ const reducers: Reducers = {
     });
   },
   updateCursorPos: () => {},
-  magicSelect: () => {},
+  magicSelect: (_projectId, objectIndex, pos) => {
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj) return;
+
+    const dims = state.project.dimensions;
+
+    const getBlock = (wx: number, wy: number, wz: number): number => {
+      const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
+      const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
+      const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
+      const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+      const chunk = state.chunks.get(key);
+      if (!chunk) return 0;
+      const lx = wx - cx;
+      const ly = wy - cy;
+      const lz = wz - cz;
+      return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
+    };
+
+    const startBlock = getBlock(pos.x, pos.y, pos.z) & BLOCK_TYPE_MASK;
+    if (startBlock === 0) {
+      obj.selection = null;
+      notify();
+      return;
+    }
+
+    const total = dims.x * dims.y * dims.z;
+    const yz = dims.y * dims.z;
+    const visited = new Uint8Array(total);
+    const selected = new Uint8Array(total);
+    let minX = pos.x, minY = pos.y, minZ = pos.z;
+    let maxX = pos.x, maxY = pos.y, maxZ = pos.z;
+
+    const queue: number[] = [pos.x * yz + pos.y * dims.z + pos.z];
+    visited[queue[0]] = 1;
+
+    while (queue.length > 0) {
+      const idx = queue.pop()!;
+      const wx = Math.floor(idx / yz);
+      const remainder = idx % yz;
+      const wy = Math.floor(remainder / dims.z);
+      const wz = remainder % dims.z;
+
+      selected[idx] = 1;
+      if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
+      if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
+      if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+
+      const neighbors = [
+        [wx + 1, wy, wz], [wx - 1, wy, wz],
+        [wx, wy + 1, wz], [wx, wy - 1, wz],
+        [wx, wy, wz + 1], [wx, wy, wz - 1],
+      ];
+
+      for (const [nx, ny, nz] of neighbors) {
+        if (nx < 0 || nx >= dims.x || ny < 0 || ny >= dims.y || nz < 0 || nz >= dims.z) continue;
+        const ni = nx * yz + ny * dims.z + nz;
+        if (visited[ni]) continue;
+        visited[ni] = 1;
+        if ((getBlock(nx, ny, nz) & BLOCK_TYPE_MASK) === startBlock) {
+          queue.push(ni);
+        }
+      }
+    }
+
+    const sdx = maxX - minX + 1, sdy = maxY - minY + 1, sdz = maxZ - minZ + 1;
+    const frameData = new Uint8Array(sdx * sdy * sdz);
+    for (let wx = minX; wx <= maxX; wx++) {
+      for (let wy = minY; wy <= maxY; wy++) {
+        for (let wz = minZ; wz <= maxZ; wz++) {
+          if (selected[wx * yz + wy * dims.z + wz] === 0) continue;
+          frameData[(wx - minX) * sdy * sdz + (wy - minY) * sdz + (wz - minZ)] = 1;
+        }
+      }
+    }
+
+    obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
+    notify();
+  },
   commitSelectionMove: () => {},
   selectAllVoxels: (_projectId, objectIndex) => {
     const obj = getObjectByIndex(objectIndex);
