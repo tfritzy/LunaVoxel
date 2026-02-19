@@ -156,6 +156,7 @@ export const BlockDrawer = ({
       if (!hasValidSelectedBlock) return;
       const previousColor = parseInt(beforeColor.replace("#", ""), 16);
       const newColor = stateStore.getState().blocks.colors[selectedBlockColorIndex];
+      if (newColor === undefined) return;
       if (previousColor !== newColor) {
         editHistory.addColorChange(selectedBlockColorIndex, previousColor, newColor);
       }
