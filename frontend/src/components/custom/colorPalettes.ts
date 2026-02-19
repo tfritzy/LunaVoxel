@@ -186,4 +186,7 @@ export const colorPalettes: ColorPalette[] = [
       0x990000, 0xcc0000,
     ],
   },
-];
+].map((palette) => ({
+  ...palette,
+  colors: [...palette.colors].reverse(),
+}));
