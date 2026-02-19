@@ -206,14 +206,6 @@ export class VoxelFrame {
     };
   }
 
-  public getCapMinPos(): Vector3 {
-    return this.capMinPos;
-  }
-
-  public getCapDimensions(): Vector3 {
-    return this.capDimensions;
-  }
-
   public resize(newDimensions: Vector3, newMinPos?: Vector3): void {
     const targetMinPos = newMinPos || this.minPos;
 

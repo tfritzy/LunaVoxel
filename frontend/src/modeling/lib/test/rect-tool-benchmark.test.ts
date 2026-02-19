@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { VoxelFrame } from "../voxel-frame";
 import { isInsideFillShape } from "../fill-shape-utils";
 import type { FillShape } from "../tool-type";
+import { CHUNK_SIZE } from "@/state/constants";
 
-function buildFrameFromBounds(
-  previewFrame: VoxelFrame,
+function buildFrameIntoBuffer(
+  buffer: Uint8Array,
+  dimY: number,
+  dimZ: number,
   minX: number,
   minY: number,
   minZ: number,
@@ -14,18 +16,14 @@ function buildFrameFromBounds(
   fillShape: FillShape,
   previewValue: number
 ): void {
-  const frameSize = {
-    x: maxX - minX + 1,
-    y: maxY - minY + 1,
-    z: maxZ - minZ + 1,
-  };
-  const frameMinPos = { x: minX, y: minY, z: minZ };
-
-  previewFrame.clear();
-  previewFrame.resize(frameSize, frameMinPos);
-
   if (fillShape === "Rect") {
-    previewFrame.fill(previewValue);
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          buffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
+        }
+      }
+    }
     return;
   }
 
@@ -33,122 +31,58 @@ function buildFrameFromBounds(
     for (let y = minY; y <= maxY; y++) {
       for (let z = minZ; z <= maxZ; z++) {
         if (
-          isInsideFillShape(
-            fillShape,
-            x,
-            y,
-            z,
-            minX,
-            maxX,
-            minY,
-            maxY,
-            minZ,
-            maxZ
-          )
+          isInsideFillShape(fillShape, x, y, z, minX, maxX, minY, maxY, minZ, maxZ)
         ) {
-          previewFrame.set(x, y, z, previewValue);
+          buffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
         }
       }
     }
   }
 }
 
-function simulateSetPreview(
-  previewFrame: VoxelFrame,
-  chunkSize: number,
-  dimensionsX: number,
-  dimensionsY: number,
-  dimensionsZ: number
+function simulateUpdatePreview(
+  buffer: Uint8Array,
+  dimX: number,
+  dimY: number,
+  dimZ: number,
+  minX: number,
+  minY: number,
+  minZ: number,
+  maxX: number,
+  maxY: number,
+  maxZ: number
 ): void {
-  const frameMinPos = previewFrame.getMinPos();
-  const frameMaxPos = previewFrame.getMaxPos();
+  const worldYZ = dimY * dimZ;
+  const worldZ = dimZ;
 
-  const minChunkX =
-    Math.floor(frameMinPos.x / chunkSize) * chunkSize;
-  const minChunkY =
-    Math.floor(frameMinPos.y / chunkSize) * chunkSize;
-  const minChunkZ =
-    Math.floor(frameMinPos.z / chunkSize) * chunkSize;
-  const maxChunkX =
-    Math.floor((frameMaxPos.x - 1) / chunkSize) * chunkSize;
-  const maxChunkY =
-    Math.floor((frameMaxPos.y - 1) / chunkSize) * chunkSize;
-  const maxChunkZ =
-    Math.floor((frameMaxPos.z - 1) / chunkSize) * chunkSize;
+  const minChunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
+  const minChunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
+  const minChunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
+  const maxChunkX = Math.floor(maxX / CHUNK_SIZE) * CHUNK_SIZE;
+  const maxChunkY = Math.floor(maxY / CHUNK_SIZE) * CHUNK_SIZE;
+  const maxChunkZ = Math.floor(maxZ / CHUNK_SIZE) * CHUNK_SIZE;
 
-  for (
-    let chunkX = minChunkX;
-    chunkX <= maxChunkX;
-    chunkX += chunkSize
-  ) {
-    for (
-      let chunkY = minChunkY;
-      chunkY <= maxChunkY;
-      chunkY += chunkSize
-    ) {
-      for (
-        let chunkZ = minChunkZ;
-        chunkZ <= maxChunkZ;
-        chunkZ += chunkSize
-      ) {
-        const sizeX = Math.min(chunkSize, dimensionsX - chunkX);
-        const sizeY = Math.min(chunkSize, dimensionsY - chunkY);
-        const sizeZ = Math.min(chunkSize, dimensionsZ - chunkZ);
+  for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += CHUNK_SIZE) {
+    for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
+      for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
+        const sizeX = Math.min(CHUNK_SIZE, dimX - chunkX);
+        const sizeY = Math.min(CHUNK_SIZE, dimY - chunkY);
+        const sizeZ = Math.min(CHUNK_SIZE, dimZ - chunkZ);
 
-        const copyMinX = Math.max(chunkX, frameMinPos.x);
-        const copyMinY = Math.max(chunkY, frameMinPos.y);
-        const copyMinZ = Math.max(chunkZ, frameMinPos.z);
-        const copyMaxX = Math.min(chunkX + sizeX, frameMaxPos.x);
-        const copyMaxY = Math.min(chunkY + sizeY, frameMaxPos.y);
-        const copyMaxZ = Math.min(chunkZ + sizeZ, frameMaxPos.z);
-
-        simulateMergePreviewDirect(
-          previewFrame,
-          sizeX, sizeY, sizeZ,
-          chunkX, chunkY, chunkZ,
-          copyMinX, copyMinY, copyMinZ,
-          copyMaxX, copyMaxY, copyMaxZ
-        );
-      }
-    }
-  }
-}
-
-function simulateMergePreviewDirect(
-  sourceFrame: VoxelFrame,
-  _sizeX: number,
-  sizeY: number,
-  sizeZ: number,
-  chunkMinX: number,
-  chunkMinY: number,
-  chunkMinZ: number,
-  overlapMinX: number,
-  overlapMinY: number,
-  overlapMinZ: number,
-  overlapMaxX: number,
-  overlapMaxY: number,
-  overlapMaxZ: number,
-): void {
-  if (sourceFrame.isEmpty()) return;
-
-  const sourceData = sourceFrame.getData();
-  const sourceCapMinPos = sourceFrame.getCapMinPos();
-  const sourceCapDims = sourceFrame.getCapDimensions();
-  const sourceCapYZ = sourceCapDims.y * sourceCapDims.z;
-  const sourceCapZ = sourceCapDims.z;
-
-  const blocks = new Uint8Array(_sizeX * sizeY * sizeZ);
-
-  for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
-    const srcXOff = (worldX - sourceCapMinPos.x) * sourceCapYZ;
-    const dstXOff = (worldX - chunkMinX) * sizeY * sizeZ;
-    for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
-      const srcXYOff = srcXOff + (worldY - sourceCapMinPos.y) * sourceCapZ;
-      const dstXYOff = dstXOff + (worldY - chunkMinY) * sizeZ;
-      for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
-        const pv = sourceData[srcXYOff + (worldZ - sourceCapMinPos.z)];
-        if (pv !== 0) {
-          blocks[dstXYOff + (worldZ - chunkMinZ)] = pv;
+        const blocks = new Uint8Array(sizeX * sizeY * sizeZ);
+        for (let lx = 0; lx < sizeX; lx++) {
+          const srcXOff = (chunkX + lx) * worldYZ;
+          const dstXOff = lx * sizeY * sizeZ;
+          for (let ly = 0; ly < sizeY; ly++) {
+            const srcXYOff = srcXOff + (chunkY + ly) * worldZ;
+            const dstXYOff = dstXOff + ly * sizeZ;
+            for (let lz = 0; lz < sizeZ; lz++) {
+              const pv = buffer[srcXYOff + chunkZ + lz];
+              if (pv !== 0) {
+                blocks[dstXYOff + lz] = pv;
+              }
+            }
+          }
         }
       }
     }
@@ -158,30 +92,16 @@ function simulateMergePreviewDirect(
 describe("Rect Tool Benchmark", () => {
   it("should benchmark full rect drag from corner to corner on 64x64x64", () => {
     const size = 64;
-    const chunkSize = 32;
     const iterations = 5;
     const times: number[] = [];
 
     for (let iter = 0; iter < iterations; iter++) {
-      const previewFrame = new VoxelFrame(
-        { x: size, y: size, z: size }
-      );
+      const buffer = new Uint8Array(size * size * size);
 
       const start = performance.now();
 
-      buildFrameFromBounds(
-        previewFrame,
-        0,
-        0,
-        0,
-        size - 1,
-        size - 1,
-        size - 1,
-        "Rect",
-        1
-      );
-
-      simulateSetPreview(previewFrame, chunkSize, size, size, size);
+      buildFrameIntoBuffer(buffer, size, size, 0, 0, 0, size - 1, size - 1, size - 1, "Rect", 1);
+      simulateUpdatePreview(buffer, size, size, size, 0, 0, 0, size - 1, size - 1, size - 1);
 
       const elapsed = performance.now() - start;
       times.push(elapsed);
@@ -203,36 +123,16 @@ describe("Rect Tool Benchmark", () => {
     const sizeX = 128;
     const sizeY = 64;
     const sizeZ = 128;
-    const chunkSize = 32;
     const iterations = 3;
     const times: number[] = [];
 
     for (let iter = 0; iter < iterations; iter++) {
-      const previewFrame = new VoxelFrame(
-        { x: sizeX, y: sizeY, z: sizeZ }
-      );
+      const buffer = new Uint8Array(sizeX * sizeY * sizeZ);
 
       const start = performance.now();
 
-      buildFrameFromBounds(
-        previewFrame,
-        0,
-        0,
-        0,
-        sizeX - 1,
-        sizeY - 1,
-        sizeZ - 1,
-        "Rect",
-        1
-      );
-
-      simulateSetPreview(
-        previewFrame,
-        chunkSize,
-        sizeX,
-        sizeY,
-        sizeZ
-      );
+      buildFrameIntoBuffer(buffer, sizeY, sizeZ, 0, 0, 0, sizeX - 1, sizeY - 1, sizeZ - 1, "Rect", 1);
+      simulateUpdatePreview(buffer, sizeX, sizeY, sizeZ, 0, 0, 0, sizeX - 1, sizeY - 1, sizeZ - 1);
 
       const elapsed = performance.now() - start;
       times.push(elapsed);
