@@ -205,6 +205,23 @@ describe("Tool Interface", () => {
       expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 2 * dimensions.z + 3]).toBeGreaterThan(0);
     });
 
+    it("should show bounds helper during drag preview", () => {
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 2, 3),
+        currentGridPosition: new THREE.Vector3(3, 4, 5),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const boundsHelper = mockContext.scene.children.find(
+        (child): child is THREE.Box3Helper => child instanceof THREE.Box3Helper
+      );
+
+      expect(boundsHelper).toBeDefined();
+      expect(boundsHelper!.box.min.toArray()).toEqual([1, 2, 3]);
+      expect(boundsHelper!.box.max.toArray()).toEqual([4, 5, 6]);
+    });
+
     it("should clamp rect bounds when dragging outside world bounds", () => {
       const tool = new RectTool();
       tool.setOption("Adjust Before Apply", "false");
