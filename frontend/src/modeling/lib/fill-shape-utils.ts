@@ -16,7 +16,6 @@ export interface ShapeParams {
 }
 
 export function precomputeShapeParams(
-  shape: FillShape,
   minX: number,
   maxX: number,
   minY: number,

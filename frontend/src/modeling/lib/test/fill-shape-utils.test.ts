@@ -40,7 +40,7 @@ describe("fill-shape-utils", () => {
     });
 
     it("should keep precomputed x/z pyramid step levels aligned", () => {
-      const p = precomputeShapeParams("Pyramid", bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ);
+      const p = precomputeShapeParams(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, bounds.minZ, bounds.maxZ);
       for (let y = bounds.minY; y <= bounds.maxY; y++) {
         const isInside = (x: number, currentY: number, z: number) =>
           isInsideFillShapePrecomputed("Pyramid", x, currentY, z, p);
