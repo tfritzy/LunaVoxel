@@ -43,6 +43,8 @@ describe("Tool Interface", () => {
       restoreObject: () => {},
     };
 
+    const previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+
     mockContext = {
       reducers,
       projectId: "test-project",
@@ -53,10 +55,12 @@ describe("Tool Interface", () => {
         updateMoveSelectionBox: () => {},
         clearMoveSelectionBox: () => {},
         chunkManager: {
-          setPreview: () => {},
+          updatePreview: () => {},
+          previewBuffer,
+          getDimensions: () => dimensions,
         },
       } as unknown as ProjectManager,
-      previewFrame: new VoxelFrame(dimensions),
+      previewBuffer,
       selectedBlock: 1,
       selectedObject: 0,
       setSelectedBlockInParent: () => {},
@@ -197,7 +201,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5)
       });
       
-      expect(mockContext.previewFrame.get(1, 2, 3)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 2 * dimensions.z + 3]).toBeGreaterThan(0);
     });
 
     it("should clamp rect bounds when dragging outside world bounds", () => {
@@ -211,8 +215,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(5, 0, 5)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(9, 0, 9)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[5 * dimensions.y * dimensions.z + 0 * dimensions.z + 5]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[9 * dimensions.y * dimensions.z + 0 * dimensions.z + 9]).toBeGreaterThan(0);
     });
 
     it("should clamp rect bounds when both start and end are outside world bounds", () => {
@@ -226,8 +230,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(9, 0, 9)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[9 * dimensions.y * dimensions.z + 0 * dimensions.z + 9]).toBeGreaterThan(0);
     });
   });
 
@@ -242,9 +246,9 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 1 * dimensions.z + 1]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
     });
 
     it("should create sphere shape when fill shape is Sphere", () => {
@@ -258,8 +262,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+      expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 1 * dimensions.z + 1]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBe(0);
     });
 
     it("should enter pending state on mouse up with Sphere fill shape", () => {
@@ -300,8 +304,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(0, 2, 0)).toBe(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 2 * dimensions.z + 0]).toBe(0);
     });
 
     it("should create diamond shape when fill shape is Diamond", () => {
@@ -315,8 +319,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBe(0);
     });
   });
 
@@ -359,8 +363,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewFrame.get(1, 1, 1)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 1 * dimensions.z + 1]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
     });
 
     it("should apply immediately on mouse up when adjust before apply is disabled", () => {
@@ -413,7 +417,7 @@ describe("Tool Interface", () => {
         ...mockContext.projectManager,
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
-          setPreview: () => {
+          updatePreview: () => {
             previewUpdated = true;
           },
         },
@@ -429,7 +433,7 @@ describe("Tool Interface", () => {
       previewUpdated = false;
       tool.commitPendingOperation(mockContext);
       expect(previewUpdated).toBe(true);
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBe(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBe(0);
     });
 
     it("should cancel pending operation and clear preview", () => {
@@ -442,7 +446,7 @@ describe("Tool Interface", () => {
 
       tool.cancelPendingOperation(mockContext);
       expect(tool.hasPendingOperation()).toBe(false);
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBe(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBe(0);
     });
 
     it("should recalculate shape when resizing pending bounds", () => {
@@ -455,7 +459,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const originalCenter = mockContext.previewFrame.get(2, 2, 2);
+      const originalCenter = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
       expect(originalCenter).toBeGreaterThan(0);
 
       tool.resizePendingBounds(mockContext, {
@@ -465,7 +469,7 @@ describe("Tool Interface", () => {
       });
 
       expect(tool.getPendingBounds()!.maxX).toBe(6);
-      expect(mockContext.previewFrame.get(3, 3, 3)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[3 * dimensions.y * dimensions.z + 3 * dimensions.z + 3]).toBeGreaterThan(0);
     });
 
     it("should clamp resized bounds to dimensions", () => {
@@ -499,8 +503,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const previewCorner = mockContext.previewFrame.get(0, 0, 0);
-      const previewCenter = mockContext.previewFrame.get(2, 2, 2);
+      const previewCorner = mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0];
+      const previewCenter = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
       expect(previewCorner).toBe(0);
       expect(previewCenter).toBeGreaterThan(0);
 
@@ -531,7 +535,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const previewValue = mockContext.previewFrame.get(2, 2, 2);
+      const previewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
       expect(previewValue).toBe(5);
 
       mockContext.selectedBlock = 9;
@@ -570,8 +574,8 @@ describe("Tool Interface", () => {
         minZ: 0, maxZ: 6,
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBe(0);
-      expect(mockContext.previewFrame.get(3, 3, 3)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBe(0);
+      expect(mockContext.previewBuffer[3 * dimensions.y * dimensions.z + 3 * dimensions.z + 3]).toBeGreaterThan(0);
     });
   });
 
@@ -591,8 +595,8 @@ describe("Tool Interface", () => {
         shiftKey: true,
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(4, 4, 4)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[4 * dimensions.y * dimensions.z + 4 * dimensions.z + 4]).toBeGreaterThan(0);
     });
 
     it("should not snap bounds when shiftKey is not held", () => {
@@ -604,9 +608,9 @@ describe("Tool Interface", () => {
         shiftKey: false,
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(4, 2, 1)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(4, 4, 4)).toBe(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[4 * dimensions.y * dimensions.z + 2 * dimensions.z + 1]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[4 * dimensions.y * dimensions.z + 4 * dimensions.z + 4]).toBe(0);
     });
 
     it("should snap mouseUp bounds to equal dimensions when shiftKey is held", () => {
@@ -636,8 +640,8 @@ describe("Tool Interface", () => {
         shiftKey: true,
       });
 
-      expect(mockContext.previewFrame.get(0, 0, 0)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(5, 5, 5)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[5 * dimensions.y * dimensions.z + 5 * dimensions.z + 5]).toBeGreaterThan(0);
     });
   });
 
@@ -936,7 +940,7 @@ describe("Tool Interface", () => {
         mousePosition: new THREE.Vector2(0, 0),
       });
 
-      const valueBefore = mockContext.previewFrame.get(5, 5, 5);
+      const valueBefore = mockContext.previewBuffer[5 * dimensions.y * dimensions.z + 5 * dimensions.z + 5];
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(5, 5, 5),
@@ -945,7 +949,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0, 0),
       });
 
-      expect(mockContext.previewFrame.get(5, 5, 5)).toBe(valueBefore);
+      expect(mockContext.previewBuffer[5 * dimensions.y * dimensions.z + 5 * dimensions.z + 5]).toBe(valueBefore);
     });
 
     it("should accumulate stamps in preview frame during stroke", () => {
@@ -957,7 +961,7 @@ describe("Tool Interface", () => {
         mousePosition: new THREE.Vector2(0, 0),
       });
 
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(2, 2, 2),
@@ -966,8 +970,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.1, 0.1),
       });
 
-      expect(mockContext.previewFrame.get(2, 2, 2)).toBeGreaterThan(0);
-      expect(mockContext.previewFrame.get(5, 5, 5)).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[5 * dimensions.y * dimensions.z + 5 * dimensions.z + 5]).toBeGreaterThan(0);
     });
 
     it("should create sphere-shaped stamp with default settings", () => {
@@ -1036,10 +1040,20 @@ describe("Tool Interface", () => {
       const DRAG_STEPS = 8;
       const benchDimensions = { x: SIZE, y: SIZE, z: SIZE };
 
+      const benchPreviewBuffer = new Uint8Array(benchDimensions.x * benchDimensions.y * benchDimensions.z);
+
       const benchContext: ToolContext = {
         ...mockContext,
         dimensions: benchDimensions,
-        previewFrame: new VoxelFrame(benchDimensions),
+        previewBuffer: benchPreviewBuffer,
+        projectManager: {
+          ...mockContext.projectManager,
+          chunkManager: {
+            updatePreview: () => {},
+            previewBuffer: benchPreviewBuffer,
+            getDimensions: () => benchDimensions,
+          },
+        } as unknown as ProjectManager,
       };
 
       const start = performance.now();

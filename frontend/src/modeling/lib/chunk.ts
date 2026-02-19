@@ -42,13 +42,8 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private mergedSelectionFrame: VoxelFrame;
-  private previewSourceFrame: VoxelFrame | null = null;
-  private previewOverlapMinX: number = 0;
-  private previewOverlapMinY: number = 0;
-  private previewOverlapMinZ: number = 0;
-  private previewOverlapMaxX: number = 0;
-  private previewOverlapMaxY: number = 0;
-  private previewOverlapMaxZ: number = 0;
+  private previewBuffer: Uint8Array;
+  private worldDimensions: Vector3;
   private previewDirty: boolean = false;
   private atlasData: AtlasData | undefined;
   private atlasChanged: boolean = false;
@@ -70,7 +65,9 @@ export class Chunk {
     maxObjects: number,
     atlasData: AtlasData | undefined,
     getMode: () => BlockModificationMode,
-    getObjectVisible: (objectIndex: number) => boolean
+    getObjectVisible: (objectIndex: number) => boolean,
+    previewBuffer: Uint8Array,
+    worldDimensions: Vector3
   ) {
     this.scene = scene;
     this.minPos = minPos;
@@ -78,6 +75,8 @@ export class Chunk {
     this.atlasData = atlasData;
     this.getMode = getMode;
     this.getObjectVisible = getObjectVisible;
+    this.previewBuffer = previewBuffer;
+    this.worldDimensions = worldDimensions;
 
     this.objectChunks = new Array(maxObjects).fill(null);
 
@@ -196,32 +195,8 @@ export class Chunk {
     return this.meshData.mesh;
   }
 
-  public clearPreviewData()
-  {
-    this.previewSourceFrame = null;
+  public markPreviewDirty(): void {
     this.previewDirty = true;
-    this.update();
-  }
-
-  public setPreviewData(
-    sourceFrame: VoxelFrame,
-    sourceMinX: number,
-    sourceMinY: number,
-    sourceMinZ: number,
-    sourceMaxX: number,
-    sourceMaxY: number,
-    sourceMaxZ: number
-  ): void {
-    this.previewSourceFrame = sourceFrame;
-    this.previewOverlapMinX = sourceMinX;
-    this.previewOverlapMinY = sourceMinY;
-    this.previewOverlapMinZ = sourceMinZ;
-    this.previewOverlapMaxX = sourceMaxX;
-    this.previewOverlapMaxY = sourceMaxY;
-    this.previewOverlapMaxZ = sourceMaxZ;
-
-    this.previewDirty = true;
-    this.update();
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
@@ -269,39 +244,29 @@ export class Chunk {
   }
 
   private mergePreviewIntoVoxelData(blocks: Uint8Array): void {
-    if (!this.previewSourceFrame || this.previewSourceFrame.isEmpty()) return;
-
     const buildMode = this.getMode();
-    const sourceData = this.previewSourceFrame.getData();
-    const sourceCapMinPos = this.previewSourceFrame.getCapMinPos();
-    const sourceCapDims = this.previewSourceFrame.getCapDimensions();
-    const sourceCapYZ = sourceCapDims.y * sourceCapDims.z;
-    const sourceCapZ = sourceCapDims.z;
+    const worldYZ = this.worldDimensions.y * this.worldDimensions.z;
+    const worldZ = this.worldDimensions.z;
 
     const chunkMinX = this.minPos.x;
     const chunkMinY = this.minPos.y;
     const chunkMinZ = this.minPos.z;
+    const sizeX = this.size.x;
     const sizeY = this.size.y;
     const sizeZ = this.size.z;
 
-    const overlapMinX = this.previewOverlapMinX;
-    const overlapMinY = this.previewOverlapMinY;
-    const overlapMinZ = this.previewOverlapMinZ;
-    const overlapMaxX = this.previewOverlapMaxX;
-    const overlapMaxY = this.previewOverlapMaxY;
-    const overlapMaxZ = this.previewOverlapMaxZ;
-
     if (buildMode.tag === "Attach") {
-      for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
-        const srcXOff = (worldX - sourceCapMinPos.x) * sourceCapYZ;
-        const dstXOff = (worldX - chunkMinX) * sizeY * sizeZ;
-        for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
-          const srcXYOff = srcXOff + (worldY - sourceCapMinPos.y) * sourceCapZ;
-          const dstXYOff = dstXOff + (worldY - chunkMinY) * sizeZ;
-          for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
-            const pv = sourceData[srcXYOff + (worldZ - sourceCapMinPos.z)];
+      for (let lx = 0; lx < sizeX; lx++) {
+        const worldX = chunkMinX + lx;
+        const srcXOff = worldX * worldYZ;
+        const dstXOff = lx * sizeY * sizeZ;
+        for (let ly = 0; ly < sizeY; ly++) {
+          const srcXYOff = srcXOff + (chunkMinY + ly) * worldZ;
+          const dstXYOff = dstXOff + ly * sizeZ;
+          for (let lz = 0; lz < sizeZ; lz++) {
+            const pv = this.previewBuffer[srcXYOff + chunkMinZ + lz];
             if (pv !== 0) {
-              const dstIdx = dstXYOff + (worldZ - chunkMinZ);
+              const dstIdx = dstXYOff + lz;
               if (!isBlockVisible(blocks[dstIdx])) {
                 blocks[dstIdx] = pv;
               }
@@ -310,16 +275,17 @@ export class Chunk {
         }
       }
     } else {
-      for (let worldX = overlapMinX; worldX < overlapMaxX; worldX++) {
-        const srcXOff = (worldX - sourceCapMinPos.x) * sourceCapYZ;
-        const dstXOff = (worldX - chunkMinX) * sizeY * sizeZ;
-        for (let worldY = overlapMinY; worldY < overlapMaxY; worldY++) {
-          const srcXYOff = srcXOff + (worldY - sourceCapMinPos.y) * sourceCapZ;
-          const dstXYOff = dstXOff + (worldY - chunkMinY) * sizeZ;
-          for (let worldZ = overlapMinZ; worldZ < overlapMaxZ; worldZ++) {
-            const pv = sourceData[srcXYOff + (worldZ - sourceCapMinPos.z)];
+      for (let lx = 0; lx < sizeX; lx++) {
+        const worldX = chunkMinX + lx;
+        const srcXOff = worldX * worldYZ;
+        const dstXOff = lx * sizeY * sizeZ;
+        for (let ly = 0; ly < sizeY; ly++) {
+          const srcXYOff = srcXOff + (chunkMinY + ly) * worldZ;
+          const dstXYOff = dstXOff + ly * sizeZ;
+          for (let lz = 0; lz < sizeZ; lz++) {
+            const pv = this.previewBuffer[srcXYOff + chunkMinZ + lz];
             if (pv !== 0) {
-              const dstIdx = dstXYOff + (worldZ - chunkMinZ);
+              const dstIdx = dstXYOff + lz;
               if (isBlockVisible(blocks[dstIdx])) {
                 blocks[dstIdx] = pv;
               }

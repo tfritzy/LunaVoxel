@@ -3,7 +3,6 @@ import type { BlockModificationMode, VoxelObject, Vector3 } from "@/state/types"
 import type { StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
-import { VoxelFrame } from "./voxel-frame";
 import { Chunk } from "./chunk";
 
 export class ChunkManager {
@@ -16,8 +15,7 @@ export class ChunkManager {
   private chunks: Map<string, Chunk> = new Map();
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
-  private chunksWithPreview: Set<string> = new Set();
-  private prevChunksWithPreview: Set<string> = new Set();
+  public readonly previewBuffer: Uint8Array;
   private unsubscribe?: () => void;
   private readonly maxObjects = 10;
 
@@ -33,6 +31,7 @@ export class ChunkManager {
     this.stateStore = stateStore;
     this.projectId = projectId;
     this.getMode = getMode;
+    this.previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
     this.handleStateChange();
     this.unsubscribe = this.stateStore.subscribe(this.handleStateChange);
   }
@@ -76,7 +75,9 @@ export class ChunkManager {
         this.getMode,
         (objectIndex: number) => {
           return this.objectVisibilityMap.get(objectIndex) ?? true;
-        }
+        },
+        this.previewBuffer,
+        this.dimensions
       );
       this.chunks.set(key, chunk); 
     }
@@ -160,49 +161,26 @@ export class ChunkManager {
     }
   };
 
-  setPreview = (previewFrame: VoxelFrame) => {
-    const frameMinPos = previewFrame.getMinPos();
-    const frameMaxPos = previewFrame.getMaxPos();
-    
-    const minChunkX = Math.floor(frameMinPos.x / CHUNK_SIZE) * CHUNK_SIZE;
-    const minChunkY = Math.floor(frameMinPos.y / CHUNK_SIZE) * CHUNK_SIZE;
-    const minChunkZ = Math.floor(frameMinPos.z / CHUNK_SIZE) * CHUNK_SIZE;
-    const maxChunkX = Math.floor((frameMaxPos.x - 1) / CHUNK_SIZE) * CHUNK_SIZE;
-    const maxChunkY = Math.floor((frameMaxPos.y - 1) / CHUNK_SIZE) * CHUNK_SIZE;
-    const maxChunkZ = Math.floor((frameMaxPos.z - 1) / CHUNK_SIZE) * CHUNK_SIZE;
-    
-    const temp = this.prevChunksWithPreview;
-    temp.clear();
-    for (const key of this.chunksWithPreview) {
-      temp.add(key);
-    }
-    this.chunksWithPreview.clear();
-    
+  public getDimensions(): Vector3 {
+    return this.dimensions;
+  }
+
+  updatePreview = (minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number) => {
+    const minChunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
+    const minChunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
+    const minChunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
+    const maxChunkX = Math.floor(maxX / CHUNK_SIZE) * CHUNK_SIZE;
+    const maxChunkY = Math.floor(maxY / CHUNK_SIZE) * CHUNK_SIZE;
+    const maxChunkZ = Math.floor(maxZ / CHUNK_SIZE) * CHUNK_SIZE;
+
     for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += CHUNK_SIZE) {
       for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
         for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
-          const chunkKey = this.getChunkKey(chunkMinPos);
           const chunk = this.getOrCreateChunk(chunkMinPos);
-          
-          const copyMinX = Math.max(chunkX, frameMinPos.x);
-          const copyMinY = Math.max(chunkY, frameMinPos.y);
-          const copyMinZ = Math.max(chunkZ, frameMinPos.z);
-          const copyMaxX = Math.min(chunkX + chunk.size.x, frameMaxPos.x);
-          const copyMaxY = Math.min(chunkY + chunk.size.y, frameMaxPos.y);
-          const copyMaxZ = Math.min(chunkZ + chunk.size.z, frameMaxPos.z);
-          
-          chunk.setPreviewData(previewFrame, copyMinX, copyMinY, copyMinZ, copyMaxX, copyMaxY, copyMaxZ);
-          this.chunksWithPreview.add(chunkKey);
-          temp.delete(chunkKey);
+          chunk.markPreviewDirty();
+          chunk.update();
         }
-      }
-    }
-    
-    for (const chunkKey of temp) {
-      const chunk = this.chunks.get(chunkKey);
-      if (chunk) {
-        chunk.clearPreviewData();
       }
     }
   }
@@ -301,6 +279,5 @@ export class ChunkManager {
       chunk.dispose();
     }
     this.chunks.clear();
-    this.chunksWithPreview.clear();
   };
 }

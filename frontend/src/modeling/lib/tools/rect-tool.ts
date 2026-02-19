@@ -8,6 +8,7 @@ import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } fro
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape, isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
+import { VoxelFrame } from "../voxel-frame";
 
 type ResizeCorner = {
   xSide: "min" | "max";
@@ -27,6 +28,7 @@ export class RectTool implements Tool {
     fillShape: FillShape;
     direction: ShapeDirection;
   } | null = null;
+  private lastBounds: RectBounds | null = null;
   private resizingCorner: ResizeCorner | null = null;
   private resizeBaseBounds: RectBounds | null = null;
   private boundsBoxHelper: THREE.Box3Helper | null = null;
@@ -92,84 +94,118 @@ export class RectTool implements Tool {
     }
   }
 
+  private clearLastBounds(context: ToolContext): void {
+    if (!this.lastBounds) return;
+    const dimY = context.dimensions.y;
+    const dimZ = context.dimensions.z;
+    const lb = this.lastBounds;
+    for (let x = lb.minX; x <= lb.maxX; x++) {
+      for (let y = lb.minY; y <= lb.maxY; y++) {
+        for (let z = lb.minZ; z <= lb.maxZ; z++) {
+          context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = 0;
+        }
+      }
+    }
+  }
+
   private buildFrameFromBounds(context: ToolContext, bounds: RectBounds): void {
     const fillShape = this.pending?.fillShape ?? this.fillShape;
     const direction = this.pending?.direction ?? this.direction;
     const mode = this.pending?.mode ?? context.mode;
     const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
 
-    const frameSize = {
-      x: bounds.maxX - bounds.minX + 1,
-      y: bounds.maxY - bounds.minY + 1,
-      z: bounds.maxZ - bounds.minZ + 1,
-    };
-    const frameMinPos = {
-      x: bounds.minX,
-      y: bounds.minY,
-      z: bounds.minZ,
-    };
-
-    context.previewFrame.clear();
-    context.previewFrame.resize(frameSize, frameMinPos);
+    this.clearLastBounds(context);
 
     const previewValue = this.getPreviewBlockValue(mode, selectedBlock);
+    const dimY = context.dimensions.y;
+    const dimZ = context.dimensions.z;
 
     if (fillShape === "Rect") {
-      context.previewFrame.fill(previewValue);
-      return;
-    }
-
-    let sMinX = bounds.minX, sMaxX = bounds.maxX;
-    let sMinY = bounds.minY, sMaxY = bounds.maxY;
-    let sMinZ = bounds.minZ, sMaxZ = bounds.maxZ;
-    const yFlip = direction === "-y" ? bounds.minY + bounds.maxY : 0;
-    const xFlip = direction === "-x" ? bounds.minX + bounds.maxX : 0;
-    const zFlip = direction === "-z" ? bounds.minZ + bounds.maxZ : 0;
-
-    switch (direction) {
-      case "+x":
-      case "-x":
-        sMinX = bounds.minY; sMaxX = bounds.maxY;
-        sMinY = bounds.minX; sMaxY = bounds.maxX;
-        break;
-      case "+z":
-      case "-z":
-        sMinZ = bounds.minY; sMaxZ = bounds.maxY;
-        sMinY = bounds.minZ; sMaxY = bounds.maxZ;
-        break;
-    }
-
-    const shapeParams = precomputeShapeParams(fillShape, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ);
-
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      for (let y = bounds.minY; y <= bounds.maxY; y++) {
-        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-          let sx = x, sy = y, sz = z;
-
-          switch (direction) {
-            case "-y":
-              sy = yFlip - y;
-              break;
-            case "+x":
-              sx = y; sy = x;
-              break;
-            case "-x":
-              sx = y; sy = xFlip - x;
-              break;
-            case "+z":
-              sz = y; sy = z;
-              break;
-            case "-z":
-              sz = y; sy = zFlip - z;
-              break;
+      for (let x = bounds.minX; x <= bounds.maxX; x++) {
+        for (let y = bounds.minY; y <= bounds.maxY; y++) {
+          for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
+            context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
           }
+        }
+      }
+    } else {
+      let sMinX = bounds.minX, sMaxX = bounds.maxX;
+      let sMinY = bounds.minY, sMaxY = bounds.maxY;
+      let sMinZ = bounds.minZ, sMaxZ = bounds.maxZ;
+      const yFlip = direction === "-y" ? bounds.minY + bounds.maxY : 0;
+      const xFlip = direction === "-x" ? bounds.minX + bounds.maxX : 0;
+      const zFlip = direction === "-z" ? bounds.minZ + bounds.maxZ : 0;
 
-          if (isInsideFillShapePrecomputed(fillShape, sx, sy, sz, shapeParams)) {
-            context.previewFrame.set(x, y, z, previewValue);
+      switch (direction) {
+        case "+x":
+        case "-x":
+          sMinX = bounds.minY; sMaxX = bounds.maxY;
+          sMinY = bounds.minX; sMaxY = bounds.maxX;
+          break;
+        case "+z":
+        case "-z":
+          sMinZ = bounds.minY; sMaxZ = bounds.maxY;
+          sMinY = bounds.minZ; sMaxY = bounds.maxZ;
+          break;
+      }
+
+      const shapeParams = precomputeShapeParams(fillShape, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ);
+
+      for (let x = bounds.minX; x <= bounds.maxX; x++) {
+        for (let y = bounds.minY; y <= bounds.maxY; y++) {
+          for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
+            let sx = x, sy = y, sz = z;
+
+            switch (direction) {
+              case "-y":
+                sy = yFlip - y;
+                break;
+              case "+x":
+                sx = y; sy = x;
+                break;
+              case "-x":
+                sx = y; sy = xFlip - x;
+                break;
+              case "+z":
+                sz = y; sy = z;
+                break;
+              case "-z":
+                sz = y; sy = zFlip - z;
+                break;
+            }
+
+            if (isInsideFillShapePrecomputed(fillShape, sx, sy, sz, shapeParams)) {
+              context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
+            }
           }
         }
       }
     }
+
+    const updateMinX = this.lastBounds
+      ? Math.min(bounds.minX, this.lastBounds.minX)
+      : bounds.minX;
+    const updateMinY = this.lastBounds
+      ? Math.min(bounds.minY, this.lastBounds.minY)
+      : bounds.minY;
+    const updateMinZ = this.lastBounds
+      ? Math.min(bounds.minZ, this.lastBounds.minZ)
+      : bounds.minZ;
+    const updateMaxX = this.lastBounds
+      ? Math.max(bounds.maxX, this.lastBounds.maxX)
+      : bounds.maxX;
+    const updateMaxY = this.lastBounds
+      ? Math.max(bounds.maxY, this.lastBounds.maxY)
+      : bounds.maxY;
+    const updateMaxZ = this.lastBounds
+      ? Math.max(bounds.maxZ, this.lastBounds.maxZ)
+      : bounds.maxZ;
+
+    this.lastBounds = { ...bounds };
+    context.projectManager.chunkManager.updatePreview(
+      updateMinX, updateMinY, updateMinZ,
+      updateMaxX, updateMaxY, updateMaxZ
+    );
   }
 
   private buildFrame(context: ToolContext, event: ToolDragEvent): void {
@@ -191,7 +227,6 @@ export class RectTool implements Tool {
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
     this.buildFrame(context, event);
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -204,18 +239,9 @@ export class RectTool implements Tool {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
     }
     this.buildFrameFromBounds(context, bounds);
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
 
     if (!this.adjustBeforeApply) {
-      context.reducers.applyFrame(
-        context.mode,
-        context.selectedBlock,
-        context.previewFrame,
-        context.selectedObject
-      );
-
-      context.previewFrame.clear();
-      context.projectManager.chunkManager.setPreview(context.previewFrame);
+      this.applyAndClear(context, bounds);
       this.pending = null;
       this.clearBoundsBox(context);
       return;
@@ -355,30 +381,62 @@ export class RectTool implements Tool {
     };
 
     this.buildFrameFromBounds(context, this.pending.bounds);
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
     this.updateBoundsBox(context);
+  }
+
+  private applyAndClear(context: ToolContext, bounds: RectBounds): void {
+    const mode = this.pending?.mode ?? context.mode;
+    const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
+    const selectedObject = this.pending?.selectedObject ?? context.selectedObject;
+    const dimY = context.dimensions.y;
+    const dimZ = context.dimensions.z;
+
+    const frameDims = {
+      x: bounds.maxX - bounds.minX + 1,
+      y: bounds.maxY - bounds.minY + 1,
+      z: bounds.maxZ - bounds.minZ + 1,
+    };
+    const frameMinPos = { x: bounds.minX, y: bounds.minY, z: bounds.minZ };
+    const frame = new VoxelFrame(frameDims, frameMinPos);
+
+    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+      for (let y = bounds.minY; y <= bounds.maxY; y++) {
+        for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
+          const idx = x * dimY * dimZ + y * dimZ + z;
+          const val = context.previewBuffer[idx];
+          if (val !== 0) {
+            frame.set(x, y, z, val);
+            context.previewBuffer[idx] = 0;
+          }
+        }
+      }
+    }
+
+    context.reducers.applyFrame(mode, selectedBlock, frame, selectedObject);
+    context.projectManager.chunkManager.updatePreview(
+      bounds.minX, bounds.minY, bounds.minZ,
+      bounds.maxX, bounds.maxY, bounds.maxZ
+    );
+    this.lastBounds = null;
   }
 
   commitPendingOperation(context: ToolContext): void {
     if (!this.pending) return;
 
-    context.reducers.applyFrame(
-      this.pending.mode,
-      this.pending.selectedBlock,
-      context.previewFrame,
-      this.pending.selectedObject
-    );
-
-    context.previewFrame.clear();
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
+    this.applyAndClear(context, this.pending.bounds);
     this.pending = null;
     this.clearBoundsBox(context);
   }
 
   cancelPendingOperation(context: ToolContext): void {
     if (!this.pending) return;
-    context.previewFrame.clear();
-    context.projectManager.chunkManager.setPreview(context.previewFrame);
+    this.clearLastBounds(context);
+    const bounds = this.pending.bounds;
+    context.projectManager.chunkManager.updatePreview(
+      bounds.minX, bounds.minY, bounds.minZ,
+      bounds.maxX, bounds.maxY, bounds.maxZ
+    );
+    this.lastBounds = null;
     this.pending = null;
     this.resizingCorner = null;
     this.resizeBaseBounds = null;
