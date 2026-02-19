@@ -23,12 +23,6 @@ export class BrushTool implements Tool {
   private strokeMode: BlockModificationMode | null = null;
   private strokeSelectedBlock: number = 0;
   private strokeSelectedObject: number = 0;
-  private dirtyMinX: number = 0;
-  private dirtyMinY: number = 0;
-  private dirtyMinZ: number = 0;
-  private dirtyMaxX: number = 0;
-  private dirtyMaxY: number = 0;
-  private dirtyMaxZ: number = 0;
 
   getType(): ToolType {
     return "Brush";
@@ -98,13 +92,6 @@ export class BrushTool implements Tool {
     const maxY = Math.min(context.dimensions.y - 1, boundsMaxY);
     const maxZ = Math.min(context.dimensions.z - 1, boundsMaxZ);
 
-    this.dirtyMinX = Math.min(this.dirtyMinX, minX);
-    this.dirtyMinY = Math.min(this.dirtyMinY, minY);
-    this.dirtyMinZ = Math.min(this.dirtyMinZ, minZ);
-    this.dirtyMaxX = Math.max(this.dirtyMaxX, maxX);
-    this.dirtyMaxY = Math.max(this.dirtyMaxY, maxY);
-    this.dirtyMaxZ = Math.max(this.dirtyMaxZ, maxZ);
-
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
     const dimY = context.dimensions.y;
@@ -135,15 +122,6 @@ export class BrushTool implements Tool {
     this.strokeSelectedObject = context.selectedObject;
     this.lastAppliedPosition = event.gridPosition.clone();
 
-    const halfBelow = Math.ceil(this.size / 2) - 1;
-    const halfAbove = Math.floor(this.size / 2);
-    this.dirtyMinX = Math.max(0, event.gridPosition.x - halfBelow);
-    this.dirtyMinY = Math.max(0, event.gridPosition.y - halfBelow);
-    this.dirtyMinZ = Math.max(0, event.gridPosition.z - halfBelow);
-    this.dirtyMaxX = Math.min(context.dimensions.x - 1, event.gridPosition.x + halfAbove);
-    this.dirtyMaxY = Math.min(context.dimensions.y - 1, event.gridPosition.y + halfAbove);
-    this.dirtyMaxZ = Math.min(context.dimensions.z - 1, event.gridPosition.z + halfAbove);
-
     this.stampAtPosition(context, event.gridPosition);
   }
 
@@ -161,26 +139,8 @@ export class BrushTool implements Tool {
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     if (this.isStrokeActive) {
-      const frameDims = {
-        x: this.dirtyMaxX - this.dirtyMinX + 1,
-        y: this.dirtyMaxY - this.dirtyMinY + 1,
-        z: this.dirtyMaxZ - this.dirtyMinZ + 1,
-      };
-      const frameMinPos = { x: this.dirtyMinX, y: this.dirtyMinY, z: this.dirtyMinZ };
-      const frame = new VoxelFrame(frameDims, frameMinPos);
-      const dimY = context.dimensions.y;
-      const dimZ = context.dimensions.z;
-
-      for (let x = this.dirtyMinX; x <= this.dirtyMaxX; x++) {
-        for (let y = this.dirtyMinY; y <= this.dirtyMaxY; y++) {
-          for (let z = this.dirtyMinZ; z <= this.dirtyMaxZ; z++) {
-            const val = context.previewBuffer[x * dimY * dimZ + y * dimZ + z];
-            if (val !== 0) {
-              frame.set(x, y, z, val);
-            }
-          }
-        }
-      }
+      const dims = context.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 }, new Uint8Array(context.previewBuffer));
 
       context.reducers.applyFrame(
         this.strokeMode!,
@@ -189,17 +149,10 @@ export class BrushTool implements Tool {
         this.strokeSelectedObject
       );
 
-      for (let x = this.dirtyMinX; x <= this.dirtyMaxX; x++) {
-        for (let y = this.dirtyMinY; y <= this.dirtyMaxY; y++) {
-          for (let z = this.dirtyMinZ; z <= this.dirtyMaxZ; z++) {
-            context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = 0;
-          }
-        }
-      }
-
+      context.previewBuffer.fill(0);
       context.projectManager.chunkManager.updatePreview(
-        this.dirtyMinX, this.dirtyMinY, this.dirtyMinZ,
-        this.dirtyMaxX, this.dirtyMaxY, this.dirtyMaxZ
+        0, 0, 0,
+        dims.x - 1, dims.y - 1, dims.z - 1
       );
     }
 
