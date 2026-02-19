@@ -3,6 +3,7 @@ import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import type { BlockModificationMode } from "@/state/types";
+import { stateStore } from "@/state/store";
 
 export class BlockPickerTool implements Tool {
   getType(): ToolType {
@@ -39,7 +40,8 @@ export class BlockPickerTool implements Tool {
       event.currentGridPosition,
       context.selectedObject
     );
-    if (blockType !== null && blockType !== 0) {
+    const blockCount = stateStore.getState().blocks.colors.length;
+    if (blockType !== null && blockType > 0 && blockType <= blockCount) {
       context.setSelectedBlockInParent(blockType);
     }
   }

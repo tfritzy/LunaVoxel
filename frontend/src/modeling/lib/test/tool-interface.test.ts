@@ -682,6 +682,26 @@ describe("Tool Interface", () => {
 
       expect(selectedBlock).toBe(5);
     });
+
+    it("should not pick out-of-range blocks on mouse up", () => {
+      const startPos = new THREE.Vector3(1, 2, 3);
+      const endPos = new THREE.Vector3(1, 2, 3);
+      let selectedBlock = 0;
+
+      mockContext.setSelectedBlockInParent = (block: number) => {
+        selectedBlock = block;
+      };
+      mockContext.projectManager.getBlockAtPosition = () => 999;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: startPos,
+        currentGridPosition: endPos,
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(selectedBlock).toBe(0);
+    });
   });
 
   describe("MagicSelect Tool", () => {
