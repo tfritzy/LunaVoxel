@@ -46,7 +46,7 @@ export class RectTool implements Tool {
     return [
       {
         name: "Fill Shape",
-        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"],
+        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Cross"],
         currentValue: this.fillShape,
       },
       {

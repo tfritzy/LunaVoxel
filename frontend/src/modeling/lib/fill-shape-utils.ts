@@ -88,9 +88,12 @@ export function isInsideFillShapePrecomputed(
     }
     case "Pyramid": {
       const row = p.maxY - y;
-      const fraction = (row + 0.5) * p.invHeight;
-      const halfWidthX = p.radiusX * fraction;
-      const halfWidthZ = p.radiusZ * fraction;
+      const topFraction = p.height <= 1 ? 1 : 1 - row / (p.height - 1);
+      const minDiameter = Math.min(p.radiusX * 2, p.radiusZ * 2);
+      const maxInset = Math.floor((minDiameter - 1) / 2);
+      const inset = maxInset > 0 ? Math.floor(topFraction * maxInset) : 0;
+      const halfWidthX = Math.max(0, p.radiusX - inset);
+      const halfWidthZ = Math.max(0, p.radiusZ - inset);
       const dx = Math.abs(x + 0.5 - p.centerX);
       const dz = Math.abs(z + 0.5 - p.centerZ);
       return dx <= halfWidthX && dz <= halfWidthZ;
@@ -272,12 +275,15 @@ function isInsidePyramid(
 ): boolean {
   const height = maxY - minY + 1;
   const row = maxY - y;
-  const fraction = (row + 0.5) / height;
+  const topFraction = height <= 1 ? 1 : 1 - row / (height - 1);
+  const minDiameter = Math.min(maxX - minX + 1, maxZ - minZ + 1);
+  const maxInset = Math.floor((minDiameter - 1) / 2);
+  const inset = maxInset > 0 ? Math.floor(topFraction * maxInset) : 0;
 
   const centerX = (minX + maxX + 1) / 2;
   const centerZ = (minZ + maxZ + 1) / 2;
-  const halfWidthX = ((maxX - minX + 1) / 2) * fraction;
-  const halfWidthZ = ((maxZ - minZ + 1) / 2) * fraction;
+  const halfWidthX = Math.max(0, (maxX - minX + 1) / 2 - inset);
+  const halfWidthZ = Math.max(0, (maxZ - minZ + 1) / 2 - inset);
   const dx = Math.abs(x + 0.5 - centerX);
   const dz = Math.abs(z + 0.5 - centerZ);
 
