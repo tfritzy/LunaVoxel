@@ -4,6 +4,11 @@ import * as THREE from "three";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import { AtlasData } from "@/lib/useAtlas";
 
+function createMockTexture(width: number): THREE.Texture {
+  const texture = { image: { width } } as unknown as THREE.Texture;
+  return texture;
+}
+
 describe("Chunk selection rendering", () => {
   let scene: THREE.Scene;
   let chunk: Chunk;
@@ -26,7 +31,8 @@ describe("Chunk selection rendering", () => {
       () => ({ tag: "Attach" } as BlockModificationMode),
       () => true, // all objects visible
       new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z),
-      chunkSize
+      chunkSize,
+      new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z)
     );
   });
 
@@ -86,5 +92,149 @@ describe("Chunk selection rendering", () => {
 
     chunk.clearAllSelectionFrames();
     expect(chunk).toBeDefined();
+  });
+});
+
+describe("Chunk selection buffer", () => {
+  const chunkSize: Vector3 = { x: 4, y: 4, z: 4 };
+  const worldDimensions: Vector3 = { x: 8, y: 8, z: 8 };
+  const atlasData: AtlasData = {
+    texture: createMockTexture(4),
+    blockAtlasMapping: [0, 1],
+    colors: [0xff0000, 0x00ff00],
+  };
+
+  function idx(x: number, y: number, z: number, dims: Vector3) {
+    return x * dims.y * dims.z + y * dims.z + z;
+  }
+
+  it("should render selection from global selection buffer", () => {
+    const scene = new THREE.Scene();
+    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
+    const chunk = new Chunk(
+      scene,
+      { x: 0, y: 0, z: 0 },
+      chunkSize,
+      2,
+      atlasData,
+      () => ({ tag: "Attach" } as BlockModificationMode),
+      () => true,
+      new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
+      worldDimensions,
+      selectionBuffer
+    );
+
+    const voxels = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+    voxels[idx(1, 1, 1, chunkSize)] = 1;
+    chunk.setObjectChunk(0, voxels);
+
+    selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
+    chunk.update();
+
+    const mesh = chunk.getMesh();
+    expect(mesh).toBeDefined();
+    const isSelectedAttr = mesh!.geometry.getAttribute("isSelected");
+    expect(isSelectedAttr).toBeDefined();
+
+    const isSelectedArray = isSelectedAttr.array as Float32Array;
+    const hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
+    expect(hasSelected).toBe(true);
+  });
+
+  it("should not show selection when buffer is empty", () => {
+    const scene = new THREE.Scene();
+    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
+    const chunk = new Chunk(
+      scene,
+      { x: 0, y: 0, z: 0 },
+      chunkSize,
+      2,
+      atlasData,
+      () => ({ tag: "Attach" } as BlockModificationMode),
+      () => true,
+      new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
+      worldDimensions,
+      selectionBuffer
+    );
+
+    const voxels = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+    voxels[idx(1, 1, 1, chunkSize)] = 1;
+    chunk.setObjectChunk(0, voxels);
+
+    const mesh = chunk.getMesh();
+    expect(mesh).toBeDefined();
+    const isSelectedAttr = mesh!.geometry.getAttribute("isSelected");
+    const isSelectedArray = isSelectedAttr.array as Float32Array;
+    const hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
+    expect(hasSelected).toBe(false);
+  });
+
+  it("should show selection on covering voxel when lower object is selected", () => {
+    const scene = new THREE.Scene();
+    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
+    const chunk = new Chunk(
+      scene,
+      { x: 0, y: 0, z: 0 },
+      chunkSize,
+      2,
+      atlasData,
+      () => ({ tag: "Attach" } as BlockModificationMode),
+      () => true,
+      new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
+      worldDimensions,
+      selectionBuffer
+    );
+
+    const voxels0 = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+    voxels0[idx(1, 1, 1, chunkSize)] = 1;
+    chunk.setObjectChunk(0, voxels0);
+
+    const voxels1 = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+    voxels1[idx(1, 1, 1, chunkSize)] = 2;
+    chunk.setObjectChunk(1, voxels1);
+
+    selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
+    chunk.update();
+
+    const mesh = chunk.getMesh();
+    expect(mesh).toBeDefined();
+    const isSelectedAttr = mesh!.geometry.getAttribute("isSelected");
+    const isSelectedArray = isSelectedAttr.array as Float32Array;
+    const hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
+    expect(hasSelected).toBe(true);
+  });
+
+  it("should re-render when selection changes after initial render", () => {
+    const scene = new THREE.Scene();
+    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
+    const chunk = new Chunk(
+      scene,
+      { x: 0, y: 0, z: 0 },
+      chunkSize,
+      2,
+      atlasData,
+      () => ({ tag: "Attach" } as BlockModificationMode),
+      () => true,
+      new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
+      worldDimensions,
+      selectionBuffer
+    );
+
+    const voxels = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
+    voxels[idx(1, 1, 1, chunkSize)] = 1;
+    chunk.setObjectChunk(0, voxels);
+
+    const mesh = chunk.getMesh();
+    expect(mesh).toBeDefined();
+    let isSelectedArray = mesh!.geometry.getAttribute("isSelected").array as Float32Array;
+    let hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
+    expect(hasSelected).toBe(false);
+
+    selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
+    chunk.update();
+
+    isSelectedArray = mesh!.geometry.getAttribute("isSelected").array as Float32Array;
+    hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
+    expect(hasSelected).toBe(true);
   });
 });

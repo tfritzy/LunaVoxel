@@ -44,7 +44,10 @@ export class Chunk {
   private mergedSelectionFrame: VoxelFrame;
   private previewBuffer: Uint8Array;
   private worldDimensions: Vector3;
+  private selectionBuffer: Uint8Array;
   private previewDirty: boolean = false;
+  private selectionDirty: boolean = true;
+  private lastRenderedSelectionEmpty: boolean = true;
   private previewAccMinX: number = -1;
   private previewAccMinY: number = -1;
   private previewAccMinZ: number = -1;
@@ -73,7 +76,8 @@ export class Chunk {
     getMode: () => BlockModificationMode,
     getObjectVisible: (objectIndex: number) => boolean,
     previewBuffer: Uint8Array,
-    worldDimensions: Vector3
+    worldDimensions: Vector3,
+    selectionBuffer: Uint8Array
   ) {
     this.scene = scene;
     this.minPos = minPos;
@@ -83,6 +87,7 @@ export class Chunk {
     this.getObjectVisible = getObjectVisible;
     this.previewBuffer = previewBuffer;
     this.worldDimensions = worldDimensions;
+    this.selectionBuffer = selectionBuffer;
 
     this.objectChunks = new Array(maxObjects).fill(null);
 
@@ -254,6 +259,10 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
+  public markSelectionDirty(): void {
+    this.selectionDirty = true;
+  }
+
   private clearBlocks(blocks: Uint8Array) {
     blocks.fill(0);
   }
@@ -265,7 +274,6 @@ export class Chunk {
     for (let i = 0; i < blocks.length && i < objectChunk.voxels.length; i++) {
       if (objectChunk.voxels[i] > 0) {
         blocks[i] = objectChunk.voxels[i];
-        this.mergedSelectionFrame.setByIndex(i, 0);
       }
     }
   }
@@ -280,6 +288,31 @@ export class Chunk {
         if (selectionVoxels[i] > 0) {
           if (blocks[i] === 0) {
             this.mergedSelectionFrame.setByIndex(i, selectionVoxels[i]);
+          }
+        }
+      }
+    }
+  }
+
+  private applySelectionFromBuffer(): void {
+    const worldYZ = this.worldDimensions.y * this.worldDimensions.z;
+    const worldZ = this.worldDimensions.z;
+    const sizeY = this.size.y;
+    const sizeZ = this.size.z;
+
+    for (let lx = 0; lx < this.size.x; lx++) {
+      const wx = this.minPos.x + lx;
+      const srcXOff = wx * worldYZ;
+      const dstXOff = lx * sizeY * sizeZ;
+      for (let ly = 0; ly < sizeY; ly++) {
+        const wy = this.minPos.y + ly;
+        const srcXYOff = srcXOff + wy * worldZ;
+        const dstXYOff = dstXOff + ly * sizeZ;
+        for (let lz = 0; lz < sizeZ; lz++) {
+          const wz = this.minPos.z + lz;
+          const val = this.selectionBuffer[srcXYOff + wz];
+          if (val > 0) {
+            this.mergedSelectionFrame.setByIndex(dstXYOff + lz, val);
           }
         }
       }
@@ -437,6 +470,14 @@ export class Chunk {
       return true;
     }
 
+    if (this.selectionDirty) {
+      return true;
+    }
+
+    if (this.mergedSelectionFrame.isEmpty() !== this.lastRenderedSelectionEmpty) {
+      return true;
+    }
+
     for (let i = 0; i < this.blocksToRender.length; i++) {
       if (this.blocksToRender[i] !== this.renderedBlocks[i]) {
         return true;
@@ -459,9 +500,9 @@ export class Chunk {
         if (chunk) {
           this.addObjectChunkToBlocks(chunk, this.blocksToRender);
         }
-        
-        this.applySelectionForObject(objectIndex, this.blocksToRender);
       }
+
+      this.applySelectionFromBuffer();
 
       this.mergePreviewIntoVoxelData(this.blocksToRender);
 
@@ -471,6 +512,8 @@ export class Chunk {
         this.renderedBlocks.set(this.blocksToRender);
         this.atlasChanged = false;
         this.previewDirty = false;
+        this.selectionDirty = false;
+        this.lastRenderedSelectionEmpty = this.mergedSelectionFrame.isEmpty();
       }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);
