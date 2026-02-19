@@ -14,6 +14,16 @@ describe("stateStore renameObject reducer", () => {
     expect(stateStore.getState().objects[0].name).toBe("Renamed Object");
   });
 
+  it("replaces objects array when adding an object", () => {
+    const beforeObjects = stateStore.getState().objects;
+
+    stateStore.reducers.addObject("local-project");
+
+    const afterObjects = stateStore.getState().objects;
+    expect(afterObjects).not.toBe(beforeObjects);
+    expect(afterObjects).toHaveLength(beforeObjects.length + 1);
+  });
+
   it("replaces blocks.colors when updating block color", () => {
     const before = stateStore.getState().blocks;
     const beforeColors = before.colors;
