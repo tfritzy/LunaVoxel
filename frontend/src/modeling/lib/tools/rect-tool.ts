@@ -413,10 +413,7 @@ export class RectTool implements Tool {
     }
 
     context.reducers.applyFrame(mode, selectedBlock, frame, selectedObject);
-    context.projectManager.chunkManager.updatePreview(
-      bounds.minX, bounds.minY, bounds.minZ,
-      bounds.maxX, bounds.maxY, bounds.maxZ
-    );
+    context.projectManager.chunkManager.clearPreview();
     this.lastBounds = null;
   }
 
@@ -431,11 +428,7 @@ export class RectTool implements Tool {
   cancelPendingOperation(context: ToolContext): void {
     if (!this.pending) return;
     this.clearLastBounds(context);
-    const bounds = this.pending.bounds;
-    context.projectManager.chunkManager.updatePreview(
-      bounds.minX, bounds.minY, bounds.minZ,
-      bounds.maxX, bounds.maxY, bounds.maxZ
-    );
+    context.projectManager.chunkManager.clearPreview();
     this.lastBounds = null;
     this.pending = null;
     this.resizingCorner = null;

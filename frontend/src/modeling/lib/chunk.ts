@@ -45,6 +45,12 @@ export class Chunk {
   private previewBuffer: Uint8Array;
   private worldDimensions: Vector3;
   private previewDirty: boolean = false;
+  private previewAccMinX: number = -1;
+  private previewAccMinY: number = -1;
+  private previewAccMinZ: number = -1;
+  private previewAccMaxX: number = -1;
+  private previewAccMaxY: number = -1;
+  private previewAccMaxZ: number = -1;
   private atlasData: AtlasData | undefined;
   private atlasChanged: boolean = false;
   private getMode: () => BlockModificationMode;
@@ -195,8 +201,45 @@ export class Chunk {
     return this.meshData.mesh;
   }
 
-  public markPreviewDirty(): void {
+  public expandPreviewBounds(worldMinX: number, worldMinY: number, worldMinZ: number, worldMaxX: number, worldMaxY: number, worldMaxZ: number): void {
+    const localMinX = Math.max(0, worldMinX - this.minPos.x);
+    const localMinY = Math.max(0, worldMinY - this.minPos.y);
+    const localMinZ = Math.max(0, worldMinZ - this.minPos.z);
+    const localMaxX = Math.min(this.size.x - 1, worldMaxX - this.minPos.x);
+    const localMaxY = Math.min(this.size.y - 1, worldMaxY - this.minPos.y);
+    const localMaxZ = Math.min(this.size.z - 1, worldMaxZ - this.minPos.z);
+
+    if (this.previewAccMinX === -1) {
+      this.previewAccMinX = localMinX;
+      this.previewAccMinY = localMinY;
+      this.previewAccMinZ = localMinZ;
+      this.previewAccMaxX = localMaxX;
+      this.previewAccMaxY = localMaxY;
+      this.previewAccMaxZ = localMaxZ;
+    } else {
+      this.previewAccMinX = Math.min(this.previewAccMinX, localMinX);
+      this.previewAccMinY = Math.min(this.previewAccMinY, localMinY);
+      this.previewAccMinZ = Math.min(this.previewAccMinZ, localMinZ);
+      this.previewAccMaxX = Math.max(this.previewAccMaxX, localMaxX);
+      this.previewAccMaxY = Math.max(this.previewAccMaxY, localMaxY);
+      this.previewAccMaxZ = Math.max(this.previewAccMaxZ, localMaxZ);
+    }
+
     this.previewDirty = true;
+  }
+
+  public resetPreviewBounds(): void {
+    this.previewAccMinX = -1;
+    this.previewAccMinY = -1;
+    this.previewAccMinZ = -1;
+    this.previewAccMaxX = -1;
+    this.previewAccMaxY = -1;
+    this.previewAccMaxZ = -1;
+    this.previewDirty = true;
+  }
+
+  public hasPreviewBounds(): boolean {
+    return this.previewAccMinX !== -1;
   }
 
   public setSelectionFrame(identityId: string, selectionData: SelectionData | null): void {
@@ -244,6 +287,8 @@ export class Chunk {
   }
 
   private mergePreviewIntoVoxelData(blocks: Uint8Array): void {
+    if (this.previewAccMinX === -1) return;
+
     const buildMode = this.getMode();
     const worldYZ = this.worldDimensions.y * this.worldDimensions.z;
     const worldZ = this.worldDimensions.z;
@@ -251,19 +296,25 @@ export class Chunk {
     const chunkMinX = this.minPos.x;
     const chunkMinY = this.minPos.y;
     const chunkMinZ = this.minPos.z;
-    const sizeX = this.size.x;
     const sizeY = this.size.y;
     const sizeZ = this.size.z;
 
+    const startLX = this.previewAccMinX;
+    const endLX = this.previewAccMaxX;
+    const startLY = this.previewAccMinY;
+    const endLY = this.previewAccMaxY;
+    const startLZ = this.previewAccMinZ;
+    const endLZ = this.previewAccMaxZ;
+
     if (buildMode.tag === "Attach") {
-      for (let lx = 0; lx < sizeX; lx++) {
+      for (let lx = startLX; lx <= endLX; lx++) {
         const worldX = chunkMinX + lx;
         const srcXOff = worldX * worldYZ;
         const dstXOff = lx * sizeY * sizeZ;
-        for (let ly = 0; ly < sizeY; ly++) {
+        for (let ly = startLY; ly <= endLY; ly++) {
           const srcXYOff = srcXOff + (chunkMinY + ly) * worldZ;
           const dstXYOff = dstXOff + ly * sizeZ;
-          for (let lz = 0; lz < sizeZ; lz++) {
+          for (let lz = startLZ; lz <= endLZ; lz++) {
             const pv = this.previewBuffer[srcXYOff + chunkMinZ + lz];
             if (pv !== 0) {
               const dstIdx = dstXYOff + lz;
@@ -275,14 +326,14 @@ export class Chunk {
         }
       }
     } else {
-      for (let lx = 0; lx < sizeX; lx++) {
+      for (let lx = startLX; lx <= endLX; lx++) {
         const worldX = chunkMinX + lx;
         const srcXOff = worldX * worldYZ;
         const dstXOff = lx * sizeY * sizeZ;
-        for (let ly = 0; ly < sizeY; ly++) {
+        for (let ly = startLY; ly <= endLY; ly++) {
           const srcXYOff = srcXOff + (chunkMinY + ly) * worldZ;
           const dstXYOff = dstXOff + ly * sizeZ;
-          for (let lz = 0; lz < sizeZ; lz++) {
+          for (let lz = startLZ; lz <= endLZ; lz++) {
             const pv = this.previewBuffer[srcXYOff + chunkMinZ + lz];
             if (pv !== 0) {
               const dstIdx = dstXYOff + lz;

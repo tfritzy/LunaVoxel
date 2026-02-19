@@ -178,9 +178,18 @@ export class ChunkManager {
         for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
           const chunk = this.getOrCreateChunk(chunkMinPos);
-          chunk.markPreviewDirty();
+          chunk.expandPreviewBounds(minX, minY, minZ, maxX, maxY, maxZ);
           chunk.update();
         }
+      }
+    }
+  }
+
+  clearPreview = () => {
+    for (const chunk of this.chunks.values()) {
+      if (chunk.hasPreviewBounds()) {
+        chunk.resetPreviewBounds();
+        chunk.update();
       }
     }
   }

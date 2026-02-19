@@ -39,6 +39,8 @@ function createBenchmarkContext(dimensions: Vector3): {
     restoreObject: () => {},
   };
 
+  const chunkBounds: Map<string, { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number }> = new Map();
+
   const updatePreview = (minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number) => {
     const start = performance.now();
 
@@ -59,14 +61,35 @@ function createBenchmarkContext(dimensions: Vector3): {
           const sizeY = Math.min(CHUNK_SIZE, dimensions.y - chunkY);
           const sizeZ = Math.min(CHUNK_SIZE, dimensions.z - chunkZ);
 
+          const key = `${chunkX},${chunkY},${chunkZ}`;
+          const localMinX = Math.max(0, minX - chunkX);
+          const localMinY = Math.max(0, minY - chunkY);
+          const localMinZ = Math.max(0, minZ - chunkZ);
+          const localMaxX = Math.min(sizeX - 1, maxX - chunkX);
+          const localMaxY = Math.min(sizeY - 1, maxY - chunkY);
+          const localMaxZ = Math.min(sizeZ - 1, maxZ - chunkZ);
+
+          const existing = chunkBounds.get(key);
+          if (existing) {
+            existing.minX = Math.min(existing.minX, localMinX);
+            existing.minY = Math.min(existing.minY, localMinY);
+            existing.minZ = Math.min(existing.minZ, localMinZ);
+            existing.maxX = Math.max(existing.maxX, localMaxX);
+            existing.maxY = Math.max(existing.maxY, localMaxY);
+            existing.maxZ = Math.max(existing.maxZ, localMaxZ);
+          } else {
+            chunkBounds.set(key, { minX: localMinX, minY: localMinY, minZ: localMinZ, maxX: localMaxX, maxY: localMaxY, maxZ: localMaxZ });
+          }
+
+          const acc = chunkBounds.get(key)!;
           const blocks = new Uint8Array(sizeX * sizeY * sizeZ);
-          for (let lx = 0; lx < sizeX; lx++) {
+          for (let lx = acc.minX; lx <= acc.maxX; lx++) {
             const srcXOff = (chunkX + lx) * worldYZ;
             const dstXOff = lx * sizeY * sizeZ;
-            for (let ly = 0; ly < sizeY; ly++) {
+            for (let ly = acc.minY; ly <= acc.maxY; ly++) {
               const srcXYOff = srcXOff + (chunkY + ly) * worldZ;
               const dstXYOff = dstXOff + ly * sizeZ;
-              for (let lz = 0; lz < sizeZ; lz++) {
+              for (let lz = acc.minZ; lz <= acc.maxZ; lz++) {
                 const pv = previewBuffer[srcXYOff + chunkZ + lz];
                 if (pv !== 0) {
                   blocks[dstXYOff + lz] = pv;
@@ -81,6 +104,10 @@ function createBenchmarkContext(dimensions: Vector3): {
     updatePreviewTimes.push(performance.now() - start);
   };
 
+  const clearPreview = () => {
+    chunkBounds.clear();
+  };
+
   const context: ToolContext = {
     reducers,
     projectId: "test-project",
@@ -92,6 +119,7 @@ function createBenchmarkContext(dimensions: Vector3): {
       clearMoveSelectionBox: () => {},
       chunkManager: {
         updatePreview,
+        clearPreview,
         previewBuffer,
         getDimensions: () => dimensions,
       },

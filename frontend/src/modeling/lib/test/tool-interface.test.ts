@@ -56,6 +56,7 @@ describe("Tool Interface", () => {
         clearMoveSelectionBox: () => {},
         chunkManager: {
           updatePreview: () => {},
+          clearPreview: () => {},
           previewBuffer,
           getDimensions: () => dimensions,
         },
@@ -412,13 +413,13 @@ describe("Tool Interface", () => {
     });
 
     it("should clear preview in chunk manager after commit", () => {
-      let previewUpdated = false;
+      let previewCleared = false;
       mockContext.projectManager = {
         ...mockContext.projectManager,
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
-          updatePreview: () => {
-            previewUpdated = true;
+          clearPreview: () => {
+            previewCleared = true;
           },
         },
       } as unknown as ProjectManager;
@@ -430,9 +431,9 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      previewUpdated = false;
+      previewCleared = false;
       tool.commitPendingOperation(mockContext);
-      expect(previewUpdated).toBe(true);
+      expect(previewCleared).toBe(true);
       expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBe(0);
     });
 
@@ -1050,6 +1051,7 @@ describe("Tool Interface", () => {
           ...mockContext.projectManager,
           chunkManager: {
             updatePreview: () => {},
+            clearPreview: () => {},
             previewBuffer: benchPreviewBuffer,
             getDimensions: () => benchDimensions,
           },

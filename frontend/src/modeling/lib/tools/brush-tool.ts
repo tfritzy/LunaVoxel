@@ -150,10 +150,7 @@ export class BrushTool implements Tool {
       );
 
       context.previewBuffer.fill(0);
-      context.projectManager.chunkManager.updatePreview(
-        0, 0, 0,
-        dims.x - 1, dims.y - 1, dims.z - 1
-      );
+      context.projectManager.chunkManager.clearPreview();
     }
 
     this.lastAppliedPosition = null;
