@@ -57,7 +57,7 @@ describe("ToolOptionsPanel slider options", () => {
     const slider = findRangeInput(panel);
 
     expect(slider).not.toBeNull();
-    expect(slider?.props.className).toContain("tool-slider");
+    expect(slider?.props.className).toContain("w-full");
     expect(slider?.props.min).toBe(1);
     expect(slider?.props.max).toBe(10);
 
