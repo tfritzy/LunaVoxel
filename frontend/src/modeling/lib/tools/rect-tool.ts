@@ -208,7 +208,7 @@ export class RectTool implements Tool {
     );
   }
 
-  private buildFrame(context: ToolContext, event: ToolDragEvent): void {
+  private buildFrame(context: ToolContext, event: ToolDragEvent): RectBounds {
     let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
@@ -218,6 +218,7 @@ export class RectTool implements Tool {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
     }
     this.buildFrameFromBounds(context, bounds);
+    return bounds;
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
@@ -226,7 +227,8 @@ export class RectTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    this.buildFrame(context, event);
+    const bounds = this.buildFrame(context, event);
+    this.renderBoundsBox(context, bounds);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -495,6 +497,10 @@ export class RectTool implements Tool {
       return;
     }
 
+    this.renderBoundsBox(context, this.pending.bounds);
+  }
+
+  private renderBoundsBox(context: ToolContext, bounds: RectBounds): void {
     if (!this.boundsBoxHelper) {
       this.boundsBoxHelper = new THREE.Box3Helper(
         new THREE.Box3(),
@@ -503,7 +509,6 @@ export class RectTool implements Tool {
       context.scene.add(this.boundsBoxHelper);
     }
 
-    const bounds = this.pending.bounds;
     this.boundsBoxHelper.box.min.set(bounds.minX, bounds.minY, bounds.minZ);
     this.boundsBoxHelper.box.max.set(bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1);
     this.boundsBoxHelper.updateMatrixWorld(true);
