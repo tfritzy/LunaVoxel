@@ -12,7 +12,6 @@ import {
   Cone,
   Pyramid,
   Hexagon,
-  Cross,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,7 +25,6 @@ const fillShapeIcons: Record<string, LucideIcon> = {
   Cone: Cone,
   Pyramid: Pyramid,
   Hexagon: Hexagon,
-  Cross: Cross,
 };
 
 function isSliderOption(option: ToolOption): boolean {

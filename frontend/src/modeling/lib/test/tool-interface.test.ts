@@ -106,7 +106,7 @@ describe("Tool Interface", () => {
       
       expect(options).toHaveLength(3);
       expect(options[0].name).toBe("Fill Shape");
-      expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Cross"]);
+      expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"]);
       expect(options[0].currentValue).toBe("Rect");
       expect(options[1].name).toBe("Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
@@ -850,7 +850,7 @@ describe("Tool Interface", () => {
       const options = tool.getOptions();
       expect(options).toHaveLength(2);
       expect(options[0].name).toBe("Brush Shape");
-      expect(options[0].values).toEqual(["Sphere", "Cube", "Cylinder", "Diamond", "Cross"]);
+      expect(options[0].values).toEqual(["Sphere", "Cube", "Cylinder", "Diamond"]);
       expect(options[0].currentValue).toBe("Sphere");
       expect(options[1].name).toBe("Size");
       expect(options[1].currentValue).toBe("3");
@@ -1036,7 +1036,7 @@ describe("Tool Interface", () => {
 
   describe("Benchmark", () => {
     it("should drag preview and apply across all fill shapes within 4 seconds", () => {
-      const shapes = ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Cross"] as const;
+      const shapes = ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"] as const;
       const SIZE = 150;
       const DRAG_STEPS = 8;
       const benchDimensions = { x: SIZE, y: SIZE, z: SIZE };

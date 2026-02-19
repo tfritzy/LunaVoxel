@@ -102,11 +102,6 @@ export function isInsideFillShapePrecomputed(
       const dz = Math.abs(z + 0.5 - p.centerZ) * p.invRadiusZ;
       return dx <= 1 && dz + dx * 0.5 <= 1;
     }
-    case "Cross": {
-      const dx = Math.abs(x + 0.5 - p.centerX) * p.invRadiusX;
-      const dz = Math.abs(z + 0.5 - p.centerZ) * p.invRadiusZ;
-      return dx <= 1 / 3 || dz <= 1 / 3;
-    }
   }
 }
 
@@ -139,8 +134,6 @@ export function isInsideFillShape(
       return isInsidePyramid(x, y, z, minX, maxX, minY, maxY, minZ, maxZ);
     case "Hexagon":
       return isInsideHexagon(x, z, minX, maxX, minZ, maxZ);
-    case "Cross":
-      return isInsideCross(x, z, minX, maxX, minZ, maxZ);
   }
 }
 
@@ -298,22 +291,4 @@ function isInsideHexagon(
   const dz = Math.abs(z + 0.5 - centerZ) / radiusZ;
 
   return dx <= 1 && dz + dx * 0.5 <= 1;
-}
-
-function isInsideCross(
-  x: number,
-  z: number,
-  minX: number,
-  maxX: number,
-  minZ: number,
-  maxZ: number
-): boolean {
-  const radiusX = (maxX - minX + 1) / 2;
-  const radiusZ = (maxZ - minZ + 1) / 2;
-  const centerX = (minX + maxX + 1) / 2;
-  const centerZ = (minZ + maxZ + 1) / 2;
-  const dx = Math.abs(x + 0.5 - centerX) / radiusX;
-  const dz = Math.abs(z + 0.5 - centerZ) / radiusZ;
-
-  return dx <= 1 / 3 || dz <= 1 / 3;
 }
