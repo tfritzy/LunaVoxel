@@ -5,7 +5,7 @@ export type ToolType =
   | "BlockPicker"
   | "MagicSelect" 
 
-export type FillShape = "Rect" | "Sphere" | "Cylinder" | "Triangle" | "Diamond" | "Cone" | "Pyramid" | "Hexagon" | "Star" | "Cross";
+export type FillShape = "Rect" | "Sphere" | "Cylinder" | "Triangle" | "Diamond" | "Cone" | "Pyramid" | "Hexagon" | "Cross";
 
 export type ShapeDirection = "+x" | "-x" | "+y" | "-y" | "+z" | "-z";
 

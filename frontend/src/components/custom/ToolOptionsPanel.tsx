@@ -12,7 +12,6 @@ import {
   Cone,
   Pyramid,
   Hexagon,
-  Star,
   Cross,
   type LucideIcon,
 } from "lucide-react";
@@ -27,7 +26,6 @@ const fillShapeIcons: Record<string, LucideIcon> = {
   Cone: Cone,
   Pyramid: Pyramid,
   Hexagon: Hexagon,
-  Star: Star,
   Cross: Cross,
 };
 
