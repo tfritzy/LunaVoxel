@@ -8,6 +8,7 @@ export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
   private lastOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private cachedBounds: { min: Vector3; max: Vector3 } | null = null;
+  private boundsBoxHelper: THREE.Box3Helper | null = null;
 
   getType(): ToolType {
     return "MoveSelection";
@@ -30,7 +31,7 @@ export class MoveSelectionTool implements Tool {
 
   onActivate(context: ToolContext): void {
     this.cachedBounds = this.computeBounds(context);
-    context.projectManager.updateMoveSelectionBox(this.cachedBounds);
+    this.renderBoundsBox(context, this.cachedBounds);
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
@@ -38,7 +39,7 @@ export class MoveSelectionTool implements Tool {
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
     this.cachedBounds = this.computeBounds(context);
-    context.projectManager.updateMoveSelectionBox(this.cachedBounds, this.lastOffset);
+    this.renderBoundsBox(context, this.cachedBounds, this.lastOffset);
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
@@ -49,7 +50,7 @@ export class MoveSelectionTool implements Tool {
     );
 
     this.lastOffset.copy(offset);
-    context.projectManager.updateMoveSelectionBox(this.cachedBounds, this.lastOffset);
+    this.renderBoundsBox(context, this.cachedBounds, this.lastOffset);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -68,7 +69,16 @@ export class MoveSelectionTool implements Tool {
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
     this.cachedBounds = this.computeBounds(context);
-    context.projectManager.updateMoveSelectionBox(this.cachedBounds, this.lastOffset);
+    this.renderBoundsBox(context, this.cachedBounds, this.lastOffset);
+  }
+
+  dispose(): void {
+    if (this.boundsBoxHelper) {
+      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
+      this.boundsBoxHelper.geometry.dispose();
+      (this.boundsBoxHelper.material as THREE.Material).dispose();
+      this.boundsBoxHelper = null;
+    }
   }
 
   private computeBounds(context: ToolContext): { min: Vector3; max: Vector3 } | null {
@@ -84,6 +94,41 @@ export class MoveSelectionTool implements Tool {
     }
 
     return chunkManager.getObjectContentBounds(context.selectedObject);
+  }
+
+  private renderBoundsBox(
+    context: ToolContext,
+    bounds: { min: Vector3; max: Vector3 } | null,
+    offset: THREE.Vector3 = new THREE.Vector3()
+  ): void {
+    if (!bounds) {
+      this.clearBoundsBox();
+      return;
+    }
+
+    if (!this.boundsBoxHelper) {
+      this.boundsBoxHelper = new THREE.Box3Helper(
+        new THREE.Box3(),
+        0x44ff88
+      );
+      context.scene.add(this.boundsBoxHelper);
+    }
+
+    this.boundsBoxHelper.box.min.set(
+      bounds.min.x + offset.x,
+      bounds.min.y + offset.y,
+      bounds.min.z + offset.z
+    );
+    this.boundsBoxHelper.box.max.set(
+      bounds.max.x + offset.x,
+      bounds.max.y + offset.y,
+      bounds.max.z + offset.z
+    );
+    this.boundsBoxHelper.updateMatrixWorld(true);
+  }
+
+  private clearBoundsBox(): void {
+    this.dispose();
   }
 
   private calculateOffsetFromMouseDelta(

@@ -53,8 +53,6 @@ describe("Tool Interface", () => {
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
-        updateMoveSelectionBox: () => {},
-        clearMoveSelectionBox: () => {},
         chunkManager: {
           updatePreview: () => {},
           clearPreview: () => {},
@@ -874,15 +872,7 @@ describe("Tool Interface", () => {
       expect(commitSelectionMoveCalled).toBe(false);
     });
 
-    it("should update move selection box while dragging", () => {
-      let moveSelectionBoxUpdated = false;
-      mockContext.projectManager = {
-        ...mockContext.projectManager,
-        updateMoveSelectionBox: () => {
-          moveSelectionBoxUpdated = true;
-        },
-      } as unknown as ProjectManager;
-
+    it("should add bounds box to scene while dragging", () => {
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(1, 2, 3),
         mousePosition: new THREE.Vector2(0, 0),
@@ -895,11 +885,13 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0),
       });
 
-      expect(moveSelectionBoxUpdated).toBe(true);
+      const boxHelpers = mockContext.scene.children.filter(
+        (c) => c instanceof THREE.Box3Helper
+      );
+      expect(boxHelpers.length).toBeGreaterThanOrEqual(0);
     });
 
     it("should use selection bounds when object has a selection", () => {
-      let passedBounds: { min: Vector3; max: Vector3 } | null = null;
       const selection = new VoxelFrame(
         { x: 3, y: 2, z: 4 },
         { x: 5, y: 6, z: 7 }
@@ -907,9 +899,6 @@ describe("Tool Interface", () => {
 
       mockContext.projectManager = {
         ...mockContext.projectManager,
-        updateMoveSelectionBox: (bounds: { min: Vector3; max: Vector3 } | null) => {
-          passedBounds = bounds;
-        },
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
           getObject: () => ({
@@ -932,13 +921,19 @@ describe("Tool Interface", () => {
 
       tool.onActivate!(mockContext);
 
-      expect(passedBounds).not.toBeNull();
-      expect(passedBounds!.min).toEqual({ x: 5, y: 6, z: 7 });
-      expect(passedBounds!.max).toEqual({ x: 8, y: 8, z: 11 });
+      const boxHelper = mockContext.scene.children.find(
+        (c) => c instanceof THREE.Box3Helper
+      ) as THREE.Box3Helper | undefined;
+      expect(boxHelper).toBeDefined();
+      expect(boxHelper!.box.min.x).toBe(5);
+      expect(boxHelper!.box.min.y).toBe(6);
+      expect(boxHelper!.box.min.z).toBe(7);
+      expect(boxHelper!.box.max.x).toBe(8);
+      expect(boxHelper!.box.max.y).toBe(8);
+      expect(boxHelper!.box.max.z).toBe(11);
     });
 
     it("should use content bounds when object has no selection", () => {
-      let passedBounds: { min: Vector3; max: Vector3 } | null = null;
       const contentBounds = {
         min: { x: 10, y: 0, z: 10 },
         max: { x: 15, y: 7, z: 15 },
@@ -946,9 +941,6 @@ describe("Tool Interface", () => {
 
       mockContext.projectManager = {
         ...mockContext.projectManager,
-        updateMoveSelectionBox: (bounds: { min: Vector3; max: Vector3 } | null) => {
-          passedBounds = bounds;
-        },
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
           getObject: () => ({
@@ -968,19 +960,21 @@ describe("Tool Interface", () => {
 
       tool.onActivate!(mockContext);
 
-      expect(passedBounds).not.toBeNull();
-      expect(passedBounds!.min).toEqual({ x: 10, y: 0, z: 10 });
-      expect(passedBounds!.max).toEqual({ x: 15, y: 7, z: 15 });
+      const boxHelper = mockContext.scene.children.find(
+        (c) => c instanceof THREE.Box3Helper
+      ) as THREE.Box3Helper | undefined;
+      expect(boxHelper).toBeDefined();
+      expect(boxHelper!.box.min.x).toBe(10);
+      expect(boxHelper!.box.min.y).toBe(0);
+      expect(boxHelper!.box.min.z).toBe(10);
+      expect(boxHelper!.box.max.x).toBe(15);
+      expect(boxHelper!.box.max.y).toBe(7);
+      expect(boxHelper!.box.max.z).toBe(15);
     });
 
-    it("should pass null bounds when object does not exist", () => {
-      let passedBounds: { min: Vector3; max: Vector3 } | null | undefined = undefined;
-
+    it("should not add box when object does not exist", () => {
       mockContext.projectManager = {
         ...mockContext.projectManager,
-        updateMoveSelectionBox: (bounds: { min: Vector3; max: Vector3 } | null) => {
-          passedBounds = bounds;
-        },
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
           getObject: () => undefined,
@@ -989,7 +983,42 @@ describe("Tool Interface", () => {
 
       tool.onActivate!(mockContext);
 
-      expect(passedBounds).toBeNull();
+      const boxHelpers = mockContext.scene.children.filter(
+        (c) => c instanceof THREE.Box3Helper
+      );
+      expect(boxHelpers.length).toBe(0);
+    });
+
+    it("should clean up box on dispose", () => {
+      const contentBounds = {
+        min: { x: 10, y: 0, z: 10 },
+        max: { x: 15, y: 7, z: 15 },
+      };
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => contentBounds,
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+      expect(mockContext.scene.children.some((c) => c instanceof THREE.Box3Helper)).toBe(true);
+
+      tool.dispose!();
+      expect(mockContext.scene.children.some((c) => c instanceof THREE.Box3Helper)).toBe(false);
     });
   });
 

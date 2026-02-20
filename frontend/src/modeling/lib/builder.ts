@@ -119,7 +119,6 @@ export const Builder = class {
     if (this.currentTool.hasPendingOperation?.()) {
       this.currentTool.cancelPendingOperation?.(this.toolContext);
     }
-    this.projectManager.clearMoveSelectionBox();
     this.isMouseDown = false;
     this.isPendingHandled = false;
     this.startPosition = null;
@@ -454,7 +453,6 @@ export const Builder = class {
   public dispose(): void {
     this.commitPendingIfNeeded();
     this.currentTool.dispose?.();
-    this.projectManager.clearMoveSelectionBox();
     this.removeEventListeners();
   }
 };
