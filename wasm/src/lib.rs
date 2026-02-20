@@ -35,10 +35,12 @@ impl WasmExteriorFacesFinder {
         dim_z: usize,
         max_vertices: usize,
         max_indices: usize,
-        selection_data: &[u8],
-        selection_dim_x: usize,
-        selection_dim_y: usize,
-        selection_dim_z: usize,
+        selection_buffer: &[u8],
+        sel_world_dim_y: usize,
+        sel_world_dim_z: usize,
+        chunk_off_x: usize,
+        chunk_off_y: usize,
+        chunk_off_z: usize,
         selection_empty: bool,
     ) {
         let mesh_arrays = self.mesh_arrays.get_or_insert_with(|| {
@@ -60,10 +62,12 @@ impl WasmExteriorFacesFinder {
             dim_y,
             dim_z,
             self.mesh_arrays.as_mut().unwrap(),
-            selection_data,
-            selection_dim_x,
-            selection_dim_y,
-            selection_dim_z,
+            selection_buffer,
+            sel_world_dim_y,
+            sel_world_dim_z,
+            chunk_off_x,
+            chunk_off_y,
+            chunk_off_z,
             selection_empty,
         );
     }
@@ -155,7 +159,7 @@ mod tests {
         dim_y: usize,
         dim_z: usize,
         block_atlas_mapping: &[i32],
-        selection_data: &[u8],
+        selection_buffer: &[u8],
         selection_empty: bool,
     ) -> (usize, usize) {
         let max_dim = dim_x.max(dim_y).max(dim_z);
@@ -172,10 +176,12 @@ mod tests {
             dim_y,
             dim_z,
             &mut mesh_arrays,
-            selection_data,
-            dim_x,
+            selection_buffer,
             dim_y,
             dim_z,
+            0,
+            0,
+            0,
             selection_empty,
         );
 
@@ -303,9 +309,11 @@ mod tests {
             dz,
             &mut mesh_arrays,
             &sel,
-            dx,
             dy,
             dz,
+            0,
+            0,
+            0,
             false,
         );
 
@@ -340,9 +348,11 @@ mod tests {
             dz,
             &mut mesh_arrays,
             &sel,
-            dx,
             dy,
             dz,
+            0,
+            0,
+            0,
             true,
         );
 

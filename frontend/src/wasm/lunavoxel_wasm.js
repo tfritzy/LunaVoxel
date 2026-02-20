@@ -20,20 +20,22 @@ export class WasmExteriorFacesFinder {
      * @param {number} dim_z
      * @param {number} max_vertices
      * @param {number} max_indices
-     * @param {Uint8Array} selection_data
-     * @param {number} selection_dim_x
-     * @param {number} selection_dim_y
-     * @param {number} selection_dim_z
+     * @param {Uint8Array} selection_buffer
+     * @param {number} sel_world_dim_y
+     * @param {number} sel_world_dim_z
+     * @param {number} chunk_off_x
+     * @param {number} chunk_off_y
+     * @param {number} chunk_off_z
      * @param {boolean} selection_empty
      */
-    findExteriorFaces(voxel_data, texture_width, block_atlas_mapping, dim_x, dim_y, dim_z, max_vertices, max_indices, selection_data, selection_dim_x, selection_dim_y, selection_dim_z, selection_empty) {
+    findExteriorFaces(voxel_data, texture_width, block_atlas_mapping, dim_x, dim_y, dim_z, max_vertices, max_indices, selection_buffer, sel_world_dim_y, sel_world_dim_z, chunk_off_x, chunk_off_y, chunk_off_z, selection_empty) {
         const ptr0 = passArray8ToWasm0(voxel_data, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray32ToWasm0(block_atlas_mapping, wasm.__wbindgen_malloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArray8ToWasm0(selection_data, wasm.__wbindgen_malloc);
+        const ptr2 = passArray8ToWasm0(selection_buffer, wasm.__wbindgen_malloc);
         const len2 = WASM_VECTOR_LEN;
-        wasm.wasmexteriorfacesfinder_findExteriorFaces(this.__wbg_ptr, ptr0, len0, texture_width, ptr1, len1, dim_x, dim_y, dim_z, max_vertices, max_indices, ptr2, len2, selection_dim_x, selection_dim_y, selection_dim_z, selection_empty);
+        wasm.wasmexteriorfacesfinder_findExteriorFaces(this.__wbg_ptr, ptr0, len0, texture_width, ptr1, len1, dim_x, dim_y, dim_z, max_vertices, max_indices, ptr2, len2, sel_world_dim_y, sel_world_dim_z, chunk_off_x, chunk_off_y, chunk_off_z, selection_empty);
     }
     /**
      * @returns {Float32Array}

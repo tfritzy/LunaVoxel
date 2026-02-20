@@ -32,10 +32,12 @@ impl ExteriorFacesFinder {
         dim_y: usize,
         dim_z: usize,
         mesh_arrays: &mut MeshArrays,
-        selection_data: &[u8],
-        selection_dim_x: usize,
-        selection_dim_y: usize,
-        selection_dim_z: usize,
+        selection_buffer: &[u8],
+        sel_world_dim_y: usize,
+        sel_world_dim_z: usize,
+        chunk_off_x: usize,
+        chunk_off_y: usize,
+        chunk_off_z: usize,
         selection_empty: bool,
     ) {
         mesh_arrays.reset();
@@ -56,6 +58,7 @@ impl ExteriorFacesFinder {
         let stride_x = dim_y * dim_z;
         let max_dim = self.max_dim;
         let dims = [dim_x, dim_y, dim_z];
+        let sel_world_yz = sel_world_dim_y * sel_world_dim_z;
 
         for axis in 0..3usize {
             let u = (axis + 1) % 3;
@@ -127,15 +130,8 @@ impl ExteriorFacesFinder {
                                 let x = if x_is_depth { d } else if x_is_u_axis { iu } else { iv };
                                 let y = if y_is_depth { d } else if y_is_u_axis { iu } else { iv };
                                 let z = if z_is_depth { d } else if z_is_u_axis { iu } else { iv };
-                                is_selection_set(
-                                    selection_data,
-                                    x,
-                                    y,
-                                    z,
-                                    selection_dim_x,
-                                    selection_dim_y,
-                                    selection_dim_z,
-                                )
+                                let sel_idx = (chunk_off_x + x) * sel_world_yz + (chunk_off_y + y) * sel_world_dim_z + (chunk_off_z + z);
+                                selection_buffer[sel_idx] != 0
                             };
 
                             if !block_visible && !block_is_selected {
@@ -158,29 +154,16 @@ impl ExteriorFacesFinder {
                                 let ny = y as i32 + dy;
                                 let nz = z as i32 + dz;
 
-                                let neighbor_is_selected = neighbor_in_bounds
-                                    && is_selection_set(
-                                        selection_data,
-                                        nx as usize,
-                                        ny as usize,
-                                        nz as usize,
-                                        selection_dim_x,
-                                        selection_dim_y,
-                                        selection_dim_z,
-                                    );
+                                let neighbor_is_selected = neighbor_in_bounds && {
+                                    let n_sel_idx = (chunk_off_x as i32 + nx) as usize * sel_world_yz + (chunk_off_y as i32 + ny) as usize * sel_world_dim_z + (chunk_off_z as i32 + nz) as usize;
+                                    selection_buffer[n_sel_idx] != 0
+                                };
 
                                 if !neighbor_is_selected {
-                                    let selection_block_type = get_selection_value(
-                                        selection_data,
-                                        x,
-                                        y,
-                                        z,
-                                        selection_dim_x,
-                                        selection_dim_y,
-                                        selection_dim_z,
-                                    ) & 0x7F;
+                                    let sel_idx = (chunk_off_x + x) * sel_world_yz + (chunk_off_y + y) * sel_world_dim_z + (chunk_off_z + z);
+                                    let selection_block_type = (selection_buffer[sel_idx] & 0x7F) as usize;
                                     let texture_index = block_atlas_mapping
-                                        [(selection_block_type.max(1) - 1) as usize];
+                                        [selection_block_type.max(1) - 1];
 
                                     self.ao_mask[mask_idx] = calculate_ambient_occlusion(
                                         ao_nn,
@@ -510,34 +493,3 @@ impl ExteriorFacesFinder {
     }
 }
 
-#[inline(always)]
-fn is_selection_set(
-    selection_data: &[u8],
-    x: usize,
-    y: usize,
-    z: usize,
-    sel_dim_x: usize,
-    sel_dim_y: usize,
-    sel_dim_z: usize,
-) -> bool {
-    if x >= sel_dim_x || y >= sel_dim_y || z >= sel_dim_z {
-        return false;
-    }
-    selection_data[x * sel_dim_y * sel_dim_z + y * sel_dim_z + z] != 0
-}
-
-#[inline(always)]
-fn get_selection_value(
-    selection_data: &[u8],
-    x: usize,
-    y: usize,
-    z: usize,
-    sel_dim_x: usize,
-    sel_dim_y: usize,
-    sel_dim_z: usize,
-) -> u8 {
-    if x >= sel_dim_x || y >= sel_dim_y || z >= sel_dim_z {
-        return 0;
-    }
-    selection_data[x * sel_dim_y * sel_dim_z + y * sel_dim_z + z]
-}

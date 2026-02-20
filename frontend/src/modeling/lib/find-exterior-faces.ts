@@ -109,8 +109,7 @@ export class ExteriorFacesFinder {
               const blockValue = voxelData[blockIdx];
               const blockType = blockValue & 0x7F;
               const blockVisible = blockType !== 0;
-              const selIdx = (offX + x) * selWorldYZ + (offY + y) * selWorldZ + (offZ + z);
-              const blockIsSelected = !selectionEmpty && selectionBuffer[selIdx] !== 0;
+              const blockIsSelected = selectionEmpty ? false : selectionBuffer[(offX + x) * selWorldYZ + (offY + y) * selWorldZ + (offZ + z)] !== 0;
 
               if (!blockVisible && !blockIsSelected) {
                 continue;
@@ -126,11 +125,10 @@ export class ExteriorFacesFinder {
               if (blockIsSelected && !blockVisible) {
                 const neighborCoord = xIsDepth ? nx : yIsDepth ? ny : nz;
                 const neighborInBounds = dir > 0 ? neighborCoord < neighborMax : neighborCoord >= 0;
-                const nSelIdx = (offX + nx) * selWorldYZ + (offY + ny) * selWorldZ + (offZ + nz);
-                const neighborIsSelected = neighborInBounds && selectionBuffer[nSelIdx] !== 0;
+                const neighborIsSelected = neighborInBounds && selectionBuffer[(offX + nx) * selWorldYZ + (offY + ny) * selWorldZ + (offZ + nz)] !== 0;
 
                 if (!neighborIsSelected) {
-                  const selectionBlockType = selectionBuffer[selIdx] & 0x7F;
+                  const selectionBlockType = selectionBuffer[(offX + x) * selWorldYZ + (offY + y) * selWorldZ + (offZ + z)] & 0x7F;
                   const textureIndex =
                     blockAtlasMapping[Math.max(selectionBlockType, 1) - 1];
                   

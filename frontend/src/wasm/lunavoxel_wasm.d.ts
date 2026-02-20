@@ -4,7 +4,7 @@
 export class WasmExteriorFacesFinder {
     free(): void;
     [Symbol.dispose](): void;
-    findExteriorFaces(voxel_data: Uint8Array, texture_width: number, block_atlas_mapping: Int32Array, dim_x: number, dim_y: number, dim_z: number, max_vertices: number, max_indices: number, selection_data: Uint8Array, selection_dim_x: number, selection_dim_y: number, selection_dim_z: number, selection_empty: boolean): void;
+    findExteriorFaces(voxel_data: Uint8Array, texture_width: number, block_atlas_mapping: Int32Array, dim_x: number, dim_y: number, dim_z: number, max_vertices: number, max_indices: number, selection_buffer: Uint8Array, sel_world_dim_y: number, sel_world_dim_z: number, chunk_off_x: number, chunk_off_y: number, chunk_off_z: number, selection_empty: boolean): void;
     getAO(): Float32Array;
     getIndexCount(): number;
     getIndices(): Uint32Array;
@@ -21,7 +21,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_wasmexteriorfacesfinder_free: (a: number, b: number) => void;
-    readonly wasmexteriorfacesfinder_findExteriorFaces: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number) => void;
+    readonly wasmexteriorfacesfinder_findExteriorFaces: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number) => void;
     readonly wasmexteriorfacesfinder_getAO: (a: number) => [number, number];
     readonly wasmexteriorfacesfinder_getIndexCount: (a: number) => number;
     readonly wasmexteriorfacesfinder_getIndices: (a: number) => [number, number];
