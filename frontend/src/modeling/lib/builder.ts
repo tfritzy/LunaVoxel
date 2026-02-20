@@ -176,6 +176,9 @@ export const Builder = class {
 
   public setToolOption(name: string, value: string): void {
     this.currentTool.setOption(name, value);
+    if (this.currentTool.hasPendingOperation?.()) {
+      this.currentTool.updatePending?.(this.toolContext);
+    }
   }
 
   public setSelectedBlock(
@@ -186,6 +189,9 @@ export const Builder = class {
     this.setSelectedBlockInParent = setter;
     this.toolContext.selectedBlock = block;
     this.toolContext.setSelectedBlockInParent = setter;
+    if (this.currentTool.hasPendingOperation?.()) {
+      this.currentTool.updatePending?.(this.toolContext);
+    }
   }
 
   public setSelectedObject(objectIndex: number): void {
