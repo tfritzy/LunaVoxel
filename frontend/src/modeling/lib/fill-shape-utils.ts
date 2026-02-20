@@ -16,7 +16,6 @@ export interface ShapeParams {
 }
 
 export function precomputeShapeParams(
-  shape: FillShape,
   minX: number,
   maxX: number,
   minY: number,
@@ -88,9 +87,12 @@ export function isInsideFillShapePrecomputed(
     }
     case "Pyramid": {
       const row = p.maxY - y;
-      const fraction = (row + 0.5) * p.invHeight;
-      const halfWidthX = p.radiusX * fraction;
-      const halfWidthZ = p.radiusZ * fraction;
+      const topFraction = p.height <= 1 ? 1 : 1 - row / (p.height - 1);
+      const minDiameter = Math.min(p.radiusX * 2, p.radiusZ * 2);
+      const maxInset = Math.floor((minDiameter - 1) / 2);
+      const inset = maxInset > 0 ? Math.floor(topFraction * maxInset) : 0;
+      const halfWidthX = Math.max(0, p.radiusX - inset);
+      const halfWidthZ = Math.max(0, p.radiusZ - inset);
       const dx = Math.abs(x + 0.5 - p.centerX);
       const dz = Math.abs(z + 0.5 - p.centerZ);
       return dx <= halfWidthX && dz <= halfWidthZ;
@@ -99,16 +101,6 @@ export function isInsideFillShapePrecomputed(
       const dx = Math.abs(x + 0.5 - p.centerX) * p.invRadiusX;
       const dz = Math.abs(z + 0.5 - p.centerZ) * p.invRadiusZ;
       return dx <= 1 && dz + dx * 0.5 <= 1;
-    }
-    case "Star": {
-      const dx = Math.abs(x + 0.5 - p.centerX) * p.invRadiusX;
-      const dz = Math.abs(z + 0.5 - p.centerZ) * p.invRadiusZ;
-      return dx + dz <= 1 || dx <= 0.35 || dz <= 0.35;
-    }
-    case "Cross": {
-      const dx = Math.abs(x + 0.5 - p.centerX) * p.invRadiusX;
-      const dz = Math.abs(z + 0.5 - p.centerZ) * p.invRadiusZ;
-      return dx <= 1 / 3 || dz <= 1 / 3;
     }
   }
 }
@@ -142,10 +134,6 @@ export function isInsideFillShape(
       return isInsidePyramid(x, y, z, minX, maxX, minY, maxY, minZ, maxZ);
     case "Hexagon":
       return isInsideHexagon(x, z, minX, maxX, minZ, maxZ);
-    case "Star":
-      return isInsideStar(x, z, minX, maxX, minZ, maxZ);
-    case "Cross":
-      return isInsideCross(x, z, minX, maxX, minZ, maxZ);
   }
 }
 
@@ -272,12 +260,15 @@ function isInsidePyramid(
 ): boolean {
   const height = maxY - minY + 1;
   const row = maxY - y;
-  const fraction = (row + 0.5) / height;
+  const topFraction = height <= 1 ? 1 : 1 - row / (height - 1);
+  const minDiameter = Math.min(maxX - minX + 1, maxZ - minZ + 1);
+  const maxInset = Math.floor((minDiameter - 1) / 2);
+  const inset = maxInset > 0 ? Math.floor(topFraction * maxInset) : 0;
 
   const centerX = (minX + maxX + 1) / 2;
   const centerZ = (minZ + maxZ + 1) / 2;
-  const halfWidthX = ((maxX - minX + 1) / 2) * fraction;
-  const halfWidthZ = ((maxZ - minZ + 1) / 2) * fraction;
+  const halfWidthX = Math.max(0, (maxX - minX + 1) / 2 - inset);
+  const halfWidthZ = Math.max(0, (maxZ - minZ + 1) / 2 - inset);
   const dx = Math.abs(x + 0.5 - centerX);
   const dz = Math.abs(z + 0.5 - centerZ);
 
@@ -300,40 +291,4 @@ function isInsideHexagon(
   const dz = Math.abs(z + 0.5 - centerZ) / radiusZ;
 
   return dx <= 1 && dz + dx * 0.5 <= 1;
-}
-
-function isInsideStar(
-  x: number,
-  z: number,
-  minX: number,
-  maxX: number,
-  minZ: number,
-  maxZ: number
-): boolean {
-  const radiusX = (maxX - minX + 1) / 2;
-  const radiusZ = (maxZ - minZ + 1) / 2;
-  const centerX = (minX + maxX + 1) / 2;
-  const centerZ = (minZ + maxZ + 1) / 2;
-  const dx = Math.abs(x + 0.5 - centerX) / radiusX;
-  const dz = Math.abs(z + 0.5 - centerZ) / radiusZ;
-
-  return dx + dz <= 1 || dx <= 0.35 || dz <= 0.35;
-}
-
-function isInsideCross(
-  x: number,
-  z: number,
-  minX: number,
-  maxX: number,
-  minZ: number,
-  maxZ: number
-): boolean {
-  const radiusX = (maxX - minX + 1) / 2;
-  const radiusZ = (maxZ - minZ + 1) / 2;
-  const centerX = (minX + maxX + 1) / 2;
-  const centerZ = (minZ + maxZ + 1) / 2;
-  const dx = Math.abs(x + 0.5 - centerX) / radiusX;
-  const dz = Math.abs(z + 0.5 - centerZ) / radiusZ;
-
-  return dx <= 1 / 3 || dz <= 1 / 3;
 }

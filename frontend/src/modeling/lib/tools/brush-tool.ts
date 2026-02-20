@@ -12,7 +12,6 @@ const BRUSH_SHAPE_TO_FILL_SHAPE: Record<BrushShape, FillShape> = {
   Cube: "Rect",
   Cylinder: "Cylinder",
   Diamond: "Diamond",
-  Cross: "Cross",
 };
 
 export class BrushTool implements Tool {
@@ -32,7 +31,7 @@ export class BrushTool implements Tool {
     return [
       {
         name: "Brush Shape",
-        values: ["Sphere", "Cube", "Cylinder", "Diamond", "Cross"],
+        values: ["Sphere", "Cube", "Cylinder", "Diamond"],
         currentValue: this.brushShape,
       },
       {

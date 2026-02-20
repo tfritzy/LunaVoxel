@@ -7,7 +7,7 @@ import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
-import { isInsideFillShape, isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
+import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
 import { VoxelFrame } from "../voxel-frame";
 
 type ResizeCorner = {
@@ -46,7 +46,7 @@ export class RectTool implements Tool {
     return [
       {
         name: "Fill Shape",
-        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon", "Star", "Cross"],
+        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"],
         currentValue: this.fillShape,
       },
       {
@@ -149,7 +149,7 @@ export class RectTool implements Tool {
           break;
       }
 
-      const shapeParams = precomputeShapeParams(fillShape, sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ);
+      const shapeParams = precomputeShapeParams(sMinX, sMaxX, sMinY, sMaxY, sMinZ, sMaxZ);
 
       for (let x = bounds.minX; x <= bounds.maxX; x++) {
         for (let y = bounds.minY; y <= bounds.maxY; y++) {
