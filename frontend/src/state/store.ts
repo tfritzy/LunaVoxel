@@ -15,6 +15,7 @@ import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 export type GlobalState = {
   project: Project;
   objects: VoxelObject[];
+  selectedObjectIndex: number;
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -25,6 +26,7 @@ export type Reducers = {
   renameObject: (objectId: string, name: string) => void;
   toggleObjectVisibility: (objectId: string) => void;
   toggleObjectLock: (objectId: string) => void;
+  setSelectedObject: (objectIndex: number) => void;
   reorderObjects: (projectId: string, objectIds: string[]) => void;
   applyFrame: (
     mode: BlockModificationMode,
@@ -155,7 +157,7 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, objects, blocks, chunks };
+  return { project, objects, selectedObjectIndex: 0, blocks, chunks };
 };
 
 let state = createInitialState();
@@ -176,6 +178,13 @@ const updateState = (mutator: (current: GlobalState) => void) => {
 
 const getObjectByIndex = (objectIndex: number) =>
   state.objects.find((obj) => obj.index === objectIndex);
+
+const normalizeSelectedObjectIndex = (objectIndex: number, objectCount: number) => {
+  if (objectCount <= 0) {
+    return 0;
+  }
+  return Math.min(Math.max(objectIndex, 0), objectCount - 1);
+};
 
 
 const getOrCreateChunk = (objectId: string, minPos: Vector3) => {
@@ -235,6 +244,10 @@ const reducers: Reducers = {
           selection: null,
         },
       ];
+      current.selectedObjectIndex = normalizeSelectedObjectIndex(
+        current.selectedObjectIndex,
+        current.objects.length
+      );
     });
   },
   deleteObject: (objectId) => {
@@ -244,6 +257,10 @@ const reducers: Reducers = {
       current.objects = current.objects
         .filter((obj) => obj.id !== objectId)
         .map((obj, index) => ({ ...obj, index }));
+      current.selectedObjectIndex = normalizeSelectedObjectIndex(
+        current.selectedObjectIndex,
+        current.objects.length
+      );
 
       for (const [key, chunk] of current.chunks.entries()) {
         if (chunk.objectId === objectId) {
@@ -276,6 +293,14 @@ const reducers: Reducers = {
       }
     });
   },
+  setSelectedObject: (objectIndex) => {
+    updateState((current) => {
+      current.selectedObjectIndex = normalizeSelectedObjectIndex(
+        objectIndex,
+        current.objects.length
+      );
+    });
+  },
   reorderObjects: (_projectId, objectIds) => {
     void _projectId;
     updateState((current) => {
@@ -295,6 +320,10 @@ const reducers: Reducers = {
         ...obj,
         index,
       }));
+      current.selectedObjectIndex = normalizeSelectedObjectIndex(
+        current.selectedObjectIndex,
+        current.objects.length
+      );
     });
   },
   applyFrame: (
@@ -582,6 +611,10 @@ const reducers: Reducers = {
       };
       current.objects.splice(atIndex, 0, restored);
       current.objects = current.objects.map((obj, i) => ({ ...obj, index: i }));
+      current.selectedObjectIndex = normalizeSelectedObjectIndex(
+        current.selectedObjectIndex,
+        current.objects.length
+      );
 
       for (const [key, chunkData] of chunks.entries()) {
         current.chunks.set(key, {

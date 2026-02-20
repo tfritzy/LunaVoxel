@@ -26,6 +26,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     renameObject: () => {},
     toggleObjectVisibility: () => {},
     toggleObjectLock: () => {},
+    setSelectedObject: () => {},
     reorderObjects: () => {},
     applyFrame: () => {},
     undoEdit: () => {},

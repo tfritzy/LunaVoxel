@@ -24,6 +24,24 @@ describe("stateStore renameObject reducer", () => {
     expect(afterObjects).toHaveLength(beforeObjects.length + 1);
   });
 
+  it("clamps selected object through reducer", () => {
+    stateStore.reducers.setSelectedObject(999);
+    expect(stateStore.getState().selectedObjectIndex).toBe(0);
+
+    stateStore.reducers.addObject("local-project");
+    stateStore.reducers.setSelectedObject(999);
+    expect(stateStore.getState().selectedObjectIndex).toBe(1);
+  });
+
+  it("keeps selected object valid after delete", () => {
+    stateStore.reducers.addObject("local-project");
+    const objects = stateStore.getState().objects;
+    stateStore.reducers.setSelectedObject(1);
+    stateStore.reducers.deleteObject(objects[1].id);
+
+    expect(stateStore.getState().selectedObjectIndex).toBe(0);
+  });
+
   it("replaces blocks.colors when updating block color", () => {
     const before = stateStore.getState().blocks;
     const beforeColors = before.colors;

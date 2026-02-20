@@ -1,10 +1,9 @@
 import { SortableObjectRow } from "./SortableObjectRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import type { VoxelObject } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
-import { normalizeSelectedObjectIndex } from "@/modeling/lib/builder";
 import {
   DndContext,
   closestCenter,
@@ -35,33 +34,20 @@ export const ObjectsSection = ({
   onSelectObject,
   projectId,
 }: ObjectsSectionProps) => {
-  const [selectedObject, setSelectedObjectState] = useState<number>(0);
+  const selectedObject = useGlobalState((state) => state.selectedObjectIndex);
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
     return objects ? [...objects].sort((a, b) => b.index - a.index) : [];
   }, [objects]);
 
-  const setSelectedObject = React.useCallback(
-    (objectIndex: number) => {
-      const validObjectIndex = normalizeSelectedObjectIndex(
-        objectIndex,
-        sortedObjects.length
-      );
-      setSelectedObjectState(validObjectIndex);
-    },
-    [sortedObjects.length]
-  );
+  const setSelectedObject = React.useCallback((objectIndex: number) => {
+    stateStore.reducers.setSelectedObject(objectIndex);
+  }, []);
 
   useEffect(() => {
     if (onSelectObject) onSelectObject(selectedObject);
   }, [selectedObject, onSelectObject]);
-
-  useEffect(() => {
-    setSelectedObjectState((current) =>
-      normalizeSelectedObjectIndex(current, sortedObjects.length)
-    );
-  }, [sortedObjects.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -136,9 +122,9 @@ export const ObjectsSection = ({
         const newIndex = currentObjects.findIndex(
           (obj) => obj.id === over.id
         );
-        const selectedId = currentObjects[selectedObject].id;
+        const selectedId = currentObjects[selectedObject]?.id;
 
-        if (oldIndex !== -1 && newIndex !== -1) {
+        if (oldIndex !== -1 && newIndex !== -1 && selectedId !== undefined) {
           const previousOrder = currentObjects.map((obj) => obj.id);
 
           let newObjects = arrayMove(currentObjects, oldIndex, newIndex);
@@ -146,7 +132,7 @@ export const ObjectsSection = ({
           const newSelectedIndex = newObjects.findIndex(
             (o) => o.id === selectedId
           );
-          setSelectedObject(newSelectedIndex);
+          stateStore.reducers.setSelectedObject(newSelectedIndex);
 
           const newOrder = newObjects.map((obj) => obj.id);
           stateStore.reducers.reorderObjects(projectId, newOrder);

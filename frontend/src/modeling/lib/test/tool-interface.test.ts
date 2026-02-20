@@ -31,6 +31,7 @@ describe("Tool Interface", () => {
       renameObject: () => {},
       toggleObjectVisibility: () => {},
       toggleObjectLock: () => {},
+      setSelectedObject: () => {},
       reorderObjects: () => {},
       applyFrame: () => {},
       undoEdit: () => {},
