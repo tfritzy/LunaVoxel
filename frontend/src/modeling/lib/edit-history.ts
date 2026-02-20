@@ -1,37 +1,6 @@
 import type { StateStore } from "@/state/store";
 import type { VoxelObject } from "@/state/types";
 
-export function snapshotObjectVoxels(stateStore: StateStore, objectIndex: number): Uint8Array {
-  const state = stateStore.getState();
-  const dims = state.project.dimensions;
-  const total = dims.x * dims.y * dims.z;
-  const snapshot = new Uint8Array(total);
-
-  const obj = state.objects.find((o) => o.index === objectIndex);
-  if (!obj) return snapshot;
-
-  for (const chunk of state.chunks.values()) {
-    if (chunk.objectId !== obj.id) continue;
-    const { size, minPos, voxels } = chunk;
-    const syz = size.y * size.z;
-    for (let lx = 0; lx < size.x; lx++) {
-      const wx = minPos.x + lx;
-      for (let ly = 0; ly < size.y; ly++) {
-        const wy = minPos.y + ly;
-        for (let lz = 0; lz < size.z; lz++) {
-          const val = voxels[lx * syz + ly * size.z + lz];
-          if (val !== 0) {
-            const wz = minPos.z + lz;
-            snapshot[wx * dims.y * dims.z + wy * dims.z + wz] = val;
-          }
-        }
-      }
-    }
-  }
-
-  return snapshot;
-}
-
 type VoxelEditEntry = {
   type: "voxelEdit";
   beforeDiff: Uint8Array;

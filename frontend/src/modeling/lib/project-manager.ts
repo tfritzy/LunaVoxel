@@ -6,7 +6,6 @@ import { Builder } from "./builder";
 import { ChunkManager } from "./chunk-manager";
 import { ExportType, ModelExporter } from "../export/model-exporter";
 import { editHistory } from "@/state/edit-history-instance";
-import { snapshotObjectVoxels } from "./edit-history";
 import { AtlasData } from "@/lib/useAtlas";
 
 export class ProjectManager {
@@ -93,14 +92,10 @@ export class ProjectManager {
         }
       } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        const objectIndex = this.builder.getSelectedObject();
-        const before = snapshotObjectVoxels(this.stateStore, objectIndex);
         this.stateStore.reducers.deleteSelectedVoxels(
           this.project.id,
-          objectIndex
+          this.builder.getSelectedObject()
         );
-        const after = snapshotObjectVoxels(this.stateStore, objectIndex);
-        editHistory.addEntry(before, after, objectIndex);
       }
     };
 
