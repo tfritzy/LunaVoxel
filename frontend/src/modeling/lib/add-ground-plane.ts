@@ -2,21 +2,26 @@ import * as THREE from "three";
 import { layers } from "./layers";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
-type BoundsFace = {
+type BoundsEdge = {
   mesh: THREE.Mesh;
-  center: THREE.Vector3;
-  inwardNormal: THREE.Vector3;
+  face0Center: THREE.Vector3;
+  face0Normal: THREE.Vector3;
+  face1Center: THREE.Vector3;
+  face1Normal: THREE.Vector3;
 };
 
-const _toCamera = new THREE.Vector3();
+const _v = new THREE.Vector3();
 
 export function updateBoundsVisibility(
   cameraPos: THREE.Vector3,
-  faces: BoundsFace[]
+  edges: BoundsEdge[]
 ): void {
-  for (const face of faces) {
-    _toCamera.subVectors(cameraPos, face.center);
-    face.mesh.visible = face.inwardNormal.dot(_toCamera) > 0;
+  for (const edge of edges) {
+    const vis0 =
+      edge.face0Normal.dot(_v.subVectors(cameraPos, edge.face0Center)) > 0;
+    const vis1 =
+      edge.face1Normal.dot(_v.subVectors(cameraPos, edge.face1Center)) > 0;
+    edge.mesh.visible = vis0 || vis1;
   }
 }
 
@@ -40,32 +45,18 @@ export const addGroundPlane = (
     scene.add(plane);
   });
 
-  const wireframeBox = createWireframeBox(worldXDim, worldYDim, worldZDim);
-  if (wireframeBox) {
-    scene.add(wireframeBox);
+  const gridLines = createBatchedGridLines(worldXDim, worldYDim);
+  if (gridLines) {
+    scene.add(gridLines);
   }
 
-  const faceNames = [
-    "bottom",
-    "top",
-    "front",
-    "back",
-    "left",
-    "right",
-  ] as const;
-  const faces: BoundsFace[] = [];
-  for (const faceName of faceNames) {
-    const face = createFaceGridLines(faceName, worldXDim, worldYDim, worldZDim);
-    if (face) {
-      scene.add(face.mesh);
-      faces.push(face);
-    }
-  }
+  const boundsEdges = createBoundsEdges(worldXDim, worldYDim, worldZDim);
+  boundsEdges.forEach((edge) => scene.add(edge.mesh));
 
   return {
     boundaryPlanes,
-    wireframeBox,
-    faces,
+    gridLines,
+    boundsEdges,
   };
 };
 
@@ -143,31 +134,10 @@ const createBoundaryPlanes = (
   return planes;
 };
 
-const createWireframeBox = (
-  worldXDim: number,
-  worldYDim: number,
-  worldZDim: number
-): THREE.LineSegments | null => {
-  const wireframeGeometry = new THREE.BoxGeometry(
-    worldXDim,
-    worldZDim,
-    worldYDim
-  );
-  const edges = new THREE.EdgesGeometry(wireframeGeometry);
-  const wireframeMaterial = new THREE.LineBasicMaterial({
-    color: 0x606060,
-    transparent: false,
-  });
-  const wireframeBox = new THREE.LineSegments(edges, wireframeMaterial);
-  wireframeBox.position.set(worldXDim / 2, worldZDim / 2, worldYDim / 2);
-  wireframeBox.layers.set(layers.ghost);
-  wireframeGeometry.dispose();
-  return wireframeBox;
-};
-
 const LINE_WIDTHS = [0.01, 0.02, 0.04, 0.08];
 const LINE_THICKNESS = 0.001;
 const LINE_OFFSET = 0.001;
+const EDGE_THICKNESS = 0.05;
 
 function getLineWidthForGrid(index: number, worldDim: number): number {
   const offsetIndex = Math.round(index - worldDim / 2);
@@ -177,119 +147,24 @@ function getLineWidthForGrid(index: number, worldDim: number): number {
   return LINE_WIDTHS[0];
 }
 
-function createFaceGridLines(
-  face: "bottom" | "top" | "front" | "back" | "left" | "right",
+function createBatchedGridLines(
   worldXDim: number,
-  worldYDim: number,
-  worldZDim: number
-): BoundsFace | null {
+  worldYDim: number
+): THREE.Mesh | null {
   const geometries: THREE.BufferGeometry[] = [];
-  let center: THREE.Vector3;
-  let inwardNormal: THREE.Vector3;
 
-  switch (face) {
-    case "bottom": {
-      center = new THREE.Vector3(worldXDim / 2, 0, worldYDim / 2);
-      inwardNormal = new THREE.Vector3(0, 1, 0);
-      for (let i = 0; i <= worldXDim; i++) {
-        const w = getLineWidthForGrid(i, worldXDim);
-        const g = new THREE.BoxGeometry(w, LINE_THICKNESS, worldYDim);
-        g.translate(i, LINE_OFFSET, worldYDim / 2);
-        geometries.push(g);
-      }
-      for (let i = 0; i <= worldYDim; i++) {
-        const w = getLineWidthForGrid(i, worldYDim);
-        const g = new THREE.BoxGeometry(worldXDim, LINE_THICKNESS, w);
-        g.translate(worldXDim / 2, LINE_OFFSET, i);
-        geometries.push(g);
-      }
-      break;
-    }
-    case "top": {
-      center = new THREE.Vector3(worldXDim / 2, worldZDim, worldYDim / 2);
-      inwardNormal = new THREE.Vector3(0, -1, 0);
-      for (let i = 0; i <= worldXDim; i++) {
-        const w = getLineWidthForGrid(i, worldXDim);
-        const g = new THREE.BoxGeometry(w, LINE_THICKNESS, worldYDim);
-        g.translate(i, worldZDim - LINE_OFFSET, worldYDim / 2);
-        geometries.push(g);
-      }
-      for (let i = 0; i <= worldYDim; i++) {
-        const w = getLineWidthForGrid(i, worldYDim);
-        const g = new THREE.BoxGeometry(worldXDim, LINE_THICKNESS, w);
-        g.translate(worldXDim / 2, worldZDim - LINE_OFFSET, i);
-        geometries.push(g);
-      }
-      break;
-    }
-    case "front": {
-      center = new THREE.Vector3(worldXDim / 2, worldZDim / 2, 0);
-      inwardNormal = new THREE.Vector3(0, 0, 1);
-      for (let i = 0; i <= worldXDim; i++) {
-        const w = getLineWidthForGrid(i, worldXDim);
-        const g = new THREE.BoxGeometry(w, worldZDim, LINE_THICKNESS);
-        g.translate(i, worldZDim / 2, LINE_OFFSET);
-        geometries.push(g);
-      }
-      for (let i = 0; i <= worldZDim; i++) {
-        const w = getLineWidthForGrid(i, worldZDim);
-        const g = new THREE.BoxGeometry(worldXDim, w, LINE_THICKNESS);
-        g.translate(worldXDim / 2, i, LINE_OFFSET);
-        geometries.push(g);
-      }
-      break;
-    }
-    case "back": {
-      center = new THREE.Vector3(worldXDim / 2, worldZDim / 2, worldYDim);
-      inwardNormal = new THREE.Vector3(0, 0, -1);
-      for (let i = 0; i <= worldXDim; i++) {
-        const w = getLineWidthForGrid(i, worldXDim);
-        const g = new THREE.BoxGeometry(w, worldZDim, LINE_THICKNESS);
-        g.translate(i, worldZDim / 2, worldYDim - LINE_OFFSET);
-        geometries.push(g);
-      }
-      for (let i = 0; i <= worldZDim; i++) {
-        const w = getLineWidthForGrid(i, worldZDim);
-        const g = new THREE.BoxGeometry(worldXDim, w, LINE_THICKNESS);
-        g.translate(worldXDim / 2, i, worldYDim - LINE_OFFSET);
-        geometries.push(g);
-      }
-      break;
-    }
-    case "left": {
-      center = new THREE.Vector3(0, worldZDim / 2, worldYDim / 2);
-      inwardNormal = new THREE.Vector3(1, 0, 0);
-      for (let i = 0; i <= worldYDim; i++) {
-        const w = getLineWidthForGrid(i, worldYDim);
-        const g = new THREE.BoxGeometry(LINE_THICKNESS, worldZDim, w);
-        g.translate(LINE_OFFSET, worldZDim / 2, i);
-        geometries.push(g);
-      }
-      for (let i = 0; i <= worldZDim; i++) {
-        const w = getLineWidthForGrid(i, worldZDim);
-        const g = new THREE.BoxGeometry(LINE_THICKNESS, w, worldYDim);
-        g.translate(LINE_OFFSET, i, worldYDim / 2);
-        geometries.push(g);
-      }
-      break;
-    }
-    case "right": {
-      center = new THREE.Vector3(worldXDim, worldZDim / 2, worldYDim / 2);
-      inwardNormal = new THREE.Vector3(-1, 0, 0);
-      for (let i = 0; i <= worldYDim; i++) {
-        const w = getLineWidthForGrid(i, worldYDim);
-        const g = new THREE.BoxGeometry(LINE_THICKNESS, worldZDim, w);
-        g.translate(worldXDim - LINE_OFFSET, worldZDim / 2, i);
-        geometries.push(g);
-      }
-      for (let i = 0; i <= worldZDim; i++) {
-        const w = getLineWidthForGrid(i, worldZDim);
-        const g = new THREE.BoxGeometry(LINE_THICKNESS, w, worldYDim);
-        g.translate(worldXDim - LINE_OFFSET, i, worldYDim / 2);
-        geometries.push(g);
-      }
-      break;
-    }
+  for (let i = 0; i <= worldXDim; i++) {
+    const w = getLineWidthForGrid(i, worldXDim);
+    const g = new THREE.BoxGeometry(w, LINE_THICKNESS, worldYDim);
+    g.translate(i, LINE_OFFSET, worldYDim / 2);
+    geometries.push(g);
+  }
+
+  for (let i = 0; i <= worldYDim; i++) {
+    const w = getLineWidthForGrid(i, worldYDim);
+    const g = new THREE.BoxGeometry(worldXDim, LINE_THICKNESS, w);
+    g.translate(worldXDim / 2, LINE_OFFSET, i);
+    geometries.push(g);
   }
 
   if (geometries.length === 0) return null;
@@ -298,11 +173,87 @@ function createFaceGridLines(
   geometries.forEach((g) => g.dispose());
   if (!merged) return null;
 
-  const material = new THREE.MeshBasicMaterial({
-    color: 0x444444,
-    transparent: true,
-  });
-  const mesh = new THREE.Mesh(merged, material);
+  const mesh = new THREE.Mesh(
+    merged,
+    new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true })
+  );
   mesh.layers.set(layers.ghost);
-  return { mesh, center, inwardNormal };
+  return mesh;
+}
+
+function createBoundsEdges(
+  worldXDim: number,
+  worldYDim: number,
+  worldZDim: number
+): BoundsEdge[] {
+  const t = EDGE_THICKNESS;
+  const material = new THREE.MeshBasicMaterial({ color: 0x606060 });
+
+  const faceBottom = {
+    center: new THREE.Vector3(worldXDim / 2, 0, worldYDim / 2),
+    normal: new THREE.Vector3(0, 1, 0),
+  };
+  const faceTop = {
+    center: new THREE.Vector3(worldXDim / 2, worldZDim, worldYDim / 2),
+    normal: new THREE.Vector3(0, -1, 0),
+  };
+  const faceFront = {
+    center: new THREE.Vector3(worldXDim / 2, worldZDim / 2, 0),
+    normal: new THREE.Vector3(0, 0, 1),
+  };
+  const faceBack = {
+    center: new THREE.Vector3(worldXDim / 2, worldZDim / 2, worldYDim),
+    normal: new THREE.Vector3(0, 0, -1),
+  };
+  const faceLeft = {
+    center: new THREE.Vector3(0, worldZDim / 2, worldYDim / 2),
+    normal: new THREE.Vector3(1, 0, 0),
+  };
+  const faceRight = {
+    center: new THREE.Vector3(worldXDim, worldZDim / 2, worldYDim / 2),
+    normal: new THREE.Vector3(-1, 0, 0),
+  };
+
+  type FaceDef = { center: THREE.Vector3; normal: THREE.Vector3 };
+  const edges: BoundsEdge[] = [];
+
+  const addEdge = (
+    geom: THREE.BoxGeometry,
+    cx: number,
+    cy: number,
+    cz: number,
+    f0: FaceDef,
+    f1: FaceDef
+  ) => {
+    geom.translate(cx, cy, cz);
+    const mesh = new THREE.Mesh(geom, material);
+    mesh.layers.set(layers.ghost);
+    edges.push({
+      mesh,
+      face0Center: f0.center,
+      face0Normal: f0.normal,
+      face1Center: f1.center,
+      face1Normal: f1.normal,
+    });
+  };
+
+  // Bottom 4 edges (y = 0)
+  addEdge(new THREE.BoxGeometry(worldXDim, t, t), worldXDim / 2, 0, 0, faceBottom, faceFront);
+  addEdge(new THREE.BoxGeometry(t, t, worldYDim), worldXDim, 0, worldYDim / 2, faceBottom, faceRight);
+  addEdge(new THREE.BoxGeometry(worldXDim, t, t), worldXDim / 2, 0, worldYDim, faceBottom, faceBack);
+  addEdge(new THREE.BoxGeometry(t, t, worldYDim), 0, 0, worldYDim / 2, faceBottom, faceLeft);
+
+  // Top 4 edges (y = worldZDim)
+  addEdge(new THREE.BoxGeometry(worldXDim, t, t), worldXDim / 2, worldZDim, 0, faceTop, faceFront);
+  addEdge(new THREE.BoxGeometry(t, t, worldYDim), worldXDim, worldZDim, worldYDim / 2, faceTop, faceRight);
+  addEdge(new THREE.BoxGeometry(worldXDim, t, t), worldXDim / 2, worldZDim, worldYDim, faceTop, faceBack);
+  addEdge(new THREE.BoxGeometry(t, t, worldYDim), 0, worldZDim, worldYDim / 2, faceTop, faceLeft);
+
+  // Vertical 4 edges
+  addEdge(new THREE.BoxGeometry(t, worldZDim, t), 0, worldZDim / 2, 0, faceFront, faceLeft);
+  addEdge(new THREE.BoxGeometry(t, worldZDim, t), worldXDim, worldZDim / 2, 0, faceFront, faceRight);
+  addEdge(new THREE.BoxGeometry(t, worldZDim, t), worldXDim, worldZDim / 2, worldYDim, faceBack, faceRight);
+  addEdge(new THREE.BoxGeometry(t, worldZDim, t), 0, worldZDim / 2, worldYDim, faceBack, faceLeft);
+
+  return edges;
 }

@@ -24,7 +24,7 @@ export class VoxelEngine {
   private animationFrameId: number | null = null;
   private stateStore: StateStore;
   private project: Project;
-  private boundsFaces: ReturnType<typeof addGroundPlane>["faces"] = [];
+  private boundsEdges: ReturnType<typeof addGroundPlane>["boundsEdges"] = [];
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
@@ -51,13 +51,13 @@ export class VoxelEngine {
       this.controls.setCameraState(options.initialCameraState);
     }
 
-    const { faces } = addGroundPlane(
+    const { boundsEdges } = addGroundPlane(
       this.scene,
       this.project.dimensions.x,
       this.project.dimensions.y,
       this.project.dimensions.z
     );
-    this.boundsFaces = faces;
+    this.boundsEdges = boundsEdges;
     this.projectManager = new ProjectManager(
       this.scene,
       this.stateStore,
@@ -228,7 +228,7 @@ export class VoxelEngine {
     const deltaTime = (currentTime - this.lastFrameTime) / 1000;
     this.lastFrameTime = currentTime;
     this.controls.update(deltaTime);
-    updateBoundsVisibility(this.camera.position, this.boundsFaces);
+    updateBoundsVisibility(this.camera.position, this.boundsEdges);
     this.renderer.render(this.scene, this.camera);
   };
 
