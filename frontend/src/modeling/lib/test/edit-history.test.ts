@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { EditHistory } from "../edit-history";
-import { resetState, stateStore, getChunkKey } from "@/state/store";
+import { resetState, stateStore, getChunkKey, registerEditHistory } from "@/state/store";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { VoxelFrame } from "../voxel-frame";
 import type { VoxelObject } from "@/state/types";
 
 describe("EditHistory", () => {
@@ -10,6 +11,7 @@ describe("EditHistory", () => {
   beforeEach(() => {
     resetState();
     history = new EditHistory(stateStore, "local-project");
+    registerEditHistory(history);
   });
 
   describe("color changes", () => {
@@ -295,6 +297,84 @@ describe("EditHistory", () => {
 
       history.redo();
       expect(getVoxel(5, 5, 5)).toBe(newVal);
+    });
+  });
+
+  describe("voxel edit via applyFrame auto-history", () => {
+    const getVoxel = (x: number, y: number, z: number) => {
+      const obj = stateStore.getState().objects[0];
+      const key = getChunkKey(obj.id, { x: 0, y: 0, z: 0 });
+      const chunk = stateStore.getState().chunks.get(key);
+      if (!chunk) return 0;
+      return chunk.voxels[x * chunk.size.y * chunk.size.z + y * chunk.size.z + z];
+    };
+
+    it("undoes applyFrame edit automatically", () => {
+      const dims = stateStore.getState().project.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame.set(5, 5, 5, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 3, frame, 0);
+
+      expect(getVoxel(5, 5, 5)).toBe(3 | RAYCASTABLE_BIT);
+
+      history.undo();
+      expect(getVoxel(5, 5, 5)).toBe(0);
+    });
+
+    it("redoes applyFrame edit automatically", () => {
+      const dims = stateStore.getState().project.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame.set(5, 5, 5, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 3, frame, 0);
+
+      history.undo();
+      expect(getVoxel(5, 5, 5)).toBe(0);
+
+      history.redo();
+      expect(getVoxel(5, 5, 5)).toBe(3 | RAYCASTABLE_BIT);
+    });
+
+    it("undoes and redoes multiple applyFrame edits", () => {
+      const dims = stateStore.getState().project.dimensions;
+
+      const frame1 = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame1.set(1, 1, 1, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 2, frame1, 0);
+
+      const frame2 = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame2.set(2, 2, 2, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 4, frame2, 0);
+
+      expect(getVoxel(1, 1, 1)).toBe(2 | RAYCASTABLE_BIT);
+      expect(getVoxel(2, 2, 2)).toBe(4 | RAYCASTABLE_BIT);
+
+      history.undo();
+      expect(getVoxel(1, 1, 1)).toBe(2 | RAYCASTABLE_BIT);
+      expect(getVoxel(2, 2, 2)).toBe(0);
+
+      history.undo();
+      expect(getVoxel(1, 1, 1)).toBe(0);
+
+      history.redo();
+      expect(getVoxel(1, 1, 1)).toBe(2 | RAYCASTABLE_BIT);
+
+      history.redo();
+      expect(getVoxel(2, 2, 2)).toBe(4 | RAYCASTABLE_BIT);
+    });
+
+    it("undoes erase applyFrame edit automatically", () => {
+      const existingVal = 1 | RAYCASTABLE_BIT;
+      expect(getVoxel(12, 2, 12)).toBe(existingVal);
+
+      const dims = stateStore.getState().project.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame.set(12, 2, 12, 1);
+      stateStore.reducers.applyFrame({ tag: "Erase" }, 0, frame, 0);
+
+      expect(getVoxel(12, 2, 12)).toBe(0);
+
+      history.undo();
+      expect(getVoxel(12, 2, 12)).toBe(existingVal);
     });
   });
 });

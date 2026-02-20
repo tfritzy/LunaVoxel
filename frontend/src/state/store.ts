@@ -158,6 +158,46 @@ const createInitialState = (): GlobalState => {
   return { project, objects, blocks, chunks };
 };
 
+type EditHistoryHandle = {
+  addEntry: (previous: Uint8Array, updated: Uint8Array, object: number) => void;
+};
+
+let editHistoryRef: EditHistoryHandle | null = null;
+
+export function registerEditHistory(history: EditHistoryHandle) {
+  editHistoryRef = history;
+}
+
+function snapshotObjectVoxels(objectIndex: number): Uint8Array {
+  const dims = state.project.dimensions;
+  const total = dims.x * dims.y * dims.z;
+  const snapshot = new Uint8Array(total);
+
+  const obj = state.objects.find((o) => o.index === objectIndex);
+  if (!obj) return snapshot;
+
+  for (const chunk of state.chunks.values()) {
+    if (chunk.objectId !== obj.id) continue;
+    const { size, minPos, voxels } = chunk;
+    const syz = size.y * size.z;
+    for (let lx = 0; lx < size.x; lx++) {
+      const wx = minPos.x + lx;
+      for (let ly = 0; ly < size.y; ly++) {
+        const wy = minPos.y + ly;
+        for (let lz = 0; lz < size.z; lz++) {
+          const val = voxels[lx * syz + ly * size.z + lz];
+          if (val !== 0) {
+            const wz = minPos.z + lz;
+            snapshot[wx * dims.y * dims.z + wy * dims.z + wz] = val;
+          }
+        }
+      }
+    }
+  }
+
+  return snapshot;
+}
+
 let state = createInitialState();
 let version = 0;
 const listeners = new Set<() => void>();
@@ -303,6 +343,7 @@ const reducers: Reducers = {
     frame,
     objectIndex
   ) => {
+    const before = editHistoryRef ? snapshotObjectVoxels(objectIndex) : null;
     updateState(() => {
       const obj = getObjectByIndex(objectIndex);
       if (!obj || obj.locked) return;
@@ -360,6 +401,10 @@ const reducers: Reducers = {
         }
       }
     });
+    if (before) {
+      const after = snapshotObjectVoxels(objectIndex);
+      editHistoryRef!.addEntry(before, after, objectIndex);
+    }
   },
   undoEdit: (_projectId, beforeDiff, afterDiff, objectIndex) => {
     updateState((current) => {
@@ -527,6 +572,7 @@ const reducers: Reducers = {
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
 
+    const before = editHistoryRef ? snapshotObjectVoxels(objectIndex) : null;
     updateState((current) => {
       const chunkCache = new Map<string, ChunkData | undefined>();
       for (let lx = 0; lx < selDims.x; lx++) {
@@ -548,6 +594,10 @@ const reducers: Reducers = {
       }
       obj.selection = null;
     });
+    if (before) {
+      const after = snapshotObjectVoxels(objectIndex);
+      editHistoryRef!.addEntry(before, after, objectIndex);
+    }
   },
   updateBlockColor: (blockIndex: number, color: number) => {
     updateState((current) => {
