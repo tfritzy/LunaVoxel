@@ -42,6 +42,11 @@ export const ObjectsSection = ({
   }, [objects]);
 
   useEffect(() => {
+    if (sortedObjects.length === 0) return;
+    setSelectedObject((prev) => Math.min(prev, sortedObjects.length - 1));
+  }, [sortedObjects]);
+
+  useEffect(() => {
     if (onSelectObject) onSelectObject(selectedObject);
   }, [selectedObject, onSelectObject]);
 
