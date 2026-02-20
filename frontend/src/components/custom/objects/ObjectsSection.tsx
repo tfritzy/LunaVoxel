@@ -38,7 +38,7 @@ export const ObjectsSection = ({
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
-    return objects ? [...objects].sort((a, b) => b.index - a.index) : [];
+    return objects ? [...objects].sort((a, b) => a.index - b.index) : [];
   }, [objects]);
 
   useEffect(() => {
