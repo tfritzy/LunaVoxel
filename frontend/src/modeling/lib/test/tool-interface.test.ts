@@ -512,7 +512,7 @@ describe("Tool Interface", () => {
       expect(bounds.maxY).toBe(9);
     });
 
-    it("should commit with original shape even if fill shape is changed after preview", () => {
+    it("should update pending shape when fill shape is changed during editing phase", () => {
       tool.setOption("Fill Shape", "Sphere");
 
       tool.onMouseUp(mockContext, {
@@ -528,6 +528,7 @@ describe("Tool Interface", () => {
       expect(previewCenter).toBeGreaterThan(0);
 
       tool.setOption("Fill Shape", "Rect");
+      tool.updatePending!(mockContext);
 
       let committedFrame: VoxelFrame | null = null;
       mockContext.reducers = {
@@ -540,11 +541,11 @@ describe("Tool Interface", () => {
       tool.commitPendingOperation(mockContext);
 
       expect(committedFrame).not.toBeNull();
-      expect(committedFrame!.get(0, 0, 0)).toBe(0);
+      expect(committedFrame!.get(0, 0, 0)).toBeGreaterThan(0);
       expect(committedFrame!.get(2, 2, 2)).toBeGreaterThan(0);
     });
 
-    it("should commit with original color even if selected block is changed after preview", () => {
+    it("should update pending color when selected block is changed during editing phase", () => {
       mockContext.selectedBlock = 5;
 
       tool.onMouseUp(mockContext, {
@@ -558,24 +559,25 @@ describe("Tool Interface", () => {
       expect(previewValue).toBe(5);
 
       mockContext.selectedBlock = 9;
+      tool.updatePending!(mockContext);
 
-      let committedMode: BlockModificationMode | null = null;
+      const updatedPreviewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
+      expect(updatedPreviewValue).toBe(9);
+
       let committedBlock: number | null = null;
       mockContext.reducers = {
         ...mockContext.reducers,
-        applyFrame: (mode, block) => {
-          committedMode = mode;
+        applyFrame: (_mode, block) => {
           committedBlock = block;
         },
       };
 
       tool.commitPendingOperation(mockContext);
 
-      expect(committedMode).not.toBeNull();
-      expect(committedBlock).toBe(5);
+      expect(committedBlock).toBe(9);
     });
 
-    it("should use original shape when resizing pending bounds after shape change", () => {
+    it("should use updated shape when resizing pending bounds after shape change", () => {
       tool.setOption("Fill Shape", "Sphere");
 
       tool.onMouseUp(mockContext, {
@@ -593,7 +595,7 @@ describe("Tool Interface", () => {
         minZ: 0, maxZ: 6,
       });
 
-      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBe(0);
+      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
       expect(mockContext.previewBuffer[3 * dimensions.y * dimensions.z + 3 * dimensions.z + 3]).toBeGreaterThan(0);
     });
   });
