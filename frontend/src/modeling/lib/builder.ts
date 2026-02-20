@@ -12,6 +12,17 @@ import { BrushTool } from "./tools/brush-tool";
 import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
 
+export const normalizeSelectedObjectIndex = (
+  objectIndex: number,
+  objectCount: number
+): number => {
+  if (objectCount <= 0) {
+    return 0;
+  }
+
+  return Math.min(Math.max(objectIndex, 0), objectCount - 1);
+};
+
 export const Builder = class {
   private stateStore: StateStore;
   private projectId: string;
@@ -189,8 +200,10 @@ export const Builder = class {
   }
 
   public setSelectedObject(objectIndex: number): void {
-    this.selectedObject = objectIndex;
-    this.toolContext.selectedObject = objectIndex;
+    const objectCount = this.stateStore.getState().objects.length;
+    const validObjectIndex = normalizeSelectedObjectIndex(objectIndex, objectCount);
+    this.selectedObject = validObjectIndex;
+    this.toolContext.selectedObject = validObjectIndex;
     if (this.currentTool.getType() === "MoveSelection") {
       this.projectManager.updateMoveSelectionBox(this.selectedObject);
     }

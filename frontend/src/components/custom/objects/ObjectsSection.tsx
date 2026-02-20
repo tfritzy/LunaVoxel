@@ -34,16 +34,34 @@ export const ObjectsSection = ({
   onSelectObject,
   projectId,
 }: ObjectsSectionProps) => {
-  const [selectedObject, setSelectedObject] = useState<number>(0);
+  const [selectedObject, setSelectedObjectState] = useState<number>(0);
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
     return objects ? [...objects].sort((a, b) => b.index - a.index) : [];
   }, [objects]);
 
+  const setSelectedObject = React.useCallback(
+    (objectIndex: number) => {
+      const maxObjectIndex = sortedObjects.length - 1;
+      const validObjectIndex =
+        maxObjectIndex < 0
+          ? 0
+          : Math.min(Math.max(objectIndex, 0), maxObjectIndex);
+      setSelectedObjectState((current) =>
+        current === validObjectIndex ? current : validObjectIndex
+      );
+    },
+    [sortedObjects.length]
+  );
+
   useEffect(() => {
     if (onSelectObject) onSelectObject(selectedObject);
   }, [selectedObject, onSelectObject]);
+
+  useEffect(() => {
+    setSelectedObject(selectedObject);
+  }, [selectedObject, setSelectedObject]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
