@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType, BrushShape, FillShape } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { calculateGridPositionWithMode, wrapCoord } from "./tool-utils";
+import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
 import { VoxelFrame } from "../voxel-frame";
@@ -84,43 +84,34 @@ export class BrushTool implements Tool {
     const boundsMaxY = center.y + halfAbove;
     const boundsMaxZ = center.z + halfAbove;
 
-    const dimX = context.dimensions.x;
-    const dimY = context.dimensions.y;
-    const dimZ = context.dimensions.z;
+    const minX = Math.max(0, boundsMinX);
+    const minY = Math.max(0, boundsMinY);
+    const minZ = Math.max(0, boundsMinZ);
+    const maxX = Math.min(context.dimensions.x - 1, boundsMaxX);
+    const maxY = Math.min(context.dimensions.y - 1, boundsMaxY);
+    const maxZ = Math.min(context.dimensions.z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
+    const dimY = context.dimensions.y;
+    const dimZ = context.dimensions.z;
 
-    const wrapsX = boundsMinX < 0 || boundsMaxX >= dimX;
-    const wrapsY = boundsMinY < 0 || boundsMaxY >= dimY;
-    const wrapsZ = boundsMinZ < 0 || boundsMaxZ >= dimZ;
-
-    for (let x = boundsMinX; x <= boundsMaxX; x++) {
-      for (let y = boundsMinY; y <= boundsMaxY; y++) {
-        for (let z = boundsMinZ; z <= boundsMaxZ; z++) {
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
           if (isInsideFillShape(
             fillShape, x, y, z,
             boundsMinX, boundsMaxX,
             boundsMinY, boundsMaxY,
             boundsMinZ, boundsMaxZ
           )) {
-            const wx = wrapCoord(x, dimX);
-            const wy = wrapCoord(y, dimY);
-            const wz = wrapCoord(z, dimZ);
-            context.previewBuffer[wx * dimY * dimZ + wy * dimZ + wz] = blockValue;
+            context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = blockValue;
           }
         }
       }
     }
 
-    const updateMinX = wrapsX ? 0 : boundsMinX;
-    const updateMinY = wrapsY ? 0 : boundsMinY;
-    const updateMinZ = wrapsZ ? 0 : boundsMinZ;
-    const updateMaxX = wrapsX ? dimX - 1 : boundsMaxX;
-    const updateMaxY = wrapsY ? dimY - 1 : boundsMaxY;
-    const updateMaxZ = wrapsZ ? dimZ - 1 : boundsMaxZ;
-
-    context.projectManager.chunkManager.updatePreview(updateMinX, updateMinY, updateMinZ, updateMaxX, updateMaxY, updateMaxZ);
+    context.projectManager.chunkManager.updatePreview(minX, minY, minZ, maxX, maxY, maxZ);
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {

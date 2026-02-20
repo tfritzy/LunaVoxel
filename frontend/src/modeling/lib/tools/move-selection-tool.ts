@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { calculateGridPositionWithMode } from "./tool-utils";
+import { calculateGridPositionWithMode, wrapCoord } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
@@ -49,7 +49,8 @@ export class MoveSelectionTool implements Tool {
       context.camera
     );
 
-    this.lastOffset.copy(offset);
+    const wrapped = this.wrapOffset(offset, context.dimensions);
+    this.lastOffset.copy(wrapped);
     this.renderBoundsBox(context, this.cachedBounds, this.lastOffset);
   }
 
@@ -94,6 +95,14 @@ export class MoveSelectionTool implements Tool {
     }
 
     return chunkManager.getObjectContentBounds(context.selectedObject);
+  }
+
+  private wrapOffset(offset: THREE.Vector3, dimensions: Vector3): THREE.Vector3 {
+    return new THREE.Vector3(
+      wrapCoord(Math.round(offset.x), dimensions.x),
+      wrapCoord(Math.round(offset.y), dimensions.y),
+      wrapCoord(Math.round(offset.z), dimensions.z),
+    );
   }
 
   private renderBoundsBox(
