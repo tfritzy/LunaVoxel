@@ -47,12 +47,13 @@ describe("commitSelectionMove", () => {
 
   it("wraps voxels that move past the negative boundary", () => {
     const objectId = stateStore.getState().objects[0].id;
+    const dims = stateStore.getState().project.dimensions;
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
     stateStore.reducers.commitSelectionMove("local-project", { x: -11, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
-    expect(getVoxelAt(objectId, 63, 0, 10)).not.toBe(0);
+    expect(getVoxelAt(objectId, dims.x - 1, 0, 10)).not.toBe(0);
   });
 
   it("preserves block values through wrapped move", () => {

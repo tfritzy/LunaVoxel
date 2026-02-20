@@ -527,7 +527,7 @@ const reducers: Reducers = {
       chunk.voxels[ci] = value;
     }
 
-    let newMinX = dims.x, newMinY = dims.y, newMinZ = dims.z;
+    let newMinX = Infinity, newMinY = Infinity, newMinZ = Infinity;
     let newMaxX = -1, newMaxY = -1, newMaxZ = -1;
     for (let lx = 0; lx < selDims.x; lx++) {
       for (let ly = 0; ly < selDims.y; ly++) {
