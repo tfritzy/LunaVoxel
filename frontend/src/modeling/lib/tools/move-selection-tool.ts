@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode } from "@/state/types";
+import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
@@ -7,6 +7,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
   private lastOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+  private cachedBounds: { min: Vector3; max: Vector3 } | null = null;
 
   getType(): ToolType {
     return "MoveSelection";
@@ -27,12 +28,17 @@ export class MoveSelectionTool implements Tool {
     return calculateGridPositionWithMode(gridPosition, normal, "under");
   }
 
+  onActivate(context: ToolContext): void {
+    this.cachedBounds = this.computeBounds(context);
+    context.projectManager.updateMoveSelectionBox(this.cachedBounds);
+  }
+
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
-    void context;
     void event;
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
-    context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
+    this.cachedBounds = this.computeBounds(context);
+    context.projectManager.updateMoveSelectionBox(this.cachedBounds, this.lastOffset);
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
@@ -43,7 +49,7 @@ export class MoveSelectionTool implements Tool {
     );
 
     this.lastOffset.copy(offset);
-    context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
+    context.projectManager.updateMoveSelectionBox(this.cachedBounds, this.lastOffset);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -61,7 +67,23 @@ export class MoveSelectionTool implements Tool {
 
     this.snappedAxis = null;
     this.lastOffset = new THREE.Vector3(0, 0, 0);
-    context.projectManager.updateMoveSelectionBox(context.selectedObject, this.lastOffset);
+    this.cachedBounds = this.computeBounds(context);
+    context.projectManager.updateMoveSelectionBox(this.cachedBounds, this.lastOffset);
+  }
+
+  private computeBounds(context: ToolContext): { min: Vector3; max: Vector3 } | null {
+    const chunkManager = context.projectManager.chunkManager;
+    const object = chunkManager.getObject(context.selectedObject);
+    if (!object) return null;
+
+    if (object.selection) {
+      return {
+        min: object.selection.getMinPos(),
+        max: object.selection.getMaxPos(),
+      };
+    }
+
+    return chunkManager.getObjectContentBounds(context.selectedObject);
   }
 
   private calculateOffsetFromMouseDelta(

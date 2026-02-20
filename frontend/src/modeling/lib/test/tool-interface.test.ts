@@ -60,6 +60,8 @@ describe("Tool Interface", () => {
           clearPreview: () => {},
           previewBuffer,
           getDimensions: () => dimensions,
+          getObject: () => undefined,
+          getObjectContentBounds: () => null,
         },
       } as unknown as ProjectManager,
       previewBuffer,
@@ -894,6 +896,100 @@ describe("Tool Interface", () => {
       });
 
       expect(moveSelectionBoxUpdated).toBe(true);
+    });
+
+    it("should use selection bounds when object has a selection", () => {
+      let passedBounds: { min: Vector3; max: Vector3 } | null = null;
+      const selection = new VoxelFrame(
+        { x: 3, y: 2, z: 4 },
+        { x: 5, y: 6, z: 7 }
+      );
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        updateMoveSelectionBox: (bounds: { min: Vector3; max: Vector3 } | null) => {
+          passedBounds = bounds;
+        },
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection,
+          }),
+          getObjectContentBounds: () => ({
+            min: { x: 0, y: 0, z: 0 },
+            max: { x: 64, y: 64, z: 64 },
+          }),
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+
+      expect(passedBounds).not.toBeNull();
+      expect(passedBounds!.min).toEqual({ x: 5, y: 6, z: 7 });
+      expect(passedBounds!.max).toEqual({ x: 8, y: 8, z: 11 });
+    });
+
+    it("should use content bounds when object has no selection", () => {
+      let passedBounds: { min: Vector3; max: Vector3 } | null = null;
+      const contentBounds = {
+        min: { x: 10, y: 0, z: 10 },
+        max: { x: 15, y: 7, z: 15 },
+      };
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        updateMoveSelectionBox: (bounds: { min: Vector3; max: Vector3 } | null) => {
+          passedBounds = bounds;
+        },
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => contentBounds,
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+
+      expect(passedBounds).not.toBeNull();
+      expect(passedBounds!.min).toEqual({ x: 10, y: 0, z: 10 });
+      expect(passedBounds!.max).toEqual({ x: 15, y: 7, z: 15 });
+    });
+
+    it("should pass null bounds when object does not exist", () => {
+      let passedBounds: { min: Vector3; max: Vector3 } | null | undefined = undefined;
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        updateMoveSelectionBox: (bounds: { min: Vector3; max: Vector3 } | null) => {
+          passedBounds = bounds;
+        },
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => undefined,
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+
+      expect(passedBounds).toBeNull();
     });
   });
 

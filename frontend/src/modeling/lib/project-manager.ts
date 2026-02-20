@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockModificationMode, Project } from "@/state/types";
+import type { BlockModificationMode, Project, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { CursorManager } from "./cursor-manager";
 import { Builder } from "./builder";
@@ -168,10 +168,9 @@ export class ProjectManager {
   }
 
   public updateMoveSelectionBox = (
-    objectIndex: number,
+    bounds: { min: Vector3; max: Vector3 } | null,
     offset: THREE.Vector3 = new THREE.Vector3()
   ) => {
-    const bounds = this.chunkManager.getObjectBounds(objectIndex);
     if (!bounds) {
       this.clearMoveSelectionBox();
       return;

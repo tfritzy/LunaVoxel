@@ -133,9 +133,7 @@ export const Builder = class {
     this.cancelCurrentOperation();
     this.currentTool.dispose?.();
     this.currentTool = this.createTool(tool);
-    if (tool === "MoveSelection") {
-      this.projectManager.updateMoveSelectionBox(this.selectedObject);
-    }
+    this.currentTool.onActivate?.(this.toolContext);
   }
 
   private createTool(toolType: ToolType): Tool {
@@ -191,9 +189,7 @@ export const Builder = class {
   public setSelectedObject(objectIndex: number): void {
     this.selectedObject = objectIndex;
     this.toolContext.selectedObject = objectIndex;
-    if (this.currentTool.getType() === "MoveSelection") {
-      this.projectManager.updateMoveSelectionBox(this.selectedObject);
-    }
+    this.currentTool.onActivate?.(this.toolContext);
   }
 
   public getSelectedObject(): number {

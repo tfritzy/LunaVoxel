@@ -71,4 +71,4 @@ node_modules/
 wasm/target/
 
 # TypeScript build info
-*.tsbuildinfo
+*.tsbuildinfonode_modules/
