@@ -115,8 +115,6 @@ function createBenchmarkContext(dimensions: Vector3): {
     projectManager: {
       applyOptimisticRectEdit: () => {},
       getBlockAtPosition: () => 1,
-      updateMoveSelectionBox: () => {},
-      clearMoveSelectionBox: () => {},
       chunkManager: {
         updatePreview,
         clearPreview,

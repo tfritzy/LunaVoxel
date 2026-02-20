@@ -53,13 +53,13 @@ describe("Tool Interface", () => {
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
-        updateMoveSelectionBox: () => {},
-        clearMoveSelectionBox: () => {},
         chunkManager: {
           updatePreview: () => {},
           clearPreview: () => {},
           previewBuffer,
           getDimensions: () => dimensions,
+          getObject: () => undefined,
+          getObjectContentBounds: () => null,
         },
       } as unknown as ProjectManager,
       previewBuffer,
@@ -872,12 +872,26 @@ describe("Tool Interface", () => {
       expect(commitSelectionMoveCalled).toBe(false);
     });
 
-    it("should update move selection box while dragging", () => {
-      let moveSelectionBoxUpdated = false;
+    it("should add bounds box to scene while dragging with content", () => {
       mockContext.projectManager = {
         ...mockContext.projectManager,
-        updateMoveSelectionBox: () => {
-          moveSelectionBoxUpdated = true;
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => ({
+            min: { x: 10, y: 0, z: 10 },
+            max: { x: 15, y: 4, z: 15 },
+          }),
         },
       } as unknown as ProjectManager;
 
@@ -893,7 +907,140 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0),
       });
 
-      expect(moveSelectionBoxUpdated).toBe(true);
+      const boxHelpers = mockContext.scene.children.filter(
+        (c) => c instanceof THREE.Box3Helper
+      );
+      expect(boxHelpers.length).toBe(1);
+    });
+
+    it("should use selection bounds when object has a selection", () => {
+      const selection = new VoxelFrame(
+        { x: 3, y: 2, z: 4 },
+        { x: 5, y: 6, z: 7 }
+      );
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection,
+          }),
+          getObjectContentBounds: () => ({
+            min: { x: 0, y: 0, z: 0 },
+            max: { x: 64, y: 64, z: 64 },
+          }),
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+
+      const boxHelper = mockContext.scene.children.find(
+        (c) => c instanceof THREE.Box3Helper
+      ) as THREE.Box3Helper | undefined;
+      expect(boxHelper).toBeDefined();
+      expect(boxHelper!.box.min.x).toBe(5);
+      expect(boxHelper!.box.min.y).toBe(6);
+      expect(boxHelper!.box.min.z).toBe(7);
+      expect(boxHelper!.box.max.x).toBe(8);
+      expect(boxHelper!.box.max.y).toBe(8);
+      expect(boxHelper!.box.max.z).toBe(11);
+    });
+
+    it("should use content bounds when object has no selection", () => {
+      const contentBounds = {
+        min: { x: 10, y: 0, z: 10 },
+        max: { x: 15, y: 7, z: 15 },
+      };
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => contentBounds,
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+
+      const boxHelper = mockContext.scene.children.find(
+        (c) => c instanceof THREE.Box3Helper
+      ) as THREE.Box3Helper | undefined;
+      expect(boxHelper).toBeDefined();
+      expect(boxHelper!.box.min.x).toBe(10);
+      expect(boxHelper!.box.min.y).toBe(0);
+      expect(boxHelper!.box.min.z).toBe(10);
+      expect(boxHelper!.box.max.x).toBe(15);
+      expect(boxHelper!.box.max.y).toBe(7);
+      expect(boxHelper!.box.max.z).toBe(15);
+    });
+
+    it("should not add box when object does not exist", () => {
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => undefined,
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+
+      const boxHelpers = mockContext.scene.children.filter(
+        (c) => c instanceof THREE.Box3Helper
+      );
+      expect(boxHelpers.length).toBe(0);
+    });
+
+    it("should clean up box on dispose", () => {
+      const contentBounds = {
+        min: { x: 10, y: 0, z: 10 },
+        max: { x: 15, y: 7, z: 15 },
+      };
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => contentBounds,
+        },
+      } as unknown as ProjectManager;
+
+      tool.onActivate!(mockContext);
+      expect(mockContext.scene.children.some((c) => c instanceof THREE.Box3Helper)).toBe(true);
+
+      tool.dispose!();
+      expect(mockContext.scene.children.some((c) => c instanceof THREE.Box3Helper)).toBe(false);
     });
   });
 

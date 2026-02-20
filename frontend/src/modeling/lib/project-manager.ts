@@ -17,7 +17,6 @@ export class ProjectManager {
   private project: Project;
   private atlasData: AtlasData | null = null;
   private keydownHandler: (event: KeyboardEvent) => void;
-  private moveSelectionBoxHelper: THREE.Box3Helper | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -167,47 +166,7 @@ export class ProjectManager {
     return this.chunkManager.getBlockAtPosition(position, obj);
   }
 
-  public updateMoveSelectionBox = (
-    objectIndex: number,
-    offset: THREE.Vector3 = new THREE.Vector3()
-  ) => {
-    const bounds = this.chunkManager.getObjectBounds(objectIndex);
-    if (!bounds) {
-      this.clearMoveSelectionBox();
-      return;
-    }
-
-    if (!this.moveSelectionBoxHelper) {
-      this.moveSelectionBoxHelper = new THREE.Box3Helper(
-        new THREE.Box3(),
-        0x44ff88
-      );
-      this.scene.add(this.moveSelectionBoxHelper);
-    }
-
-    this.moveSelectionBoxHelper.box.min.set(
-      bounds.min.x + offset.x,
-      bounds.min.y + offset.y,
-      bounds.min.z + offset.z
-    );
-    this.moveSelectionBoxHelper.box.max.set(
-      bounds.max.x + offset.x,
-      bounds.max.y + offset.y,
-      bounds.max.z + offset.z
-    );
-    this.moveSelectionBoxHelper.updateMatrixWorld(true);
-  };
-
-  public clearMoveSelectionBox = () => {
-    if (!this.moveSelectionBoxHelper) return;
-    this.scene.remove(this.moveSelectionBoxHelper);
-    this.moveSelectionBoxHelper.geometry.dispose();
-    (this.moveSelectionBoxHelper.material as THREE.Material).dispose();
-    this.moveSelectionBoxHelper = null;
-  };
-
   dispose(): void {
-    this.clearMoveSelectionBox();
     this.builder.dispose();
     this.chunkManager.dispose();
     this.cursorManager.dispose();
