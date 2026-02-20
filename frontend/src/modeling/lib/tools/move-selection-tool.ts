@@ -102,7 +102,7 @@ export class MoveSelectionTool implements Tool {
     offset: THREE.Vector3 = new THREE.Vector3()
   ): void {
     if (!bounds) {
-      this.clearBoundsBox();
+      this.dispose();
       return;
     }
 
@@ -125,10 +125,6 @@ export class MoveSelectionTool implements Tool {
       bounds.max.z + offset.z
     );
     this.boundsBoxHelper.updateMatrixWorld(true);
-  }
-
-  private clearBoundsBox(): void {
-    this.dispose();
   }
 
   private calculateOffsetFromMouseDelta(

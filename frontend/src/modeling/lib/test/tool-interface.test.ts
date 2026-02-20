@@ -872,7 +872,29 @@ describe("Tool Interface", () => {
       expect(commitSelectionMoveCalled).toBe(false);
     });
 
-    it("should add bounds box to scene while dragging", () => {
+    it("should add bounds box to scene while dragging with content", () => {
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => ({
+            min: { x: 10, y: 0, z: 10 },
+            max: { x: 15, y: 4, z: 15 },
+          }),
+        },
+      } as unknown as ProjectManager;
+
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(1, 2, 3),
         mousePosition: new THREE.Vector2(0, 0),
@@ -888,7 +910,7 @@ describe("Tool Interface", () => {
       const boxHelpers = mockContext.scene.children.filter(
         (c) => c instanceof THREE.Box3Helper
       );
-      expect(boxHelpers.length).toBeGreaterThanOrEqual(0);
+      expect(boxHelpers.length).toBe(1);
     });
 
     it("should use selection bounds when object has a selection", () => {
