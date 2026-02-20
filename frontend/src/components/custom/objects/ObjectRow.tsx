@@ -49,8 +49,10 @@ export const ObjectRow = ({
 
   useEffect(() => {
     if (isRenaming) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 0);
     }
   }, [isRenaming]);
 
