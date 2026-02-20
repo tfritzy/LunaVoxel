@@ -15,12 +15,9 @@ export class CameraController {
   private domElement: HTMLElement;
   private target: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private panSpeed: number = 0.02;
-  private zoomSpeed: number = 2;
+  private zoomFactor: number = 0.1;
   private rotationSpeed: number = 0.003;
-
-  private zoomScaleMultiplier: number = 0.01;
-  private minZoomSpeed: number = 0.1;
-  private maxZoomSpeed: number = 10;
+  private minDistance: number = 0.1;
 
   private rotateMouseDown: boolean = false;
   private panMouseDown: boolean = false;
@@ -240,15 +237,8 @@ export class CameraController {
   }
 
   private zoomCamera(delta: number): void {
-    const distanceBasedSpeed = this.distance * this.zoomScaleMultiplier;
-    const adaptiveZoomSpeed = Math.max(
-      this.minZoomSpeed,
-      Math.min(this.maxZoomSpeed, this.zoomSpeed + distanceBasedSpeed)
-    );
-
-    const zoomAmount = delta * adaptiveZoomSpeed;
-
-    this.distance = Math.max(1, this.distance + zoomAmount);
+    const factor = 1 + this.zoomFactor * delta;
+    this.distance = Math.max(this.minDistance, this.distance * factor);
 
     this.updateCameraPosition();
   }
