@@ -3,6 +3,8 @@ import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import type { BlockModificationMode } from "@/state/types";
+import { stateStore } from "@/state/store";
+import { getBlockType } from "../voxel-data-utils";
 
 export class BlockPickerTool implements Tool {
   getType(): ToolType {
@@ -35,11 +37,14 @@ export class BlockPickerTool implements Tool {
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    const blockType = context.projectManager.getBlockAtPosition(
+    const blockValue = context.projectManager.getBlockAtPosition(
       event.currentGridPosition,
       context.selectedObject
     );
-    if (blockType !== null && blockType !== 0) {
+    if (blockValue === null) return;
+    const blockType = getBlockType(blockValue);
+    const blockCount = stateStore.getState().blocks.colors.length;
+    if (blockType > 0 && blockType <= blockCount) {
       context.setSelectedBlockInParent(blockType);
     }
   }

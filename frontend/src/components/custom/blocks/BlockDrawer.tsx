@@ -126,8 +126,10 @@ export const BlockDrawer = ({
 }) => {
   const blocks = useGlobalState((state) => state.blocks);
   const selectedBlockColorIndex = selectedBlock > 0 ? selectedBlock - 1 : -1;
+  const hasValidSelectedBlock =
+    selectedBlockColorIndex >= 0 && selectedBlockColorIndex < blocks.colors.length;
   const selectedBlockColor =
-    selectedBlockColorIndex >= 0
+    hasValidSelectedBlock
       ? `#${blocks.colors[selectedBlockColorIndex].toString(16).padStart(6, "0")}`
       : "#000000";
 
@@ -139,26 +141,27 @@ export const BlockDrawer = ({
 
   const handleColorChange = useCallback(
     (color: string) => {
-      if (selectedBlockColorIndex < 0) return;
+      if (!hasValidSelectedBlock) return;
       const colorValue = parseInt(color.replace("#", ""), 16);
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         stateStore.reducers.updateBlockColor(selectedBlockColorIndex, colorValue);
       });
     },
-    [selectedBlockColorIndex]
+    [hasValidSelectedBlock, selectedBlockColorIndex]
   );
 
   const handleColorChangeComplete = useCallback(
     (beforeColor: string) => {
-      if (selectedBlockColorIndex < 0) return;
+      if (!hasValidSelectedBlock) return;
       const previousColor = parseInt(beforeColor.replace("#", ""), 16);
       const newColor = stateStore.getState().blocks.colors[selectedBlockColorIndex];
+      if (newColor === undefined) return;
       if (previousColor !== newColor) {
         editHistory.addColorChange(selectedBlockColorIndex, previousColor, newColor);
       }
     },
-    [selectedBlockColorIndex]
+    [hasValidSelectedBlock, selectedBlockColorIndex]
   );
 
   const handlePaletteSelect = useCallback(
@@ -188,7 +191,7 @@ export const BlockDrawer = ({
             colors={blocks.colors}
           />
         </div>
-        {selectedBlock > 0 && (
+        {hasValidSelectedBlock && (
           <div className="mt-4 pt-4 border-t border-border">
             <h3 className="text-sm font-medium mb-2">Block Color</h3>
             <ColorPicker
