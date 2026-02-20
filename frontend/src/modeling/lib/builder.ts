@@ -11,6 +11,8 @@ import { MoveSelectionTool } from "./tools/move-selection-tool";
 import { BrushTool } from "./tools/brush-tool";
 import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
+import { editHistory } from "@/state/edit-history-instance";
+import { snapshotObjectVoxels } from "./edit-history";
 
 export const Builder = class {
   private stateStore: StateStore;
@@ -87,7 +89,15 @@ export const Builder = class {
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
-      reducers: this.stateStore.reducers,
+      reducers: {
+        ...this.stateStore.reducers,
+        applyFrame: (mode, blockType, frame, objectIndex) => {
+          const before = snapshotObjectVoxels(this.stateStore, objectIndex);
+          this.stateStore.reducers.applyFrame(mode, blockType, frame, objectIndex);
+          const after = snapshotObjectVoxels(this.stateStore, objectIndex);
+          editHistory.addEntry(before, after, objectIndex);
+        },
+      },
       projectId: this.projectId,
       dimensions: this.dimensions,
       projectManager: this.projectManager,

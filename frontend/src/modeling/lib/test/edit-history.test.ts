@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { EditHistory } from "../edit-history";
+import { EditHistory, snapshotObjectVoxels } from "../edit-history";
 import { resetState, stateStore, getChunkKey } from "@/state/store";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { VoxelFrame } from "../voxel-frame";
 import type { VoxelObject } from "@/state/types";
 
 describe("EditHistory", () => {
@@ -295,6 +296,131 @@ describe("EditHistory", () => {
 
       history.redo();
       expect(getVoxel(5, 5, 5)).toBe(newVal);
+    });
+  });
+
+  describe("snapshotObjectVoxels", () => {
+    it("captures current voxel state for an object", () => {
+      const dims = stateStore.getState().project.dimensions;
+      const snapshot = snapshotObjectVoxels(stateStore, 0);
+
+      expect(snapshot.length).toBe(dims.x * dims.y * dims.z);
+
+      const obj = stateStore.getState().objects[0];
+      const key = getChunkKey(obj.id, { x: 0, y: 0, z: 0 });
+      const chunk = stateStore.getState().chunks.get(key)!;
+      const val = chunk.voxels[12 * chunk.size.y * chunk.size.z + 2 * chunk.size.z + 12];
+      expect(snapshot[12 * dims.y * dims.z + 2 * dims.z + 12]).toBe(val);
+    });
+
+    it("returns empty snapshot for non-existent object", () => {
+      const dims = stateStore.getState().project.dimensions;
+      const snapshot = snapshotObjectVoxels(stateStore, 999);
+      expect(snapshot.length).toBe(dims.x * dims.y * dims.z);
+      expect(snapshot.every((v) => v === 0)).toBe(true);
+    });
+  });
+
+  describe("voxel edit via applyFrame with snapshot", () => {
+    const getVoxel = (x: number, y: number, z: number) => {
+      const obj = stateStore.getState().objects[0];
+      const key = getChunkKey(obj.id, { x: 0, y: 0, z: 0 });
+      const chunk = stateStore.getState().chunks.get(key);
+      if (!chunk) return 0;
+      return chunk.voxels[x * chunk.size.y * chunk.size.z + y * chunk.size.z + z];
+    };
+
+    it("undoes applyFrame edit using snapshots", () => {
+      const objectIndex = 0;
+      const before = snapshotObjectVoxels(stateStore, objectIndex);
+
+      const dims = stateStore.getState().project.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame.set(5, 5, 5, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 3, frame, objectIndex);
+
+      const after = snapshotObjectVoxels(stateStore, objectIndex);
+      history.addEntry(before, after, objectIndex);
+
+      expect(getVoxel(5, 5, 5)).toBe(3 | RAYCASTABLE_BIT);
+
+      history.undo();
+      expect(getVoxel(5, 5, 5)).toBe(0);
+    });
+
+    it("redoes applyFrame edit using snapshots", () => {
+      const objectIndex = 0;
+      const before = snapshotObjectVoxels(stateStore, objectIndex);
+
+      const dims = stateStore.getState().project.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame.set(5, 5, 5, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 3, frame, objectIndex);
+
+      const after = snapshotObjectVoxels(stateStore, objectIndex);
+      history.addEntry(before, after, objectIndex);
+
+      history.undo();
+      expect(getVoxel(5, 5, 5)).toBe(0);
+
+      history.redo();
+      expect(getVoxel(5, 5, 5)).toBe(3 | RAYCASTABLE_BIT);
+    });
+
+    it("undoes and redoes multiple applyFrame edits", () => {
+      const objectIndex = 0;
+
+      const before1 = snapshotObjectVoxels(stateStore, objectIndex);
+      const dims = stateStore.getState().project.dimensions;
+      const frame1 = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame1.set(1, 1, 1, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 2, frame1, objectIndex);
+      const after1 = snapshotObjectVoxels(stateStore, objectIndex);
+      history.addEntry(before1, after1, objectIndex);
+
+      const before2 = snapshotObjectVoxels(stateStore, objectIndex);
+      const frame2 = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame2.set(2, 2, 2, 1);
+      stateStore.reducers.applyFrame({ tag: "Attach" }, 4, frame2, objectIndex);
+      const after2 = snapshotObjectVoxels(stateStore, objectIndex);
+      history.addEntry(before2, after2, objectIndex);
+
+      expect(getVoxel(1, 1, 1)).toBe(2 | RAYCASTABLE_BIT);
+      expect(getVoxel(2, 2, 2)).toBe(4 | RAYCASTABLE_BIT);
+
+      history.undo();
+      expect(getVoxel(1, 1, 1)).toBe(2 | RAYCASTABLE_BIT);
+      expect(getVoxel(2, 2, 2)).toBe(0);
+
+      history.undo();
+      expect(getVoxel(1, 1, 1)).toBe(0);
+
+      history.redo();
+      expect(getVoxel(1, 1, 1)).toBe(2 | RAYCASTABLE_BIT);
+
+      history.redo();
+      expect(getVoxel(2, 2, 2)).toBe(4 | RAYCASTABLE_BIT);
+    });
+
+    it("undoes erase applyFrame edit using snapshots", () => {
+      const objectIndex = 0;
+      const existingVal = 1 | RAYCASTABLE_BIT;
+      expect(getVoxel(12, 2, 12)).toBe(existingVal);
+
+      const before = snapshotObjectVoxels(stateStore, objectIndex);
+
+      const dims = stateStore.getState().project.dimensions;
+      const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 });
+      frame.set(12, 2, 12, 1);
+      stateStore.reducers.applyFrame({ tag: "Erase" }, 0, frame, objectIndex);
+
+      const after = snapshotObjectVoxels(stateStore, objectIndex);
+      history.addEntry(before, after, objectIndex);
+
+      expect(getVoxel(12, 2, 12)).toBe(0);
+
+      history.undo();
+      expect(getVoxel(12, 2, 12)).toBe(existingVal);
     });
   });
 });
