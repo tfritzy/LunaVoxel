@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import type { VoxelObject } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
+import { normalizeSelectedObjectIndex } from "@/modeling/lib/builder";
 import {
   DndContext,
   closestCenter,
@@ -43,14 +44,11 @@ export const ObjectsSection = ({
 
   const setSelectedObject = React.useCallback(
     (objectIndex: number) => {
-      const maxObjectIndex = sortedObjects.length - 1;
-      const validObjectIndex =
-        maxObjectIndex < 0
-          ? 0
-          : Math.min(Math.max(objectIndex, 0), maxObjectIndex);
-      setSelectedObjectState((current) =>
-        current === validObjectIndex ? current : validObjectIndex
+      const validObjectIndex = normalizeSelectedObjectIndex(
+        objectIndex,
+        sortedObjects.length
       );
+      setSelectedObjectState(validObjectIndex);
     },
     [sortedObjects.length]
   );
@@ -60,8 +58,10 @@ export const ObjectsSection = ({
   }, [selectedObject, onSelectObject]);
 
   useEffect(() => {
-    setSelectedObject(selectedObject);
-  }, [selectedObject, setSelectedObject]);
+    setSelectedObjectState((current) =>
+      normalizeSelectedObjectIndex(current, sortedObjects.length)
+    );
+  }, [sortedObjects.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
