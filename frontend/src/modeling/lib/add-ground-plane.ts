@@ -21,7 +21,7 @@ export function updateBoundsVisibility(
       edge.face0Normal.dot(_v.subVectors(cameraPos, edge.face0Center)) > 0;
     const vis1 =
       edge.face1Normal.dot(_v.subVectors(cameraPos, edge.face1Center)) > 0;
-    edge.mesh.visible = vis0 || vis1;
+    edge.mesh.visible = vis0 && vis1;
   }
 }
 
