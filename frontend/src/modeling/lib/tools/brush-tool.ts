@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType, BrushShape, FillShape } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import { getSelectedObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShape } from "../fill-shape-utils";
@@ -87,14 +88,14 @@ export class BrushTool implements Tool {
     const minX = Math.max(0, boundsMinX);
     const minY = Math.max(0, boundsMinY);
     const minZ = Math.max(0, boundsMinZ);
-    const maxX = Math.min(context.getObjectDimensions().x - 1, boundsMaxX);
-    const maxY = Math.min(context.getObjectDimensions().y - 1, boundsMaxY);
-    const maxZ = Math.min(context.getObjectDimensions().z - 1, boundsMaxZ);
+    const maxX = Math.min(getSelectedObject(context)!.dimensions.x - 1, boundsMaxX);
+    const maxY = Math.min(getSelectedObject(context)!.dimensions.y - 1, boundsMaxY);
+    const maxZ = Math.min(getSelectedObject(context)!.dimensions.z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
-    const dimY = context.getObjectDimensions().y;
-    const dimZ = context.getObjectDimensions().z;
+    const dimY = getSelectedObject(context)!.dimensions.y;
+    const dimZ = getSelectedObject(context)!.dimensions.z;
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
@@ -138,7 +139,7 @@ export class BrushTool implements Tool {
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     if (this.isStrokeActive) {
-      const dims = context.getObjectDimensions();
+      const dims = getSelectedObject(context)!.dimensions;
       const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 }, new Uint8Array(context.previewBuffer));
 
       context.reducers.applyFrame(

@@ -30,6 +30,7 @@ export const Builder = class {
   private currentTool: Tool;
   private currentMode: BlockModificationMode = { tag: "Attach" };
   private toolContext: {
+    stateStore: StateStore;
     reducers: StateStore["reducers"];
     projectId: string;
     projectManager: ProjectManager;
@@ -40,7 +41,6 @@ export const Builder = class {
     mode: BlockModificationMode;
     camera: THREE.Camera;
     scene: THREE.Scene;
-    getObjectDimensions: () => Vector3;
   };
   private startPosition: THREE.Vector3 | null = null;
   private startMousePos: THREE.Vector2 | null = null;
@@ -87,6 +87,7 @@ export const Builder = class {
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
+      stateStore: this.stateStore,
       reducers: this.stateStore.reducers,
       projectId: this.projectId,
       projectManager: this.projectManager,
@@ -97,10 +98,6 @@ export const Builder = class {
       mode: this.currentMode,
       camera: this.camera,
       scene: this.scene,
-      getObjectDimensions: () => {
-        const obj = this.projectManager.chunkManager.getObject(this.selectedObject);
-        return obj ? obj.dimensions : this.dimensions;
-      },
     };
 
     this.boundMouseMove = this.onMouseMove.bind(this);

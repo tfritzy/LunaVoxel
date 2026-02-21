@@ -6,7 +6,7 @@ import { MoveSelectionTool } from "../tools/move-selection-tool";
 import { BrushTool } from "../tools/brush-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
-import type { Reducers } from "@/state/store";
+import type { Reducers, StateStore } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import * as THREE from "three";
@@ -49,7 +49,31 @@ describe("Tool Interface", () => {
 
     const previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
 
+    const mockObjects = new Map([["test-obj", {
+      id: "test-obj",
+      projectId: "test-project",
+      index: 0,
+      name: "Object 1",
+      visible: true,
+      locked: false,
+      position: { x: 0, y: 0, z: 0 },
+      dimensions,
+      selection: null,
+    }]]);
+
+    const mockStateStore = {
+      getState: () => ({
+        project: { id: "test-project", dimensions },
+        objects: mockObjects,
+        blocks: { projectId: "test-project", colors: [] },
+        chunks: new Map(),
+      }),
+      subscribe: () => () => {},
+      reducers,
+    } as StateStore;
+
     mockContext = {
+      stateStore: mockStateStore,
       reducers,
       projectId: "test-project",
       projectManager: {
@@ -71,7 +95,6 @@ describe("Tool Interface", () => {
       mode: attachMode,
       camera,
       scene: new THREE.Scene(),
-      getObjectDimensions: () => dimensions,
     };
   });
 

@@ -82,6 +82,13 @@ export class ChunkManager {
 
   private handleStateChange = () => {
     const current = this.stateStore.getState();
+    this.syncObjects(current);
+    const activeChunkObjects = this.syncChunkData(current);
+    this.removeStaleChunks(activeChunkObjects);
+    this.updateAllChunks();
+  };
+
+  private syncObjects(current: ReturnType<StateStore["getState"]>): void {
     this.objects = [...current.objects.values()]
       .filter((obj) => obj.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
@@ -90,8 +97,10 @@ export class ChunkManager {
     for (const obj of this.objects) {
       this.objectVisibilityMap.set(obj.index, obj.visible);
     }
+  }
 
-    const nextChunkObjects = new Map<string, Set<number>>();
+  private syncChunkData(current: ReturnType<StateStore["getState"]>): Map<string, Set<number>> {
+    const activeChunkObjects = new Map<string, Set<number>>();
 
     for (const chunkData of current.chunks.values()) {
       if (chunkData.projectId !== this.projectId) continue;
@@ -107,16 +116,20 @@ export class ChunkManager {
       const chunk = this.getOrCreateChunk(worldMinPos);
       chunk.setObjectChunk(obj.index, chunkData.voxels);
       const key = this.getChunkKey(worldMinPos);
-      if (!nextChunkObjects.has(key)) {
-        nextChunkObjects.set(key, new Set());
+      if (!activeChunkObjects.has(key)) {
+        activeChunkObjects.set(key, new Set());
       }
-      nextChunkObjects.get(key)?.add(obj.index);
+      activeChunkObjects.get(key)?.add(obj.index);
     }
 
+    return activeChunkObjects;
+  }
+
+  private removeStaleChunks(activeChunkObjects: Map<string, Set<number>>): void {
     const activeObjectCount = Math.max(this.maxObjects, this.objects.length);
 
     for (const [key, chunk] of this.chunks.entries()) {
-      const activeObjects = nextChunkObjects.get(key) ?? new Set<number>();
+      const activeObjects = activeChunkObjects.get(key) ?? new Set<number>();
       for (let i = 0; i < activeObjectCount; i++) {
         if (!activeObjects.has(i) && chunk.getObjectChunk(i)) {
           chunk.setObjectChunk(i, null);
@@ -127,9 +140,7 @@ export class ChunkManager {
         this.chunks.delete(key);
       }
     }
-
-    this.updateAllChunks();
-  };
+  }
 
   public getObject(objectIndex: number): VoxelObject | undefined {
     return this.objects.find((o) => o.index === objectIndex);
