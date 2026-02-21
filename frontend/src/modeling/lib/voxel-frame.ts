@@ -12,6 +12,7 @@ export class VoxelFrame {
   private capMinPos: Vector3;
   private data: Uint8Array;
   private empty: boolean = true;
+  private version: number = Math.random() * Number.MAX_SAFE_INTEGER;
 
   constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
     this.dimensions = { ...dimensions };
@@ -38,6 +39,10 @@ export class VoxelFrame {
    */
   public isEmpty(): boolean {
     return this.empty;
+  }
+
+  public getVersion(): number {
+    return this.version;
   }
 
   /**
@@ -110,12 +115,9 @@ export class VoxelFrame {
     if (blockIndex !== 0) {
       this.empty = false;
     }
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
-  /**
-   * Get a voxel value by flat array index
-   * @param index The flat array index
-   */
   public getByIndex(index: number): number {
     if (this.empty || index < 0 || index >= this.data.length) return 0;
     return this.data[index];
@@ -132,6 +134,7 @@ export class VoxelFrame {
     if (blockIndex !== 0) {
       this.empty = false;
     }
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
   /**
@@ -149,6 +152,7 @@ export class VoxelFrame {
   public clear(): void {
     this.data.fill(0);
     this.empty = true;
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
   public fill(value: number): void {
@@ -175,11 +179,9 @@ export class VoxelFrame {
       }
     }
     this.empty = value === 0;
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
-  /**
-   * Get the dimensions of this frame
-   */
   public getDimensions(): Vector3 {
     return { ...this.dimensions };
   }

@@ -108,6 +108,7 @@ export class ChunkManager {
 
       const chunk = this.getOrCreateChunk(chunkData.minPos);
       chunk.setObjectChunk(objectIndex, chunkData.voxels);
+      chunk.setSelectionChunkFrame(chunkData.selection);
       const key = this.getChunkKey(chunkData.minPos);
       if (!nextChunkObjects.has(key)) {
         nextChunkObjects.set(key, new Set());
