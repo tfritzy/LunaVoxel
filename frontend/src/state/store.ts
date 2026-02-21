@@ -11,6 +11,7 @@ import type {
 import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
+import { chunkMin, chunkMinPos, voxelIndex, chunkVoxelIndex, getChunkVoxel, setChunkVoxel } from "./chunk-utils";
 
 export type GlobalState = {
   project: Project;
@@ -134,7 +135,7 @@ const createInitialState = (): GlobalState => {
       z >= seedChunk.size.z
     )
       return;
-    const index = x * seedChunk.size.y * seedChunk.size.z + y * seedChunk.size.z + z;
+    const index = voxelIndex(x, y, z, seedChunk.size.y, seedChunk.size.z);
     seedChunk.voxels[index] = value | RAYCASTABLE_BIT;
   };
 
@@ -181,16 +182,15 @@ function snapshotObjectVoxels(objectIndex: number): Uint8Array {
   for (const chunk of state.chunks.values()) {
     if (chunk.objectId !== obj.id) continue;
     const { size, minPos, voxels } = chunk;
-    const syz = size.y * size.z;
     for (let lx = 0; lx < size.x; lx++) {
       const wx = minPos.x + lx;
       for (let ly = 0; ly < size.y; ly++) {
         const wy = minPos.y + ly;
         for (let lz = 0; lz < size.z; lz++) {
-          const val = voxels[lx * syz + ly * size.z + lz];
+          const val = voxels[voxelIndex(lx, ly, lz, size.y, size.z)];
           if (val !== 0) {
             const wz = minPos.z + lz;
-            snapshot[wx * dims.y * dims.z + wy * dims.z + wz] = val;
+            snapshot[voxelIndex(wx, wy, wz, dims.y, dims.z)] = val;
           }
         }
       }
@@ -245,10 +245,7 @@ const applyBlockAt = (
   localZ: number,
   blockType: number
 ) => {
-  const index =
-    localX * chunk.size.y * chunk.size.z +
-    localY * chunk.size.z +
-    localZ;
+  const index = voxelIndex(localX, localY, localZ, chunk.size.y, chunk.size.z);
 
   switch (mode.tag) {
     case "Attach":
@@ -288,27 +285,25 @@ const rebuildSelectionChunks = () => {
           const val = sel.get(wx, wy, wz);
           if (val === 0) continue;
 
-          const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-          const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-          const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-          const posKey = `${cx},${cy},${cz}`;
+          const cMin = chunkMinPos(wx, wy, wz);
+          const posKey = `${cMin.x},${cMin.y},${cMin.z}`;
 
           let frame = positionSelections.get(posKey);
           if (!frame) {
             const size = {
-              x: Math.min(CHUNK_SIZE, dims.x - cx),
-              y: Math.min(CHUNK_SIZE, dims.y - cy),
-              z: Math.min(CHUNK_SIZE, dims.z - cz),
+              x: Math.min(CHUNK_SIZE, dims.x - cMin.x),
+              y: Math.min(CHUNK_SIZE, dims.y - cMin.y),
+              z: Math.min(CHUNK_SIZE, dims.z - cMin.z),
             };
             frame = new VoxelFrame(size);
             positionSelections.set(posKey, frame);
           }
 
-          const localX = wx - cx;
-          const localY = wy - cy;
-          const localZ = wz - cz;
+          const localX = wx - cMin.x;
+          const localY = wy - cMin.y;
+          const localZ = wz - cMin.z;
           const frameDims = frame.getDimensions();
-          frame.setByIndex(localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ, val);
+          frame.setByIndex(voxelIndex(localX, localY, localZ, frameDims.y, frameDims.z), val);
         }
       }
     }
@@ -432,17 +427,17 @@ const reducers: Reducers = {
       const maxZ = minZ + frameDims.z - 1;
 
       for (
-        let chunkX = Math.floor(minX / CHUNK_SIZE) * CHUNK_SIZE;
+        let chunkX = chunkMin(minX);
         chunkX <= maxX;
         chunkX += CHUNK_SIZE
       ) {
         for (
-          let chunkY = Math.floor(minY / CHUNK_SIZE) * CHUNK_SIZE;
+          let chunkY = chunkMin(minY);
           chunkY <= maxY;
           chunkY += CHUNK_SIZE
         ) {
           for (
-            let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE;
+            let chunkZ = chunkMin(minZ);
             chunkZ <= maxZ;
             chunkZ += CHUNK_SIZE
           ) {
@@ -496,16 +491,9 @@ const reducers: Reducers = {
         const y = Math.floor(remainder / dims.z);
         const z = remainder % dims.z;
 
-        const cx = Math.floor(x / CHUNK_SIZE) * CHUNK_SIZE;
-        const cy = Math.floor(y / CHUNK_SIZE) * CHUNK_SIZE;
-        const cz = Math.floor(z / CHUNK_SIZE) * CHUNK_SIZE;
-
-        const chunk = getOrCreateChunk(obj.id, { x: cx, y: cy, z: cz });
-        const lx = x - cx;
-        const ly = y - cy;
-        const lz = z - cz;
-        const ci = lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz;
-        chunk.voxels[ci] = beforeDiff[i];
+        const cPos = chunkMinPos(x, y, z);
+        const chunk = getOrCreateChunk(obj.id, cPos);
+        setChunkVoxel(chunk, x, y, z, beforeDiff[i]);
       }
     });
   },
@@ -517,16 +505,10 @@ const reducers: Reducers = {
     const dims = obj.dimensions;
 
     const getBlock = (wx: number, wy: number, wz: number): number => {
-      const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-      const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-      const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-      const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+      const key = getChunkKey(obj.id, chunkMinPos(wx, wy, wz));
       const chunk = state.chunks.get(key);
       if (!chunk) return 0;
-      const lx = wx - cx;
-      const ly = wy - cy;
-      const lz = wz - cz;
-      return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
+      return getChunkVoxel(chunk, wx, wy, wz);
     };
 
     const startBlock = getBlock(pos.x, pos.y, pos.z) & BLOCK_TYPE_MASK;
@@ -543,7 +525,7 @@ const reducers: Reducers = {
     let minX = pos.x, minY = pos.y, minZ = pos.z;
     let maxX = pos.x, maxY = pos.y, maxZ = pos.z;
 
-    const queue: number[] = [pos.x * yz + pos.y * dims.z + pos.z];
+    const queue: number[] = [voxelIndex(pos.x, pos.y, pos.z, dims.y, dims.z)];
     visited[queue[0]] = 1;
 
     while (queue.length > 0) {
@@ -566,7 +548,7 @@ const reducers: Reducers = {
 
       for (const [nx, ny, nz] of neighbors) {
         if (nx < 0 || nx >= dims.x || ny < 0 || ny >= dims.y || nz < 0 || nz >= dims.z) continue;
-        const ni = nx * yz + ny * dims.z + nz;
+        const ni = voxelIndex(nx, ny, nz, dims.y, dims.z);
         if (visited[ni]) continue;
         visited[ni] = 1;
         if ((getBlock(nx, ny, nz) & BLOCK_TYPE_MASK) === startBlock) {
@@ -580,8 +562,8 @@ const reducers: Reducers = {
     for (let wx = minX; wx <= maxX; wx++) {
       for (let wy = minY; wy <= maxY; wy++) {
         for (let wz = minZ; wz <= maxZ; wz++) {
-          if (selected[wx * yz + wy * dims.z + wz] === 0) continue;
-          frameData[(wx - minX) * sdy * sdz + (wy - minY) * sdz + (wz - minZ)] = 1;
+          if (selected[voxelIndex(wx, wy, wz, dims.y, dims.z)] === 0) continue;
+          frameData[voxelIndex(wx - minX, wy - minY, wz - minZ, sdy, sdz)] = 1;
         }
       }
     }
@@ -606,12 +588,10 @@ const reducers: Reducers = {
     const chunkCache = new Map<string, ChunkData | undefined>();
 
     const getChunkCached = (wx: number, wy: number, wz: number) => {
-      const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-      const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-      const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-      const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+      const cPos = chunkMinPos(wx, wy, wz);
+      const key = getChunkKey(obj.id, cPos);
       if (!chunkCache.has(key)) chunkCache.set(key, state.chunks.get(key));
-      return { chunk: chunkCache.get(key), cx, cy, cz };
+      return chunkCache.get(key);
     };
 
     for (let lx = 0; lx < selDims.x; lx++) {
@@ -622,9 +602,9 @@ const reducers: Reducers = {
           const wz = selMin.z + lz;
           if (sel.get(wx, wy, wz) === 0) continue;
 
-          const { chunk, cx, cy, cz } = getChunkCached(wx, wy, wz);
+          const chunk = getChunkCached(wx, wy, wz);
           if (!chunk) continue;
-          const ci = (wx - cx) * chunk.size.y * chunk.size.z + (wy - cy) * chunk.size.z + (wz - cz);
+          const ci = chunkVoxelIndex(chunk, wx, wy, wz);
           const value = chunk.voxels[ci];
           if (value === 0) continue;
 
@@ -641,12 +621,9 @@ const reducers: Reducers = {
       const ny = wrap(wy + offset.y, dims.y);
       const nz = wrap(wz + offset.z, dims.z);
 
-      const cx = Math.floor(nx / CHUNK_SIZE) * CHUNK_SIZE;
-      const cy = Math.floor(ny / CHUNK_SIZE) * CHUNK_SIZE;
-      const cz = Math.floor(nz / CHUNK_SIZE) * CHUNK_SIZE;
-      const chunk = getOrCreateChunk(obj.id, { x: cx, y: cy, z: cz });
-      const ci = (nx - cx) * chunk.size.y * chunk.size.z + (ny - cy) * chunk.size.z + (nz - cz);
-      chunk.voxels[ci] = value;
+      const cPos = chunkMinPos(nx, ny, nz);
+      const chunk = getOrCreateChunk(obj.id, cPos);
+      setChunkVoxel(chunk, nx, ny, nz, value);
     }
 
     let newMinX = Infinity, newMinY = Infinity, newMinZ = Infinity;
@@ -677,7 +654,7 @@ const reducers: Reducers = {
             const nx = wrap(selMin.x + lx + offset.x, dims.x);
             const ny = wrap(selMin.y + ly + offset.y, dims.y);
             const nz = wrap(selMin.z + lz + offset.z, dims.z);
-            frameData[(nx - newMinX) * sdy * sdz + (ny - newMinY) * sdz + (nz - newMinZ)] = 1;
+            frameData[voxelIndex(nx - newMinX, ny - newMinY, nz - newMinZ, sdy, sdz)] = 1;
           }
         }
       }
@@ -749,11 +726,11 @@ const reducers: Reducers = {
       for (let lx = 0; lx < chunk.size.x; lx++) {
         for (let ly = 0; ly < chunk.size.y; ly++) {
           for (let lz = 0; lz < chunk.size.z; lz++) {
-            if (chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz] === 0) continue;
+            if (chunk.voxels[voxelIndex(lx, ly, lz, chunk.size.y, chunk.size.z)] === 0) continue;
             const wx = chunk.minPos.x + lx;
             const wy = chunk.minPos.y + ly;
             const wz = chunk.minPos.z + lz;
-            buf[wx * dims.y * dims.z + wy * dims.z + wz] = 1;
+            buf[voxelIndex(wx, wy, wz, dims.y, dims.z)] = 1;
             if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
             if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
             if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
@@ -774,8 +751,8 @@ const reducers: Reducers = {
     for (let wx = minX; wx <= maxX; wx++) {
       for (let wy = minY; wy <= maxY; wy++) {
         for (let wz = minZ; wz <= maxZ; wz++) {
-          if (buf[wx * dims.y * dims.z + wy * dims.z + wz] === 0) continue;
-          frameData[(wx - minX) * sdy * sdz + (wy - minY) * sdz + (wz - minZ)] = 1;
+          if (buf[voxelIndex(wx, wy, wz, dims.y, dims.z)] === 0) continue;
+          frameData[voxelIndex(wx - minX, wy - minY, wz - minZ, sdy, sdz)] = 1;
         }
       }
     }
@@ -800,15 +777,11 @@ const reducers: Reducers = {
           for (let lz = 0; lz < selDims.z; lz++) {
             if (sel.get(selMin.x + lx, selMin.y + ly, selMin.z + lz) === 0) continue;
             const wx = selMin.x + lx, wy = selMin.y + ly, wz = selMin.z + lz;
-            const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-            const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-            const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-            const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+            const key = getChunkKey(obj.id, chunkMinPos(wx, wy, wz));
             if (!chunkCache.has(key)) chunkCache.set(key, current.chunks.get(key));
             const chunk = chunkCache.get(key);
             if (!chunk) continue;
-            const ci = (wx - cx) * chunk.size.y * chunk.size.z + (wy - cy) * chunk.size.z + (wz - cz);
-            chunk.voxels[ci] = 0;
+            setChunkVoxel(chunk, wx, wy, wz, 0);
           }
         }
       }
