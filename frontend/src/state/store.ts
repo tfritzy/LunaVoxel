@@ -175,11 +175,11 @@ export function registerEditHistory(history: EditHistoryHandle) {
 
 function snapshotObjectVoxels(objectIndex: number): Uint8Array {
   const obj = state.objects.find((o) => o.index === objectIndex);
-  const dims = obj ? obj.dimensions : state.project.dimensions;
+  if (!obj) return new Uint8Array(0);
+
+  const dims = obj.dimensions;
   const total = dims.x * dims.y * dims.z;
   const snapshot = new Uint8Array(total);
-
-  if (!obj) return snapshot;
 
   for (const chunk of state.chunks.values()) {
     if (chunk.objectId !== obj.id) continue;

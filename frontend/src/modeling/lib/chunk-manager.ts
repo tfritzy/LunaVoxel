@@ -54,17 +54,11 @@ export class ChunkManager {
     };
   }
 
-  private getOrCreateChunk(minPos: Vector3): Chunk {
+  private getOrCreateChunk(minPos: Vector3, size: Vector3): Chunk {
     const key = this.getChunkKey(minPos);
     let chunk = this.chunks.get(key);
     
     if (!chunk) {
-      const size = {
-        x: CHUNK_SIZE,
-        y: CHUNK_SIZE,
-        z: CHUNK_SIZE,
-      };
-     
       console.log("Creating a new chunk at", minPos, size);
       chunk = new Chunk(
         this.scene, 
@@ -116,7 +110,7 @@ export class ChunkManager {
         z: chunkData.minPos.z + obj.position.z,
       } : chunkData.minPos;
 
-      const chunk = this.getOrCreateChunk(worldMinPos);
+      const chunk = this.getOrCreateChunk(worldMinPos, chunkData.size);
       chunk.setObjectChunk(objectIndex, chunkData.voxels);
       const key = this.getChunkKey(worldMinPos);
       if (!nextChunkObjects.has(key)) {
@@ -228,7 +222,12 @@ export class ChunkManager {
       for (let chunkY = minChunkY; chunkY <= maxChunkY; chunkY += CHUNK_SIZE) {
         for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += CHUNK_SIZE) {
           const chunkMinPos = { x: chunkX, y: chunkY, z: chunkZ };
-          const chunk = this.getOrCreateChunk(chunkMinPos);
+          const chunkSize = {
+            x: Math.min(CHUNK_SIZE, this.dimensions.x - chunkX),
+            y: Math.min(CHUNK_SIZE, this.dimensions.y - chunkY),
+            z: Math.min(CHUNK_SIZE, this.dimensions.z - chunkZ),
+          };
+          const chunk = this.getOrCreateChunk(chunkMinPos, chunkSize);
           chunk.expandPreviewBounds(minX, minY, minZ, maxX, maxY, maxZ);
           chunk.update();
         }
@@ -309,7 +308,12 @@ export class ChunkManager {
         for (let chunkZ = Math.floor(minZ / CHUNK_SIZE) * CHUNK_SIZE; 
              chunkZ <= maxZ; 
              chunkZ += CHUNK_SIZE) {
-          const chunk = this.getOrCreateChunk({ x: chunkX, y: chunkY, z: chunkZ });
+          const chunkSize = {
+            x: Math.min(CHUNK_SIZE, this.dimensions.x - chunkX),
+            y: Math.min(CHUNK_SIZE, this.dimensions.y - chunkY),
+            z: Math.min(CHUNK_SIZE, this.dimensions.z - chunkZ),
+          };
+          const chunk = this.getOrCreateChunk({ x: chunkX, y: chunkY, z: chunkZ }, chunkSize);
           
           const localMinX = Math.max(0, minX - chunkX);
           const localMaxX = Math.min(chunk.size.x - 1, maxX - chunkX);
