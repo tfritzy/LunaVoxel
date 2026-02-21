@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { addGroundPlane } from "./lib/add-ground-plane";
+import { addGroundPlane, updateBoundsVisibility } from "./lib/add-ground-plane";
 import { CameraController, CameraState } from "./lib/camera-controller";
 import { layers } from "./lib/layers";
 import type { Project } from "@/state/types";
@@ -24,6 +24,7 @@ export class VoxelEngine {
   private animationFrameId: number | null = null;
   private stateStore: StateStore;
   private project: Project;
+  private boundsEdges: ReturnType<typeof addGroundPlane>["boundsEdges"] = [];
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
@@ -50,12 +51,13 @@ export class VoxelEngine {
       this.controls.setCameraState(options.initialCameraState);
     }
 
-    addGroundPlane(
+    const { boundsEdges } = addGroundPlane(
       this.scene,
       this.project.dimensions.x,
       this.project.dimensions.y,
       this.project.dimensions.z
     );
+    this.boundsEdges = boundsEdges;
     this.projectManager = new ProjectManager(
       this.scene,
       this.stateStore,
@@ -226,6 +228,7 @@ export class VoxelEngine {
     const deltaTime = (currentTime - this.lastFrameTime) / 1000;
     this.lastFrameTime = currentTime;
     this.controls.update(deltaTime);
+    updateBoundsVisibility(this.camera.position, this.boundsEdges);
     this.renderer.render(this.scene, this.camera);
   };
 
