@@ -11,7 +11,6 @@ export interface ToolContext {
   projectManager: ProjectManager;
   previewBuffer: Uint8Array;
   selectedBlock: number;
-  selectedObject: number;
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
   camera: THREE.Camera;
@@ -79,8 +78,9 @@ export interface Tool {
 }
 
 export function getSelectedObject(context: ToolContext) {
+  const selectedObject = context.stateStore.getState().selectedObject;
   for (const obj of context.stateStore.getState().objects.values()) {
-    if (obj.index === context.selectedObject) return obj;
+    if (obj.index === selectedObject) return obj;
   }
   return undefined;
 }

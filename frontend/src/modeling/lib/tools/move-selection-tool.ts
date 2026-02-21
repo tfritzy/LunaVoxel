@@ -42,7 +42,8 @@ export class MoveSelectionTool implements Tool {
     this.appliedOffset.set(0, 0, 0);
 
     const chunkManager = context.projectManager.chunkManager;
-    const object = chunkManager.getObject(context.selectedObject);
+    const selectedObject = context.stateStore.getState().selectedObject;
+    const object = chunkManager.getObject(selectedObject);
     this.movingObject = !!(object && !object.selection);
 
     this.cachedBounds = this.computeBounds(context);
@@ -72,7 +73,7 @@ export class MoveSelectionTool implements Tool {
 
     if (incrementalOffset.lengthSq() > 0) {
       if (this.movingObject) {
-        context.reducers.moveObject(context.projectId, context.selectedObject, {
+        context.reducers.moveObject(context.projectId, context.stateStore.getState().selectedObject, {
           x: incrementalOffset.x,
           y: incrementalOffset.y,
           z: incrementalOffset.z,
@@ -102,7 +103,7 @@ export class MoveSelectionTool implements Tool {
 
     if (incrementalOffset.lengthSq() > 0) {
       if (this.movingObject) {
-        context.reducers.moveObject(context.projectId, context.selectedObject, {
+        context.reducers.moveObject(context.projectId, context.stateStore.getState().selectedObject, {
           x: incrementalOffset.x,
           y: incrementalOffset.y,
           z: incrementalOffset.z,
@@ -139,7 +140,8 @@ export class MoveSelectionTool implements Tool {
 
   private computeBounds(context: ToolContext): { min: Vector3; max: Vector3 } | null {
     const chunkManager = context.projectManager.chunkManager;
-    const object = chunkManager.getObject(context.selectedObject);
+    const selectedObject = context.stateStore.getState().selectedObject;
+    const object = chunkManager.getObject(selectedObject);
     if (!object) return null;
 
     if (object.selection) {
@@ -149,7 +151,7 @@ export class MoveSelectionTool implements Tool {
       };
     }
 
-    return chunkManager.getObjectContentBounds(context.selectedObject);
+    return chunkManager.getObjectContentBounds(selectedObject);
   }
 
   private renderBoundsBox(

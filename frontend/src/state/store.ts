@@ -15,6 +15,7 @@ import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 export type GlobalState = {
   project: Project;
   objects: Map<string, VoxelObject>;
+  selectedObject: number;
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -49,6 +50,7 @@ export type Reducers = {
   moveObject: (projectId: string, objectIndex: number, offset: Vector3) => void;
   beginSelectionMove: (projectId: string) => void;
   commitSelectionMove: (projectId: string) => void;
+  setSelectedObject: (objectIndex: number) => void;
   selectAllVoxels: (projectId: string, objectIndex: number) => void;
   deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
@@ -154,7 +156,7 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, objects, blocks, chunks };
+  return { project, objects, selectedObject: 0, blocks, chunks };
 };
 
 type EditHistoryHandle = {
@@ -727,6 +729,10 @@ const reducers: Reducers = {
       editHistoryRef.addEntry(selectionMoveSnapshot.data, after, selectionMoveSnapshot.objectIndex);
     }
     selectionMoveSnapshot = null;
+  },
+  setSelectedObject: (objectIndex) => {
+    state.selectedObject = objectIndex;
+    notify();
   },
   selectAllVoxels: (_projectId, objectIndex) => {
     const obj = getObjectByIndex(objectIndex);

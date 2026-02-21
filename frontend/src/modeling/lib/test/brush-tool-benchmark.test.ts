@@ -40,6 +40,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     updateBlockColor: () => {},
     setBlockColors: () => {},
     restoreObject: () => {},
+    setSelectedObject: () => {},
   };
 
   const chunkBounds: Map<string, { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number }> = new Map();
@@ -127,6 +128,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     getState: () => ({
       project: { id: "test-project", dimensions },
       objects: mockObjects,
+      selectedObject: 0,
       blocks: { projectId: "test-project", colors: [] },
       chunks: new Map(),
     }),
@@ -150,7 +152,6 @@ function createBenchmarkContext(dimensions: Vector3): {
     } as unknown as ProjectManager,
     previewBuffer,
     selectedBlock: 1,
-    selectedObject: 0,
     setSelectedBlockInParent: () => {},
     mode: attachMode,
     camera,

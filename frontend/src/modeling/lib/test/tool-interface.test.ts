@@ -45,6 +45,7 @@ describe("Tool Interface", () => {
       updateBlockColor: () => {},
       setBlockColors: () => {},
       restoreObject: () => {},
+      setSelectedObject: () => {},
     };
 
     const previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
@@ -65,6 +66,7 @@ describe("Tool Interface", () => {
       getState: () => ({
         project: { id: "test-project", dimensions },
         objects: mockObjects,
+        selectedObject: 0,
         blocks: { projectId: "test-project", colors: [] },
         chunks: new Map(),
       }),
@@ -90,7 +92,6 @@ describe("Tool Interface", () => {
       } as unknown as ProjectManager,
       previewBuffer,
       selectedBlock: 1,
-      selectedObject: 0,
       setSelectedBlockInParent: () => {},
       mode: attachMode,
       camera,
@@ -1294,9 +1295,33 @@ describe("Tool Interface", () => {
 
       const benchPreviewBuffer = new Uint8Array(benchDimensions.x * benchDimensions.y * benchDimensions.z);
 
+      const benchMockObjects = new Map([["bench-obj", {
+        id: "bench-obj",
+        projectId: "test-project",
+        index: 0,
+        name: "Object 1",
+        visible: true,
+        locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: benchDimensions,
+        selection: null,
+      }]]);
+
+      const benchStateStore = {
+        getState: () => ({
+          project: { id: "test-project", dimensions: benchDimensions },
+          objects: benchMockObjects,
+          selectedObject: 0,
+          blocks: { projectId: "test-project", colors: [] },
+          chunks: new Map(),
+        }),
+        subscribe: () => () => {},
+        reducers: mockContext.reducers,
+      } as StateStore;
+
       const benchContext: ToolContext = {
         ...mockContext,
-        dimensions: benchDimensions,
+        stateStore: benchStateStore,
         previewBuffer: benchPreviewBuffer,
         projectManager: {
           ...mockContext.projectManager,
