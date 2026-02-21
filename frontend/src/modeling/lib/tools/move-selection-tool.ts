@@ -39,6 +39,13 @@ export class MoveSelectionTool implements Tool {
     void event;
     this.snappedAxis = null;
     this.appliedOffset.set(0, 0, 0);
+
+    const chunkManager = context.projectManager.chunkManager;
+    const object = chunkManager.getObject(context.selectedObject);
+    if (object && !object.selection) {
+      context.reducers.selectAllVoxels(context.projectId, context.selectedObject);
+    }
+
     this.cachedBounds = this.computeBounds(context);
 
     if (this.cachedBounds) {
