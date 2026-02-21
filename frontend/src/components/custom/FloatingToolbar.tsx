@@ -108,7 +108,8 @@ export const FloatingToolbar = ({
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
       <div className="flex items-end gap-6">
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1">
           {modeConfig.map((mode) => {
             const isActive = currentMode.tag === mode.tag;
             const Icon = mode.icon;
@@ -139,9 +140,12 @@ export const FloatingToolbar = ({
               </Button>
             );
           })}
+          </div>
+          <span className="text-xs text-secondary">Mode</span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1">
           <Button
             onClick={() => onToolChange("MoveSelection")}
             className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
@@ -202,6 +206,8 @@ export const FloatingToolbar = ({
             <Wand2 className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">S</div>
           </Button>
+          </div>
+          <span className="text-xs text-secondary">Tools</span>
         </div>
       </div>
     </div>
