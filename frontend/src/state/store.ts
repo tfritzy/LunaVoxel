@@ -515,7 +515,102 @@ const reducers: Reducers = {
     obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     notify();
   },
-  commitSelectionMove: () => {},
+  commitSelectionMove: (_projectId, offset) => {
+    const obj = state.objects.find((o) => o.selection !== null);
+    if (!obj || !obj.selection) return;
+
+    const sel = obj.selection;
+    const selDims = sel.getDimensions();
+    const selMin = sel.getMinPos();
+    const dims = state.project.dimensions;
+    const wrap = (val: number, dim: number) => ((val % dim) + dim) % dim;
+
+    const voxels: { wx: number; wy: number; wz: number; value: number }[] = [];
+    const chunkCache = new Map<string, ChunkData | undefined>();
+
+    const getChunkCached = (wx: number, wy: number, wz: number) => {
+      const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
+      const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
+      const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
+      const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+      if (!chunkCache.has(key)) chunkCache.set(key, state.chunks.get(key));
+      return { chunk: chunkCache.get(key), cx, cy, cz };
+    };
+
+    for (let lx = 0; lx < selDims.x; lx++) {
+      for (let ly = 0; ly < selDims.y; ly++) {
+        for (let lz = 0; lz < selDims.z; lz++) {
+          const wx = selMin.x + lx;
+          const wy = selMin.y + ly;
+          const wz = selMin.z + lz;
+          if (sel.get(wx, wy, wz) === 0) continue;
+
+          const { chunk, cx, cy, cz } = getChunkCached(wx, wy, wz);
+          if (!chunk) continue;
+          const ci = (wx - cx) * chunk.size.y * chunk.size.z + (wy - cy) * chunk.size.z + (wz - cz);
+          const value = chunk.voxels[ci];
+          if (value === 0) continue;
+
+          voxels.push({ wx, wy, wz, value });
+          chunk.voxels[ci] = 0;
+        }
+      }
+    }
+
+    chunkCache.clear();
+
+    for (const { wx, wy, wz, value } of voxels) {
+      const nx = wrap(wx + offset.x, dims.x);
+      const ny = wrap(wy + offset.y, dims.y);
+      const nz = wrap(wz + offset.z, dims.z);
+
+      const cx = Math.floor(nx / CHUNK_SIZE) * CHUNK_SIZE;
+      const cy = Math.floor(ny / CHUNK_SIZE) * CHUNK_SIZE;
+      const cz = Math.floor(nz / CHUNK_SIZE) * CHUNK_SIZE;
+      const chunk = getOrCreateChunk(obj.id, { x: cx, y: cy, z: cz });
+      const ci = (nx - cx) * chunk.size.y * chunk.size.z + (ny - cy) * chunk.size.z + (nz - cz);
+      chunk.voxels[ci] = value;
+    }
+
+    let newMinX = Infinity, newMinY = Infinity, newMinZ = Infinity;
+    let newMaxX = -1, newMaxY = -1, newMaxZ = -1;
+    for (let lx = 0; lx < selDims.x; lx++) {
+      for (let ly = 0; ly < selDims.y; ly++) {
+        for (let lz = 0; lz < selDims.z; lz++) {
+          if (sel.get(selMin.x + lx, selMin.y + ly, selMin.z + lz) === 0) continue;
+          const nx = wrap(selMin.x + lx + offset.x, dims.x);
+          const ny = wrap(selMin.y + ly + offset.y, dims.y);
+          const nz = wrap(selMin.z + lz + offset.z, dims.z);
+          if (nx < newMinX) newMinX = nx; if (nx > newMaxX) newMaxX = nx;
+          if (ny < newMinY) newMinY = ny; if (ny > newMaxY) newMaxY = ny;
+          if (nz < newMinZ) newMinZ = nz; if (nz > newMaxZ) newMaxZ = nz;
+        }
+      }
+    }
+
+    if (newMaxX >= 0) {
+      const sdx = newMaxX - newMinX + 1;
+      const sdy = newMaxY - newMinY + 1;
+      const sdz = newMaxZ - newMinZ + 1;
+      const frameData = new Uint8Array(sdx * sdy * sdz);
+      for (let lx = 0; lx < selDims.x; lx++) {
+        for (let ly = 0; ly < selDims.y; ly++) {
+          for (let lz = 0; lz < selDims.z; lz++) {
+            if (sel.get(selMin.x + lx, selMin.y + ly, selMin.z + lz) === 0) continue;
+            const nx = wrap(selMin.x + lx + offset.x, dims.x);
+            const ny = wrap(selMin.y + ly + offset.y, dims.y);
+            const nz = wrap(selMin.z + lz + offset.z, dims.z);
+            frameData[(nx - newMinX) * sdy * sdz + (ny - newMinY) * sdz + (nz - newMinZ)] = 1;
+          }
+        }
+      }
+      obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: newMinX, y: newMinY, z: newMinZ }, frameData);
+    } else {
+      obj.selection = null;
+    }
+
+    notify();
+  },
   selectAllVoxels: (_projectId, objectIndex) => {
     const obj = getObjectByIndex(objectIndex);
     if (!obj) return;
