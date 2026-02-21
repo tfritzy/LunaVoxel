@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { resetState, stateStore, getChunkKey } from "./store";
+import { resetState, stateStore, getChunkKey, registerEditHistory } from "./store";
+import { EditHistory } from "@/modeling/lib/edit-history";
 import { CHUNK_SIZE } from "./constants";
 
 function getVoxelAt(objectId: string, wx: number, wy: number, wz: number): number {
@@ -108,5 +109,46 @@ describe("commitSelectionMove", () => {
         expect(getVoxelAt(objectId, x, 0, z)).toBe(0);
       }
     }
+  });
+});
+
+describe("beginSelectionMove / endSelectionMove undo", () => {
+  let history: EditHistory;
+
+  beforeEach(() => {
+    resetState();
+    history = new EditHistory(stateStore, "local-project");
+    registerEditHistory(history);
+  });
+
+  it("creates an undo entry that reverts the full move", () => {
+    const objectId = stateStore.getState().objects[0].id;
+    const originalValue = getVoxelAt(objectId, 10, 0, 10);
+    expect(originalValue).not.toBe(0);
+
+    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.beginSelectionMove("local-project");
+    stateStore.reducers.commitSelectionMove("local-project", { x: 3, y: 0, z: 0 });
+    stateStore.reducers.commitSelectionMove("local-project", { x: 2, y: 0, z: 0 });
+    stateStore.reducers.endSelectionMove("local-project");
+
+    expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
+    expect(getVoxelAt(objectId, 15, 0, 10)).toBe(originalValue);
+
+    history.undo();
+
+    expect(getVoxelAt(objectId, 10, 0, 10)).toBe(originalValue);
+    expect(getVoxelAt(objectId, 15, 0, 10)).toBe(0);
+  });
+
+  it("does not create an undo entry when no voxels moved", () => {
+    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.beginSelectionMove("local-project");
+    stateStore.reducers.endSelectionMove("local-project");
+
+    history.undo();
+
+    const objectId = stateStore.getState().objects[0].id;
+    expect(getVoxelAt(objectId, 10, 0, 10)).not.toBe(0);
   });
 });

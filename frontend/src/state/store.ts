@@ -46,6 +46,8 @@ export type Reducers = {
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
   commitSelectionMove: (projectId: string, offset: Vector3) => void;
+  beginSelectionMove: (projectId: string) => void;
+  endSelectionMove: (projectId: string) => void;
   selectAllVoxels: (projectId: string, objectIndex: number) => void;
   deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
@@ -163,6 +165,7 @@ type EditHistoryHandle = {
 };
 
 let editHistoryRef: EditHistoryHandle | null = null;
+let selectionMoveSnapshot: { objectIndex: number; data: Uint8Array } | null = null;
 
 export function registerEditHistory(history: EditHistoryHandle) {
   editHistoryRef = history;
@@ -611,6 +614,35 @@ const reducers: Reducers = {
 
     notify();
   },
+  beginSelectionMove: (_projectId) => {
+    const obj = state.objects.find((o) => o.selection !== null);
+    if (!obj || !editHistoryRef) {
+      selectionMoveSnapshot = null;
+      return;
+    }
+    selectionMoveSnapshot = {
+      objectIndex: obj.index,
+      data: snapshotObjectVoxels(obj.index),
+    };
+  },
+  endSelectionMove: (_projectId) => {
+    if (!selectionMoveSnapshot || !editHistoryRef) {
+      selectionMoveSnapshot = null;
+      return;
+    }
+    const after = snapshotObjectVoxels(selectionMoveSnapshot.objectIndex);
+    let hasChange = false;
+    for (let i = 0; i < after.length; i++) {
+      if (selectionMoveSnapshot.data[i] !== after[i]) {
+        hasChange = true;
+        break;
+      }
+    }
+    if (hasChange) {
+      editHistoryRef.addEntry(selectionMoveSnapshot.data, after, selectionMoveSnapshot.objectIndex);
+    }
+    selectionMoveSnapshot = null;
+  },
   selectAllVoxels: (_projectId, objectIndex) => {
     const obj = getObjectByIndex(objectIndex);
     if (!obj) return;
@@ -764,5 +796,6 @@ export const useGlobalState = <T,>(
 
 export const resetState = () => {
   state = createInitialState();
+  selectionMoveSnapshot = null;
   notify();
 };

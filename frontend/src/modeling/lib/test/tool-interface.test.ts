@@ -37,6 +37,8 @@ describe("Tool Interface", () => {
       updateCursorPos: () => {},
       magicSelect: () => {},
       commitSelectionMove: () => {},
+      beginSelectionMove: () => {},
+      endSelectionMove: () => {},
       selectAllVoxels: () => {},
       deleteSelectedVoxels: () => {},
       updateBlockColor: () => {},
@@ -804,6 +806,8 @@ describe("Tool Interface", () => {
     it("should call commitSelectionMove reducer on mouse up with movement", () => {
       let commitSelectionMoveCalled = false;
       let passedOffset: Vector3 | null = null;
+      let beginCalled = false;
+      let endCalled = false;
       
       mockContext.reducers = {
         ...mockContext.reducers,
@@ -811,25 +815,39 @@ describe("Tool Interface", () => {
           commitSelectionMoveCalled = true;
           passedOffset = offset;
         },
+        beginSelectionMove: () => { beginCalled = true; },
+        endSelectionMove: () => { endCalled = true; },
       };
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => ({
+            min: { x: 0, y: 0, z: 0 },
+            max: { x: 5, y: 5, z: 5 },
+          }),
+        },
+      } as unknown as ProjectManager;
 
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(1, 2, 3),
         mousePosition: new THREE.Vector2(0, 0),
       });
 
-      // Simulate drag with movement
-      tool.onDrag(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 2, 3),
-        currentGridPosition: new THREE.Vector3(4, 2, 3),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0.5, 0)
-      });
+      expect(beginCalled).toBe(true);
 
-      // Should not be called during drag
-      expect(commitSelectionMoveCalled).toBe(false);
-
-      // Call mouse up
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
         currentGridPosition: new THREE.Vector3(4, 2, 3),
@@ -837,9 +855,9 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0)
       });
 
-      // Should be called on mouse up
       expect(commitSelectionMoveCalled).toBe(true);
       expect(passedOffset).not.toBeNull();
+      expect(endCalled).toBe(true);
     });
 
     it("should not call commitSelectionMove reducer on mouse up without mouse movement", () => {
@@ -850,6 +868,8 @@ describe("Tool Interface", () => {
         commitSelectionMove: () => {
           commitSelectionMoveCalled = true;
         },
+        beginSelectionMove: () => {},
+        endSelectionMove: () => {},
       };
 
       tool.onMouseDown(mockContext, {
