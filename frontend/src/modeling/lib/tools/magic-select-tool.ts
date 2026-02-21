@@ -37,7 +37,7 @@ export class MagicSelectTool implements Tool {
     if (!obj) return;
     context.reducers.magicSelect(
       context.projectId,
-      obj.index,
+      obj.id,
       event.currentGridPosition
     );
   }

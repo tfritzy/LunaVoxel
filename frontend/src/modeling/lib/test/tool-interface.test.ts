@@ -5,7 +5,7 @@ import { MagicSelectTool } from "../tools/magic-select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
 import { BrushTool } from "../tools/brush-tool";
 import type { Tool, ToolContext } from "../tool-interface";
-import type { Vector3, BlockModificationMode } from "@/state/types";
+import type { Vector3, BlockModificationMode, VoxelObject } from "@/state/types";
 import type { Reducers, StateStore } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
@@ -50,17 +50,16 @@ describe("Tool Interface", () => {
 
     const previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
 
-    const mockObjects = new Map([["test-obj", {
+    const mockObjects: VoxelObject[] = [{
       id: "test-obj",
       projectId: "test-project",
-      index: 0,
       name: "Object 1",
       visible: true,
       locked: false,
       position: { x: 0, y: 0, z: 0 },
       dimensions,
       selection: null,
-    }]]);
+    }];
 
     const mockStateStore = {
       getState: () => ({
@@ -86,7 +85,7 @@ describe("Tool Interface", () => {
           clearPreview: () => {},
           previewBuffer,
           getDimensions: () => dimensions,
-          getObject: () => undefined,
+          getObjectById: () => undefined,
           getObjectContentBounds: () => null,
         },
       } as unknown as ProjectManager,
@@ -848,10 +847,9 @@ describe("Tool Interface", () => {
         ...mockContext.projectManager,
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
-          getObject: () => ({
+          getObjectById: () => ({
             id: "obj1",
             projectId: "test-project",
-            index: 0,
             name: "Object 1",
             visible: true,
             locked: false,
@@ -924,10 +922,9 @@ describe("Tool Interface", () => {
         ...mockContext.projectManager,
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
-          getObject: () => ({
+          getObjectById: () => ({
             id: "obj1",
             projectId: "test-project",
-            index: 0,
             name: "Object 1",
             visible: true,
             locked: false,
@@ -969,7 +966,6 @@ describe("Tool Interface", () => {
       const objWithSelection = {
         id: "test-obj",
         projectId: "test-project",
-        index: 0,
         name: "Object 1",
         visible: true,
         locked: false,
@@ -981,7 +977,7 @@ describe("Tool Interface", () => {
       const stateWithSelection = {
         getState: () => ({
           project: { id: "test-project", dimensions },
-          objects: new Map([["test-obj", objWithSelection]]),
+          objects: [objWithSelection],
           selectedObject: "test-obj",
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
@@ -1016,10 +1012,9 @@ describe("Tool Interface", () => {
         ...mockContext.projectManager,
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
-          getObject: () => ({
+          getObjectById: () => ({
             id: "obj1",
             projectId: "test-project",
-            index: 0,
             name: "Object 1",
             visible: true,
             locked: false,
@@ -1049,7 +1044,7 @@ describe("Tool Interface", () => {
       const emptyStateStore = {
         getState: () => ({
           project: { id: "test-project", dimensions },
-          objects: new Map(),
+          objects: [] as VoxelObject[],
           selectedObject: "nonexistent",
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
@@ -1077,10 +1072,9 @@ describe("Tool Interface", () => {
         ...mockContext.projectManager,
         chunkManager: {
           ...mockContext.projectManager.chunkManager,
-          getObject: () => ({
+          getObjectById: () => ({
             id: "obj1",
             projectId: "test-project",
-            index: 0,
             name: "Object 1",
             visible: true,
             locked: false,
@@ -1304,17 +1298,16 @@ describe("Tool Interface", () => {
 
       const benchPreviewBuffer = new Uint8Array(benchDimensions.x * benchDimensions.y * benchDimensions.z);
 
-      const benchMockObjects = new Map([["bench-obj", {
+      const benchMockObjects = [{
         id: "bench-obj",
         projectId: "test-project",
-        index: 0,
         name: "Object 1",
         visible: true,
         locked: false,
         position: { x: 0, y: 0, z: 0 },
         dimensions: benchDimensions,
         selection: null,
-      }]]);
+      }];
 
       const benchStateStore = {
         getState: () => ({

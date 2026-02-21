@@ -25,7 +25,7 @@ export class RectTool implements Tool {
     bounds: RectBounds;
     mode: BlockModificationMode;
     selectedBlock: number;
-    objectIndex: number;
+    objectId: string;
     fillShape: FillShape;
     direction: ShapeDirection;
   } | null = null;
@@ -262,7 +262,7 @@ export class RectTool implements Tool {
       bounds,
       mode: context.mode,
       selectedBlock: context.selectedBlock,
-      objectIndex: getSelectedObject(context)?.index ?? 0,
+      objectId: getSelectedObject(context)?.id ?? '',
       fillShape: this.fillShape,
       direction: this.direction,
     };
@@ -399,7 +399,7 @@ export class RectTool implements Tool {
   private applyAndClear(context: ToolContext, bounds: RectBounds): void {
     const mode = this.pending?.mode ?? context.mode;
     const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
-    const objectIndex = this.pending?.objectIndex ?? (getSelectedObject(context)?.index ?? 0);
+    const objectId = this.pending?.objectId ?? (getSelectedObject(context)?.id ?? '');
     const dims = getSelectedObject(context)!.dimensions;
     const dimY = dims.y;
     const dimZ = dims.z;
@@ -425,7 +425,7 @@ export class RectTool implements Tool {
       }
     }
 
-    context.reducers.applyFrame(mode, selectedBlock, frame, objectIndex);
+    context.reducers.applyFrame(mode, selectedBlock, frame, objectId);
     context.projectManager.chunkManager.clearPreview();
     this.lastBounds = null;
   }

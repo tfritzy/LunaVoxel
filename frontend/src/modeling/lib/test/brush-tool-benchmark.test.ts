@@ -112,17 +112,16 @@ function createBenchmarkContext(dimensions: Vector3): {
     chunkBounds.clear();
   };
 
-  const mockObjects = new Map([["bench-obj", {
+  const mockObjects = [{
     id: "bench-obj",
     projectId: "test-project",
-    index: 0,
     name: "Object 1",
     visible: true,
     locked: false,
     position: { x: 0, y: 0, z: 0 },
     dimensions,
     selection: null,
-  }]]);
+  }];
 
   const mockStateStore = {
     getState: () => ({

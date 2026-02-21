@@ -84,16 +84,16 @@ export class ProjectManager {
           editHistory.undo();
         } else if (event.key === "a" || event.key === "A") {
           event.preventDefault();
-          const obj = this.stateStore.getState().objects.get(this.builder.getSelectedObject());
+          const obj = this.stateStore.getState().objects.find(o => o.id === this.builder.getSelectedObject());
           if (obj) {
-            this.stateStore.reducers.selectAllVoxels(this.project.id, obj.index);
+            this.stateStore.reducers.selectAllVoxels(this.project.id, obj.id);
           }
         }
       } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        const obj = this.stateStore.getState().objects.get(this.builder.getSelectedObject());
+        const obj = this.stateStore.getState().objects.find(o => o.id === this.builder.getSelectedObject());
         if (obj) {
-          this.stateStore.reducers.deleteSelectedVoxels(this.project.id, obj.index);
+          this.stateStore.reducers.deleteSelectedVoxels(this.project.id, obj.id);
         }
       }
     };
@@ -136,14 +136,14 @@ export class ProjectManager {
   };
 
   public applyOptimisticRectEdit = (
-    objectIndex: number,
+    objectId: string,
     mode: BlockModificationMode,
     start: THREE.Vector3,
     end: THREE.Vector3,
     blockType: number,
     rotation: number
   ) => {
-    const obj = this.chunkManager.getObject(objectIndex);
+    const obj = this.chunkManager.getObjectById(objectId);
     if (!obj) return;
 
     this.chunkManager.applyOptimisticRect(
@@ -158,9 +158,9 @@ export class ProjectManager {
 
   public getBlockAtPosition(
     position: THREE.Vector3,
-    objectIndex: number
+    objectId: string
   ): number | null {
-    const obj = this.chunkManager.getObject(objectIndex);
+    const obj = this.chunkManager.getObjectById(objectId);
     if (!obj) return null;
 
     return this.chunkManager.getBlockAtPosition(position, obj);

@@ -90,13 +90,12 @@ export class ChunkManager {
   };
 
   private syncObjects(current: ReturnType<StateStore["getState"]>): void {
-    this.objects = [...current.objects.values()]
-      .filter((obj) => obj.projectId === this.projectId)
-      .sort((a, b) => a.index - b.index);
+    this.objects = current.objects
+      .filter((obj) => obj.projectId === this.projectId);
 
     this.objectVisibilityMap.clear();
-    for (const obj of this.objects) {
-      this.objectVisibilityMap.set(obj.index, obj.visible);
+    for (let i = 0; i < this.objects.length; i++) {
+      this.objectVisibilityMap.set(i, this.objects[i].visible);
     }
   }
 
@@ -105,8 +104,9 @@ export class ChunkManager {
 
     for (const chunkData of current.chunks.values()) {
       if (chunkData.projectId !== this.projectId) continue;
-      const obj = current.objects.get(chunkData.objectId);
-      if (!obj) continue;
+      const objSlot = this.objects.findIndex(o => o.id === chunkData.objectId);
+      if (objSlot === -1) continue;
+      const obj = this.objects[objSlot];
 
       const worldMinPos = {
         x: chunkData.minPos.x + obj.position.x,
@@ -115,13 +115,13 @@ export class ChunkManager {
       };
 
       const chunk = this.getOrCreateChunk(worldMinPos);
-      chunk.setObjectChunk(obj.index, chunkData.voxels);
+      chunk.setObjectChunk(objSlot, chunkData.voxels);
       chunk.setSelectionChunkFrame(chunkData.selection);
       const key = this.getChunkKey(worldMinPos);
       if (!activeChunkObjects.has(key)) {
         activeChunkObjects.set(key, new Set());
       }
-      activeChunkObjects.get(key)?.add(obj.index);
+      activeChunkObjects.get(key)?.add(objSlot);
     }
 
     return activeChunkObjects;
@@ -144,28 +144,12 @@ export class ChunkManager {
     }
   }
 
-  public getObject(objectIndex: number): VoxelObject | undefined {
-    return this.objects.find((o) => o.index === objectIndex);
+  public getObjectById(objectId: string): VoxelObject | undefined {
+    return this.objects.find((o) => o.id === objectId);
   }
 
-  public getObjectBounds(objectIndex: number): { min: Vector3; max: Vector3 } | null {
-    const object = this.getObject(objectIndex);
-    if (!object) {
-      return null;
-    }
-
-    return {
-      min: { ...object.position },
-      max: {
-        x: object.position.x + object.dimensions.x,
-        y: object.position.y + object.dimensions.y,
-        z: object.position.z + object.dimensions.z,
-      },
-    };
-  }
-
-  public getObjectContentBounds(objectIndex: number): { min: Vector3; max: Vector3 } | null {
-    const object = this.getObject(objectIndex);
+  public getObjectContentBounds(objectId: string): { min: Vector3; max: Vector3 } | null {
+    const object = this.objects.find(o => o.id === objectId);
     if (!object) return null;
 
     const state = this.stateStore.getState();
@@ -253,7 +237,8 @@ export class ChunkManager {
     
     if (!chunk) return 0;
     
-    const objectChunk = chunk.getObjectChunk(obj.index);
+    const objSlot = this.objects.findIndex(o => o.id === obj.id);
+    const objectChunk = chunk.getObjectChunk(objSlot);
     if (!objectChunk) return 0;
     
     const localX = position.x - chunkMinPos.x;
@@ -320,7 +305,7 @@ export class ChunkManager {
           const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
 
           chunk.applyOptimisticRect(
-            obj.index,
+            this.objects.findIndex(o => o.id === obj.id),
             mode,
             localMinX, localMaxX,
             localMinY, localMaxY,

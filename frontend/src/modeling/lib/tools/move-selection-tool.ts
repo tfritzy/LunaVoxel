@@ -74,7 +74,7 @@ export class MoveSelectionTool implements Tool {
       if (this.movingObject) {
         const obj = getSelectedObject(context);
         if (obj) {
-          context.reducers.moveObject(context.projectId, obj.index, {
+          context.reducers.moveObject(context.projectId, obj.id, {
             x: incrementalOffset.x,
             y: incrementalOffset.y,
             z: incrementalOffset.z,
@@ -114,7 +114,7 @@ export class MoveSelectionTool implements Tool {
       if (this.movingObject) {
         const obj = getSelectedObject(context);
         if (obj) {
-          context.reducers.moveObject(context.projectId, obj.index, {
+          context.reducers.moveObject(context.projectId, obj.id, {
             x: incrementalOffset.x,
             y: incrementalOffset.y,
             z: incrementalOffset.z,
@@ -161,7 +161,7 @@ export class MoveSelectionTool implements Tool {
       };
     }
 
-    return context.projectManager.chunkManager.getObjectContentBounds(object.index);
+    return context.projectManager.chunkManager.getObjectContentBounds(object.id);
   }
 
   private renderBoundsBox(

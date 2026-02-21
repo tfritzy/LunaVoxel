@@ -22,11 +22,11 @@ describe("moveSelection", () => {
   });
 
   it("moves selected voxels by the given offset", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
 
     expect(getVoxelAt(objectId, 10, 0, 10)).not.toBe(0);
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.moveSelection("local-project", { x: 1, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
@@ -34,10 +34,10 @@ describe("moveSelection", () => {
   });
 
   it("wraps voxels that move past the positive boundary", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     const dims = stateStore.getState().project.dimensions;
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
 
     const offset = dims.x - 10;
     stateStore.reducers.moveSelection("local-project", { x: offset, y: 0, z: 0 });
@@ -47,10 +47,10 @@ describe("moveSelection", () => {
   });
 
   it("wraps voxels that move past the negative boundary", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     const dims = stateStore.getState().project.dimensions;
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.moveSelection("local-project", { x: -11, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
@@ -58,11 +58,11 @@ describe("moveSelection", () => {
   });
 
   it("preserves block values through wrapped move", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     const original = getVoxelAt(objectId, 12, 5, 12);
     expect(original).not.toBe(0);
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.moveSelection("local-project", { x: 55, y: 0, z: 0 });
 
     const movedX = (12 + 55) % 64;
@@ -70,15 +70,15 @@ describe("moveSelection", () => {
   });
 
   it("updates the selection frame after move", () => {
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.moveSelection("local-project", { x: 5, y: 0, z: 0 });
 
-    const sel = [...stateStore.getState().objects.values()][0].selection;
+    const sel = stateStore.getState().objects[0].selection;
     expect(sel).not.toBeNull();
   });
 
   it("does nothing when no object has a selection", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     const before = getVoxelAt(objectId, 10, 0, 10);
 
     stateStore.reducers.moveSelection("local-project", { x: 5, y: 0, z: 0 });
@@ -87,9 +87,9 @@ describe("moveSelection", () => {
   });
 
   it("wraps on multiple axes simultaneously", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.moveSelection("local-project", { x: 60, y: 62, z: 60 });
 
     const newX = (10 + 60) % 64;
@@ -99,9 +99,9 @@ describe("moveSelection", () => {
   });
 
   it("erases voxels from original positions", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.moveSelection("local-project", { x: 20, y: 0, z: 0 });
 
     for (let x = 10; x <= 14; x++) {
@@ -122,11 +122,11 @@ describe("beginSelectionMove / commitSelectionMove undo", () => {
   });
 
   it("creates an undo entry that reverts the full move", () => {
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     const originalValue = getVoxelAt(objectId, 10, 0, 10);
     expect(originalValue).not.toBe(0);
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.beginSelectionMove("local-project");
     stateStore.reducers.moveSelection("local-project", { x: 3, y: 0, z: 0 });
     stateStore.reducers.moveSelection("local-project", { x: 2, y: 0, z: 0 });
@@ -142,13 +142,13 @@ describe("beginSelectionMove / commitSelectionMove undo", () => {
   });
 
   it("does not create an undo entry when no voxels moved", () => {
-    stateStore.reducers.selectAllVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", stateStore.getState().objects[0].id);
     stateStore.reducers.beginSelectionMove("local-project");
     stateStore.reducers.commitSelectionMove("local-project");
 
     history.undo();
 
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     expect(getVoxelAt(objectId, 10, 0, 10)).not.toBe(0);
   });
 });
