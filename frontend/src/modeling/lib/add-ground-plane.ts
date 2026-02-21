@@ -11,6 +11,9 @@ type BoundsEdge = {
 };
 
 const _v = new THREE.Vector3();
+const EDGE_COLOR = 0x606060;
+const BACK_FACING_EDGE_COLOR = 0xc0c0c0;
+const BACK_FACING_EDGE_OPACITY = 0.25;
 
 export function updateBoundsVisibility(
   cameraPos: THREE.Vector3,
@@ -21,7 +24,11 @@ export function updateBoundsVisibility(
       edge.face0Normal.dot(_v.subVectors(cameraPos, edge.face0Center)) > 0;
     const vis1 =
       edge.face1Normal.dot(_v.subVectors(cameraPos, edge.face1Center)) > 0;
-    edge.mesh.visible = vis0 && vis1;
+    const material = edge.mesh.material as THREE.MeshBasicMaterial;
+    const isFrontFacing = vis0 && vis1;
+    edge.mesh.visible = true;
+    material.opacity = isFrontFacing ? 1 : BACK_FACING_EDGE_OPACITY;
+    material.color.setHex(isFrontFacing ? EDGE_COLOR : BACK_FACING_EDGE_COLOR);
   }
 }
 
@@ -187,7 +194,7 @@ function createBoundsEdges(
   worldZDim: number
 ): BoundsEdge[] {
   const t = EDGE_THICKNESS;
-  const material = new THREE.MeshBasicMaterial({ color: 0x606060 });
+  const material = new THREE.MeshBasicMaterial({ color: EDGE_COLOR, transparent: true });
 
   const faceBottom = {
     center: new THREE.Vector3(worldXDim / 2, 0, worldYDim / 2),
