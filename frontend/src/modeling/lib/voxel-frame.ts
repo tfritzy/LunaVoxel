@@ -12,7 +12,7 @@ export class VoxelFrame {
   private capMinPos: Vector3;
   private data: Uint8Array;
   private empty: boolean = true;
-  private version: number = 0;
+  private version: number = Math.floor(Math.random() * 0x7FFFFFFF);
 
   constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
     this.dimensions = { ...dimensions };

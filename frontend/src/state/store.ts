@@ -17,7 +17,6 @@ export type GlobalState = {
   objects: VoxelObject[];
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
-  selectionChunks: Map<string, VoxelFrame>;
 };
 
 export type Reducers = {
@@ -159,12 +158,15 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, objects, blocks, chunks, selectionChunks: new Map() };
+  return { project, objects, blocks, chunks };
 };
 
 let state = createInitialState();
 let version = 0;
+let selectionChunks = new Map<string, VoxelFrame>();
 const listeners = new Set<() => void>();
+
+export const getSelectionChunks = () => selectionChunks;
 
 const notify = () => {
   version += 1;
@@ -221,7 +223,7 @@ const applyBlockAt = (
 };
 
 const rebuildSelectionChunks = () => {
-  state.selectionChunks.clear();
+  selectionChunks = new Map();
 
   for (const obj of state.objects) {
     if (!obj.selection || !obj.visible) continue;
@@ -248,7 +250,7 @@ const rebuildSelectionChunks = () => {
           const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
           const key = getSelectionChunkKey({ x: cx, y: cy, z: cz });
 
-          let frame = state.selectionChunks.get(key);
+          let frame = selectionChunks.get(key);
           if (!frame) {
             const size = {
               x: Math.min(CHUNK_SIZE, dims.x - cx),
@@ -256,7 +258,7 @@ const rebuildSelectionChunks = () => {
               z: Math.min(CHUNK_SIZE, dims.z - cz),
             };
             frame = new VoxelFrame(size);
-            state.selectionChunks.set(key, frame);
+            selectionChunks.set(key, frame);
           }
 
           const localX = wx - cx;
@@ -603,5 +605,6 @@ export const useGlobalState = <T,>(
 
 export const resetState = () => {
   state = createInitialState();
+  selectionChunks = new Map();
   notify();
 };

@@ -42,8 +42,7 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private selectionFrame: VoxelFrame;
-  private lastRenderedSelectionFrame: VoxelFrame | null = null;
-  private lastRenderedSelectionVersion: number = -1;
+  private lastSelectionVersion: number = -1;
   private previewBuffer: Uint8Array;
   private worldDimensions: Vector3;
   private previewDirty: boolean = false;
@@ -434,8 +433,7 @@ export class Chunk {
       return true;
     }
 
-    if (this.selectionFrame !== this.lastRenderedSelectionFrame ||
-        this.selectionFrame.getVersion() !== this.lastRenderedSelectionVersion) {
+    if (this.selectionFrame.getVersion() !== this.lastSelectionVersion) {
       return true;
     }
 
@@ -470,8 +468,7 @@ export class Chunk {
         this.renderedBlocks.set(this.blocksToRender);
         this.atlasChanged = false;
         this.previewDirty = false;
-        this.lastRenderedSelectionFrame = this.selectionFrame;
-        this.lastRenderedSelectionVersion = this.selectionFrame.getVersion();
+        this.lastSelectionVersion = this.selectionFrame.getVersion();
       }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);
