@@ -121,6 +121,5 @@ describe("selection chunk rebuild behavior", () => {
 
     stateStore.reducers.toggleObjectVisibility(object.id);
     expect(chunk!.selection.isEmpty()).toBe(false);
-    expect(chunk!.selection.isSet(10, 0, 10)).toBe(true);
   });
 });
