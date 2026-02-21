@@ -5,7 +5,7 @@ import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } fro
 import { getSelectedObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
-import { isInsideFillShape } from "../fill-shape-utils";
+import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
 import { VoxelFrame } from "../voxel-frame";
 
 const BRUSH_SHAPE_TO_FILL_SHAPE: Record<BrushShape, FillShape> = {
@@ -97,16 +97,12 @@ export class BrushTool implements Tool {
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
     const dimY = dims.y;
     const dimZ = dims.z;
+    const shapeParams = precomputeShapeParams(boundsMinX, boundsMaxX, boundsMinY, boundsMaxY, boundsMinZ, boundsMaxZ);
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
-          if (isInsideFillShape(
-            fillShape, x, y, z,
-            boundsMinX, boundsMaxX,
-            boundsMinY, boundsMaxY,
-            boundsMinZ, boundsMaxZ
-          )) {
+          if (isInsideFillShapePrecomputed(fillShape, x, y, z, shapeParams)) {
             context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = blockValue;
           }
         }
