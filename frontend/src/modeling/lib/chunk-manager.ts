@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import type { BlockModificationMode, VoxelObject, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
-import { getSelectionChunks } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
 import { AtlasData } from "@/lib/useAtlas";
 import { Chunk } from "./chunk";
@@ -109,6 +108,7 @@ export class ChunkManager {
 
       const chunk = this.getOrCreateChunk(chunkData.minPos);
       chunk.setObjectChunk(objectIndex, chunkData.voxels);
+      chunk.setSelectionChunkFrame(chunkData.selection);
       const key = this.getChunkKey(chunkData.minPos);
       if (!nextChunkObjects.has(key)) {
         nextChunkObjects.set(key, new Set());
@@ -129,13 +129,6 @@ export class ChunkManager {
         chunk.dispose();
         this.chunks.delete(key);
       }
-    }
-
-    const currentSelectionChunks = getSelectionChunks();
-    for (const chunk of this.chunks.values()) {
-      const key = this.getChunkKey(chunk.minPos);
-      const selFrame = currentSelectionChunks.get(key);
-      chunk.setSelectionChunkFrame(selFrame ?? null);
     }
 
     this.updateAllChunks();

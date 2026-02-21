@@ -90,6 +90,7 @@ const createChunkData = (
     minPos,
     size,
     voxels,
+    selection: new VoxelFrame({ x: 0, y: 0, z: 0 }),
   };
 };
 
@@ -163,10 +164,7 @@ const createInitialState = (): GlobalState => {
 
 let state = createInitialState();
 let version = 0;
-let selectionChunks = new Map<string, VoxelFrame>();
 const listeners = new Set<() => void>();
-
-export const getSelectionChunks = () => selectionChunks;
 
 const notify = () => {
   version += 1;
@@ -223,7 +221,7 @@ const applyBlockAt = (
 };
 
 const rebuildSelectionChunks = () => {
-  selectionChunks = new Map();
+  const positionSelections = new Map<string, VoxelFrame>();
 
   for (const obj of state.objects) {
     if (!obj.selection || !obj.visible) continue;
@@ -248,9 +246,9 @@ const rebuildSelectionChunks = () => {
           const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
           const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
           const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-          const key = getSelectionChunkKey({ x: cx, y: cy, z: cz });
+          const posKey = getSelectionChunkKey({ x: cx, y: cy, z: cz });
 
-          let frame = selectionChunks.get(key);
+          let frame = positionSelections.get(posKey);
           if (!frame) {
             const size = {
               x: Math.min(CHUNK_SIZE, dims.x - cx),
@@ -258,7 +256,7 @@ const rebuildSelectionChunks = () => {
               z: Math.min(CHUNK_SIZE, dims.z - cz),
             };
             frame = new VoxelFrame(size);
-            selectionChunks.set(key, frame);
+            positionSelections.set(posKey, frame);
           }
 
           const localX = wx - cx;
@@ -268,6 +266,16 @@ const rebuildSelectionChunks = () => {
           frame.setByIndex(localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ, val);
         }
       }
+    }
+  }
+
+  for (const chunk of state.chunks.values()) {
+    const posKey = getSelectionChunkKey(chunk.minPos);
+    const frame = positionSelections.get(posKey);
+    if (frame) {
+      chunk.selection = frame;
+    } else if (!chunk.selection.isEmpty()) {
+      chunk.selection = new VoxelFrame({ x: 0, y: 0, z: 0 });
     }
   }
 };
@@ -605,6 +613,5 @@ export const useGlobalState = <T,>(
 
 export const resetState = () => {
   state = createInitialState();
-  selectionChunks = new Map();
   notify();
 };

@@ -84,7 +84,7 @@ export class Chunk {
     this.getObjectVisible = getObjectVisible;
     this.previewBuffer = previewBuffer;
     this.worldDimensions = worldDimensions;
-    this.selectionFrame = new VoxelFrame(size);
+    this.selectionFrame = new VoxelFrame({ x: 0, y: 0, z: 0 });
 
     this.objectChunks = new Array(maxObjects).fill(null);
 
@@ -255,12 +255,8 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
-  public setSelectionChunkFrame(frame: VoxelFrame | null): void {
-    if (frame) {
-      this.selectionFrame = frame;
-    } else if (!this.selectionFrame.isEmpty()) {
-      this.selectionFrame = new VoxelFrame(this.size);
-    }
+  public setSelectionChunkFrame(frame: VoxelFrame): void {
+    this.selectionFrame = frame;
   }
 
   public getSelectionFrame(): VoxelFrame {

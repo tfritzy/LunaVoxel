@@ -43,4 +43,5 @@ export type ChunkData = {
   minPos: Vector3;
   size: Vector3;
   voxels: Uint8Array;
+  selection: VoxelFrame;
 };
