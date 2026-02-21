@@ -38,7 +38,7 @@ export const ObjectsSection = ({
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
-    return objects ? [...objects].sort((a, b) => a.index - b.index) : [];
+    return objects ? [...objects.values()].sort((a, b) => a.index - b.index) : [];
   }, [objects]);
 
   useEffect(() => {
@@ -60,7 +60,8 @@ export const ObjectsSection = ({
   const addObject = React.useCallback(() => {
     stateStore.reducers.addObject(projectId);
     const newObjects = stateStore.getState().objects;
-    const added = newObjects[newObjects.length - 1];
+    const sorted = [...newObjects.values()].sort((a, b) => a.index - b.index);
+    const added = sorted[sorted.length - 1];
     if (added) {
       editHistory.addObjectAdd(added);
     }

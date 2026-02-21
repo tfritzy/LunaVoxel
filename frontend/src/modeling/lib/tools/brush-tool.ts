@@ -87,14 +87,14 @@ export class BrushTool implements Tool {
     const minX = Math.max(0, boundsMinX);
     const minY = Math.max(0, boundsMinY);
     const minZ = Math.max(0, boundsMinZ);
-    const maxX = Math.min(context.dimensions.x - 1, boundsMaxX);
-    const maxY = Math.min(context.dimensions.y - 1, boundsMaxY);
-    const maxZ = Math.min(context.dimensions.z - 1, boundsMaxZ);
+    const maxX = Math.min(context.getObjectDimensions().x - 1, boundsMaxX);
+    const maxY = Math.min(context.getObjectDimensions().y - 1, boundsMaxY);
+    const maxZ = Math.min(context.getObjectDimensions().z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
-    const dimY = context.dimensions.y;
-    const dimZ = context.dimensions.z;
+    const dimY = context.getObjectDimensions().y;
+    const dimZ = context.getObjectDimensions().z;
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
@@ -138,7 +138,7 @@ export class BrushTool implements Tool {
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
     if (this.isStrokeActive) {
-      const dims = context.dimensions;
+      const dims = context.getObjectDimensions();
       const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 }, new Uint8Array(context.previewBuffer));
 
       context.reducers.applyFrame(

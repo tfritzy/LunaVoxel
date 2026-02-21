@@ -32,7 +32,6 @@ export const Builder = class {
   private toolContext: {
     reducers: StateStore["reducers"];
     projectId: string;
-    dimensions: Vector3;
     projectManager: ProjectManager;
     previewBuffer: Uint8Array;
     selectedBlock: number;
@@ -41,6 +40,7 @@ export const Builder = class {
     mode: BlockModificationMode;
     camera: THREE.Camera;
     scene: THREE.Scene;
+    getObjectDimensions: () => Vector3;
   };
   private startPosition: THREE.Vector3 | null = null;
   private startMousePos: THREE.Vector2 | null = null;
@@ -89,7 +89,6 @@ export const Builder = class {
     this.toolContext = {
       reducers: this.stateStore.reducers,
       projectId: this.projectId,
-      dimensions: this.dimensions,
       projectManager: this.projectManager,
       previewBuffer: this.projectManager.chunkManager.previewBuffer,
       selectedBlock: this.selectedBlock,
@@ -98,6 +97,10 @@ export const Builder = class {
       mode: this.currentMode,
       camera: this.camera,
       scene: this.scene,
+      getObjectDimensions: () => {
+        const obj = this.projectManager.chunkManager.getObject(this.selectedObject);
+        return obj ? obj.dimensions : this.dimensions;
+      },
     };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
@@ -194,10 +197,6 @@ export const Builder = class {
   public setSelectedObject(objectIndex: number): void {
     this.selectedObject = objectIndex;
     this.toolContext.selectedObject = objectIndex;
-    const obj = this.projectManager.chunkManager.getObject(objectIndex);
-    if (obj) {
-      this.toolContext.dimensions = obj.dimensions;
-    }
     this.currentTool.onActivate?.(this.toolContext);
   }
 

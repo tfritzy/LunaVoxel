@@ -52,7 +52,6 @@ describe("Tool Interface", () => {
     mockContext = {
       reducers,
       projectId: "test-project",
-      dimensions,
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
@@ -72,6 +71,7 @@ describe("Tool Interface", () => {
       mode: attachMode,
       camera,
       scene: new THREE.Scene(),
+      getObjectDimensions: () => dimensions,
     };
   });
 

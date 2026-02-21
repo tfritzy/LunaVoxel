@@ -88,20 +88,20 @@ describe("EditHistory", () => {
 
   describe("object rename", () => {
     it("undoes a rename", () => {
-      const obj = stateStore.getState().objects[0];
+      const obj = [...stateStore.getState().objects.values()][0];
       const originalName = obj.name;
 
       stateStore.reducers.renameObject(obj.id, "New Name");
       history.addObjectRename(obj.id, originalName, "New Name");
 
-      expect(stateStore.getState().objects[0].name).toBe("New Name");
+      expect([...stateStore.getState().objects.values()][0].name).toBe("New Name");
 
       history.undo();
-      expect(stateStore.getState().objects[0].name).toBe(originalName);
+      expect([...stateStore.getState().objects.values()][0].name).toBe(originalName);
     });
 
     it("redoes a rename", () => {
-      const obj = stateStore.getState().objects[0];
+      const obj = [...stateStore.getState().objects.values()][0];
       const originalName = obj.name;
 
       stateStore.reducers.renameObject(obj.id, "New Name");
@@ -109,56 +109,56 @@ describe("EditHistory", () => {
 
       history.undo();
       history.redo();
-      expect(stateStore.getState().objects[0].name).toBe("New Name");
+      expect([...stateStore.getState().objects.values()][0].name).toBe("New Name");
     });
   });
 
   describe("object add", () => {
     it("undoes an object add", () => {
       stateStore.reducers.addObject("local-project");
-      const added = stateStore.getState().objects[1];
+      const added = [...stateStore.getState().objects.values()][1];
       history.addObjectAdd(added);
 
-      expect(stateStore.getState().objects.length).toBe(2);
+      expect(stateStore.getState().objects.size).toBe(2);
 
       history.undo();
-      expect(stateStore.getState().objects.length).toBe(1);
+      expect(stateStore.getState().objects.size).toBe(1);
     });
 
     it("redoes an object add", () => {
       stateStore.reducers.addObject("local-project");
-      const added = stateStore.getState().objects[1];
+      const added = [...stateStore.getState().objects.values()][1];
       history.addObjectAdd(added);
 
       history.undo();
-      expect(stateStore.getState().objects.length).toBe(1);
+      expect(stateStore.getState().objects.size).toBe(1);
 
       history.redo();
-      expect(stateStore.getState().objects.length).toBe(2);
+      expect(stateStore.getState().objects.size).toBe(2);
     });
   });
 
   describe("object delete", () => {
     it("undoes an object delete", () => {
       stateStore.reducers.addObject("local-project");
-      const objectToDelete = stateStore.getState().objects[1];
+      const objectToDelete = [...stateStore.getState().objects.values()][1];
       const previousIndex = objectToDelete.index;
 
       stateStore.reducers.deleteObject(objectToDelete.id);
       history.addObjectDelete(objectToDelete, previousIndex, new Map());
 
-      expect(stateStore.getState().objects.length).toBe(1);
+      expect(stateStore.getState().objects.size).toBe(1);
 
       history.undo();
-      expect(stateStore.getState().objects.length).toBe(2);
+      expect(stateStore.getState().objects.size).toBe(2);
       expect(
-        stateStore.getState().objects.find((o) => o.id === objectToDelete.id)
+        [...stateStore.getState().objects.values()].find((o) => o.id === objectToDelete.id)
       ).toBeDefined();
     });
 
     it("redoes an object delete", () => {
       stateStore.reducers.addObject("local-project");
-      const objectToDelete = stateStore.getState().objects[1];
+      const objectToDelete = [...stateStore.getState().objects.values()][1];
       const previousIndex = objectToDelete.index;
 
       stateStore.reducers.deleteObject(objectToDelete.id);
@@ -166,29 +166,29 @@ describe("EditHistory", () => {
 
       history.undo();
       history.redo();
-      expect(stateStore.getState().objects.length).toBe(1);
+      expect(stateStore.getState().objects.size).toBe(1);
     });
   });
 
   describe("object reorder", () => {
     it("undoes a reorder", () => {
       stateStore.reducers.addObject("local-project");
-      const objects = stateStore.getState().objects;
+      const objects = [...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index);
       const previousOrder = objects.map((o) => o.id);
       const newOrder = [...previousOrder].reverse();
 
       stateStore.reducers.reorderObjects("local-project", newOrder);
       history.addObjectReorder(previousOrder, newOrder);
 
-      expect(stateStore.getState().objects[0].id).toBe(previousOrder[1]);
+      expect([...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index)[0].id).toBe(previousOrder[1]);
 
       history.undo();
-      expect(stateStore.getState().objects[0].id).toBe(previousOrder[0]);
+      expect([...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index)[0].id).toBe(previousOrder[0]);
     });
 
     it("redoes a reorder", () => {
       stateStore.reducers.addObject("local-project");
-      const objects = stateStore.getState().objects;
+      const objects = [...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index);
       const previousOrder = objects.map((o) => o.id);
       const newOrder = [...previousOrder].reverse();
 
@@ -197,14 +197,14 @@ describe("EditHistory", () => {
 
       history.undo();
       history.redo();
-      expect(stateStore.getState().objects[0].id).toBe(previousOrder[1]);
+      expect([...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index)[0].id).toBe(previousOrder[1]);
     });
   });
 
   describe("mixed operations", () => {
     it("undoes and redoes mixed entry types", () => {
       const originalColor = stateStore.getState().blocks.colors[0];
-      const obj = stateStore.getState().objects[0];
+      const obj = [...stateStore.getState().objects.values()][0];
       const originalName = obj.name;
 
       stateStore.reducers.updateBlockColor(0, 0xff0000);
@@ -214,7 +214,7 @@ describe("EditHistory", () => {
       history.addObjectRename(obj.id, originalName, "Renamed");
 
       history.undo();
-      expect(stateStore.getState().objects[0].name).toBe(originalName);
+      expect([...stateStore.getState().objects.values()][0].name).toBe(originalName);
       expect(stateStore.getState().blocks.colors[0]).toBe(0xff0000);
 
       history.undo();
@@ -224,7 +224,7 @@ describe("EditHistory", () => {
       expect(stateStore.getState().blocks.colors[0]).toBe(0xff0000);
 
       history.redo();
-      expect(stateStore.getState().objects[0].name).toBe("Renamed");
+      expect([...stateStore.getState().objects.values()][0].name).toBe("Renamed");
     });
 
     it("truncates redo stack when new entry is added after undo", () => {
@@ -249,7 +249,7 @@ describe("EditHistory", () => {
 
   describe("voxel edits", () => {
     const getVoxel = (x: number, y: number, z: number) => {
-      const obj = stateStore.getState().objects[0];
+      const obj = [...stateStore.getState().objects.values()][0];
       const key = getChunkKey(obj.id, { x: 0, y: 0, z: 0 });
       const chunk = stateStore.getState().chunks.get(key);
       if (!chunk) return 0;
@@ -302,7 +302,7 @@ describe("EditHistory", () => {
 
   describe("voxel edit via applyFrame auto-history", () => {
     const getVoxel = (x: number, y: number, z: number) => {
-      const obj = stateStore.getState().objects[0];
+      const obj = [...stateStore.getState().objects.values()][0];
       const key = getChunkKey(obj.id, { x: 0, y: 0, z: 0 });
       const chunk = stateStore.getState().chunks.get(key);
       if (!chunk) return 0;

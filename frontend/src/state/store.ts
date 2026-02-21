@@ -14,7 +14,7 @@ import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 
 export type GlobalState = {
   project: Project;
-  objects: VoxelObject[];
+  objects: Map<string, VoxelObject>;
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -75,14 +75,9 @@ export const getChunkKey = (objectId: string, minPos: Vector3) =>
 const createChunkData = (
   projectId: string,
   objectId: string,
-  minPos: Vector3,
-  objectDimensions: Vector3
+  minPos: Vector3
 ): ChunkData => {
-  const size = {
-    x: Math.min(CHUNK_SIZE, objectDimensions.x - minPos.x),
-    y: Math.min(CHUNK_SIZE, objectDimensions.y - minPos.y),
-    z: Math.min(CHUNK_SIZE, objectDimensions.z - minPos.z),
-  };
+  const size = { x: CHUNK_SIZE, y: CHUNK_SIZE, z: CHUNK_SIZE };
   const voxels = new Uint8Array(size.x * size.y * size.z);
   return {
     key: getChunkKey(objectId, minPos),
@@ -102,19 +97,18 @@ const createInitialState = (): GlobalState => {
   };
 
   const objectId = createId();
-  const objects: VoxelObject[] = [
-    {
-      id: objectId,
-      projectId,
-      index: 0,
-      name: "Object 1",
-      visible: true,
-      locked: false,
-      position: { x: 0, y: 0, z: 0 },
-      dimensions: { x: 64, y: 64, z: 64 },
-      selection: null,
-    },
-  ];
+  const initialObject: VoxelObject = {
+    id: objectId,
+    projectId,
+    index: 0,
+    name: "Object 1",
+    visible: true,
+    locked: false,
+    position: { x: 0, y: 0, z: 0 },
+    dimensions: { x: 64, y: 64, z: 64 },
+    selection: null,
+  };
+  const objects = new Map<string, VoxelObject>([[objectId, initialObject]]);
 
   const DEFAULT_PALETTE = colorPalettes[0];
   const blocks: ProjectBlocks = {
@@ -125,7 +119,7 @@ const createInitialState = (): GlobalState => {
   };
 
   const chunks = new Map<string, ChunkData>();
-  const seedChunk = createChunkData(projectId, objectId, { x: 0, y: 0, z: 0 }, objects[0].dimensions);
+  const seedChunk = createChunkData(projectId, objectId, { x: 0, y: 0, z: 0 });
 
   const setVoxel = (x: number, y: number, z: number, value: number) => {
     if (
@@ -174,7 +168,7 @@ export function registerEditHistory(history: EditHistoryHandle) {
 }
 
 function snapshotObjectVoxels(objectIndex: number): Uint8Array {
-  const obj = state.objects.find((o) => o.index === objectIndex);
+  const obj = getObjectByIndex(objectIndex);
   if (!obj) return new Uint8Array(0);
 
   const dims = obj.dimensions;
@@ -219,17 +213,22 @@ const updateState = (mutator: (current: GlobalState) => void) => {
   notify();
 };
 
-const getObjectByIndex = (objectIndex: number) =>
-  state.objects.find((obj) => obj.index === objectIndex);
+const getObjectByIndex = (objectIndex: number) => {
+  for (const obj of state.objects.values()) {
+    if (obj.index === objectIndex) return obj;
+  }
+  return undefined;
+};
+
+const getObjectById = (objectId: string) =>
+  state.objects.get(objectId);
 
 
 const getOrCreateChunk = (objectId: string, minPos: Vector3) => {
   const key = getChunkKey(objectId, minPos);
   let chunk = state.chunks.get(key);
   if (!chunk) {
-    const obj = state.objects.find((o) => o.id === objectId);
-    const dims = obj ? obj.dimensions : state.project.dimensions;
-    chunk = createChunkData(state.project.id, objectId, minPos, dims);
+    chunk = createChunkData(state.project.id, objectId, minPos);
     state.chunks.set(key, chunk);
   }
   return chunk;
@@ -267,30 +266,29 @@ const reducers: Reducers = {
   addObject: (_projectId) => {
     void _projectId;
     updateState((current) => {
-      const nextIndex = current.objects.length;
-      current.objects = [
-        ...current.objects,
-        {
-          id: createId(),
-          projectId: current.project.id,
-          index: nextIndex,
-          name: `Object ${nextIndex + 1}`,
-          visible: true,
-          locked: false,
-          position: { x: 0, y: 0, z: 0 },
-          dimensions: { x: 64, y: 64, z: 64 },
-          selection: null,
-        },
-      ];
+      const nextIndex = current.objects.size;
+      const id = createId();
+      current.objects.set(id, {
+        id,
+        projectId: current.project.id,
+        index: nextIndex,
+        name: `Object ${nextIndex + 1}`,
+        visible: true,
+        locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 64, y: 64, z: 64 },
+        selection: null,
+      });
     });
   },
   deleteObject: (objectId) => {
     updateState((current) => {
-      const target = current.objects.find((obj) => obj.id === objectId);
-      if (!target) return;
-      current.objects = current.objects
-        .filter((obj) => obj.id !== objectId)
-        .map((obj, index) => ({ ...obj, index }));
+      if (!current.objects.has(objectId)) return;
+      current.objects.delete(objectId);
+      let idx = 0;
+      for (const obj of current.objects.values()) {
+        obj.index = idx++;
+      }
 
       for (const [key, chunk] of current.chunks.entries()) {
         if (chunk.objectId === objectId) {
@@ -301,7 +299,7 @@ const reducers: Reducers = {
   },
   renameObject: (objectId, name) => {
     updateState((current) => {
-      const obj = current.objects.find((o) => o.id === objectId);
+      const obj = current.objects.get(objectId);
       if (obj) {
         obj.name = name;
       }
@@ -309,7 +307,7 @@ const reducers: Reducers = {
   },
   toggleObjectVisibility: (objectId) => {
     updateState((current) => {
-      const obj = current.objects.find((o) => o.id === objectId);
+      const obj = current.objects.get(objectId);
       if (obj) {
         obj.visible = !obj.visible;
       }
@@ -317,7 +315,7 @@ const reducers: Reducers = {
   },
   toggleObjectLock: (objectId) => {
     updateState((current) => {
-      const obj = current.objects.find((o) => o.id === objectId);
+      const obj = current.objects.get(objectId);
       if (obj) {
         obj.locked = !obj.locked;
       }
@@ -326,22 +324,18 @@ const reducers: Reducers = {
   reorderObjects: (_projectId, objectIds) => {
     void _projectId;
     updateState((current) => {
-      const nextObjects: VoxelObject[] = [];
+      let idx = 0;
       for (const objectId of objectIds) {
-        const obj = current.objects.find((o) => o.id === objectId);
+        const obj = current.objects.get(objectId);
         if (obj) {
-          nextObjects.push(obj);
+          obj.index = idx++;
         }
       }
-      current.objects.forEach((obj) => {
-        if (!nextObjects.includes(obj)) {
-          nextObjects.push(obj);
+      for (const obj of current.objects.values()) {
+        if (!objectIds.includes(obj.id)) {
+          obj.index = idx++;
         }
-      });
-      current.objects = nextObjects.map((obj, index) => ({
-        ...obj,
-        index,
-      }));
+      }
     });
   },
   applyFrame: (
@@ -523,7 +517,10 @@ const reducers: Reducers = {
     notify();
   },
   moveSelection: (_projectId, offset) => {
-    const obj = state.objects.find((o) => o.selection !== null);
+    let obj: VoxelObject | undefined;
+    for (const o of state.objects.values()) {
+      if (o.selection !== null) { obj = o; break; }
+    }
     if (!obj || !obj.selection) return;
 
     const sel = obj.selection;
@@ -629,7 +626,10 @@ const reducers: Reducers = {
     notify();
   },
   beginSelectionMove: (_projectId) => {
-    const obj = state.objects.find((o) => o.selection !== null);
+    let obj: VoxelObject | undefined;
+    for (const o of state.objects.values()) {
+      if (o.selection !== null) { obj = o; break; }
+    }
     if (!obj || !editHistoryRef) {
       selectionMoveSnapshot = null;
       return;
@@ -771,8 +771,12 @@ const reducers: Reducers = {
         index: atIndex,
         selection: null,
       };
-      current.objects.splice(atIndex, 0, restored);
-      current.objects = current.objects.map((obj, i) => ({ ...obj, index: i }));
+      current.objects.set(restored.id, restored);
+      let idx = 0;
+      const sorted = [...current.objects.values()].sort((a, b) => a.index - b.index);
+      for (const obj of sorted) {
+        obj.index = idx++;
+      }
 
       for (const [key, chunkData] of chunks.entries()) {
         current.chunks.set(key, {

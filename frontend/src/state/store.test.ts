@@ -7,21 +7,20 @@ describe("stateStore renameObject reducer", () => {
   });
 
   it("renames the target object", () => {
-    const object = stateStore.getState().objects[0];
+    const object = [...stateStore.getState().objects.values()][0];
 
     stateStore.reducers.renameObject(object.id, "Renamed Object");
 
-    expect(stateStore.getState().objects[0].name).toBe("Renamed Object");
+    expect([...stateStore.getState().objects.values()][0].name).toBe("Renamed Object");
   });
 
-  it("replaces objects array when adding an object", () => {
-    const beforeObjects = stateStore.getState().objects;
+  it("adds an object to the objects map", () => {
+    const beforeSize = stateStore.getState().objects.size;
 
     stateStore.reducers.addObject("local-project");
 
-    const afterObjects = stateStore.getState().objects;
-    expect(afterObjects).not.toBe(beforeObjects);
-    expect(afterObjects).toHaveLength(beforeObjects.length + 1);
+    const afterSize = stateStore.getState().objects.size;
+    expect(afterSize).toBe(beforeSize + 1);
   });
 
   it("replaces blocks.colors when updating block color", () => {
@@ -62,7 +61,7 @@ describe("selectAllVoxels and deleteSelectedVoxels", () => {
 
   it("selects all then deletes all voxels in the current object", () => {
     const { project } = stateStore.getState();
-    const objectId = stateStore.getState().objects[0].id;
+    const objectId = [...stateStore.getState().objects.values()][0].id;
     const chunkBefore = Array.from(stateStore.getState().chunks.values()).find(
       (chunk) => chunk.objectId === objectId
     );

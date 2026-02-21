@@ -7,7 +7,6 @@ import type { ProjectManager } from "./project-manager";
 export interface ToolContext {
   reducers: Reducers;
   projectId: string;
-  dimensions: Vector3;
   projectManager: ProjectManager;
   previewBuffer: Uint8Array;
   selectedBlock: number;
@@ -16,6 +15,7 @@ export interface ToolContext {
   mode: BlockModificationMode;
   camera: THREE.Camera;
   scene: THREE.Scene;
+  getObjectDimensions: () => Vector3;
 }
 
 export interface ToolMouseEvent {

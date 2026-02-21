@@ -114,7 +114,6 @@ function createBenchmarkContext(dimensions: Vector3): {
   const context: ToolContext = {
     reducers,
     projectId: "test-project",
-    dimensions,
     projectManager: {
       applyOptimisticRectEdit: () => {},
       getBlockAtPosition: () => 1,
@@ -132,6 +131,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     mode: attachMode,
     camera,
     scene: new THREE.Scene(),
+    getObjectDimensions: () => dimensions,
   };
 
   return { context, updatePreviewTimes };
