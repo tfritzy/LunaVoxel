@@ -9,7 +9,7 @@ describe("magicSelect reducer", () => {
 
   it("should select contiguous voxels of the same block type", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 12,
@@ -26,7 +26,7 @@ describe("magicSelect reducer", () => {
 
   it("should not select voxels of a different block type", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 12,
@@ -41,7 +41,7 @@ describe("magicSelect reducer", () => {
 
   it("should select the type 2 block region when clicking on it", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 12,
@@ -63,7 +63,7 @@ describe("magicSelect reducer", () => {
 
   it("should set selection to null when clicking on empty space", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 0,
@@ -76,7 +76,7 @@ describe("magicSelect reducer", () => {
 
   it("should produce a tight bounding box for the selection frame", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 12,
@@ -93,7 +93,7 @@ describe("magicSelect reducer", () => {
 
   it("should select only the single voxel when it is isolated", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
     const chunk = state.chunks.get(getChunkKey(obj.id, { x: 0, y: 0, z: 0 }))!;
     const sz = chunk.size;
     chunk.voxels[1 * sz.y * sz.z + 1 * sz.z + 1] = 5 | RAYCASTABLE_BIT;
@@ -119,12 +119,12 @@ describe("magicSelect reducer", () => {
       z: 12,
     });
 
-    expect(state.objects[0].selection).toBeNull();
+    expect([...state.objects.values()][0].selection).toBeNull();
   });
 
   it("should select all 100 voxels in the block type 1 region", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 10,
@@ -146,7 +146,7 @@ describe("magicSelect reducer", () => {
 
   it("should select all 27 voxels in the block type 2 region", () => {
     const state = stateStore.getState();
-    const obj = state.objects[0];
+    const obj = [...state.objects.values()][0];
 
     stateStore.reducers.magicSelect(state.project.id, obj.index, {
       x: 12,

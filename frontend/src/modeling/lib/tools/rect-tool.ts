@@ -5,6 +5,7 @@ import type { FillShape, ShapeDirection } from "../tool-type";
 import { calculateRectBounds, snapBoundsToEqual } from "@/lib/rect-utils";
 import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import { getSelectedObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
@@ -24,7 +25,7 @@ export class RectTool implements Tool {
     bounds: RectBounds;
     mode: BlockModificationMode;
     selectedBlock: number;
-    selectedObject: number;
+    objectIndex: number;
     fillShape: FillShape;
     direction: ShapeDirection;
   } | null = null;
@@ -102,8 +103,9 @@ export class RectTool implements Tool {
 
   private clearLastBounds(context: ToolContext): void {
     if (!this.lastBounds) return;
-    const dimY = context.dimensions.y;
-    const dimZ = context.dimensions.z;
+    const dims = getSelectedObject(context)!.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
     const lb = this.lastBounds;
     for (let x = lb.minX; x <= lb.maxX; x++) {
       for (let y = lb.minY; y <= lb.maxY; y++) {
@@ -123,8 +125,9 @@ export class RectTool implements Tool {
     this.clearLastBounds(context);
 
     const previewValue = this.getPreviewBlockValue(mode, selectedBlock);
-    const dimY = context.dimensions.y;
-    const dimZ = context.dimensions.z;
+    const dims = getSelectedObject(context)!.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
 
     if (fillShape === "Rect") {
       for (let x = bounds.minX; x <= bounds.maxX; x++) {
@@ -218,7 +221,7 @@ export class RectTool implements Tool {
     let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
-      context.dimensions
+      getSelectedObject(context)!.dimensions
     );
     if (event.shiftKey) {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
@@ -241,7 +244,7 @@ export class RectTool implements Tool {
     let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
-      context.dimensions
+      getSelectedObject(context)!.dimensions
     );
     if (event.shiftKey) {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
@@ -259,7 +262,7 @@ export class RectTool implements Tool {
       bounds,
       mode: context.mode,
       selectedBlock: context.selectedBlock,
-      selectedObject: context.selectedObject,
+      objectIndex: getSelectedObject(context)?.index ?? 0,
       fillShape: this.fillShape,
       direction: this.direction,
     };
@@ -376,16 +379,17 @@ export class RectTool implements Tool {
   resizePendingBounds(context: ToolContext, bounds: RectBounds): void {
     if (!this.pending) return;
 
+    const dims = getSelectedObject(context)!.dimensions;
     const clamp = (val: number, max: number) =>
       Math.max(0, Math.min(val, max - 1));
 
     this.pending.bounds = {
-      minX: clamp(bounds.minX, context.dimensions.x),
-      maxX: clamp(bounds.maxX, context.dimensions.x),
-      minY: clamp(bounds.minY, context.dimensions.y),
-      maxY: clamp(bounds.maxY, context.dimensions.y),
-      minZ: clamp(bounds.minZ, context.dimensions.z),
-      maxZ: clamp(bounds.maxZ, context.dimensions.z),
+      minX: clamp(bounds.minX, dims.x),
+      maxX: clamp(bounds.maxX, dims.x),
+      minY: clamp(bounds.minY, dims.y),
+      maxY: clamp(bounds.maxY, dims.y),
+      minZ: clamp(bounds.minZ, dims.z),
+      maxZ: clamp(bounds.maxZ, dims.z),
     };
 
     this.buildFrameFromBounds(context, this.pending.bounds);
@@ -395,9 +399,10 @@ export class RectTool implements Tool {
   private applyAndClear(context: ToolContext, bounds: RectBounds): void {
     const mode = this.pending?.mode ?? context.mode;
     const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
-    const selectedObject = this.pending?.selectedObject ?? context.selectedObject;
-    const dimY = context.dimensions.y;
-    const dimZ = context.dimensions.z;
+    const objectIndex = this.pending?.objectIndex ?? (getSelectedObject(context)?.index ?? 0);
+    const dims = getSelectedObject(context)!.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
 
     const frameDims = {
       x: bounds.maxX - bounds.minX + 1,
@@ -420,7 +425,7 @@ export class RectTool implements Tool {
       }
     }
 
-    context.reducers.applyFrame(mode, selectedBlock, frame, selectedObject);
+    context.reducers.applyFrame(mode, selectedBlock, frame, objectIndex);
     context.projectManager.chunkManager.clearPreview();
     this.lastBounds = null;
   }

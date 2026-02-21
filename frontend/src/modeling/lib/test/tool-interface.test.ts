@@ -6,7 +6,7 @@ import { MoveSelectionTool } from "../tools/move-selection-tool";
 import { BrushTool } from "../tools/brush-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
-import type { Reducers } from "@/state/store";
+import type { Reducers, StateStore } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import * as THREE from "three";
@@ -36,20 +36,48 @@ describe("Tool Interface", () => {
       undoEdit: () => {},
       updateCursorPos: () => {},
       magicSelect: () => {},
+      moveSelection: () => {},
+      moveObject: () => {},
+      beginSelectionMove: () => {},
       commitSelectionMove: () => {},
       selectAllVoxels: () => {},
       deleteSelectedVoxels: () => {},
       updateBlockColor: () => {},
       setBlockColors: () => {},
       restoreObject: () => {},
+      setSelectedObject: () => {},
     };
 
     const previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
 
+    const mockObjects = new Map([["test-obj", {
+      id: "test-obj",
+      projectId: "test-project",
+      index: 0,
+      name: "Object 1",
+      visible: true,
+      locked: false,
+      position: { x: 0, y: 0, z: 0 },
+      dimensions,
+      selection: null,
+    }]]);
+
+    const mockStateStore = {
+      getState: () => ({
+        project: { id: "test-project", dimensions },
+        objects: mockObjects,
+        selectedObject: "test-obj",
+        blocks: { projectId: "test-project", colors: [] },
+        chunks: new Map(),
+      }),
+      subscribe: () => () => {},
+      reducers,
+    } as StateStore;
+
     mockContext = {
+      stateStore: mockStateStore,
       reducers,
       projectId: "test-project",
-      dimensions,
       projectManager: {
         applyOptimisticRectEdit: () => {},
         getBlockAtPosition: () => 1,
@@ -64,7 +92,6 @@ describe("Tool Interface", () => {
       } as unknown as ProjectManager,
       previewBuffer,
       selectedBlock: 1,
-      selectedObject: 0,
       setSelectedBlockInParent: () => {},
       mode: attachMode,
       camera,
@@ -801,35 +828,51 @@ describe("Tool Interface", () => {
       expect(gridPos.z).toBe(3);
     });
 
-    it("should call commitSelectionMove reducer on mouse up with movement", () => {
-      let commitSelectionMoveCalled = false;
+    it("should call moveObject reducer on mouse up with movement when no voxel selection", () => {
+      let moveObjectCalled = false;
       let passedOffset: Vector3 | null = null;
+      let beginCalled = false;
+      let commitCalled = false;
       
       mockContext.reducers = {
         ...mockContext.reducers,
-        commitSelectionMove: (_projectId: string, offset: Vector3) => {
-          commitSelectionMoveCalled = true;
+        moveObject: (_projectId: string, _objectIndex: number, offset: Vector3) => {
+          moveObjectCalled = true;
           passedOffset = offset;
         },
+        beginSelectionMove: () => { beginCalled = true; },
+        commitSelectionMove: () => { commitCalled = true; },
       };
+
+      mockContext.projectManager = {
+        ...mockContext.projectManager,
+        chunkManager: {
+          ...mockContext.projectManager.chunkManager,
+          getObject: () => ({
+            id: "obj1",
+            projectId: "test-project",
+            index: 0,
+            name: "Object 1",
+            visible: true,
+            locked: false,
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 64, y: 64, z: 64 },
+            selection: null,
+          }),
+          getObjectContentBounds: () => ({
+            min: { x: 0, y: 0, z: 0 },
+            max: { x: 5, y: 5, z: 5 },
+          }),
+        },
+      } as unknown as ProjectManager;
 
       tool.onMouseDown(mockContext, {
         gridPosition: new THREE.Vector3(1, 2, 3),
         mousePosition: new THREE.Vector2(0, 0),
       });
 
-      // Simulate drag with movement
-      tool.onDrag(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 2, 3),
-        currentGridPosition: new THREE.Vector3(4, 2, 3),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0.5, 0)
-      });
+      expect(beginCalled).toBe(false);
 
-      // Should not be called during drag
-      expect(commitSelectionMoveCalled).toBe(false);
-
-      // Call mouse up
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
         currentGridPosition: new THREE.Vector3(4, 2, 3),
@@ -837,19 +880,21 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0)
       });
 
-      // Should be called on mouse up
-      expect(commitSelectionMoveCalled).toBe(true);
+      expect(moveObjectCalled).toBe(true);
       expect(passedOffset).not.toBeNull();
+      expect(commitCalled).toBe(false);
     });
 
-    it("should not call commitSelectionMove reducer on mouse up without mouse movement", () => {
-      let commitSelectionMoveCalled = false;
+    it("should not call moveObject reducer on mouse up without mouse movement", () => {
+      let moveObjectCalled = false;
       
       mockContext.reducers = {
         ...mockContext.reducers,
-        commitSelectionMove: () => {
-          commitSelectionMoveCalled = true;
+        moveObject: () => {
+          moveObjectCalled = true;
         },
+        beginSelectionMove: () => {},
+        commitSelectionMove: () => {},
       };
 
       tool.onMouseDown(mockContext, {
@@ -871,7 +916,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0, 0)
       });
 
-      expect(commitSelectionMoveCalled).toBe(false);
+      expect(moveObjectCalled).toBe(false);
     });
 
     it("should add bounds box to scene while dragging with content", () => {
@@ -921,27 +966,31 @@ describe("Tool Interface", () => {
         { x: 5, y: 6, z: 7 }
       );
 
-      mockContext.projectManager = {
-        ...mockContext.projectManager,
-        chunkManager: {
-          ...mockContext.projectManager.chunkManager,
-          getObject: () => ({
-            id: "obj1",
-            projectId: "test-project",
-            index: 0,
-            name: "Object 1",
-            visible: true,
-            locked: false,
-            position: { x: 0, y: 0, z: 0 },
-            dimensions: { x: 64, y: 64, z: 64 },
-            selection,
-          }),
-          getObjectContentBounds: () => ({
-            min: { x: 0, y: 0, z: 0 },
-            max: { x: 64, y: 64, z: 64 },
-          }),
-        },
-      } as unknown as ProjectManager;
+      const objWithSelection = {
+        id: "test-obj",
+        projectId: "test-project",
+        index: 0,
+        name: "Object 1",
+        visible: true,
+        locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 64, y: 64, z: 64 },
+        selection,
+      };
+
+      const stateWithSelection = {
+        getState: () => ({
+          project: { id: "test-project", dimensions },
+          objects: new Map([["test-obj", objWithSelection]]),
+          selectedObject: "test-obj",
+          blocks: { projectId: "test-project", colors: [] },
+          chunks: new Map(),
+        }),
+        subscribe: () => () => {},
+        reducers: mockContext.reducers,
+      } as StateStore;
+
+      mockContext.stateStore = stateWithSelection;
 
       tool.onActivate!(mockContext);
 
@@ -997,13 +1046,18 @@ describe("Tool Interface", () => {
     });
 
     it("should not add box when object does not exist", () => {
-      mockContext.projectManager = {
-        ...mockContext.projectManager,
-        chunkManager: {
-          ...mockContext.projectManager.chunkManager,
-          getObject: () => undefined,
-        },
-      } as unknown as ProjectManager;
+      const emptyStateStore = {
+        getState: () => ({
+          project: { id: "test-project", dimensions },
+          objects: new Map(),
+          selectedObject: "nonexistent",
+          blocks: { projectId: "test-project", colors: [] },
+          chunks: new Map(),
+        }),
+        subscribe: () => () => {},
+        reducers: mockContext.reducers,
+      } as StateStore;
+      mockContext.stateStore = emptyStateStore;
 
       tool.onActivate!(mockContext);
 
@@ -1250,9 +1304,33 @@ describe("Tool Interface", () => {
 
       const benchPreviewBuffer = new Uint8Array(benchDimensions.x * benchDimensions.y * benchDimensions.z);
 
+      const benchMockObjects = new Map([["bench-obj", {
+        id: "bench-obj",
+        projectId: "test-project",
+        index: 0,
+        name: "Object 1",
+        visible: true,
+        locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: benchDimensions,
+        selection: null,
+      }]]);
+
+      const benchStateStore = {
+        getState: () => ({
+          project: { id: "test-project", dimensions: benchDimensions },
+          objects: benchMockObjects,
+          selectedObject: "bench-obj",
+          blocks: { projectId: "test-project", colors: [] },
+          chunks: new Map(),
+        }),
+        subscribe: () => () => {},
+        reducers: mockContext.reducers,
+      } as StateStore;
+
       const benchContext: ToolContext = {
         ...mockContext,
-        dimensions: benchDimensions,
+        stateStore: benchStateStore,
         previewBuffer: benchPreviewBuffer,
         projectManager: {
           ...mockContext.projectManager,

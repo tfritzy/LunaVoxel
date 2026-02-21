@@ -14,7 +14,8 @@ import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 
 export type GlobalState = {
   project: Project;
-  objects: VoxelObject[];
+  objects: Map<string, VoxelObject>;
+  selectedObject: string;
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -45,7 +46,11 @@ export type Reducers = {
     normal: Vector3
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
-  commitSelectionMove: (projectId: string, offset: Vector3) => void;
+  moveSelection: (projectId: string, offset: Vector3) => void;
+  moveObject: (projectId: string, objectIndex: number, offset: Vector3) => void;
+  beginSelectionMove: (projectId: string) => void;
+  commitSelectionMove: (projectId: string) => void;
+  setSelectedObject: (objectId: string) => void;
   selectAllVoxels: (projectId: string, objectIndex: number) => void;
   deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
@@ -70,19 +75,15 @@ export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
 const createChunkData = (
-  project: Project,
+  projectId: string,
   objectId: string,
   minPos: Vector3
 ): ChunkData => {
-  const size = {
-    x: Math.min(CHUNK_SIZE, project.dimensions.x - minPos.x),
-    y: Math.min(CHUNK_SIZE, project.dimensions.y - minPos.y),
-    z: Math.min(CHUNK_SIZE, project.dimensions.z - minPos.z),
-  };
+  const size = { x: CHUNK_SIZE, y: CHUNK_SIZE, z: CHUNK_SIZE };
   const voxels = new Uint8Array(size.x * size.y * size.z);
   return {
     key: getChunkKey(objectId, minPos),
-    projectId: project.id,
+    projectId,
     objectId,
     minPos,
     size,
@@ -99,19 +100,18 @@ const createInitialState = (): GlobalState => {
   };
 
   const objectId = createId();
-  const objects: VoxelObject[] = [
-    {
-      id: objectId,
-      projectId,
-      index: 0,
-      name: "Object 1",
-      visible: true,
-      locked: false,
-      position: { x: 0, y: 0, z: 0 },
-      dimensions: { x: 64, y: 64, z: 64 },
-      selection: null,
-    },
-  ];
+  const initialObject: VoxelObject = {
+    id: objectId,
+    projectId,
+    index: 0,
+    name: "Object 1",
+    visible: true,
+    locked: false,
+    position: { x: 0, y: 0, z: 0 },
+    dimensions: { x: 64, y: 64, z: 64 },
+    selection: null,
+  };
+  const objects = new Map<string, VoxelObject>([[objectId, initialObject]]);
 
   const DEFAULT_PALETTE = colorPalettes[0];
   const blocks: ProjectBlocks = {
@@ -122,7 +122,7 @@ const createInitialState = (): GlobalState => {
   };
 
   const chunks = new Map<string, ChunkData>();
-  const seedChunk = createChunkData(project, objectId, { x: 0, y: 0, z: 0 });
+  const seedChunk = createChunkData(projectId, objectId, { x: 0, y: 0, z: 0 });
 
   const setVoxel = (x: number, y: number, z: number, value: number) => {
     if (
@@ -156,7 +156,7 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, objects, blocks, chunks };
+  return { project, objects, selectedObject: objectId, blocks, chunks };
 };
 
 type EditHistoryHandle = {
@@ -164,18 +164,19 @@ type EditHistoryHandle = {
 };
 
 let editHistoryRef: EditHistoryHandle | null = null;
+let selectionMoveSnapshot: { objectIndex: number; data: Uint8Array } | null = null;
 
 export function registerEditHistory(history: EditHistoryHandle) {
   editHistoryRef = history;
 }
 
 function snapshotObjectVoxels(objectIndex: number): Uint8Array {
-  const dims = state.project.dimensions;
+  const obj = getObjectByIndex(objectIndex);
+  if (!obj) return new Uint8Array(0);
+
+  const dims = obj.dimensions;
   const total = dims.x * dims.y * dims.z;
   const snapshot = new Uint8Array(total);
-
-  const obj = state.objects.find((o) => o.index === objectIndex);
-  if (!obj) return snapshot;
 
   for (const chunk of state.chunks.values()) {
     if (chunk.objectId !== obj.id) continue;
@@ -215,15 +216,22 @@ const updateState = (mutator: (current: GlobalState) => void) => {
   notify();
 };
 
-const getObjectByIndex = (objectIndex: number) =>
-  state.objects.find((obj) => obj.index === objectIndex);
+const getObjectByIndex = (objectIndex: number) => {
+  for (const obj of state.objects.values()) {
+    if (obj.index === objectIndex) return obj;
+  }
+  return undefined;
+};
+
+const getObjectById = (objectId: string) =>
+  state.objects.get(objectId);
 
 
 const getOrCreateChunk = (objectId: string, minPos: Vector3) => {
   const key = getChunkKey(objectId, minPos);
   let chunk = state.chunks.get(key);
   if (!chunk) {
-    chunk = createChunkData(state.project, objectId, minPos);
+    chunk = createChunkData(state.project.id, objectId, minPos);
     state.chunks.set(key, chunk);
   }
   return chunk;
@@ -260,7 +268,7 @@ const applyBlockAt = (
 const rebuildSelectionChunks = () => {
   const positionSelections = new Map<string, VoxelFrame>();
 
-  for (const obj of state.objects) {
+  for (const obj of state.objects.values()) {
     if (!obj.selection || !obj.visible) continue;
 
     const sel = obj.selection;
@@ -321,31 +329,31 @@ const reducers: Reducers = {
   addObject: (_projectId) => {
     void _projectId;
     updateState((current) => {
-      const nextIndex = current.objects.length;
-      current.objects = [
-        ...current.objects,
-        {
-          id: createId(),
-          projectId: current.project.id,
-          index: nextIndex,
-          name: `Object ${nextIndex + 1}`,
-          visible: true,
-          locked: false,
-          position: { x: 0, y: 0, z: 0 },
-          dimensions: { x: 64, y: 64, z: 64 },
-          selection: null,
-        },
-      ];
+      const nextIndex = current.objects.size;
+      const id = createId();
+      current.objects.set(id, {
+        id,
+        projectId: current.project.id,
+        index: nextIndex,
+        name: `Object ${nextIndex + 1}`,
+        visible: true,
+        locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 64, y: 64, z: 64 },
+        selection: null,
+      });
     });
   },
   deleteObject: (objectId) => {
     updateState((current) => {
-      const target = current.objects.find((obj) => obj.id === objectId);
-      if (!target) return;
+      if (!current.objects.has(objectId)) return;
+      const target = current.objects.get(objectId)!;
       const hadSelection = target.selection !== null;
-      current.objects = current.objects
-        .filter((obj) => obj.id !== objectId)
-        .map((obj, index) => ({ ...obj, index }));
+      current.objects.delete(objectId);
+      let idx = 0;
+      for (const obj of current.objects.values()) {
+        obj.index = idx++;
+      }
 
       for (const [key, chunk] of current.chunks.entries()) {
         if (chunk.objectId === objectId) {
@@ -360,7 +368,7 @@ const reducers: Reducers = {
   },
   renameObject: (objectId, name) => {
     updateState((current) => {
-      const obj = current.objects.find((o) => o.id === objectId);
+      const obj = current.objects.get(objectId);
       if (obj) {
         obj.name = name;
       }
@@ -368,7 +376,7 @@ const reducers: Reducers = {
   },
   toggleObjectVisibility: (objectId) => {
     updateState((current) => {
-      const obj = current.objects.find((o) => o.id === objectId);
+      const obj = current.objects.get(objectId);
       if (obj) {
         obj.visible = !obj.visible;
         if (obj.selection) {
@@ -379,7 +387,7 @@ const reducers: Reducers = {
   },
   toggleObjectLock: (objectId) => {
     updateState((current) => {
-      const obj = current.objects.find((o) => o.id === objectId);
+      const obj = current.objects.get(objectId);
       if (obj) {
         obj.locked = !obj.locked;
       }
@@ -388,22 +396,19 @@ const reducers: Reducers = {
   reorderObjects: (_projectId, objectIds) => {
     void _projectId;
     updateState((current) => {
-      const nextObjects: VoxelObject[] = [];
+      const reordered = new Set(objectIds);
+      let idx = 0;
       for (const objectId of objectIds) {
-        const obj = current.objects.find((o) => o.id === objectId);
+        const obj = current.objects.get(objectId);
         if (obj) {
-          nextObjects.push(obj);
+          obj.index = idx++;
         }
       }
-      current.objects.forEach((obj) => {
-        if (!nextObjects.includes(obj)) {
-          nextObjects.push(obj);
+      for (const obj of current.objects.values()) {
+        if (!reordered.has(obj.id)) {
+          obj.index = idx++;
         }
-      });
-      current.objects = nextObjects.map((obj, index) => ({
-        ...obj,
-        index,
-      }));
+      }
     });
   },
   applyFrame: (
@@ -480,7 +485,7 @@ const reducers: Reducers = {
       const obj = getObjectByIndex(objectIndex);
       if (!obj) return;
 
-      const dims = current.project.dimensions;
+      const dims = obj.dimensions;
       const yz = dims.y * dims.z;
 
       for (let i = 0; i < beforeDiff.length; i++) {
@@ -509,7 +514,7 @@ const reducers: Reducers = {
     const obj = getObjectByIndex(objectIndex);
     if (!obj) return;
 
-    const dims = state.project.dimensions;
+    const dims = obj.dimensions;
 
     const getBlock = (wx: number, wy: number, wz: number): number => {
       const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
@@ -584,14 +589,17 @@ const reducers: Reducers = {
     obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     notify();
   },
-  commitSelectionMove: (_projectId, offset) => {
-    const obj = state.objects.find((o) => o.selection !== null);
+  moveSelection: (_projectId, offset) => {
+    let obj: VoxelObject | undefined;
+    for (const o of state.objects.values()) {
+      if (o.selection !== null) { obj = o; break; }
+    }
     if (!obj || !obj.selection) return;
 
     const sel = obj.selection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
-    const dims = state.project.dimensions;
+    const dims = obj.dimensions;
     const wrap = (val: number, dim: number) => ((val % dim) + dim) % dim;
 
     const voxels: { wx: number; wy: number; wz: number; value: number }[] = [];
@@ -680,11 +688,57 @@ const reducers: Reducers = {
 
     notify();
   },
+  moveObject: (_projectId, objectIndex, offset) => {
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj) return;
+    obj.position = {
+      x: obj.position.x + offset.x,
+      y: obj.position.y + offset.y,
+      z: obj.position.z + offset.z,
+    };
+    notify();
+  },
+  beginSelectionMove: (_projectId) => {
+    let obj: VoxelObject | undefined;
+    for (const o of state.objects.values()) {
+      if (o.selection !== null) { obj = o; break; }
+    }
+    if (!obj || !editHistoryRef) {
+      selectionMoveSnapshot = null;
+      return;
+    }
+    selectionMoveSnapshot = {
+      objectIndex: obj.index,
+      data: snapshotObjectVoxels(obj.index),
+    };
+  },
+  commitSelectionMove: (_projectId) => {
+    if (!selectionMoveSnapshot || !editHistoryRef) {
+      selectionMoveSnapshot = null;
+      return;
+    }
+    const after = snapshotObjectVoxels(selectionMoveSnapshot.objectIndex);
+    let hasChange = false;
+    for (let i = 0; i < after.length; i++) {
+      if (selectionMoveSnapshot.data[i] !== after[i]) {
+        hasChange = true;
+        break;
+      }
+    }
+    if (hasChange) {
+      editHistoryRef.addEntry(selectionMoveSnapshot.data, after, selectionMoveSnapshot.objectIndex);
+    }
+    selectionMoveSnapshot = null;
+  },
+  setSelectedObject: (objectId) => {
+    state.selectedObject = objectId;
+    notify();
+  },
   selectAllVoxels: (_projectId, objectIndex) => {
     const obj = getObjectByIndex(objectIndex);
     if (!obj) return;
 
-    const dims = state.project.dimensions;
+    const dims = obj.dimensions;
     const total = dims.x * dims.y * dims.z;
     const buf = new Uint8Array(total);
     let minX = Infinity, minY = Infinity, minZ = Infinity;
@@ -797,8 +851,12 @@ const reducers: Reducers = {
         index: atIndex,
         selection: null,
       };
-      current.objects.splice(atIndex, 0, restored);
-      current.objects = current.objects.map((obj, i) => ({ ...obj, index: i }));
+      current.objects.set(restored.id, restored);
+      for (const obj of current.objects.values()) {
+        if (obj.id !== restored.id && obj.index >= atIndex) {
+          obj.index++;
+        }
+      }
 
       for (const [key, chunkData] of chunks.entries()) {
         current.chunks.set(key, {
@@ -808,6 +866,7 @@ const reducers: Reducers = {
           minPos: { ...chunkData.minPos },
           size: { ...chunkData.size },
           voxels: new Uint8Array(chunkData.voxels),
+          selection: new VoxelFrame({ x: 0, y: 0, z: 0 }),
         });
       }
     });
@@ -836,5 +895,6 @@ export const useGlobalState = <T,>(
 
 export const resetState = () => {
   state = createInitialState();
+  selectionMoveSnapshot = null;
   notify();
 };

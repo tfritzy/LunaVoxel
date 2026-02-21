@@ -1,7 +1,7 @@
 import { SortableObjectRow } from "./SortableObjectRow";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import type { VoxelObject } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
 import {
@@ -26,29 +26,26 @@ import {
 import { editHistory } from "@/state/edit-history-instance";
 
 interface ObjectsSectionProps {
-  onSelectObject?: (objectIndex: number) => void;
   projectId: string;
 }
 
 export const ObjectsSection = ({
-  onSelectObject,
   projectId,
 }: ObjectsSectionProps) => {
-  const [selectedObject, setSelectedObject] = useState<number>(0);
+  const selectedObject = useGlobalState((state) => state.selectedObject);
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
-    return objects ? [...objects].sort((a, b) => a.index - b.index) : [];
+    return objects ? [...objects.values()].sort((a, b) => a.index - b.index) : [];
   }, [objects]);
 
   useEffect(() => {
     if (sortedObjects.length === 0) return;
-    setSelectedObject((prev) => Math.min(prev, sortedObjects.length - 1));
-  }, [sortedObjects]);
-
-  useEffect(() => {
-    if (onSelectObject) onSelectObject(selectedObject);
-  }, [selectedObject, onSelectObject]);
+    if (!stateStore.getState().objects.has(selectedObject)) {
+      const fallback = sortedObjects[sortedObjects.length - 1];
+      stateStore.reducers.setSelectedObject(fallback.id);
+    }
+  }, [sortedObjects, selectedObject]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -60,7 +57,8 @@ export const ObjectsSection = ({
   const addObject = React.useCallback(() => {
     stateStore.reducers.addObject(projectId);
     const newObjects = stateStore.getState().objects;
-    const added = newObjects[newObjects.length - 1];
+    const sorted = [...newObjects.values()].sort((a, b) => a.index - b.index);
+    const added = sorted[sorted.length - 1];
     if (added) {
       editHistory.addObjectAdd(added);
     }
@@ -85,8 +83,12 @@ export const ObjectsSection = ({
       stateStore.reducers.deleteObject(obj.id);
       editHistory.addObjectDelete(obj, previousIndex, chunks);
 
-      if (selectedObject >= sortedObjects.length - 1) {
-        setSelectedObject(Math.max(0, selectedObject - 1));
+      if (selectedObject === obj.id) {
+        const remaining = [...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index);
+        if (remaining.length > 0) {
+          const newIdx = Math.min(previousIndex, remaining.length - 1);
+          stateStore.reducers.setSelectedObject(remaining[newIdx].id);
+        }
       }
     },
     [sortedObjects, selectedObject]
@@ -123,25 +125,17 @@ export const ObjectsSection = ({
         const newIndex = currentObjects.findIndex(
           (obj) => obj.id === over.id
         );
-        const selectedId = currentObjects[selectedObject].id;
 
         if (oldIndex !== -1 && newIndex !== -1) {
           const previousOrder = currentObjects.map((obj) => obj.id);
 
-          let newObjects = arrayMove(currentObjects, oldIndex, newIndex);
-          newObjects = newObjects.map((o, i) => ({ ...o, index: i }));
-          const newSelectedIndex = newObjects.findIndex(
-            (o) => o.id === selectedId
-          );
-          setSelectedObject(newSelectedIndex);
-
-          const newOrder = newObjects.map((obj) => obj.id);
+          const newOrder = arrayMove(currentObjects, oldIndex, newIndex).map((obj) => obj.id);
           stateStore.reducers.reorderObjects(projectId, newOrder);
           editHistory.addObjectReorder(previousOrder, newOrder);
         }
       }
     },
-    [projectId, selectedObject, sortedObjects]
+    [projectId, sortedObjects]
   );
 
   const objectIds = sortedObjects.map((obj) => obj.id);
@@ -170,8 +164,8 @@ export const ObjectsSection = ({
               <SortableObjectRow
                 object={o}
                 key={o.id}
-                isSelected={selectedObject === o.index}
-                onSelect={() => setSelectedObject(o.index)}
+                isSelected={selectedObject === o.id}
+                onSelect={() => stateStore.reducers.setSelectedObject(o.id)}
                 onDelete={onDelete}
                 onToggleVisibility={toggleVisibility}
                 onToggleLocked={toggleLocked}

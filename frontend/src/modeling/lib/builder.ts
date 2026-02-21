@@ -19,7 +19,6 @@ export const Builder = class {
   private projectManager: ProjectManager;
   private selectedBlock: number = 1;
   private setSelectedBlockInParent: (index: number) => void;
-  private selectedObject: number = 0;
 
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -30,13 +29,12 @@ export const Builder = class {
   private currentTool: Tool;
   private currentMode: BlockModificationMode = { tag: "Attach" };
   private toolContext: {
+    stateStore: StateStore;
     reducers: StateStore["reducers"];
     projectId: string;
-    dimensions: Vector3;
     projectManager: ProjectManager;
     previewBuffer: Uint8Array;
     selectedBlock: number;
-    selectedObject: number;
     setSelectedBlockInParent: (index: number) => void;
     mode: BlockModificationMode;
     camera: THREE.Camera;
@@ -87,13 +85,12 @@ export const Builder = class {
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
+      stateStore: this.stateStore,
       reducers: this.stateStore.reducers,
       projectId: this.projectId,
-      dimensions: this.dimensions,
       projectManager: this.projectManager,
       previewBuffer: this.projectManager.chunkManager.previewBuffer,
       selectedBlock: this.selectedBlock,
-      selectedObject: this.selectedObject,
       setSelectedBlockInParent: this.setSelectedBlockInParent,
       mode: this.currentMode,
       camera: this.camera,
@@ -191,14 +188,13 @@ export const Builder = class {
     }
   }
 
-  public setSelectedObject(objectIndex: number): void {
-    this.selectedObject = objectIndex;
-    this.toolContext.selectedObject = objectIndex;
+  public setSelectedObject(objectId: string): void {
+    this.stateStore.reducers.setSelectedObject(objectId);
     this.currentTool.onActivate?.(this.toolContext);
   }
 
-  public getSelectedObject(): number {
-    return this.selectedObject;
+  public getSelectedObject(): string {
+    return this.stateStore.getState().selectedObject;
   }
 
   public updateCamera(camera: THREE.Camera): void {

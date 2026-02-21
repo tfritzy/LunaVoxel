@@ -21,10 +21,6 @@ export const ProjectViewPage = () => {
   const projectId = project.id;
   const atlasData = useAtlas();
 
-  const handleObjectSelect = useCallback((objectIndex: number) => {
-    engineRef.current?.projectManager?.builder.setSelectedObject(objectIndex);
-  }, []);
-
   const handleExport = useCallback((type: ExportType) => {
     if (engineRef.current?.projectManager) {
       engineRef.current.projectManager.export(type);
@@ -171,7 +167,6 @@ export const ProjectViewPage = () => {
       onToolChange={handleToolChange}
       onModeChange={handleModeChange}
       onExport={handleExport}
-      onSelectObject={handleObjectSelect}
       onUndo={handleUndo}
       onRedo={handleRedo}
       toolOptions={toolOptions}

@@ -1,17 +1,16 @@
 import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
-import type { Reducers } from "@/state/store";
+import type { Reducers, StateStore } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 
 export interface ToolContext {
+  stateStore: StateStore;
   reducers: Reducers;
   projectId: string;
-  dimensions: Vector3;
   projectManager: ProjectManager;
   previewBuffer: Uint8Array;
   selectedBlock: number;
-  selectedObject: number;
   setSelectedBlockInParent: (index: number) => void;
   mode: BlockModificationMode;
   camera: THREE.Camera;
@@ -76,4 +75,9 @@ export interface Tool {
   onActivate?(context: ToolContext): void;
 
   dispose?(): void;
+}
+
+export function getSelectedObject(context: ToolContext) {
+  const selectedObject = context.stateStore.getState().selectedObject;
+  return context.stateStore.getState().objects.get(selectedObject);
 }

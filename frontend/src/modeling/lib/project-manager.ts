@@ -84,17 +84,17 @@ export class ProjectManager {
           editHistory.undo();
         } else if (event.key === "a" || event.key === "A") {
           event.preventDefault();
-          this.stateStore.reducers.selectAllVoxels(
-            this.project.id,
-            this.builder.getSelectedObject()
-          );
+          const obj = this.stateStore.getState().objects.get(this.builder.getSelectedObject());
+          if (obj) {
+            this.stateStore.reducers.selectAllVoxels(this.project.id, obj.index);
+          }
         }
       } else if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        this.stateStore.reducers.deleteSelectedVoxels(
-          this.project.id,
-          this.builder.getSelectedObject()
-        );
+        const obj = this.stateStore.getState().objects.get(this.builder.getSelectedObject());
+        if (obj) {
+          this.stateStore.reducers.deleteSelectedVoxels(this.project.id, obj.index);
+        }
       }
     };
 
