@@ -5,6 +5,8 @@ import type { Vector3 } from "@/state/types";
  * Internally uses capacity-based allocation (like ArrayList) to reduce
  * reallocations when the frame is resized incrementally.
  */
+let nextVoxelFrameVersion = 0;
+
 export class VoxelFrame {
   private dimensions: Vector3;
   private minPos: Vector3;
@@ -12,7 +14,7 @@ export class VoxelFrame {
   private capMinPos: Vector3;
   private data: Uint8Array;
   private empty: boolean = true;
-  private version: number = Math.floor(Math.random() * 0x7FFFFFFF);
+  private version: number = nextVoxelFrameVersion++;
 
   constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
     this.dimensions = { ...dimensions };
