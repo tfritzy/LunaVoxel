@@ -194,6 +194,10 @@ export const Builder = class {
   public setSelectedObject(objectIndex: number): void {
     this.selectedObject = objectIndex;
     this.toolContext.selectedObject = objectIndex;
+    const obj = this.projectManager.chunkManager.getObject(objectIndex);
+    if (obj) {
+      this.toolContext.dimensions = obj.dimensions;
+    }
     this.currentTool.onActivate?.(this.toolContext);
   }
 

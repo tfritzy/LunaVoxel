@@ -46,6 +46,7 @@ export type Reducers = {
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
   moveSelection: (projectId: string, offset: Vector3) => void;
+  moveObject: (projectId: string, objectIndex: number, offset: Vector3) => void;
   beginSelectionMove: (projectId: string) => void;
   commitSelectionMove: (projectId: string) => void;
   selectAllVoxels: (projectId: string, objectIndex: number) => void;
@@ -72,19 +73,20 @@ export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
 const createChunkData = (
-  project: Project,
+  projectId: string,
   objectId: string,
-  minPos: Vector3
+  minPos: Vector3,
+  objectDimensions: Vector3
 ): ChunkData => {
   const size = {
-    x: Math.min(CHUNK_SIZE, project.dimensions.x - minPos.x),
-    y: Math.min(CHUNK_SIZE, project.dimensions.y - minPos.y),
-    z: Math.min(CHUNK_SIZE, project.dimensions.z - minPos.z),
+    x: Math.min(CHUNK_SIZE, objectDimensions.x - minPos.x),
+    y: Math.min(CHUNK_SIZE, objectDimensions.y - minPos.y),
+    z: Math.min(CHUNK_SIZE, objectDimensions.z - minPos.z),
   };
   const voxels = new Uint8Array(size.x * size.y * size.z);
   return {
     key: getChunkKey(objectId, minPos),
-    projectId: project.id,
+    projectId,
     objectId,
     minPos,
     size,
@@ -123,7 +125,7 @@ const createInitialState = (): GlobalState => {
   };
 
   const chunks = new Map<string, ChunkData>();
-  const seedChunk = createChunkData(project, objectId, { x: 0, y: 0, z: 0 });
+  const seedChunk = createChunkData(projectId, objectId, { x: 0, y: 0, z: 0 }, objects[0].dimensions);
 
   const setVoxel = (x: number, y: number, z: number, value: number) => {
     if (
@@ -172,11 +174,11 @@ export function registerEditHistory(history: EditHistoryHandle) {
 }
 
 function snapshotObjectVoxels(objectIndex: number): Uint8Array {
-  const dims = state.project.dimensions;
+  const obj = state.objects.find((o) => o.index === objectIndex);
+  const dims = obj ? obj.dimensions : state.project.dimensions;
   const total = dims.x * dims.y * dims.z;
   const snapshot = new Uint8Array(total);
 
-  const obj = state.objects.find((o) => o.index === objectIndex);
   if (!obj) return snapshot;
 
   for (const chunk of state.chunks.values()) {
@@ -225,7 +227,9 @@ const getOrCreateChunk = (objectId: string, minPos: Vector3) => {
   const key = getChunkKey(objectId, minPos);
   let chunk = state.chunks.get(key);
   if (!chunk) {
-    chunk = createChunkData(state.project, objectId, minPos);
+    const obj = state.objects.find((o) => o.id === objectId);
+    const dims = obj ? obj.dimensions : state.project.dimensions;
+    chunk = createChunkData(state.project.id, objectId, minPos, dims);
     state.chunks.set(key, chunk);
   }
   return chunk;
@@ -414,7 +418,7 @@ const reducers: Reducers = {
       const obj = getObjectByIndex(objectIndex);
       if (!obj) return;
 
-      const dims = current.project.dimensions;
+      const dims = obj.dimensions;
       const yz = dims.y * dims.z;
 
       for (let i = 0; i < beforeDiff.length; i++) {
@@ -443,7 +447,7 @@ const reducers: Reducers = {
     const obj = getObjectByIndex(objectIndex);
     if (!obj) return;
 
-    const dims = state.project.dimensions;
+    const dims = obj.dimensions;
 
     const getBlock = (wx: number, wy: number, wz: number): number => {
       const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
@@ -525,7 +529,7 @@ const reducers: Reducers = {
     const sel = obj.selection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
-    const dims = state.project.dimensions;
+    const dims = obj.dimensions;
     const wrap = (val: number, dim: number) => ((val % dim) + dim) % dim;
 
     const voxels: { wx: number; wy: number; wz: number; value: number }[] = [];
@@ -614,6 +618,16 @@ const reducers: Reducers = {
 
     notify();
   },
+  moveObject: (_projectId, objectIndex, offset) => {
+    const obj = getObjectByIndex(objectIndex);
+    if (!obj) return;
+    obj.position = {
+      x: obj.position.x + offset.x,
+      y: obj.position.y + offset.y,
+      z: obj.position.z + offset.z,
+    };
+    notify();
+  },
   beginSelectionMove: (_projectId) => {
     const obj = state.objects.find((o) => o.selection !== null);
     if (!obj || !editHistoryRef) {
@@ -647,7 +661,7 @@ const reducers: Reducers = {
     const obj = getObjectByIndex(objectIndex);
     if (!obj) return;
 
-    const dims = state.project.dimensions;
+    const dims = obj.dimensions;
     const total = dims.x * dims.y * dims.z;
     const buf = new Uint8Array(total);
     let minX = Infinity, minY = Infinity, minZ = Infinity;

@@ -32,6 +32,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     updateCursorPos: () => {},
     magicSelect: () => {},
     moveSelection: () => {},
+    moveObject: () => {},
     beginSelectionMove: () => {},
     commitSelectionMove: () => {},
     selectAllVoxels: () => {},

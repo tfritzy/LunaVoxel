@@ -10,6 +10,7 @@ export class MoveSelectionTool implements Tool {
   private cachedBounds: { min: Vector3; max: Vector3 } | null = null;
   private boundsBoxHelper: THREE.Box3Helper | null = null;
   private dragReferencePoint: THREE.Vector3 | null = null;
+  private movingObject: boolean = false;
 
   getType(): ToolType {
     return "MoveSelection";
@@ -42,9 +43,7 @@ export class MoveSelectionTool implements Tool {
 
     const chunkManager = context.projectManager.chunkManager;
     const object = chunkManager.getObject(context.selectedObject);
-    if (object && !object.selection) {
-      context.reducers.selectAllVoxels(context.projectId, context.selectedObject);
-    }
+    this.movingObject = !!(object && !object.selection);
 
     this.cachedBounds = this.computeBounds(context);
 
@@ -56,7 +55,9 @@ export class MoveSelectionTool implements Tool {
       );
     }
 
-    context.reducers.beginSelectionMove(context.projectId);
+    if (!this.movingObject) {
+      context.reducers.beginSelectionMove(context.projectId);
+    }
     this.renderBoundsBox(context, this.cachedBounds);
   }
 
@@ -70,11 +71,19 @@ export class MoveSelectionTool implements Tool {
     const incrementalOffset = new THREE.Vector3().subVectors(totalOffset, this.appliedOffset);
 
     if (incrementalOffset.lengthSq() > 0) {
-      context.reducers.moveSelection(context.projectId, {
-        x: incrementalOffset.x,
-        y: incrementalOffset.y,
-        z: incrementalOffset.z,
-      });
+      if (this.movingObject) {
+        context.reducers.moveObject(context.projectId, context.selectedObject, {
+          x: incrementalOffset.x,
+          y: incrementalOffset.y,
+          z: incrementalOffset.z,
+        });
+      } else {
+        context.reducers.moveSelection(context.projectId, {
+          x: incrementalOffset.x,
+          y: incrementalOffset.y,
+          z: incrementalOffset.z,
+        });
+      }
       this.appliedOffset.copy(totalOffset);
       this.cachedBounds = this.computeBounds(context);
     }
@@ -92,18 +101,29 @@ export class MoveSelectionTool implements Tool {
     const incrementalOffset = new THREE.Vector3().subVectors(totalOffset, this.appliedOffset);
 
     if (incrementalOffset.lengthSq() > 0) {
-      context.reducers.moveSelection(context.projectId, {
-        x: incrementalOffset.x,
-        y: incrementalOffset.y,
-        z: incrementalOffset.z,
-      });
+      if (this.movingObject) {
+        context.reducers.moveObject(context.projectId, context.selectedObject, {
+          x: incrementalOffset.x,
+          y: incrementalOffset.y,
+          z: incrementalOffset.z,
+        });
+      } else {
+        context.reducers.moveSelection(context.projectId, {
+          x: incrementalOffset.x,
+          y: incrementalOffset.y,
+          z: incrementalOffset.z,
+        });
+      }
     }
 
-    context.reducers.commitSelectionMove(context.projectId);
+    if (!this.movingObject) {
+      context.reducers.commitSelectionMove(context.projectId);
+    }
 
     this.snappedAxis = null;
     this.appliedOffset.set(0, 0, 0);
     this.dragReferencePoint = null;
+    this.movingObject = false;
     this.cachedBounds = this.computeBounds(context);
     this.renderBoundsBox(context, this.cachedBounds);
   }

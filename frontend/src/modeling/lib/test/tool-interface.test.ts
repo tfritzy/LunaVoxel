@@ -37,6 +37,7 @@ describe("Tool Interface", () => {
       updateCursorPos: () => {},
       magicSelect: () => {},
       moveSelection: () => {},
+      moveObject: () => {},
       beginSelectionMove: () => {},
       commitSelectionMove: () => {},
       selectAllVoxels: () => {},
@@ -803,16 +804,16 @@ describe("Tool Interface", () => {
       expect(gridPos.z).toBe(3);
     });
 
-    it("should call moveSelection reducer on mouse up with movement", () => {
-      let moveSelectionCalled = false;
+    it("should call moveObject reducer on mouse up with movement when no voxel selection", () => {
+      let moveObjectCalled = false;
       let passedOffset: Vector3 | null = null;
       let beginCalled = false;
       let commitCalled = false;
       
       mockContext.reducers = {
         ...mockContext.reducers,
-        moveSelection: (_projectId: string, offset: Vector3) => {
-          moveSelectionCalled = true;
+        moveObject: (_projectId: string, _objectIndex: number, offset: Vector3) => {
+          moveObjectCalled = true;
           passedOffset = offset;
         },
         beginSelectionMove: () => { beginCalled = true; },
@@ -846,7 +847,7 @@ describe("Tool Interface", () => {
         mousePosition: new THREE.Vector2(0, 0),
       });
 
-      expect(beginCalled).toBe(true);
+      expect(beginCalled).toBe(false);
 
       tool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
@@ -855,18 +856,18 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0)
       });
 
-      expect(moveSelectionCalled).toBe(true);
+      expect(moveObjectCalled).toBe(true);
       expect(passedOffset).not.toBeNull();
-      expect(commitCalled).toBe(true);
+      expect(commitCalled).toBe(false);
     });
 
-    it("should not call moveSelection reducer on mouse up without mouse movement", () => {
-      let moveSelectionCalled = false;
+    it("should not call moveObject reducer on mouse up without mouse movement", () => {
+      let moveObjectCalled = false;
       
       mockContext.reducers = {
         ...mockContext.reducers,
-        moveSelection: () => {
-          moveSelectionCalled = true;
+        moveObject: () => {
+          moveObjectCalled = true;
         },
         beginSelectionMove: () => {},
         commitSelectionMove: () => {},
@@ -891,7 +892,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0, 0)
       });
 
-      expect(moveSelectionCalled).toBe(false);
+      expect(moveObjectCalled).toBe(false);
     });
 
     it("should add bounds box to scene while dragging with content", () => {

@@ -60,9 +60,9 @@ export class ChunkManager {
     
     if (!chunk) {
       const size = {
-        x: Math.min(CHUNK_SIZE, this.dimensions.x - minPos.x),
-        y: Math.min(CHUNK_SIZE, this.dimensions.y - minPos.y),
-        z: Math.min(CHUNK_SIZE, this.dimensions.z - minPos.z),
+        x: CHUNK_SIZE,
+        y: CHUNK_SIZE,
+        z: CHUNK_SIZE,
       };
      
       console.log("Creating a new chunk at", minPos, size);
@@ -99,6 +99,9 @@ export class ChunkManager {
     const objectIndexById = new Map(
       this.objects.map((obj) => [obj.id, obj.index])
     );
+    const objectById = new Map(
+      this.objects.map((obj) => [obj.id, obj])
+    );
     const nextChunkObjects = new Map<string, Set<number>>();
 
     for (const chunkData of current.chunks.values()) {
@@ -106,9 +109,16 @@ export class ChunkManager {
       const objectIndex = objectIndexById.get(chunkData.objectId);
       if (objectIndex === undefined) continue;
 
-      const chunk = this.getOrCreateChunk(chunkData.minPos);
+      const obj = objectById.get(chunkData.objectId);
+      const worldMinPos = obj ? {
+        x: chunkData.minPos.x + obj.position.x,
+        y: chunkData.minPos.y + obj.position.y,
+        z: chunkData.minPos.z + obj.position.z,
+      } : chunkData.minPos;
+
+      const chunk = this.getOrCreateChunk(worldMinPos);
       chunk.setObjectChunk(objectIndex, chunkData.voxels);
-      const key = this.getChunkKey(chunkData.minPos);
+      const key = this.getChunkKey(worldMinPos);
       if (!nextChunkObjects.has(key)) {
         nextChunkObjects.set(key, new Set());
       }
@@ -170,9 +180,9 @@ export class ChunkManager {
           for (let z = 0; z < chunkData.size.z; z++) {
             const idx = x * chunkData.size.y * chunkData.size.z + y * chunkData.size.z + z;
             if (chunkData.voxels[idx] !== 0) {
-              const wx = chunkData.minPos.x + x;
-              const wy = chunkData.minPos.y + y;
-              const wz = chunkData.minPos.z + z;
+              const wx = chunkData.minPos.x + x + object.position.x;
+              const wy = chunkData.minPos.y + y + object.position.y;
+              const wz = chunkData.minPos.z + z + object.position.z;
               if (wx < minX) minX = wx;
               if (wy < minY) minY = wy;
               if (wz < minZ) minZ = wz;
