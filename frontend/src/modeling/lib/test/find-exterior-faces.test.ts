@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { ExteriorFacesFinder } from "../find-exterior-faces";
 import { MeshArrays } from "../mesh-arrays";
+import { VoxelFrame } from "../voxel-frame";
 import { createVoxelData, setVoxel } from "./test-helpers";
 import type { Vector3 } from "@/state/types";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
@@ -11,10 +12,6 @@ function createBlockAtlasMapping(numBlocks: number): number[] {
     mapping.push(i);
   }
   return mapping;
-}
-
-function emptySelectionArgs(dimensions: Vector3): [Uint8Array, Vector3, Vector3, boolean] {
-  return [new Uint8Array(dimensions.x * dimensions.y * dimensions.z), dimensions, { x: 0, y: 0, z: 0 }, true];
 }
 
 describe("ExteriorFacesFinder", () => {
@@ -32,6 +29,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -39,7 +37,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // Single block should have 6 faces exposed
@@ -63,6 +61,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -70,7 +69,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // 2x2x2 solid cube has 6 faces (one per direction)
@@ -102,6 +101,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -109,7 +109,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // Cube with a hole exposes interior faces around the opening
@@ -132,6 +132,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -139,7 +140,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // Empty voxel data should produce no faces
@@ -155,6 +156,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -162,7 +164,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // Two adjacent blocks share one face, so they expose 10 individual faces
@@ -180,6 +182,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -187,7 +190,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(3),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // Two adjacent blocks with different types don't merge in greedy meshing
@@ -204,10 +207,10 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Set selection at position with no real block
-      const selBuf = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
-      selBuf[0] = 1;
+      selectionFrame.set(0, 0, 0, 1);
 
       finder.findExteriorFaces(
         voxelData,
@@ -215,10 +218,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        selBuf,
-        dimensions,
-        { x: 0, y: 0, z: 0 },
-        false
+        selectionFrame
       );
 
       // The selection should have all 6 faces visible
@@ -239,6 +239,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -246,7 +247,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // The non-selected block should have all 6 faces visible
@@ -274,6 +275,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -281,7 +283,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       // 8x8x8 solid cube should have 6 exterior faces
@@ -298,6 +300,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -305,7 +308,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       expect(meshArrays.indexCount).toBe(0);
@@ -320,6 +323,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -327,7 +331,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       expect(meshArrays.indexCount).toBe(36);
@@ -352,6 +356,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       finder.findExteriorFaces(
         voxelData,
@@ -359,7 +364,7 @@ describe("ExteriorFacesFinder", () => {
         createBlockAtlasMapping(2),
         dimensions,
         meshArrays,
-        ...emptySelectionArgs(dimensions)
+        selectionFrame
       );
 
       expect(meshArrays.indexCount).toBe(36);
@@ -375,6 +380,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Set every other voxel with polka dot pattern
       for (let x = 0; x < dimensions.x; x++) {
@@ -399,7 +405,7 @@ describe("ExteriorFacesFinder", () => {
           createBlockAtlasMapping(2),
           dimensions,
           meshArrays,
-          ...emptySelectionArgs(dimensions)
+          selectionFrame
         );
 
         const endTime = performance.now();
@@ -426,6 +432,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Fill entire cube with real blocks
       for (let x = 0; x < dimensions.x; x++) {
@@ -448,7 +455,7 @@ describe("ExteriorFacesFinder", () => {
           createBlockAtlasMapping(2),
           dimensions,
           meshArrays,
-          ...emptySelectionArgs(dimensions)
+          selectionFrame
         );
 
         const endTime = performance.now();
@@ -475,6 +482,7 @@ describe("ExteriorFacesFinder", () => {
 
       const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
       const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
 
       // Fill entire cube with blocks that have block type but not raycastable (preview attach)
       for (let x = 0; x < dimensions.x; x++) {
@@ -497,7 +505,7 @@ describe("ExteriorFacesFinder", () => {
           createBlockAtlasMapping(2),
           dimensions,
           meshArrays,
-          ...emptySelectionArgs(dimensions)
+          selectionFrame
         );
 
         const endTime = performance.now();

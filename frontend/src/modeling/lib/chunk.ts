@@ -7,6 +7,7 @@ import { AtlasData } from "@/lib/useAtlas";
 import { ExteriorFacesFinder } from "./find-exterior-faces";
 import { createVoxelMaterial } from "./shader";
 import { MeshArrays } from "./mesh-arrays";
+import { VoxelFrame } from "./voxel-frame";
 import { WasmExteriorFacesFinderWrapper, isWasmReady, initWasm } from "./find-exterior-faces-wasm";
 
 initWasm();
@@ -40,12 +41,11 @@ export class Chunk {
   private renderedBlocks: Uint8Array;
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
+  private selectionFrame: VoxelFrame;
   private previewBuffer: Uint8Array;
   private worldDimensions: Vector3;
-  private selectionBuffer: Uint8Array;
-  private selectionBufferEmpty: boolean = true;
   private previewDirty: boolean = false;
-  private selectionDirty: boolean = true;
+  private selectionDirty: boolean = false;
   private previewAccMinX: number = -1;
   private previewAccMinY: number = -1;
   private previewAccMinZ: number = -1;
@@ -74,8 +74,7 @@ export class Chunk {
     getMode: () => BlockModificationMode,
     getObjectVisible: (objectIndex: number) => boolean,
     previewBuffer: Uint8Array,
-    worldDimensions: Vector3,
-    selectionBuffer: Uint8Array
+    worldDimensions: Vector3
   ) {
     this.scene = scene;
     this.minPos = minPos;
@@ -85,7 +84,7 @@ export class Chunk {
     this.getObjectVisible = getObjectVisible;
     this.previewBuffer = previewBuffer;
     this.worldDimensions = worldDimensions;
-    this.selectionBuffer = selectionBuffer;
+    this.selectionFrame = new VoxelFrame(size);
 
     this.objectChunks = new Array(maxObjects).fill(null);
 
@@ -256,9 +255,12 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
-  public markSelectionDirty(selectionBufferEmpty: boolean): void {
+  public markSelectionDirty(): void {
     this.selectionDirty = true;
-    this.selectionBufferEmpty = selectionBufferEmpty;
+  }
+
+  public getSelectionFrame(): VoxelFrame {
+    return this.selectionFrame;
   }
 
   private clearBlocks(blocks: Uint8Array) {
@@ -412,10 +414,7 @@ export class Chunk {
       atlasData.blockAtlasMapping,
       this.size,
       this.meshData.meshArrays,
-      this.selectionBuffer,
-      this.worldDimensions,
-      this.minPos,
-      this.selectionBufferEmpty
+      this.selectionFrame
     );
 
     this.updateMesh(atlasData);

@@ -31,15 +31,16 @@ describe("Chunk selection rendering", () => {
       () => ({ tag: "Attach" } as BlockModificationMode),
       () => true, // all objects visible
       new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z),
-      chunkSize,
-      new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z)
+      chunkSize
     );
   });
 
-  it("should create chunk with merged selection frame", () => {
+  it("should create chunk with selection frame", () => {
     expect(chunk).toBeDefined();
     expect(chunk.minPos).toEqual(minPos);
     expect(chunk.size).toEqual(chunkSize);
+    expect(chunk.getSelectionFrame()).toBeDefined();
+    expect(chunk.getSelectionFrame().isEmpty()).toBe(true);
   });
 
   it("should handle setting and clearing selection frames", () => {
@@ -48,14 +49,13 @@ describe("Chunk selection rendering", () => {
       frame: {
         minPos: { x: 0, y: 0, z: 0 },
         dimensions: { x: 4, y: 4, z: 4 },
-        voxelData: new Uint8Array(64), // 4x4x4 = 64 voxels
+        voxelData: new Uint8Array(64),
       },
       offset: { x: 0, y: 0, z: 0 },
     };
 
-    // Set a few voxels in the selection
-    selectionData.frame.voxelData[0] = 1; // x=0, y=0, z=0
-    selectionData.frame.voxelData[1] = 1; // x=0, y=0, z=1
+    selectionData.frame.voxelData[0] = 1;
+    selectionData.frame.voxelData[1] = 1;
 
     chunk.setSelectionFrame("user1", selectionData);
     chunk.setSelectionFrame("user1", null);
@@ -95,7 +95,7 @@ describe("Chunk selection rendering", () => {
   });
 });
 
-describe("Chunk selection buffer", () => {
+describe("Chunk per-chunk selection frame", () => {
   const chunkSize: Vector3 = { x: 4, y: 4, z: 4 };
   const worldDimensions: Vector3 = { x: 8, y: 8, z: 8 };
   const atlasData: AtlasData = {
@@ -108,9 +108,8 @@ describe("Chunk selection buffer", () => {
     return x * dims.y * dims.z + y * dims.z + z;
   }
 
-  it("should render selection from global selection buffer", () => {
+  it("should render selection from per-chunk selection frame", () => {
     const scene = new THREE.Scene();
-    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
     const chunk = new Chunk(
       scene,
       { x: 0, y: 0, z: 0 },
@@ -120,16 +119,15 @@ describe("Chunk selection buffer", () => {
       () => ({ tag: "Attach" } as BlockModificationMode),
       () => true,
       new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
-      worldDimensions,
-      selectionBuffer
+      worldDimensions
     );
 
     const voxels = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
     voxels[idx(1, 1, 1, chunkSize)] = 1;
     chunk.setObjectChunk(0, voxels);
 
-    selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
-    chunk.markSelectionDirty(false);
+    chunk.getSelectionFrame().setByIndex(idx(1, 1, 1, chunkSize), 1);
+    chunk.markSelectionDirty();
     chunk.update();
 
     const mesh = chunk.getMesh();
@@ -142,9 +140,8 @@ describe("Chunk selection buffer", () => {
     expect(hasSelected).toBe(true);
   });
 
-  it("should not show selection when buffer is empty", () => {
+  it("should not show selection when frame is empty", () => {
     const scene = new THREE.Scene();
-    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
     const chunk = new Chunk(
       scene,
       { x: 0, y: 0, z: 0 },
@@ -154,8 +151,7 @@ describe("Chunk selection buffer", () => {
       () => ({ tag: "Attach" } as BlockModificationMode),
       () => true,
       new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
-      worldDimensions,
-      selectionBuffer
+      worldDimensions
     );
 
     const voxels = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
@@ -170,9 +166,8 @@ describe("Chunk selection buffer", () => {
     expect(hasSelected).toBe(false);
   });
 
-  it("should show selection on covering voxel when lower object is selected", () => {
+  it("should show selection on covering voxel from higher object", () => {
     const scene = new THREE.Scene();
-    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
     const chunk = new Chunk(
       scene,
       { x: 0, y: 0, z: 0 },
@@ -182,8 +177,7 @@ describe("Chunk selection buffer", () => {
       () => ({ tag: "Attach" } as BlockModificationMode),
       () => true,
       new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
-      worldDimensions,
-      selectionBuffer
+      worldDimensions
     );
 
     const voxels0 = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
@@ -194,8 +188,8 @@ describe("Chunk selection buffer", () => {
     voxels1[idx(1, 1, 1, chunkSize)] = 2;
     chunk.setObjectChunk(1, voxels1);
 
-    selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
-    chunk.markSelectionDirty(false);
+    chunk.getSelectionFrame().setByIndex(idx(1, 1, 1, chunkSize), 1);
+    chunk.markSelectionDirty();
     chunk.update();
 
     const mesh = chunk.getMesh();
@@ -208,7 +202,6 @@ describe("Chunk selection buffer", () => {
 
   it("should re-render when selection changes after initial render", () => {
     const scene = new THREE.Scene();
-    const selectionBuffer = new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z);
     const chunk = new Chunk(
       scene,
       { x: 0, y: 0, z: 0 },
@@ -218,8 +211,7 @@ describe("Chunk selection buffer", () => {
       () => ({ tag: "Attach" } as BlockModificationMode),
       () => true,
       new Uint8Array(worldDimensions.x * worldDimensions.y * worldDimensions.z),
-      worldDimensions,
-      selectionBuffer
+      worldDimensions
     );
 
     const voxels = new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z);
@@ -232,8 +224,8 @@ describe("Chunk selection buffer", () => {
     let hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
     expect(hasSelected).toBe(false);
 
-    selectionBuffer[idx(1, 1, 1, worldDimensions)] = 1;
-    chunk.markSelectionDirty(false);
+    chunk.getSelectionFrame().setByIndex(idx(1, 1, 1, chunkSize), 1);
+    chunk.markSelectionDirty();
     chunk.update();
 
     isSelectedArray = mesh!.geometry.getAttribute("isSelected").array as Float32Array;

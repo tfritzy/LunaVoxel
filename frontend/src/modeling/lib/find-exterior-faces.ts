@@ -7,6 +7,7 @@ import {
   precomputeAoOffsets,
   OCCLUSION_LEVELS,
 } from "./ambient-occlusion";
+import { VoxelFrame } from "./voxel-frame";
 
 export const DISABLE_GREEDY_MESHING = false;
 
@@ -35,10 +36,7 @@ export class ExteriorFacesFinder {
     blockAtlasMapping: number[],
     dimensions: Vector3,
     meshArrays: MeshArrays,
-    selectionBuffer: Uint8Array,
-    selectionWorldDims: Vector3,
-    chunkOffset: Vector3,
-    selectionEmpty: boolean
+    selectionFrame: VoxelFrame
   ): void {
     meshArrays.reset();
 
@@ -59,11 +57,7 @@ export class ExteriorFacesFinder {
     const dimZ = dimensions.z;
     const strideX = dimY * dimZ;
     const maxDim = this.maxDim;
-    const selWorldYZ = selectionWorldDims.y * selectionWorldDims.z;
-    const selWorldZ = selectionWorldDims.z;
-    const offX = chunkOffset.x;
-    const offY = chunkOffset.y;
-    const offZ = chunkOffset.z;
+    const selectionEmpty = selectionFrame.isEmpty();
 
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3;
@@ -109,7 +103,7 @@ export class ExteriorFacesFinder {
               const blockValue = voxelData[blockIdx];
               const blockType = blockValue & 0x7F;
               const blockVisible = blockType !== 0;
-              const blockIsSelected = selectionEmpty ? false : selectionBuffer[(offX + x) * selWorldYZ + (offY + y) * selWorldZ + (offZ + z)] !== 0;
+              const blockIsSelected = !selectionEmpty && selectionFrame.isSet(x, y, z);
 
               if (!blockVisible && !blockIsSelected) {
                 continue;
@@ -125,10 +119,10 @@ export class ExteriorFacesFinder {
               if (blockIsSelected && !blockVisible) {
                 const neighborCoord = xIsDepth ? nx : yIsDepth ? ny : nz;
                 const neighborInBounds = dir > 0 ? neighborCoord < neighborMax : neighborCoord >= 0;
-                const neighborIsSelected = neighborInBounds && selectionBuffer[(offX + nx) * selWorldYZ + (offY + ny) * selWorldZ + (offZ + nz)] !== 0;
+                const neighborIsSelected = neighborInBounds && selectionFrame.isSet(nx, ny, nz);
 
                 if (!neighborIsSelected) {
-                  const selectionBlockType = selectionBuffer[(offX + x) * selWorldYZ + (offY + y) * selWorldZ + (offZ + z)] & 0x7F;
+                  const selectionBlockType = selectionFrame.get(x, y, z) & 0x7F;
                   const textureIndex =
                     blockAtlasMapping[Math.max(selectionBlockType, 1) - 1];
                   

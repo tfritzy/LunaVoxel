@@ -16,8 +16,6 @@ export class ChunkManager {
   private atlasData: AtlasData | undefined;
   private getMode: () => BlockModificationMode;
   public readonly previewBuffer: Uint8Array;
-  public readonly selectionBuffer: Uint8Array;
-  private selectionBufferEmpty: boolean = true;
   private unsubscribe?: () => void;
   private readonly maxObjects = 10;
 
@@ -34,7 +32,6 @@ export class ChunkManager {
     this.projectId = projectId;
     this.getMode = getMode;
     this.previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
-    this.selectionBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
     this.handleStateChange();
     this.unsubscribe = this.stateStore.subscribe(this.handleStateChange);
   }
@@ -80,8 +77,7 @@ export class ChunkManager {
           return this.objectVisibilityMap.get(objectIndex) ?? true;
         },
         this.previewBuffer,
-        this.dimensions,
-        this.selectionBuffer
+        this.dimensions
       );
       this.chunks.set(key, chunk); 
     }
@@ -134,47 +130,62 @@ export class ChunkManager {
       }
     }
 
-    this.buildSelectionBuffer();
+    this.updateChunkSelections();
     this.updateAllChunks();
   };
 
-  private buildSelectionBuffer(): void {
-    const wasEmpty = this.selectionBufferEmpty;
-    this.selectionBuffer.fill(0);
-    this.selectionBufferEmpty = true;
+  private updateChunkSelections(): void {
+    const hasAnySelection = this.objects.some(obj => obj.selection && obj.visible);
 
-    for (const obj of this.objects) {
-      if (!obj.selection || !obj.visible) continue;
+    if (!hasAnySelection) {
+      for (const chunk of this.chunks.values()) {
+        const frame = chunk.getSelectionFrame();
+        if (!frame.isEmpty()) {
+          frame.clear();
+          chunk.markSelectionDirty();
+        }
+      }
+      return;
+    }
 
-      const sel = obj.selection;
-      const selDims = sel.getDimensions();
-      const selMin = sel.getMinPos();
-      const dimY = this.dimensions.y;
-      const dimZ = this.dimensions.z;
-      const yz = dimY * dimZ;
+    for (const chunk of this.chunks.values()) {
+      const frame = chunk.getSelectionFrame();
+      const wasEmpty = frame.isEmpty();
+      frame.clear();
 
-      for (let lx = 0; lx < selDims.x; lx++) {
-        const wx = selMin.x + lx;
-        if (wx < 0 || wx >= this.dimensions.x) continue;
-        for (let ly = 0; ly < selDims.y; ly++) {
-          const wy = selMin.y + ly;
-          if (wy < 0 || wy >= dimY) continue;
-          for (let lz = 0; lz < selDims.z; lz++) {
-            const wz = selMin.z + lz;
-            if (wz < 0 || wz >= dimZ) continue;
-            const val = sel.get(wx, wy, wz);
-            if (val > 0) {
-              this.selectionBuffer[wx * yz + wy * dimZ + wz] = val;
-              this.selectionBufferEmpty = false;
+      for (const obj of this.objects) {
+        if (!obj.selection || !obj.visible) continue;
+
+        const sel = obj.selection;
+        const selMin = sel.getMinPos();
+        const selDims = sel.getDimensions();
+
+        const overlapMinX = Math.max(chunk.minPos.x, selMin.x);
+        const overlapMinY = Math.max(chunk.minPos.y, selMin.y);
+        const overlapMinZ = Math.max(chunk.minPos.z, selMin.z);
+        const overlapMaxX = Math.min(chunk.minPos.x + chunk.size.x, selMin.x + selDims.x);
+        const overlapMaxY = Math.min(chunk.minPos.y + chunk.size.y, selMin.y + selDims.y);
+        const overlapMaxZ = Math.min(chunk.minPos.z + chunk.size.z, selMin.z + selDims.z);
+
+        if (overlapMinX >= overlapMaxX || overlapMinY >= overlapMaxY || overlapMinZ >= overlapMaxZ) continue;
+
+        for (let wx = overlapMinX; wx < overlapMaxX; wx++) {
+          for (let wy = overlapMinY; wy < overlapMaxY; wy++) {
+            for (let wz = overlapMinZ; wz < overlapMaxZ; wz++) {
+              const val = sel.get(wx, wy, wz);
+              if (val > 0) {
+                const lx = wx - chunk.minPos.x;
+                const ly = wy - chunk.minPos.y;
+                const lz = wz - chunk.minPos.z;
+                frame.setByIndex(lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz, val);
+              }
             }
           }
         }
       }
-    }
 
-    if (!wasEmpty || !this.selectionBufferEmpty) {
-      for (const chunk of this.chunks.values()) {
-        chunk.markSelectionDirty(this.selectionBufferEmpty);
+      if (!wasEmpty || !frame.isEmpty()) {
+        chunk.markSelectionDirty();
       }
     }
   }

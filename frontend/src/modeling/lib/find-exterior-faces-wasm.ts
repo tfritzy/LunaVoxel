@@ -1,5 +1,6 @@
 import type { Vector3 } from "@/state/types";
 import type { MeshArrays } from "./mesh-arrays";
+import type { VoxelFrame } from "./voxel-frame";
 import init, {
   WasmExteriorFacesFinder,
 } from "@/wasm/lunavoxel_wasm";
@@ -53,10 +54,7 @@ export class WasmExteriorFacesFinderWrapper {
     blockAtlasMapping: number[],
     dimensions: Vector3,
     meshArrays: MeshArrays,
-    selectionBuffer: Uint8Array,
-    selectionWorldDims: Vector3,
-    chunkOffset: Vector3,
-    selectionEmpty: boolean
+    selectionFrame: VoxelFrame
   ): void {
     const finder = this.ensureFinder();
 
@@ -73,6 +71,10 @@ export class WasmExteriorFacesFinderWrapper {
     const totalVoxels = dimensions.x * dimensions.y * dimensions.z;
     const maxFaces = totalVoxels * 6;
 
+    const selectionEmpty = selectionFrame.isEmpty();
+    const selectionData = selectionFrame.getData();
+    const selectionDims = selectionFrame.getDimensions();
+
     finder.findExteriorFaces(
       voxelData,
       textureWidth,
@@ -82,12 +84,10 @@ export class WasmExteriorFacesFinderWrapper {
       dimensions.z,
       maxFaces * 4,
       maxFaces * 6,
-      selectionEmpty ? new Uint8Array(0) : selectionBuffer,
-      selectionWorldDims.y,
-      selectionWorldDims.z,
-      chunkOffset.x,
-      chunkOffset.y,
-      chunkOffset.z,
+      selectionEmpty ? new Uint8Array(0) : selectionData,
+      selectionEmpty ? 0 : selectionDims.x,
+      selectionEmpty ? 0 : selectionDims.y,
+      selectionEmpty ? 0 : selectionDims.z,
       selectionEmpty
     );
 
