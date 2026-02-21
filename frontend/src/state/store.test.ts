@@ -99,3 +99,27 @@ describe("selectAllVoxels and deleteSelectedVoxels", () => {
     expect(chunksAfter[0].voxels).toEqual(voxelsBefore);
   });
 });
+
+describe("selection chunk rebuild behavior", () => {
+  beforeEach(() => {
+    resetState();
+  });
+
+  it("clears and restores chunk selection when toggling object visibility", () => {
+    const initialState = stateStore.getState();
+    const object = [...initialState.objects.values()][0];
+    const chunk = Array.from(initialState.chunks.values()).find(
+      (candidate) => candidate.objectId === object.id
+    );
+    expect(chunk).toBeDefined();
+
+    stateStore.reducers.selectAllVoxels(initialState.project.id, object.index);
+    expect(chunk!.selection.isEmpty()).toBe(false);
+
+    stateStore.reducers.toggleObjectVisibility(object.id);
+    expect(chunk!.selection.isEmpty()).toBe(true);
+
+    stateStore.reducers.toggleObjectVisibility(object.id);
+    expect(chunk!.selection.isEmpty()).toBe(false);
+  });
+});

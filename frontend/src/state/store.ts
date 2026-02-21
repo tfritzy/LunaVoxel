@@ -74,6 +74,15 @@ const createId = () =>
 export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
+const getChunkMinPos = (worldPos: Vector3): Vector3 => ({
+  x: Math.floor(worldPos.x / CHUNK_SIZE) * CHUNK_SIZE,
+  y: Math.floor(worldPos.y / CHUNK_SIZE) * CHUNK_SIZE,
+  z: Math.floor(worldPos.z / CHUNK_SIZE) * CHUNK_SIZE,
+});
+
+const getChunkPosKey = (minPos: Vector3) =>
+  `${minPos.x},${minPos.y},${minPos.z}`;
+
 const createChunkData = (
   projectId: string,
   objectId: string,
@@ -267,6 +276,32 @@ const applyBlockAt = (
 
 const rebuildSelectionChunks = () => {
   const positionSelections = new Map<string, VoxelFrame>();
+  const getOrCreateSelectionFrame = (chunkOrigin: Vector3, dims: Vector3) => {
+    const chunkKey = getChunkPosKey(chunkOrigin);
+    let frame = positionSelections.get(chunkKey);
+    if (!frame) {
+      frame = new VoxelFrame({
+        x: Math.min(CHUNK_SIZE, dims.x - chunkOrigin.x),
+        y: Math.min(CHUNK_SIZE, dims.y - chunkOrigin.y),
+        z: Math.min(CHUNK_SIZE, dims.z - chunkOrigin.z),
+      });
+      positionSelections.set(chunkKey, frame);
+    }
+    return frame;
+  };
+  const setSelectionVoxel = (
+    frame: VoxelFrame,
+    worldPos: Vector3,
+    chunkOrigin: Vector3,
+    value: number
+  ) => {
+    const localX = worldPos.x - chunkOrigin.x;
+    const localY = worldPos.y - chunkOrigin.y;
+    const localZ = worldPos.z - chunkOrigin.z;
+    const frameDims = frame.getDimensions();
+    const index = localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ;
+    frame.setByIndex(index, value);
+  };
 
   for (const obj of state.objects.values()) {
     if (!obj.selection || !obj.visible) continue;
@@ -287,35 +322,17 @@ const rebuildSelectionChunks = () => {
           if (wz < 0 || wz >= dims.z) continue;
           const val = sel.get(wx, wy, wz);
           if (val === 0) continue;
-
-          const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-          const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-          const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-          const posKey = `${cx},${cy},${cz}`;
-
-          let frame = positionSelections.get(posKey);
-          if (!frame) {
-            const size = {
-              x: Math.min(CHUNK_SIZE, dims.x - cx),
-              y: Math.min(CHUNK_SIZE, dims.y - cy),
-              z: Math.min(CHUNK_SIZE, dims.z - cz),
-            };
-            frame = new VoxelFrame(size);
-            positionSelections.set(posKey, frame);
-          }
-
-          const localX = wx - cx;
-          const localY = wy - cy;
-          const localZ = wz - cz;
-          const frameDims = frame.getDimensions();
-          frame.setByIndex(localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ, val);
+          const worldPos = { x: wx, y: wy, z: wz };
+          const chunkOrigin = getChunkMinPos(worldPos);
+          const frame = getOrCreateSelectionFrame(chunkOrigin, dims);
+          setSelectionVoxel(frame, worldPos, chunkOrigin, val);
         }
       }
     }
   }
 
   for (const chunk of state.chunks.values()) {
-    const posKey = `${chunk.minPos.x},${chunk.minPos.y},${chunk.minPos.z}`;
+    const posKey = getChunkPosKey(chunk.minPos);
     const frame = positionSelections.get(posKey);
     if (frame) {
       chunk.selection = frame;
@@ -606,12 +623,10 @@ const reducers: Reducers = {
     const chunkCache = new Map<string, ChunkData | undefined>();
 
     const getChunkCached = (wx: number, wy: number, wz: number) => {
-      const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-      const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-      const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-      const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+      const minPos = getChunkMinPos({ x: wx, y: wy, z: wz });
+      const key = getChunkKey(obj.id, minPos);
       if (!chunkCache.has(key)) chunkCache.set(key, state.chunks.get(key));
-      return { chunk: chunkCache.get(key), cx, cy, cz };
+      return { chunk: chunkCache.get(key), minPos };
     };
 
     for (let lx = 0; lx < selDims.x; lx++) {
@@ -622,9 +637,12 @@ const reducers: Reducers = {
           const wz = selMin.z + lz;
           if (sel.get(wx, wy, wz) === 0) continue;
 
-          const { chunk, cx, cy, cz } = getChunkCached(wx, wy, wz);
+          const { chunk, minPos } = getChunkCached(wx, wy, wz);
           if (!chunk) continue;
-          const ci = (wx - cx) * chunk.size.y * chunk.size.z + (wy - cy) * chunk.size.z + (wz - cz);
+          const ci =
+            (wx - minPos.x) * chunk.size.y * chunk.size.z +
+            (wy - minPos.y) * chunk.size.z +
+            (wz - minPos.z);
           const value = chunk.voxels[ci];
           if (value === 0) continue;
 
@@ -641,11 +659,12 @@ const reducers: Reducers = {
       const ny = wrap(wy + offset.y, dims.y);
       const nz = wrap(wz + offset.z, dims.z);
 
-      const cx = Math.floor(nx / CHUNK_SIZE) * CHUNK_SIZE;
-      const cy = Math.floor(ny / CHUNK_SIZE) * CHUNK_SIZE;
-      const cz = Math.floor(nz / CHUNK_SIZE) * CHUNK_SIZE;
-      const chunk = getOrCreateChunk(obj.id, { x: cx, y: cy, z: cz });
-      const ci = (nx - cx) * chunk.size.y * chunk.size.z + (ny - cy) * chunk.size.z + (nz - cz);
+      const minPos = getChunkMinPos({ x: nx, y: ny, z: nz });
+      const chunk = getOrCreateChunk(obj.id, minPos);
+      const ci =
+        (nx - minPos.x) * chunk.size.y * chunk.size.z +
+        (ny - minPos.y) * chunk.size.z +
+        (nz - minPos.z);
       chunk.voxels[ci] = value;
     }
 
@@ -800,14 +819,15 @@ const reducers: Reducers = {
           for (let lz = 0; lz < selDims.z; lz++) {
             if (sel.get(selMin.x + lx, selMin.y + ly, selMin.z + lz) === 0) continue;
             const wx = selMin.x + lx, wy = selMin.y + ly, wz = selMin.z + lz;
-            const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-            const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-            const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-            const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
+            const minPos = getChunkMinPos({ x: wx, y: wy, z: wz });
+            const key = getChunkKey(obj.id, minPos);
             if (!chunkCache.has(key)) chunkCache.set(key, current.chunks.get(key));
             const chunk = chunkCache.get(key);
             if (!chunk) continue;
-            const ci = (wx - cx) * chunk.size.y * chunk.size.z + (wy - cy) * chunk.size.z + (wz - cz);
+            const ci =
+              (wx - minPos.x) * chunk.size.y * chunk.size.z +
+              (wy - minPos.y) * chunk.size.z +
+              (wz - minPos.z);
             chunk.voxels[ci] = 0;
           }
         }
