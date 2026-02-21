@@ -5,8 +5,6 @@ import type { Vector3 } from "@/state/types";
  * Internally uses capacity-based allocation (like ArrayList) to reduce
  * reallocations when the frame is resized incrementally.
  */
-let nextVoxelFrameVersion = 0;
-
 export class VoxelFrame {
   private dimensions: Vector3;
   private minPos: Vector3;
@@ -14,7 +12,7 @@ export class VoxelFrame {
   private capMinPos: Vector3;
   private data: Uint8Array;
   private empty: boolean = true;
-  private version: number = nextVoxelFrameVersion++;
+  private version: number = Math.random() * Number.MAX_SAFE_INTEGER;
 
   constructor(dimensions: Vector3, minPos?: Vector3, data?: Uint8Array) {
     this.dimensions = { ...dimensions };
@@ -117,7 +115,7 @@ export class VoxelFrame {
     if (blockIndex !== 0) {
       this.empty = false;
     }
-    this.version++;
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
   public getByIndex(index: number): number {
@@ -136,7 +134,7 @@ export class VoxelFrame {
     if (blockIndex !== 0) {
       this.empty = false;
     }
-    this.version++;
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
   /**
@@ -154,7 +152,7 @@ export class VoxelFrame {
   public clear(): void {
     this.data.fill(0);
     this.empty = true;
-    this.version++;
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
   public fill(value: number): void {
@@ -181,7 +179,7 @@ export class VoxelFrame {
       }
     }
     this.empty = value === 0;
-    this.version++;
+    this.version = Math.random() * Number.MAX_SAFE_INTEGER;
   }
 
   public getDimensions(): Vector3 {
