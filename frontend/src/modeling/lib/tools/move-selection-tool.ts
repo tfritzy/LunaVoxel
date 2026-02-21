@@ -38,7 +38,7 @@ export class MoveSelectionTool implements Tool {
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
     void event;
     this.snappedAxis = null;
-    this.appliedOffset = new THREE.Vector3(0, 0, 0);
+    this.appliedOffset.set(0, 0, 0);
     this.cachedBounds = this.computeBounds(context);
 
     if (this.cachedBounds) {
@@ -95,7 +95,7 @@ export class MoveSelectionTool implements Tool {
     context.reducers.endSelectionMove(context.projectId);
 
     this.snappedAxis = null;
-    this.appliedOffset = new THREE.Vector3(0, 0, 0);
+    this.appliedOffset.set(0, 0, 0);
     this.dragReferencePoint = null;
     this.cachedBounds = this.computeBounds(context);
     this.renderBoundsBox(context, this.cachedBounds);
