@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import { getSelectedObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import type { BlockModificationMode } from "@/state/types";
 import { stateStore } from "@/state/store";
@@ -37,9 +38,11 @@ export class BlockPickerTool implements Tool {
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    const obj = getSelectedObject(context);
+    if (!obj) return;
     const blockValue = context.projectManager.getBlockAtPosition(
       event.currentGridPosition,
-      context.stateStore.getState().selectedObject
+      obj.index
     );
     if (blockValue === null) return;
     const blockType = getBlockType(blockValue);

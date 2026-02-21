@@ -79,8 +79,5 @@ export interface Tool {
 
 export function getSelectedObject(context: ToolContext) {
   const selectedObject = context.stateStore.getState().selectedObject;
-  for (const obj of context.stateStore.getState().objects.values()) {
-    if (obj.index === selectedObject) return obj;
-  }
-  return undefined;
+  return context.stateStore.getState().objects.get(selectedObject);
 }

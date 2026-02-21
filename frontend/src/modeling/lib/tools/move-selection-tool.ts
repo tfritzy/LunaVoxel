@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
+import { getSelectedObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
@@ -41,9 +42,7 @@ export class MoveSelectionTool implements Tool {
     this.snappedAxis = null;
     this.appliedOffset.set(0, 0, 0);
 
-    const chunkManager = context.projectManager.chunkManager;
-    const selectedObject = context.stateStore.getState().selectedObject;
-    const object = chunkManager.getObject(selectedObject);
+    const object = getSelectedObject(context);
     this.movingObject = !!(object && !object.selection);
 
     this.cachedBounds = this.computeBounds(context);
@@ -73,11 +72,14 @@ export class MoveSelectionTool implements Tool {
 
     if (incrementalOffset.lengthSq() > 0) {
       if (this.movingObject) {
-        context.reducers.moveObject(context.projectId, context.stateStore.getState().selectedObject, {
-          x: incrementalOffset.x,
-          y: incrementalOffset.y,
-          z: incrementalOffset.z,
-        });
+        const obj = getSelectedObject(context);
+        if (obj) {
+          context.reducers.moveObject(context.projectId, obj.index, {
+            x: incrementalOffset.x,
+            y: incrementalOffset.y,
+            z: incrementalOffset.z,
+          });
+        }
       } else {
         context.reducers.moveSelection(context.projectId, {
           x: incrementalOffset.x,
@@ -87,6 +89,13 @@ export class MoveSelectionTool implements Tool {
       }
       this.appliedOffset.copy(totalOffset);
       this.cachedBounds = this.computeBounds(context);
+      if (this.cachedBounds) {
+        this.dragReferencePoint = new THREE.Vector3(
+          (this.cachedBounds.min.x + this.cachedBounds.max.x) / 2,
+          (this.cachedBounds.min.y + this.cachedBounds.max.y) / 2,
+          (this.cachedBounds.min.z + this.cachedBounds.max.z) / 2
+        );
+      }
     }
 
     this.renderBoundsBox(context, this.cachedBounds);
@@ -103,11 +112,14 @@ export class MoveSelectionTool implements Tool {
 
     if (incrementalOffset.lengthSq() > 0) {
       if (this.movingObject) {
-        context.reducers.moveObject(context.projectId, context.stateStore.getState().selectedObject, {
-          x: incrementalOffset.x,
-          y: incrementalOffset.y,
-          z: incrementalOffset.z,
-        });
+        const obj = getSelectedObject(context);
+        if (obj) {
+          context.reducers.moveObject(context.projectId, obj.index, {
+            x: incrementalOffset.x,
+            y: incrementalOffset.y,
+            z: incrementalOffset.z,
+          });
+        }
       } else {
         context.reducers.moveSelection(context.projectId, {
           x: incrementalOffset.x,
@@ -139,9 +151,7 @@ export class MoveSelectionTool implements Tool {
   }
 
   private computeBounds(context: ToolContext): { min: Vector3; max: Vector3 } | null {
-    const chunkManager = context.projectManager.chunkManager;
-    const selectedObject = context.stateStore.getState().selectedObject;
-    const object = chunkManager.getObject(selectedObject);
+    const object = getSelectedObject(context);
     if (!object) return null;
 
     if (object.selection) {
@@ -151,7 +161,7 @@ export class MoveSelectionTool implements Tool {
       };
     }
 
-    return chunkManager.getObjectContentBounds(selectedObject);
+    return context.projectManager.chunkManager.getObjectContentBounds(object.index);
   }
 
   private renderBoundsBox(

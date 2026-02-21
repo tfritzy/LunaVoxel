@@ -128,7 +128,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     getState: () => ({
       project: { id: "test-project", dimensions },
       objects: mockObjects,
-      selectedObject: 0,
+      selectedObject: "bench-obj",
       blocks: { projectId: "test-project", colors: [] },
       chunks: new Map(),
     }),

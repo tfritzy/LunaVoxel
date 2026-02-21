@@ -41,8 +41,9 @@ export const ObjectsSection = ({
 
   useEffect(() => {
     if (sortedObjects.length === 0) return;
-    if (selectedObject >= sortedObjects.length) {
-      stateStore.reducers.setSelectedObject(Math.min(selectedObject, sortedObjects.length - 1));
+    if (!stateStore.getState().objects.has(selectedObject)) {
+      const fallback = sortedObjects[sortedObjects.length - 1];
+      stateStore.reducers.setSelectedObject(fallback.id);
     }
   }, [sortedObjects, selectedObject]);
 
@@ -82,8 +83,12 @@ export const ObjectsSection = ({
       stateStore.reducers.deleteObject(obj.id);
       editHistory.addObjectDelete(obj, previousIndex, chunks);
 
-      if (selectedObject >= sortedObjects.length - 1) {
-        stateStore.reducers.setSelectedObject(Math.max(0, selectedObject - 1));
+      if (selectedObject === obj.id) {
+        const remaining = [...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index);
+        if (remaining.length > 0) {
+          const newIdx = Math.min(previousIndex, remaining.length - 1);
+          stateStore.reducers.setSelectedObject(remaining[newIdx].id);
+        }
       }
     },
     [sortedObjects, selectedObject]
@@ -120,25 +125,17 @@ export const ObjectsSection = ({
         const newIndex = currentObjects.findIndex(
           (obj) => obj.id === over.id
         );
-        const selectedId = currentObjects[selectedObject].id;
 
         if (oldIndex !== -1 && newIndex !== -1) {
           const previousOrder = currentObjects.map((obj) => obj.id);
 
-          let newObjects = arrayMove(currentObjects, oldIndex, newIndex);
-          newObjects = newObjects.map((o, i) => ({ ...o, index: i }));
-          const newSelectedIndex = newObjects.findIndex(
-            (o) => o.id === selectedId
-          );
-          stateStore.reducers.setSelectedObject(newSelectedIndex);
-
-          const newOrder = newObjects.map((obj) => obj.id);
+          const newOrder = arrayMove(currentObjects, oldIndex, newIndex).map((obj) => obj.id);
           stateStore.reducers.reorderObjects(projectId, newOrder);
           editHistory.addObjectReorder(previousOrder, newOrder);
         }
       }
     },
-    [projectId, selectedObject, sortedObjects]
+    [projectId, sortedObjects]
   );
 
   const objectIds = sortedObjects.map((obj) => obj.id);
@@ -167,8 +164,8 @@ export const ObjectsSection = ({
               <SortableObjectRow
                 object={o}
                 key={o.id}
-                isSelected={selectedObject === o.index}
-                onSelect={() => stateStore.reducers.setSelectedObject(o.index)}
+                isSelected={selectedObject === o.id}
+                onSelect={() => stateStore.reducers.setSelectedObject(o.id)}
                 onDelete={onDelete}
                 onToggleVisibility={toggleVisibility}
                 onToggleLocked={toggleLocked}

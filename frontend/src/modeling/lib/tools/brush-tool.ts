@@ -120,7 +120,7 @@ export class BrushTool implements Tool {
     this.isStrokeActive = true;
     this.strokeMode = context.mode;
     this.strokeSelectedBlock = context.selectedBlock;
-    this.strokeSelectedObject = context.stateStore.getState().selectedObject;
+    this.strokeSelectedObject = getSelectedObject(context)?.index ?? 0;
     this.lastAppliedPosition = event.gridPosition.clone();
 
     this.stampAtPosition(context, event.gridPosition);

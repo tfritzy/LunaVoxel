@@ -262,7 +262,7 @@ export class RectTool implements Tool {
       bounds,
       mode: context.mode,
       selectedBlock: context.selectedBlock,
-      selectedObject: context.stateStore.getState().selectedObject,
+      selectedObject: getSelectedObject(context)?.index ?? 0,
       fillShape: this.fillShape,
       direction: this.direction,
     };
@@ -399,7 +399,7 @@ export class RectTool implements Tool {
   private applyAndClear(context: ToolContext, bounds: RectBounds): void {
     const mode = this.pending?.mode ?? context.mode;
     const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
-    const selectedObject = this.pending?.selectedObject ?? context.stateStore.getState().selectedObject;
+    const selectedObject = this.pending?.selectedObject ?? (getSelectedObject(context)?.index ?? 0);
     const dims = getSelectedObject(context)!.dimensions;
     const dimY = dims.y;
     const dimZ = dims.z;

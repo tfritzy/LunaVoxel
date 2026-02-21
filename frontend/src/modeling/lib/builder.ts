@@ -188,12 +188,12 @@ export const Builder = class {
     }
   }
 
-  public setSelectedObject(objectIndex: number): void {
-    this.stateStore.reducers.setSelectedObject(objectIndex);
+  public setSelectedObject(objectId: string): void {
+    this.stateStore.reducers.setSelectedObject(objectId);
     this.currentTool.onActivate?.(this.toolContext);
   }
 
-  public getSelectedObject(): number {
+  public getSelectedObject(): string {
     return this.stateStore.getState().selectedObject;
   }
 

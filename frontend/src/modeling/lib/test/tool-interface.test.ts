@@ -66,7 +66,7 @@ describe("Tool Interface", () => {
       getState: () => ({
         project: { id: "test-project", dimensions },
         objects: mockObjects,
-        selectedObject: 0,
+        selectedObject: "test-obj",
         blocks: { projectId: "test-project", colors: [] },
         chunks: new Map(),
       }),
@@ -966,27 +966,31 @@ describe("Tool Interface", () => {
         { x: 5, y: 6, z: 7 }
       );
 
-      mockContext.projectManager = {
-        ...mockContext.projectManager,
-        chunkManager: {
-          ...mockContext.projectManager.chunkManager,
-          getObject: () => ({
-            id: "obj1",
-            projectId: "test-project",
-            index: 0,
-            name: "Object 1",
-            visible: true,
-            locked: false,
-            position: { x: 0, y: 0, z: 0 },
-            dimensions: { x: 64, y: 64, z: 64 },
-            selection,
-          }),
-          getObjectContentBounds: () => ({
-            min: { x: 0, y: 0, z: 0 },
-            max: { x: 64, y: 64, z: 64 },
-          }),
-        },
-      } as unknown as ProjectManager;
+      const objWithSelection = {
+        id: "test-obj",
+        projectId: "test-project",
+        index: 0,
+        name: "Object 1",
+        visible: true,
+        locked: false,
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 64, y: 64, z: 64 },
+        selection,
+      };
+
+      const stateWithSelection = {
+        getState: () => ({
+          project: { id: "test-project", dimensions },
+          objects: new Map([["test-obj", objWithSelection]]),
+          selectedObject: "test-obj",
+          blocks: { projectId: "test-project", colors: [] },
+          chunks: new Map(),
+        }),
+        subscribe: () => () => {},
+        reducers: mockContext.reducers,
+      } as StateStore;
+
+      mockContext.stateStore = stateWithSelection;
 
       tool.onActivate!(mockContext);
 
@@ -1042,13 +1046,18 @@ describe("Tool Interface", () => {
     });
 
     it("should not add box when object does not exist", () => {
-      mockContext.projectManager = {
-        ...mockContext.projectManager,
-        chunkManager: {
-          ...mockContext.projectManager.chunkManager,
-          getObject: () => undefined,
-        },
-      } as unknown as ProjectManager;
+      const emptyStateStore = {
+        getState: () => ({
+          project: { id: "test-project", dimensions },
+          objects: new Map(),
+          selectedObject: "nonexistent",
+          blocks: { projectId: "test-project", colors: [] },
+          chunks: new Map(),
+        }),
+        subscribe: () => () => {},
+        reducers: mockContext.reducers,
+      } as StateStore;
+      mockContext.stateStore = emptyStateStore;
 
       tool.onActivate!(mockContext);
 
@@ -1311,7 +1320,7 @@ describe("Tool Interface", () => {
         getState: () => ({
           project: { id: "test-project", dimensions: benchDimensions },
           objects: benchMockObjects,
-          selectedObject: 0,
+          selectedObject: "bench-obj",
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
         }),
