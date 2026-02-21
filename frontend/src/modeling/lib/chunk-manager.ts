@@ -130,65 +130,14 @@ export class ChunkManager {
       }
     }
 
-    this.updateChunkSelections();
+    for (const chunk of this.chunks.values()) {
+      const key = this.getChunkKey(chunk.minPos);
+      const selFrame = current.selectionChunks.get(key);
+      chunk.setSelectionChunkFrame(selFrame ?? null);
+    }
+
     this.updateAllChunks();
   };
-
-  private updateChunkSelections(): void {
-    const hasAnySelection = this.objects.some(obj => obj.selection && obj.visible);
-
-    if (!hasAnySelection) {
-      for (const chunk of this.chunks.values()) {
-        const frame = chunk.getSelectionFrame();
-        if (!frame.isEmpty()) {
-          frame.clear();
-          chunk.markSelectionDirty();
-        }
-      }
-      return;
-    }
-
-    for (const chunk of this.chunks.values()) {
-      const frame = chunk.getSelectionFrame();
-      const wasEmpty = frame.isEmpty();
-      frame.clear();
-
-      for (const obj of this.objects) {
-        if (!obj.selection || !obj.visible) continue;
-
-        const sel = obj.selection;
-        const selMin = sel.getMinPos();
-        const selDims = sel.getDimensions();
-
-        const overlapMinX = Math.max(chunk.minPos.x, selMin.x);
-        const overlapMinY = Math.max(chunk.minPos.y, selMin.y);
-        const overlapMinZ = Math.max(chunk.minPos.z, selMin.z);
-        const overlapMaxX = Math.min(chunk.minPos.x + chunk.size.x, selMin.x + selDims.x);
-        const overlapMaxY = Math.min(chunk.minPos.y + chunk.size.y, selMin.y + selDims.y);
-        const overlapMaxZ = Math.min(chunk.minPos.z + chunk.size.z, selMin.z + selDims.z);
-
-        if (overlapMinX >= overlapMaxX || overlapMinY >= overlapMaxY || overlapMinZ >= overlapMaxZ) continue;
-
-        for (let wx = overlapMinX; wx < overlapMaxX; wx++) {
-          for (let wy = overlapMinY; wy < overlapMaxY; wy++) {
-            for (let wz = overlapMinZ; wz < overlapMaxZ; wz++) {
-              const val = sel.get(wx, wy, wz);
-              if (val > 0) {
-                const lx = wx - chunk.minPos.x;
-                const ly = wy - chunk.minPos.y;
-                const lz = wz - chunk.minPos.z;
-                frame.setByIndex(lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz, val);
-              }
-            }
-          }
-        }
-      }
-
-      if (!wasEmpty || !frame.isEmpty()) {
-        chunk.markSelectionDirty();
-      }
-    }
-  }
 
   public getObject(objectIndex: number): VoxelObject | undefined {
     return this.objects.find((o) => o.index === objectIndex);

@@ -42,10 +42,11 @@ export class Chunk {
   private blocksToRender: Uint8Array;
   private selectionFrames: Map<string, SelectionData> = new Map();
   private selectionFrame: VoxelFrame;
+  private lastRenderedSelectionFrame: VoxelFrame | null = null;
+  private lastRenderedSelectionVersion: number = -1;
   private previewBuffer: Uint8Array;
   private worldDimensions: Vector3;
   private previewDirty: boolean = false;
-  private selectionDirty: boolean = false;
   private previewAccMinX: number = -1;
   private previewAccMinY: number = -1;
   private previewAccMinZ: number = -1;
@@ -255,8 +256,12 @@ export class Chunk {
     this.selectionFrames.clear();
   }
 
-  public markSelectionDirty(): void {
-    this.selectionDirty = true;
+  public setSelectionChunkFrame(frame: VoxelFrame | null): void {
+    if (frame) {
+      this.selectionFrame = frame;
+    } else if (!this.selectionFrame.isEmpty()) {
+      this.selectionFrame = new VoxelFrame(this.size);
+    }
   }
 
   public getSelectionFrame(): VoxelFrame {
@@ -429,7 +434,8 @@ export class Chunk {
       return true;
     }
 
-    if (this.selectionDirty) {
+    if (this.selectionFrame !== this.lastRenderedSelectionFrame ||
+        this.selectionFrame.getVersion() !== this.lastRenderedSelectionVersion) {
       return true;
     }
 
@@ -464,7 +470,8 @@ export class Chunk {
         this.renderedBlocks.set(this.blocksToRender);
         this.atlasChanged = false;
         this.previewDirty = false;
-        this.selectionDirty = false;
+        this.lastRenderedSelectionFrame = this.selectionFrame;
+        this.lastRenderedSelectionVersion = this.selectionFrame.getVersion();
       }
     } catch (error) {
       console.error(`[Chunk] Update failed:`, error);

@@ -17,6 +17,7 @@ export type GlobalState = {
   objects: VoxelObject[];
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
+  selectionChunks: Map<string, VoxelFrame>;
 };
 
 export type Reducers = {
@@ -68,6 +69,9 @@ const createId = () =>
 
 export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
+
+const getSelectionChunkKey = (minPos: Vector3) =>
+  `${minPos.x},${minPos.y},${minPos.z}`;
 
 const createChunkData = (
   project: Project,
@@ -155,7 +159,7 @@ const createInitialState = (): GlobalState => {
 
   chunks.set(seedChunk.key, seedChunk);
 
-  return { project, objects, blocks, chunks };
+  return { project, objects, blocks, chunks, selectionChunks: new Map() };
 };
 
 let state = createInitialState();
@@ -216,6 +220,56 @@ const applyBlockAt = (
   }
 };
 
+const rebuildSelectionChunks = () => {
+  state.selectionChunks.clear();
+
+  for (const obj of state.objects) {
+    if (!obj.selection || !obj.visible) continue;
+
+    const sel = obj.selection;
+    const selDims = sel.getDimensions();
+    const selMin = sel.getMinPos();
+    const dims = state.project.dimensions;
+
+    for (let lx = 0; lx < selDims.x; lx++) {
+      const wx = selMin.x + lx;
+      if (wx < 0 || wx >= dims.x) continue;
+      for (let ly = 0; ly < selDims.y; ly++) {
+        const wy = selMin.y + ly;
+        if (wy < 0 || wy >= dims.y) continue;
+        for (let lz = 0; lz < selDims.z; lz++) {
+          const wz = selMin.z + lz;
+          if (wz < 0 || wz >= dims.z) continue;
+          const val = sel.get(wx, wy, wz);
+          if (val === 0) continue;
+
+          const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
+          const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
+          const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
+          const key = getSelectionChunkKey({ x: cx, y: cy, z: cz });
+
+          let frame = state.selectionChunks.get(key);
+          if (!frame) {
+            const size = {
+              x: Math.min(CHUNK_SIZE, dims.x - cx),
+              y: Math.min(CHUNK_SIZE, dims.y - cy),
+              z: Math.min(CHUNK_SIZE, dims.z - cz),
+            };
+            frame = new VoxelFrame(size);
+            state.selectionChunks.set(key, frame);
+          }
+
+          const localX = wx - cx;
+          const localY = wy - cy;
+          const localZ = wz - cz;
+          const frameDims = frame.getDimensions();
+          frame.setByIndex(localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ, val);
+        }
+      }
+    }
+  }
+};
+
 const reducers: Reducers = {
   addObject: (_projectId) => {
     void _projectId;
@@ -238,6 +292,7 @@ const reducers: Reducers = {
     updateState((current) => {
       const target = current.objects.find((obj) => obj.id === objectId);
       if (!target) return;
+      const hadSelection = target.selection !== null;
       current.objects = current.objects
         .filter((obj) => obj.id !== objectId)
         .map((obj, index) => ({ ...obj, index }));
@@ -246,6 +301,10 @@ const reducers: Reducers = {
         if (chunk.objectId === objectId) {
           current.chunks.delete(key);
         }
+      }
+
+      if (hadSelection) {
+        rebuildSelectionChunks();
       }
     });
   },
@@ -262,6 +321,9 @@ const reducers: Reducers = {
       const obj = current.objects.find((o) => o.id === objectId);
       if (obj) {
         obj.visible = !obj.visible;
+        if (obj.selection) {
+          rebuildSelectionChunks();
+        }
       }
     });
   },
@@ -420,6 +482,7 @@ const reducers: Reducers = {
 
     if (maxX < 0) {
       obj.selection = null;
+      rebuildSelectionChunks();
       notify();
       return;
     }
@@ -436,6 +499,7 @@ const reducers: Reducers = {
     }
 
     obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
+    rebuildSelectionChunks();
     notify();
   },
   deleteSelectedVoxels: (_projectId, objectIndex) => {
@@ -466,6 +530,7 @@ const reducers: Reducers = {
         }
       }
       obj.selection = null;
+      rebuildSelectionChunks();
     });
   },
   updateBlockColor: (blockIndex: number, color: number) => {

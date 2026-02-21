@@ -3,6 +3,7 @@ import { Chunk } from "../chunk";
 import * as THREE from "three";
 import type { Vector3, BlockModificationMode } from "@/state/types";
 import { AtlasData } from "@/lib/useAtlas";
+import { VoxelFrame } from "../voxel-frame";
 
 function createMockTexture(width: number): THREE.Texture {
   const texture = { image: { width } } as unknown as THREE.Texture;
@@ -26,10 +27,10 @@ describe("Chunk selection rendering", () => {
       scene,
       minPos,
       chunkSize,
-      3, // 3 objects
+      3,
       mockAtlasData,
       () => ({ tag: "Attach" } as BlockModificationMode),
-      () => true, // all objects visible
+      () => true,
       new Uint8Array(chunkSize.x * chunkSize.y * chunkSize.z),
       chunkSize
     );
@@ -126,8 +127,9 @@ describe("Chunk per-chunk selection frame", () => {
     voxels[idx(1, 1, 1, chunkSize)] = 1;
     chunk.setObjectChunk(0, voxels);
 
-    chunk.getSelectionFrame().setByIndex(idx(1, 1, 1, chunkSize), 1);
-    chunk.markSelectionDirty();
+    const selFrame = new VoxelFrame(chunkSize);
+    selFrame.setByIndex(idx(1, 1, 1, chunkSize), 1);
+    chunk.setSelectionChunkFrame(selFrame);
     chunk.update();
 
     const mesh = chunk.getMesh();
@@ -188,8 +190,9 @@ describe("Chunk per-chunk selection frame", () => {
     voxels1[idx(1, 1, 1, chunkSize)] = 2;
     chunk.setObjectChunk(1, voxels1);
 
-    chunk.getSelectionFrame().setByIndex(idx(1, 1, 1, chunkSize), 1);
-    chunk.markSelectionDirty();
+    const selFrame = new VoxelFrame(chunkSize);
+    selFrame.setByIndex(idx(1, 1, 1, chunkSize), 1);
+    chunk.setSelectionChunkFrame(selFrame);
     chunk.update();
 
     const mesh = chunk.getMesh();
@@ -200,7 +203,7 @@ describe("Chunk per-chunk selection frame", () => {
     expect(hasSelected).toBe(true);
   });
 
-  it("should re-render when selection changes after initial render", () => {
+  it("should re-render when selection frame changes via version", () => {
     const scene = new THREE.Scene();
     const chunk = new Chunk(
       scene,
@@ -224,8 +227,9 @@ describe("Chunk per-chunk selection frame", () => {
     let hasSelected = Array.from(isSelectedArray).some(v => v > 0.5);
     expect(hasSelected).toBe(false);
 
-    chunk.getSelectionFrame().setByIndex(idx(1, 1, 1, chunkSize), 1);
-    chunk.markSelectionDirty();
+    const selFrame = new VoxelFrame(chunkSize);
+    selFrame.setByIndex(idx(1, 1, 1, chunkSize), 1);
+    chunk.setSelectionChunkFrame(selFrame);
     chunk.update();
 
     isSelectedArray = mesh!.geometry.getAttribute("isSelected").array as Float32Array;
