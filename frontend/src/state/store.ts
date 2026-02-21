@@ -69,9 +69,6 @@ const createId = () =>
 export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
-const getSelectionChunkKey = (minPos: Vector3) =>
-  `${minPos.x},${minPos.y},${minPos.z}`;
-
 const createChunkData = (
   project: Project,
   objectId: string,
@@ -246,7 +243,7 @@ const rebuildSelectionChunks = () => {
           const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
           const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
           const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-          const posKey = getSelectionChunkKey({ x: cx, y: cy, z: cz });
+          const posKey = `${cx},${cy},${cz}`;
 
           let frame = positionSelections.get(posKey);
           if (!frame) {
@@ -270,7 +267,7 @@ const rebuildSelectionChunks = () => {
   }
 
   for (const chunk of state.chunks.values()) {
-    const posKey = getSelectionChunkKey(chunk.minPos);
+    const posKey = `${chunk.minPos.x},${chunk.minPos.y},${chunk.minPos.z}`;
     const frame = positionSelections.get(posKey);
     if (frame) {
       chunk.selection = frame;
