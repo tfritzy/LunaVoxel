@@ -267,6 +267,39 @@ const applyBlockAt = (
 
 const rebuildSelectionChunks = () => {
   const positionSelections = new Map<string, VoxelFrame>();
+  const getChunkOrigin = (worldPos: Vector3) => ({
+    x: Math.floor(worldPos.x / CHUNK_SIZE) * CHUNK_SIZE,
+    y: Math.floor(worldPos.y / CHUNK_SIZE) * CHUNK_SIZE,
+    z: Math.floor(worldPos.z / CHUNK_SIZE) * CHUNK_SIZE,
+  });
+  const getChunkOriginKey = (chunkOrigin: Vector3) =>
+    `${chunkOrigin.x},${chunkOrigin.y},${chunkOrigin.z}`;
+  const getOrCreateSelectionFrame = (chunkOrigin: Vector3, dims: Vector3) => {
+    const chunkKey = getChunkOriginKey(chunkOrigin);
+    let frame = positionSelections.get(chunkKey);
+    if (!frame) {
+      frame = new VoxelFrame({
+        x: Math.min(CHUNK_SIZE, dims.x - chunkOrigin.x),
+        y: Math.min(CHUNK_SIZE, dims.y - chunkOrigin.y),
+        z: Math.min(CHUNK_SIZE, dims.z - chunkOrigin.z),
+      });
+      positionSelections.set(chunkKey, frame);
+    }
+    return frame;
+  };
+  const setSelectionVoxel = (
+    frame: VoxelFrame,
+    worldPos: Vector3,
+    chunkOrigin: Vector3,
+    value: number
+  ) => {
+    const localX = worldPos.x - chunkOrigin.x;
+    const localY = worldPos.y - chunkOrigin.y;
+    const localZ = worldPos.z - chunkOrigin.z;
+    const frameDims = frame.getDimensions();
+    const index = localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ;
+    frame.setByIndex(index, value);
+  };
 
   for (const obj of state.objects.values()) {
     if (!obj.selection || !obj.visible) continue;
@@ -287,28 +320,10 @@ const rebuildSelectionChunks = () => {
           if (wz < 0 || wz >= dims.z) continue;
           const val = sel.get(wx, wy, wz);
           if (val === 0) continue;
-
-          const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-          const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-          const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-          const posKey = `${cx},${cy},${cz}`;
-
-          let frame = positionSelections.get(posKey);
-          if (!frame) {
-            const size = {
-              x: Math.min(CHUNK_SIZE, dims.x - cx),
-              y: Math.min(CHUNK_SIZE, dims.y - cy),
-              z: Math.min(CHUNK_SIZE, dims.z - cz),
-            };
-            frame = new VoxelFrame(size);
-            positionSelections.set(posKey, frame);
-          }
-
-          const localX = wx - cx;
-          const localY = wy - cy;
-          const localZ = wz - cz;
-          const frameDims = frame.getDimensions();
-          frame.setByIndex(localX * frameDims.y * frameDims.z + localY * frameDims.z + localZ, val);
+          const worldPos = { x: wx, y: wy, z: wz };
+          const chunkOrigin = getChunkOrigin(worldPos);
+          const frame = getOrCreateSelectionFrame(chunkOrigin, dims);
+          setSelectionVoxel(frame, worldPos, chunkOrigin, val);
         }
       }
     }
