@@ -75,6 +75,7 @@ export class BrushTool implements Tool {
   }
 
   private stampAtPosition(context: ToolContext, center: THREE.Vector3): void {
+    const dims = getSelectedObject(context)!.dimensions;
     const halfBelow = Math.ceil(this.size / 2) - 1;
     const halfAbove = Math.floor(this.size / 2);
 
@@ -88,14 +89,14 @@ export class BrushTool implements Tool {
     const minX = Math.max(0, boundsMinX);
     const minY = Math.max(0, boundsMinY);
     const minZ = Math.max(0, boundsMinZ);
-    const maxX = Math.min(getSelectedObject(context)!.dimensions.x - 1, boundsMaxX);
-    const maxY = Math.min(getSelectedObject(context)!.dimensions.y - 1, boundsMaxY);
-    const maxZ = Math.min(getSelectedObject(context)!.dimensions.z - 1, boundsMaxZ);
+    const maxX = Math.min(dims.x - 1, boundsMaxX);
+    const maxY = Math.min(dims.y - 1, boundsMaxY);
+    const maxZ = Math.min(dims.z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
-    const dimY = getSelectedObject(context)!.dimensions.y;
-    const dimZ = getSelectedObject(context)!.dimensions.z;
+    const dimY = dims.y;
+    const dimZ = dims.z;
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {

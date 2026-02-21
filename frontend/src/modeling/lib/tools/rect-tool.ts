@@ -103,8 +103,9 @@ export class RectTool implements Tool {
 
   private clearLastBounds(context: ToolContext): void {
     if (!this.lastBounds) return;
-    const dimY = getSelectedObject(context)!.dimensions.y;
-    const dimZ = getSelectedObject(context)!.dimensions.z;
+    const dims = getSelectedObject(context)!.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
     const lb = this.lastBounds;
     for (let x = lb.minX; x <= lb.maxX; x++) {
       for (let y = lb.minY; y <= lb.maxY; y++) {
@@ -124,8 +125,9 @@ export class RectTool implements Tool {
     this.clearLastBounds(context);
 
     const previewValue = this.getPreviewBlockValue(mode, selectedBlock);
-    const dimY = getSelectedObject(context)!.dimensions.y;
-    const dimZ = getSelectedObject(context)!.dimensions.z;
+    const dims = getSelectedObject(context)!.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
 
     if (fillShape === "Rect") {
       for (let x = bounds.minX; x <= bounds.maxX; x++) {
@@ -377,16 +379,17 @@ export class RectTool implements Tool {
   resizePendingBounds(context: ToolContext, bounds: RectBounds): void {
     if (!this.pending) return;
 
+    const dims = getSelectedObject(context)!.dimensions;
     const clamp = (val: number, max: number) =>
       Math.max(0, Math.min(val, max - 1));
 
     this.pending.bounds = {
-      minX: clamp(bounds.minX, getSelectedObject(context)!.dimensions.x),
-      maxX: clamp(bounds.maxX, getSelectedObject(context)!.dimensions.x),
-      minY: clamp(bounds.minY, getSelectedObject(context)!.dimensions.y),
-      maxY: clamp(bounds.maxY, getSelectedObject(context)!.dimensions.y),
-      minZ: clamp(bounds.minZ, getSelectedObject(context)!.dimensions.z),
-      maxZ: clamp(bounds.maxZ, getSelectedObject(context)!.dimensions.z),
+      minX: clamp(bounds.minX, dims.x),
+      maxX: clamp(bounds.maxX, dims.x),
+      minY: clamp(bounds.minY, dims.y),
+      maxY: clamp(bounds.maxY, dims.y),
+      minZ: clamp(bounds.minZ, dims.z),
+      maxZ: clamp(bounds.maxZ, dims.z),
     };
 
     this.buildFrameFromBounds(context, this.pending.bounds);
@@ -397,8 +400,9 @@ export class RectTool implements Tool {
     const mode = this.pending?.mode ?? context.mode;
     const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
     const selectedObject = this.pending?.selectedObject ?? context.selectedObject;
-    const dimY = getSelectedObject(context)!.dimensions.y;
-    const dimZ = getSelectedObject(context)!.dimensions.z;
+    const dims = getSelectedObject(context)!.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
 
     const frameDims = {
       x: bounds.maxX - bounds.minX + 1,
