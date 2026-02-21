@@ -201,11 +201,9 @@ function snapshotObjectVoxels(objectIndex: number): Uint8Array {
 }
 
 let state = createInitialState();
-let version = 0;
 const listeners = new Set<() => void>();
 
 const notify = () => {
-  version += 1;
   for (const listener of listeners) {
     listener();
   }
@@ -885,12 +883,11 @@ export const stateStore: StateStore = {
 export const useGlobalState = <T,>(
   selector: (current: GlobalState) => T
 ) => {
-  useSyncExternalStore(
+  return useSyncExternalStore(
     stateStore.subscribe,
-    () => version,
-    () => version
+    () => selector(stateStore.getState()),
+    () => selector(stateStore.getState())
   );
-  return selector(stateStore.getState());
 };
 
 export const resetState = () => {
