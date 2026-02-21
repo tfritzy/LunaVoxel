@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { BrushTool } from "../tools/brush-tool";
 import type { ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode } from "@/state/types";
-import type { Reducers } from "@/state/store";
+import type { Reducers, StateStore } from "@/state/store";
 import type { ProjectManager } from "../project-manager";
 import * as THREE from "three";
 import { CHUNK_SIZE } from "@/state/constants";
@@ -31,6 +31,9 @@ function createBenchmarkContext(dimensions: Vector3): {
     undoEdit: () => {},
     updateCursorPos: () => {},
     magicSelect: () => {},
+    moveSelection: () => {},
+    moveObject: () => {},
+    beginSelectionMove: () => {},
     commitSelectionMove: () => {},
     selectAllVoxels: () => {},
     deleteSelectedVoxels: () => {},
@@ -108,10 +111,33 @@ function createBenchmarkContext(dimensions: Vector3): {
     chunkBounds.clear();
   };
 
+  const mockObjects = new Map([["bench-obj", {
+    id: "bench-obj",
+    projectId: "test-project",
+    index: 0,
+    name: "Object 1",
+    visible: true,
+    locked: false,
+    position: { x: 0, y: 0, z: 0 },
+    dimensions,
+    selection: null,
+  }]]);
+
+  const mockStateStore = {
+    getState: () => ({
+      project: { id: "test-project", dimensions },
+      objects: mockObjects,
+      blocks: { projectId: "test-project", colors: [] },
+      chunks: new Map(),
+    }),
+    subscribe: () => () => {},
+    reducers,
+  } as StateStore;
+
   const context: ToolContext = {
+    stateStore: mockStateStore,
     reducers,
     projectId: "test-project",
-    dimensions,
     projectManager: {
       applyOptimisticRectEdit: () => {},
       getBlockAtPosition: () => 1,

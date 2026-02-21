@@ -30,9 +30,9 @@ export const Builder = class {
   private currentTool: Tool;
   private currentMode: BlockModificationMode = { tag: "Attach" };
   private toolContext: {
+    stateStore: StateStore;
     reducers: StateStore["reducers"];
     projectId: string;
-    dimensions: Vector3;
     projectManager: ProjectManager;
     previewBuffer: Uint8Array;
     selectedBlock: number;
@@ -87,9 +87,9 @@ export const Builder = class {
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
+      stateStore: this.stateStore,
       reducers: this.stateStore.reducers,
       projectId: this.projectId,
-      dimensions: this.dimensions,
       projectManager: this.projectManager,
       previewBuffer: this.projectManager.chunkManager.previewBuffer,
       selectedBlock: this.selectedBlock,

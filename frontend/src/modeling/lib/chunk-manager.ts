@@ -87,7 +87,7 @@ export class ChunkManager {
 
   private handleStateChange = () => {
     const current = this.stateStore.getState();
-    this.objects = current.objects
+    this.objects = Array.from(current.objects.values())
       .filter((obj) => obj.projectId === this.projectId)
       .sort((a, b) => a.index - b.index);
 
