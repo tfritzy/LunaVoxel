@@ -324,6 +324,7 @@ const reducers: Reducers = {
   reorderObjects: (_projectId, objectIds) => {
     void _projectId;
     updateState((current) => {
+      const reordered = new Set(objectIds);
       let idx = 0;
       for (const objectId of objectIds) {
         const obj = current.objects.get(objectId);
@@ -332,7 +333,7 @@ const reducers: Reducers = {
         }
       }
       for (const obj of current.objects.values()) {
-        if (!objectIds.includes(obj.id)) {
+        if (!reordered.has(obj.id)) {
           obj.index = idx++;
         }
       }
@@ -772,10 +773,10 @@ const reducers: Reducers = {
         selection: null,
       };
       current.objects.set(restored.id, restored);
-      let idx = 0;
-      const sorted = [...current.objects.values()].sort((a, b) => a.index - b.index);
-      for (const obj of sorted) {
-        obj.index = idx++;
+      for (const obj of current.objects.values()) {
+        if (obj.id !== restored.id && obj.index >= atIndex) {
+          obj.index++;
+        }
       }
 
       for (const [key, chunkData] of chunks.entries()) {
