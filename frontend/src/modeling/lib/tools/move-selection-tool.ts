@@ -63,7 +63,7 @@ export class MoveSelectionTool implements Tool {
     const incrementalOffset = new THREE.Vector3().subVectors(totalOffset, this.appliedOffset);
 
     if (incrementalOffset.lengthSq() > 0) {
-      context.reducers.commitSelectionMove(context.projectId, {
+      context.reducers.moveSelection(context.projectId, {
         x: incrementalOffset.x,
         y: incrementalOffset.y,
         z: incrementalOffset.z,
@@ -85,14 +85,14 @@ export class MoveSelectionTool implements Tool {
     const incrementalOffset = new THREE.Vector3().subVectors(totalOffset, this.appliedOffset);
 
     if (incrementalOffset.lengthSq() > 0) {
-      context.reducers.commitSelectionMove(context.projectId, {
+      context.reducers.moveSelection(context.projectId, {
         x: incrementalOffset.x,
         y: incrementalOffset.y,
         z: incrementalOffset.z,
       });
     }
 
-    context.reducers.endSelectionMove(context.projectId);
+    context.reducers.commitSelectionMove(context.projectId);
 
     this.snappedAxis = null;
     this.appliedOffset.set(0, 0, 0);

@@ -16,7 +16,7 @@ function getVoxelAt(objectId: string, wx: number, wy: number, wz: number): numbe
   return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
 }
 
-describe("commitSelectionMove", () => {
+describe("moveSelection", () => {
   beforeEach(() => {
     resetState();
   });
@@ -27,7 +27,7 @@ describe("commitSelectionMove", () => {
     expect(getVoxelAt(objectId, 10, 0, 10)).not.toBe(0);
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.commitSelectionMove("local-project", { x: 1, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: 1, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
     expect(getVoxelAt(objectId, 11, 0, 10)).not.toBe(0);
@@ -40,7 +40,7 @@ describe("commitSelectionMove", () => {
     stateStore.reducers.selectAllVoxels("local-project", 0);
 
     const offset = dims.x - 10;
-    stateStore.reducers.commitSelectionMove("local-project", { x: offset, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: offset, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 0, 0, 10)).not.toBe(0);
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
@@ -51,7 +51,7 @@ describe("commitSelectionMove", () => {
     const dims = stateStore.getState().project.dimensions;
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.commitSelectionMove("local-project", { x: -11, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: -11, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
     expect(getVoxelAt(objectId, dims.x - 1, 0, 10)).not.toBe(0);
@@ -63,7 +63,7 @@ describe("commitSelectionMove", () => {
     expect(original).not.toBe(0);
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.commitSelectionMove("local-project", { x: 55, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: 55, y: 0, z: 0 });
 
     const movedX = (12 + 55) % 64;
     expect(getVoxelAt(objectId, movedX, 5, 12)).toBe(original);
@@ -71,7 +71,7 @@ describe("commitSelectionMove", () => {
 
   it("updates the selection frame after move", () => {
     stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.commitSelectionMove("local-project", { x: 5, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: 5, y: 0, z: 0 });
 
     const sel = stateStore.getState().objects[0].selection;
     expect(sel).not.toBeNull();
@@ -81,7 +81,7 @@ describe("commitSelectionMove", () => {
     const objectId = stateStore.getState().objects[0].id;
     const before = getVoxelAt(objectId, 10, 0, 10);
 
-    stateStore.reducers.commitSelectionMove("local-project", { x: 5, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: 5, y: 0, z: 0 });
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(before);
   });
@@ -90,7 +90,7 @@ describe("commitSelectionMove", () => {
     const objectId = stateStore.getState().objects[0].id;
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.commitSelectionMove("local-project", { x: 60, y: 62, z: 60 });
+    stateStore.reducers.moveSelection("local-project", { x: 60, y: 62, z: 60 });
 
     const newX = (10 + 60) % 64;
     const newY = (0 + 62) % 64;
@@ -102,7 +102,7 @@ describe("commitSelectionMove", () => {
     const objectId = stateStore.getState().objects[0].id;
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.commitSelectionMove("local-project", { x: 20, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: 20, y: 0, z: 0 });
 
     for (let x = 10; x <= 14; x++) {
       for (let z = 10; z <= 14; z++) {
@@ -112,7 +112,7 @@ describe("commitSelectionMove", () => {
   });
 });
 
-describe("beginSelectionMove / endSelectionMove undo", () => {
+describe("beginSelectionMove / commitSelectionMove undo", () => {
   let history: EditHistory;
 
   beforeEach(() => {
@@ -128,9 +128,9 @@ describe("beginSelectionMove / endSelectionMove undo", () => {
 
     stateStore.reducers.selectAllVoxels("local-project", 0);
     stateStore.reducers.beginSelectionMove("local-project");
-    stateStore.reducers.commitSelectionMove("local-project", { x: 3, y: 0, z: 0 });
-    stateStore.reducers.commitSelectionMove("local-project", { x: 2, y: 0, z: 0 });
-    stateStore.reducers.endSelectionMove("local-project");
+    stateStore.reducers.moveSelection("local-project", { x: 3, y: 0, z: 0 });
+    stateStore.reducers.moveSelection("local-project", { x: 2, y: 0, z: 0 });
+    stateStore.reducers.commitSelectionMove("local-project");
 
     expect(getVoxelAt(objectId, 10, 0, 10)).toBe(0);
     expect(getVoxelAt(objectId, 15, 0, 10)).toBe(originalValue);
@@ -144,7 +144,7 @@ describe("beginSelectionMove / endSelectionMove undo", () => {
   it("does not create an undo entry when no voxels moved", () => {
     stateStore.reducers.selectAllVoxels("local-project", 0);
     stateStore.reducers.beginSelectionMove("local-project");
-    stateStore.reducers.endSelectionMove("local-project");
+    stateStore.reducers.commitSelectionMove("local-project");
 
     history.undo();
 

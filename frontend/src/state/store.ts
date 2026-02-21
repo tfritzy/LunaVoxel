@@ -45,9 +45,9 @@ export type Reducers = {
     normal: Vector3
   ) => void;
   magicSelect: (projectId: string, objectIndex: number, pos: Vector3) => void;
-  commitSelectionMove: (projectId: string, offset: Vector3) => void;
+  moveSelection: (projectId: string, offset: Vector3) => void;
   beginSelectionMove: (projectId: string) => void;
-  endSelectionMove: (projectId: string) => void;
+  commitSelectionMove: (projectId: string) => void;
   selectAllVoxels: (projectId: string, objectIndex: number) => void;
   deleteSelectedVoxels: (projectId: string, objectIndex: number) => void;
   updateBlockColor: (blockIndex: number, color: number) => void;
@@ -518,7 +518,7 @@ const reducers: Reducers = {
     obj.selection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     notify();
   },
-  commitSelectionMove: (_projectId, offset) => {
+  moveSelection: (_projectId, offset) => {
     const obj = state.objects.find((o) => o.selection !== null);
     if (!obj || !obj.selection) return;
 
@@ -625,7 +625,7 @@ const reducers: Reducers = {
       data: snapshotObjectVoxels(obj.index),
     };
   },
-  endSelectionMove: (_projectId) => {
+  commitSelectionMove: (_projectId) => {
     if (!selectionMoveSnapshot || !editHistoryRef) {
       selectionMoveSnapshot = null;
       return;
