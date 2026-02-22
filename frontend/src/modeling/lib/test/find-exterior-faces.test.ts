@@ -225,11 +225,39 @@ describe("ExteriorFacesFinder", () => {
       expect(meshArrays.indexCount).toBe(36); // 6 faces * 6 indices
       expect(meshArrays.vertexCount).toBe(24); // 6 faces * 4 vertices
 
-      // All vertices should be marked as selected
+      // All vertices should be marked as invisible selected (value 2)
       const isSelectedArray = meshArrays.getIsSelected();
       for (let i = 0; i < meshArrays.vertexCount; i++) {
-        expect(isSelectedArray[i]).toBe(1);
+        expect(isSelectedArray[i]).toBe(2);
       }
+    });
+
+    it("should use isSelected=2 for empty selected voxels and isSelected=1 for visible selected voxels", () => {
+      const dimensions: Vector3 = { x: 2, y: 1, z: 1 };
+      const voxelData = createVoxelData(dimensions);
+      setVoxel(voxelData, 0, 0, 0, 1, dimensions);
+
+      const maxFaces = dimensions.x * dimensions.y * dimensions.z * 6;
+      const meshArrays = new MeshArrays(maxFaces * 4, maxFaces * 6);
+      const selectionFrame = new VoxelFrame(dimensions);
+
+      selectionFrame.set(0, 0, 0, 1);
+      selectionFrame.set(1, 0, 0, 1);
+
+      finder.findExteriorFaces(
+        voxelData,
+        4,
+        createBlockAtlasMapping(2),
+        dimensions,
+        meshArrays,
+        selectionFrame
+      );
+
+      const isSelectedArray = meshArrays.getIsSelected();
+      const hasValue1 = Array.from(isSelectedArray).some((v) => v === 1);
+      const hasValue2 = Array.from(isSelectedArray).some((v) => v === 2);
+      expect(hasValue1).toBe(true);
+      expect(hasValue2).toBe(true);
     });
 
     it("should not mark non-selected faces with isSelected attribute", () => {

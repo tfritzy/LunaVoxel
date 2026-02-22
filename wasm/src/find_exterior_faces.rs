@@ -195,7 +195,7 @@ impl ExteriorFacesFinder {
                                     );
 
                                     self.mask[mask_idx] = texture_index as i16;
-                                    self.is_selected_mask[mask_idx] = 1;
+                                    self.is_selected_mask[mask_idx] = 2;
                                     has_faces = true;
                                 }
                             } else if block_visible {

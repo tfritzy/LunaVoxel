@@ -76,6 +76,15 @@ void main() {
     float lineWidth = 0.025;
     vec3 gridPos = fract(vWorldPosition);
     float gridLine = calculateGridLine(gridPos, lineWidth);
+
+    if (vIsSelected > 1.5) {
+      if (gridLine < 0.5) {
+        discard;
+      }
+      gl_FragColor = vec4(vec3(1.0), opacity);
+      return;
+    }
+
     finalColor = mix(finalColor, vec3(1.0), gridLine * 0.5);
   }
  

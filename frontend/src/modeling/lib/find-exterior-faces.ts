@@ -131,7 +131,7 @@ export class ExteriorFacesFinder {
                   );
                   
                   this.mask[maskIdx] = textureIndex;
-                  this.isSelectedMask[maskIdx] = 1;
+                  this.isSelectedMask[maskIdx] = 2;
                   hasFaces = true;
                 }
               } else if (blockVisible) {
