@@ -4,6 +4,7 @@ import { BlockPickerTool } from "../tools/block-picker-tool";
 import { SelectTool } from "../tools/select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
 import { BrushTool } from "../tools/brush-tool";
+import { FillTool } from "../tools/fill-tool";
 import type { Tool, ToolContext } from "../tool-interface";
 import type { Vector3, BlockModificationMode, VoxelObject } from "@/state/types";
 import type { Reducers, StateStore } from "@/state/store";
@@ -124,6 +125,11 @@ describe("Tool Interface", () => {
     it("should create BrushTool", () => {
       const tool = new BrushTool();
       expect(tool.getType()).toEqual("Brush");
+    });
+
+    it("should create FillTool", () => {
+      const tool = new FillTool();
+      expect(tool.getType()).toEqual("Fill");
     });
   });
 
@@ -772,6 +778,215 @@ describe("Tool Interface", () => {
       });
 
       expect(selectedBlock).toBe(5);
+    });
+  });
+
+  describe("Fill Tool", () => {
+    let tool: Tool;
+
+    beforeEach(() => {
+      tool = new FillTool();
+    });
+
+    it("should return Fill type", () => {
+      expect(tool.getType()).toBe("Fill");
+    });
+
+    it("should return empty options", () => {
+      expect(tool.getOptions()).toHaveLength(0);
+    });
+
+    it("should calculate grid position under cursor", () => {
+      const gridPosition = new THREE.Vector3(1, 2, 3);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(gridPosition, normal, attachMode);
+      expect(gridPos.x).toBe(1);
+      expect(gridPos.y).toBe(2);
+      expect(gridPos.z).toBe(3);
+    });
+
+    it("should flood fill connected voxels of same type", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(2, 2, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(3, 2, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(4, 2, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(2, 3, 2)] = RAYCASTABLE_BIT | 3;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      let appliedMode: BlockModificationMode | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+          appliedMode = mode;
+        },
+      };
+
+      mockContext.mode = paintMode;
+      mockContext.selectedBlock = 5;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(2, 2, 2),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      expect(appliedMode!.tag).toBe("Paint");
+      expect(appliedFrame!.get(2, 2, 2)).toBe(5 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(3, 2, 2)).toBe(5 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(4, 2, 2)).toBe(5 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(2, 3, 2)).toBe(5 | RAYCASTABLE_BIT);
+    });
+
+    it("should not fill across different block types", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(2, 2, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(3, 2, 2)] = RAYCASTABLE_BIT | 4;
+      voxelData[idx(4, 2, 2)] = RAYCASTABLE_BIT | 3;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = paintMode;
+      mockContext.selectedBlock = 5;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(2, 2, 2),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      expect(appliedFrame!.get(2, 2, 2)).toBe(5 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(3, 2, 2)).toBe(0);
+      expect(appliedFrame!.get(4, 2, 2)).toBe(0);
+    });
+
+    it("should not fill empty space", () => {
+      mockContext.projectManager.getBlockAtPosition = () => 0;
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(2, 2, 2),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).toBeNull();
+    });
+
+    it("should erase connected voxels in erase mode", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(1, 1, 1)] = RAYCASTABLE_BIT | 2;
+      voxelData[idx(2, 1, 1)] = RAYCASTABLE_BIT | 2;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = eraseMode;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(1, 1, 1),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      expect(appliedFrame!.get(1, 1, 1)).toBe(RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(2, 1, 1)).toBe(RAYCASTABLE_BIT);
+    });
+
+    it("should respect selection frame", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(1, 1, 1)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(2, 1, 1)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(3, 1, 1)] = RAYCASTABLE_BIT | 3;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      const selectionFrame = new VoxelFrame(dimensions, { x: 0, y: 0, z: 0 });
+      selectionFrame.set(1, 1, 1, 1);
+      selectionFrame.set(3, 1, 1, 1);
+
+      const mockStateWithSelection = {
+        ...mockContext.stateStore.getState(),
+        voxelSelection: selectionFrame,
+      };
+      mockContext.stateStore = {
+        ...mockContext.stateStore,
+        getState: () => mockStateWithSelection,
+      } as StateStore;
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = paintMode;
+      mockContext.selectedBlock = 7;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(1, 1, 1),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      expect(appliedFrame!.get(1, 1, 1)).toBe(7 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(2, 1, 1)).toBe(0);
+      expect(appliedFrame!.get(3, 1, 1)).toBe(7 | RAYCASTABLE_BIT);
     });
   });
 
