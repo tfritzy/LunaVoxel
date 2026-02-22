@@ -59,6 +59,7 @@ export const ProjectLayout = ({
             currentMode={currentMode}
             onToolChange={onToolChange}
             onModeChange={onModeChange}
+            toolOptions={toolOptions}
           />
         </div>
 

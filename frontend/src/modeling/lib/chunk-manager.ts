@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode, VoxelObject, Vector3 } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { CHUNK_SIZE } from "@/state/constants";
+import { getChunkPosKey, getChunkMinPos } from "@/lib/chunk-utils";
 import { AtlasData } from "@/lib/useAtlas";
 import { Chunk } from "./chunk";
 
@@ -37,26 +38,14 @@ export class ChunkManager {
     this.unsubscribe = this.stateStore.subscribe(this.handleStateChange);
   }
 
-  private getChunkKey(minPos: Vector3): string {
-    return `${minPos.x},${minPos.y},${minPos.z}`;
-  }
-
   private updateAllChunks(): void {
     for (const chunk of this.chunks.values()) {
       chunk.update();
     }
   }
 
-  private getChunkMinPos(worldPos: Vector3): Vector3 {
-    return {
-      x: Math.floor(worldPos.x / CHUNK_SIZE) * CHUNK_SIZE,
-      y: Math.floor(worldPos.y / CHUNK_SIZE) * CHUNK_SIZE,
-      z: Math.floor(worldPos.z / CHUNK_SIZE) * CHUNK_SIZE,
-    };
-  }
-
   private getOrCreateChunk(minPos: Vector3): Chunk {
-    const key = this.getChunkKey(minPos);
+    const key = getChunkPosKey(minPos);
     let chunk = this.chunks.get(key);
     
     if (!chunk) {
@@ -120,7 +109,7 @@ export class ChunkManager {
       const chunk = this.getOrCreateChunk(worldMinPos);
       chunk.setObjectChunk(objSlot, chunkData.voxels);
       chunk.setSelectionChunkFrame(chunkData.selection);
-      const key = this.getChunkKey(worldMinPos);
+      const key = getChunkPosKey(worldMinPos);
       if (!activeChunkObjects.has(key)) {
         activeChunkObjects.set(key, new Set());
       }
@@ -236,8 +225,8 @@ export class ChunkManager {
   }
 
   public getBlockAtPosition(position: THREE.Vector3, objectId: string): number | null {
-    const chunkMinPos = this.getChunkMinPos(position);
-    const key = this.getChunkKey(chunkMinPos);
+    const chunkMinPos = getChunkMinPos(position);
+    const key = getChunkPosKey(chunkMinPos);
     const chunk = this.chunks.get(key);
     
     if (!chunk) return 0;
@@ -261,8 +250,8 @@ export class ChunkManager {
   }
 
   public getVoxelAtWorldPos(x: number, y: number, z: number): number {
-    const chunkMinPos = this.getChunkMinPos({ x, y, z });
-    const key = this.getChunkKey(chunkMinPos);
+    const chunkMinPos = getChunkMinPos({ x, y, z });
+    const key = getChunkPosKey(chunkMinPos);
     const chunk = this.chunks.get(key);
     
     if (!chunk) return 0;

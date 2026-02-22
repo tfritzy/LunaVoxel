@@ -6,7 +6,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
   getType(): ToolType {
-    return "MagicSelect";
+    return "Select";
   }
 
   getOptions(): ToolOption[] {

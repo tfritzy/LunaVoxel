@@ -12,6 +12,9 @@ import {
   Cone,
   Pyramid,
   Hexagon,
+  Wand2,
+  BoxSelect,
+  Lasso,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +28,10 @@ const fillShapeIcons: Record<string, LucideIcon> = {
   Cone: Cone,
   Pyramid: Pyramid,
   Hexagon: Hexagon,
+  Magic: Wand2,
+  Rectangle: BoxSelect,
+  Circle: Circle,
+  Lasso: Lasso,
 };
 
 function isSliderOption(option: ToolOption): boolean {
