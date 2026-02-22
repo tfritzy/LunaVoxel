@@ -3,13 +3,9 @@ import type { ToolType, SelectShape } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
-import { CHUNK_SIZE } from "@/state/constants";
-import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "../voxel-constants";
+import { BLOCK_TYPE_MASK } from "../voxel-constants";
 import { VoxelFrame } from "../voxel-frame";
-
-function getChunkKey(objectId: string, minPos: { x: number; y: number; z: number }) {
-  return `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
-}
+import { getBlockAt } from "@/lib/chunk-utils";
 
 function isPointInPolygon(px: number, py: number, polygon: { x: number; y: number }[]): boolean {
   let inside = false;
@@ -24,7 +20,7 @@ function isPointInPolygon(px: number, py: number, polygon: { x: number; y: numbe
 }
 
 export class SelectTool implements Tool {
-  private selectShape: SelectShape = "Magic";
+  private selectShape: SelectShape = "Rectangle";
   private lassoPoints: { x: number; y: number }[] = [];
 
   getType(): ToolType {
@@ -100,19 +96,6 @@ export class SelectTool implements Tool {
     }
   }
 
-  private getBlockAt(context: ToolContext, objectId: string, wx: number, wy: number, wz: number): number {
-    const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-    const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-    const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-    const key = getChunkKey(objectId, { x: cx, y: cy, z: cz });
-    const chunk = context.stateStore.getState().chunks.get(key);
-    if (!chunk) return 0;
-    const lx = wx - cx;
-    const ly = wy - cy;
-    const lz = wz - cz;
-    return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
-  }
-
   private selectVoxelsByScreenTest(
     context: ToolContext,
     objectId: string,
@@ -121,6 +104,7 @@ export class SelectTool implements Tool {
     const obj = getActiveObject(context);
     if (!obj) return;
 
+    const chunks = context.stateStore.getState().chunks;
     const dims = obj.dimensions;
     let minX = Infinity, minY = Infinity, minZ = Infinity;
     let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -131,7 +115,7 @@ export class SelectTool implements Tool {
     for (let x = 0; x < dims.x; x++) {
       for (let y = 0; y < dims.y; y++) {
         for (let z = 0; z < dims.z; z++) {
-          const block = this.getBlockAt(context, objectId, x, y, z);
+          const block = getBlockAt(chunks, objectId, x, y, z);
           if ((block & BLOCK_TYPE_MASK) === 0) continue;
 
           worldPos.set(x + 0.5, y + 0.5, z + 0.5);

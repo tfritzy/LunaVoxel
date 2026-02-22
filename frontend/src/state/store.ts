@@ -11,6 +11,11 @@ import type {
 import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants";
 import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
+import {
+  getChunkKey as _getChunkKey,
+  getChunkMinPos as _getChunkMinPos,
+  getBlockAt,
+} from "@/lib/chunk-utils";
 
 export type VoxelSelection = {
   objectId: string;
@@ -78,14 +83,9 @@ export type StateStore = {
 const createId = () =>
   `obj_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 
-export const getChunkKey = (objectId: string, minPos: Vector3) =>
-  `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
+export const getChunkKey = _getChunkKey;
 
-const getChunkMinPos = (worldPos: Vector3): Vector3 => ({
-  x: Math.floor(worldPos.x / CHUNK_SIZE) * CHUNK_SIZE,
-  y: Math.floor(worldPos.y / CHUNK_SIZE) * CHUNK_SIZE,
-  z: Math.floor(worldPos.z / CHUNK_SIZE) * CHUNK_SIZE,
-});
+const getChunkMinPos = _getChunkMinPos;
 
 const getChunkPosKey = (minPos: Vector3) =>
   `${minPos.x},${minPos.y},${minPos.z}`;
@@ -523,20 +523,7 @@ const reducers: Reducers = {
 
     const dims = obj.dimensions;
 
-    const getBlock = (wx: number, wy: number, wz: number): number => {
-      const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-      const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-      const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-      const key = getChunkKey(obj.id, { x: cx, y: cy, z: cz });
-      const chunk = state.chunks.get(key);
-      if (!chunk) return 0;
-      const lx = wx - cx;
-      const ly = wy - cy;
-      const lz = wz - cz;
-      return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
-    };
-
-    const startBlock = getBlock(pos.x, pos.y, pos.z) & BLOCK_TYPE_MASK;
+    const startBlock = getBlockAt(state.chunks, obj.id, pos.x, pos.y, pos.z) & BLOCK_TYPE_MASK;
     if (startBlock === 0) {
       state.voxelSelection = null;
       rebuildSelectionChunks();
@@ -577,7 +564,7 @@ const reducers: Reducers = {
         const ni = nx * yz + ny * dims.z + nz;
         if (visited[ni]) continue;
         visited[ni] = 1;
-        if ((getBlock(nx, ny, nz) & BLOCK_TYPE_MASK) === startBlock) {
+        if ((getBlockAt(state.chunks, obj.id, nx, ny, nz) & BLOCK_TYPE_MASK) === startBlock) {
           queue.push(ni);
         }
       }

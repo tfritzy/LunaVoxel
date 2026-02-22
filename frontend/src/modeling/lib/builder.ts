@@ -28,6 +28,7 @@ export const Builder = class {
 
   private currentTool: Tool;
   private currentMode: BlockModificationMode = { tag: "Attach" };
+  private savedToolOptions: Map<ToolType, Map<string, string>> = new Map();
   private toolContext: {
     stateStore: StateStore;
     reducers: StateStore["reducers"];
@@ -127,8 +128,20 @@ export const Builder = class {
   public setTool(tool: ToolType): void {
     this.commitPendingIfNeeded();
     this.cancelCurrentOperation();
+    const oldType = this.currentTool.getType();
+    const optionsToSave = new Map<string, string>();
+    for (const opt of this.currentTool.getOptions()) {
+      optionsToSave.set(opt.name, opt.currentValue);
+    }
+    this.savedToolOptions.set(oldType, optionsToSave);
     this.currentTool.dispose?.();
     this.currentTool = this.createTool(tool);
+    const saved = this.savedToolOptions.get(tool);
+    if (saved) {
+      for (const [name, value] of saved) {
+        this.currentTool.setOption(name, value);
+      }
+    }
     this.currentTool.onActivate?.(this.toolContext);
   }
 

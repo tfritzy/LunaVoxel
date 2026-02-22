@@ -8,10 +8,14 @@ import {
   Move,
   RectangleHorizontal,
   Pen,
+  BoxSelect,
+  Circle,
+  Lasso,
   type LucideProps,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
+import type { ToolOption } from "@/modeling/lib/tool-interface";
 import type { BlockModificationMode } from "@/state/types";
 
 interface FloatingToolbarProps {
@@ -19,9 +23,17 @@ interface FloatingToolbarProps {
   currentMode: BlockModificationMode;
   onToolChange: (tool: ToolType) => void;
   onModeChange: (mode: BlockModificationMode) => void;
+  toolOptions: ToolOption[];
 }
 
 const INACTIVE_LED_COLOR = "hsl(234 13% 31%)";
+
+const selectShapeIcons: Record<string, ComponentType<LucideProps>> = {
+  Magic: Wand2,
+  Rectangle: BoxSelect,
+  Circle: Circle,
+  Lasso: Lasso,
+};
 
 const modeConfig: {
   tag: BlockModificationMode["tag"];
@@ -62,6 +74,7 @@ export const FloatingToolbar = ({
   currentMode,
   onToolChange,
   onModeChange,
+  toolOptions,
 }: FloatingToolbarProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -104,6 +117,9 @@ export const FloatingToolbar = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onToolChange, onModeChange]);
+
+  const selectShapeOption = toolOptions.find((o) => o.name === "Select Shape");
+  const SelectIcon = (selectShapeOption && selectShapeIcons[selectShapeOption.currentValue]) || BoxSelect;
 
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
@@ -203,7 +219,7 @@ export const FloatingToolbar = ({
             }`}
             title="Select (S)"
           >
-            <Wand2 className="min-w-8 min-h-8" />
+            <SelectIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">S</div>
           </Button>
           </div>

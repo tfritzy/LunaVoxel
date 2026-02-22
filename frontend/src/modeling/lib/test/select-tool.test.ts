@@ -7,11 +7,8 @@ import type { ProjectManager } from "../project-manager";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { VoxelFrame } from "../voxel-frame";
 import * as THREE from "three";
-import { CHUNK_SIZE } from "@/state/constants";
-
-function getChunkKey(objectId: string, minPos: Vector3) {
-  return `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
-}
+import { getChunkKey } from "@/lib/chunk-utils";
+import type { ChunkData } from "@/state/types";
 
 describe("SelectTool", () => {
   let mockContext: ToolContext;
@@ -37,14 +34,17 @@ describe("SelectTool", () => {
       }
     }
 
-    const chunkData = {
+    const chunkData: ChunkData = {
       key: getChunkKey("test-obj", { x: 0, y: 0, z: 0 }),
+      projectId: "test-project",
+      objectId: "test-obj",
       minPos: { x: 0, y: 0, z: 0 },
       size: dimensions,
       voxels,
+      selection: new VoxelFrame(dimensions),
     };
 
-    const chunks = new Map<string, typeof chunkData>();
+    const chunks = new Map<string, ChunkData>();
     chunks.set(chunkData.key, chunkData);
 
     const reducers: Reducers = {
@@ -131,7 +131,7 @@ describe("SelectTool", () => {
     expect(options).toHaveLength(1);
     expect(options[0].name).toBe("Select Shape");
     expect(options[0].values).toEqual(["Magic", "Rectangle", "Circle", "Lasso"]);
-    expect(options[0].currentValue).toBe("Magic");
+    expect(options[0].currentValue).toBe("Rectangle");
   });
 
   it("should update shape via setOption", () => {
@@ -142,6 +142,7 @@ describe("SelectTool", () => {
 
   it("should call magicSelect on mouse up in Magic mode", () => {
     const tool = new SelectTool();
+    tool.setOption("Select Shape", "Magic");
     let magicSelectCalled = false;
     mockContext.reducers = {
       ...mockContext.reducers,
