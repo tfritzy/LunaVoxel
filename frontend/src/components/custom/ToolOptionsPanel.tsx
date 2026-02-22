@@ -46,6 +46,10 @@ function isCheckboxOption(option: ToolOption): boolean {
   return option.type === "checkbox";
 }
 
+function isMultiDirectionOption(option: ToolOption): boolean {
+  return option.type === "multi-direction";
+}
+
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
@@ -57,10 +61,11 @@ export const ToolOptionsPanel = ({
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
-  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o) && !isCheckboxOption(o));
+  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o) && !isCheckboxOption(o) && !isMultiDirectionOption(o));
   const sliderOptions = options.filter((o) => isSliderOption(o));
   const directionOptions = options.filter((o) => isDirectionOption(o));
   const checkboxOptions = options.filter((o) => isCheckboxOption(o));
+  const multiDirectionOptions = options.filter((o) => isMultiDirectionOption(o));
 
   return (
     <div className="border-t border-border">
@@ -138,6 +143,38 @@ export const ToolOptionsPanel = ({
             </div>
           </div>
         )}
+        {multiDirectionOptions.map((option) => {
+          const enabledDirs = new Set(option.currentValue.split(",").filter(Boolean));
+          return (
+            <div key={option.name} className="mt-2">
+              <div className="text-sm text-muted-foreground mb-2">{option.name}</div>
+              <div className="grid grid-cols-3 gap-1">
+                {option.values.map((dir) => (
+                  <Button
+                    key={dir}
+                    variant="ghost"
+                    onClick={() => {
+                      const newDirs = new Set(enabledDirs);
+                      if (newDirs.has(dir)) {
+                        newDirs.delete(dir);
+                      } else {
+                        newDirs.add(dir);
+                      }
+                      onOptionChange(option.name, [...newDirs].join(","));
+                    }}
+                    className={`h-8 p-0 text-xs border-2 rounded-none ${
+                      enabledDirs.has(dir)
+                        ? "border-accent text-accent"
+                        : "border-secondary text-secondary"
+                    }`}
+                  >
+                    {dir}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
