@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType, BrushShape, FillShape } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { getActiveObject } from "../tool-interface";
+import { getActiveObject, getActiveSelectionFrame } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
@@ -98,12 +98,15 @@ export class BrushTool implements Tool {
     const dimY = dims.y;
     const dimZ = dims.z;
     const shapeParams = precomputeShapeParams(boundsMinX, boundsMaxX, boundsMinY, boundsMaxY, boundsMinZ, boundsMaxZ);
+    const selectionFrame = getActiveSelectionFrame(context);
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         for (let z = minZ; z <= maxZ; z++) {
           if (isInsideFillShapePrecomputed(fillShape, x, y, z, shapeParams)) {
-            context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = blockValue;
+            if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
+              context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = blockValue;
+            }
           }
         }
       }

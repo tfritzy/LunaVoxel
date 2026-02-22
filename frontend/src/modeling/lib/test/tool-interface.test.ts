@@ -1286,6 +1286,121 @@ describe("Tool Interface", () => {
     });
   });
 
+  describe("Selection Constraint", () => {
+    function setSelection(frame: VoxelFrame) {
+      const currentState = mockContext.stateStore.getState();
+      (mockContext.stateStore as unknown as { getState: () => typeof currentState }).getState = () => ({
+        ...currentState,
+        voxelSelection: { objectId: "test-obj", frame },
+      });
+    }
+
+    it("should constrain RectTool Rect fill to selection", () => {
+      const tool = new RectTool();
+      tool.setOption("Adjust Before Apply", "false");
+
+      const selFrame = new VoxelFrame(dimensions, { x: 0, y: 0, z: 0 });
+      selFrame.set(1, 1, 1, 1);
+      selFrame.set(2, 2, 2, 1);
+      setSelection(selFrame);
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+      expect(mockContext.previewBuffer[idx(1, 1, 1)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(0, 0, 0)]).toBe(0);
+      expect(mockContext.previewBuffer[idx(3, 3, 3)]).toBe(0);
+    });
+
+    it("should constrain RectTool non-Rect fill to selection", () => {
+      const tool = new RectTool();
+      tool.setOption("Fill Shape", "Sphere");
+      tool.setOption("Adjust Before Apply", "false");
+
+      const selFrame = new VoxelFrame(dimensions, { x: 0, y: 0, z: 0 });
+      selFrame.set(2, 2, 2, 1);
+      setSelection(selFrame);
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(4, 4, 4),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+      expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(0, 0, 0)]).toBe(0);
+    });
+
+    it("should constrain BrushTool to selection", () => {
+      const tool = new BrushTool();
+      tool.setOption("Brush Shape", "Cube");
+      tool.setOption("Size", "3");
+
+      const selFrame = new VoxelFrame(dimensions, { x: 0, y: 0, z: 0 });
+      selFrame.set(5, 5, 5, 1);
+      setSelection(selFrame);
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+      expect(mockContext.previewBuffer[idx(5, 5, 5)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(4, 4, 4)]).toBe(0);
+      expect(mockContext.previewBuffer[idx(6, 6, 6)]).toBe(0);
+    });
+
+    it("should not constrain tools when no selection exists", () => {
+      const tool = new RectTool();
+      tool.setOption("Adjust Before Apply", "false");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+      expect(mockContext.previewBuffer[idx(0, 0, 0)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(1, 1, 1)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBeGreaterThan(0);
+    });
+
+    it("should not constrain tools when selection is for a different object", () => {
+      const selFrame = new VoxelFrame(dimensions, { x: 0, y: 0, z: 0 });
+      selFrame.set(1, 1, 1, 1);
+      const currentState = mockContext.stateStore.getState();
+      (mockContext.stateStore as unknown as { getState: () => typeof currentState }).getState = () => ({
+        ...currentState,
+        voxelSelection: { objectId: "other-obj", frame: selFrame },
+      });
+
+      const tool = new RectTool();
+      tool.setOption("Adjust Before Apply", "false");
+
+      tool.onDrag(mockContext, {
+        startGridPosition: new THREE.Vector3(0, 0, 0),
+        currentGridPosition: new THREE.Vector3(2, 2, 2),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+      expect(mockContext.previewBuffer[idx(0, 0, 0)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBeGreaterThan(0);
+    });
+  });
+
   describe("Benchmark", () => {
     it("should drag preview and apply across all fill shapes within 4 seconds", () => {
       const shapes = ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"] as const;
