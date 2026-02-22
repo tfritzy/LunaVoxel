@@ -112,7 +112,7 @@ export class ProjectManager {
   };
 
   applyEdit = (
-    object: number,
+    objectId: string,
     beforeDiff: Uint8Array,
     afterDiff: Uint8Array
   ) => {
@@ -120,7 +120,7 @@ export class ProjectManager {
       this.project.id,
       beforeDiff,
       afterDiff,
-      object
+      objectId
     );
   };
 

@@ -32,7 +32,7 @@ interface ObjectsSectionProps {
 export const ObjectsSection = ({
   projectId,
 }: ObjectsSectionProps) => {
-  const selectedObject = useGlobalState((state) => state.selectedObject);
+  const selectedObject = useGlobalState((state) => state.activeObjectId);
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
@@ -43,7 +43,7 @@ export const ObjectsSection = ({
     if (sortedObjects.length === 0) return;
     if (!stateStore.getState().objects.some(o => o.id === selectedObject)) {
       const fallback = sortedObjects[sortedObjects.length - 1];
-      stateStore.reducers.setSelectedObject(fallback.id);
+      stateStore.reducers.setActiveObject(fallback.id);
     }
   }, [sortedObjects, selectedObject]);
 
@@ -86,7 +86,7 @@ export const ObjectsSection = ({
         const remaining = stateStore.getState().objects;
         if (remaining.length > 0) {
           const newIdx = Math.min(previousIndex, remaining.length - 1);
-          stateStore.reducers.setSelectedObject(remaining[newIdx].id);
+          stateStore.reducers.setActiveObject(remaining[newIdx].id);
         }
       }
     },
@@ -164,7 +164,7 @@ export const ObjectsSection = ({
                 object={o}
                 key={o.id}
                 isSelected={selectedObject === o.id}
-                onSelect={() => stateStore.reducers.setSelectedObject(o.id)}
+                onSelect={() => stateStore.reducers.setActiveObject(o.id)}
                 onDelete={onDelete}
                 onToggleVisibility={toggleVisibility}
                 onToggleLocked={toggleLocked}

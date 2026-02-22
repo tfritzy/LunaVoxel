@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { getSelectedObject } from "../tool-interface";
+import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MagicSelectTool implements Tool {
@@ -33,7 +33,7 @@ export class MagicSelectTool implements Tool {
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    const obj = getSelectedObject(context);
+    const obj = getActiveObject(context);
     if (!obj) return;
     context.reducers.magicSelect(
       context.projectId,

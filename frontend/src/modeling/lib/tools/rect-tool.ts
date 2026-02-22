@@ -5,7 +5,7 @@ import type { FillShape, ShapeDirection } from "../tool-type";
 import { calculateRectBounds, snapBoundsToEqual } from "@/lib/rect-utils";
 import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { getSelectedObject } from "../tool-interface";
+import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
@@ -103,7 +103,7 @@ export class RectTool implements Tool {
 
   private clearLastBounds(context: ToolContext): void {
     if (!this.lastBounds) return;
-    const dims = getSelectedObject(context)!.dimensions;
+    const dims = getActiveObject(context)!.dimensions;
     const dimY = dims.y;
     const dimZ = dims.z;
     const lb = this.lastBounds;
@@ -125,7 +125,7 @@ export class RectTool implements Tool {
     this.clearLastBounds(context);
 
     const previewValue = this.getPreviewBlockValue(mode, selectedBlock);
-    const dims = getSelectedObject(context)!.dimensions;
+    const dims = getActiveObject(context)!.dimensions;
     const dimY = dims.y;
     const dimZ = dims.z;
 
@@ -221,7 +221,7 @@ export class RectTool implements Tool {
     let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
-      getSelectedObject(context)!.dimensions
+      getActiveObject(context)!.dimensions
     );
     if (event.shiftKey) {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
@@ -244,7 +244,7 @@ export class RectTool implements Tool {
     let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,
-      getSelectedObject(context)!.dimensions
+      getActiveObject(context)!.dimensions
     );
     if (event.shiftKey) {
       bounds = snapBoundsToEqual(bounds, event.startGridPosition);
@@ -262,7 +262,7 @@ export class RectTool implements Tool {
       bounds,
       mode: context.mode,
       selectedBlock: context.selectedBlock,
-      objectId: getSelectedObject(context)?.id ?? '',
+      objectId: getActiveObject(context)?.id ?? "",
       fillShape: this.fillShape,
       direction: this.direction,
     };
@@ -379,7 +379,7 @@ export class RectTool implements Tool {
   resizePendingBounds(context: ToolContext, bounds: RectBounds): void {
     if (!this.pending) return;
 
-    const dims = getSelectedObject(context)!.dimensions;
+    const dims = getActiveObject(context)!.dimensions;
     const clamp = (val: number, max: number) =>
       Math.max(0, Math.min(val, max - 1));
 
@@ -399,8 +399,8 @@ export class RectTool implements Tool {
   private applyAndClear(context: ToolContext, bounds: RectBounds): void {
     const mode = this.pending?.mode ?? context.mode;
     const selectedBlock = this.pending?.selectedBlock ?? context.selectedBlock;
-    const objectId = this.pending?.objectId ?? (getSelectedObject(context)?.id ?? '');
-    const dims = getSelectedObject(context)!.dimensions;
+    const objectId = this.pending?.objectId ?? (getActiveObject(context)?.id ?? "");
+    const dims = getActiveObject(context)!.dimensions;
     const dimY = dims.y;
     const dimZ = dims.z;
 

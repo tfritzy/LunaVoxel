@@ -77,7 +77,7 @@ export interface Tool {
   dispose?(): void;
 }
 
-export function getSelectedObject(context: ToolContext) {
-  const selectedObject = context.stateStore.getState().selectedObject;
-  return context.stateStore.getState().objects.find(o => o.id === selectedObject);
+export function getActiveObject(context: ToolContext) {
+  const activeObjectId = context.stateStore.getState().activeObjectId;
+  return context.stateStore.getState().objects.find(o => o.id === activeObjectId);
 }

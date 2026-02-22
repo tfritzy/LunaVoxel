@@ -127,7 +127,7 @@ export class EditHistory {
   ) {
     this.truncateAtHead();
     this.entries.push({
-      data: { type: "objectDelete", object: { ...object, selection: null }, previousIndex, chunks },
+      data: { type: "objectDelete", object: { ...object }, previousIndex, chunks },
       isUndone: false,
     });
   }
@@ -135,7 +135,7 @@ export class EditHistory {
   addObjectAdd(object: VoxelObject, atIndex: number) {
     this.truncateAtHead();
     this.entries.push({
-      data: { type: "objectAdd", object: { ...object, selection: null }, atIndex },
+      data: { type: "objectAdd", object: { ...object }, atIndex },
       isUndone: false,
     });
   }
