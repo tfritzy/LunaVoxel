@@ -36,12 +36,12 @@ export const ObjectsSection = ({
   const objects = useGlobalState((state) => state.objects);
 
   const sortedObjects = useMemo(() => {
-    return objects ? [...objects.values()].sort((a, b) => a.index - b.index) : [];
+    return objects ?? [];
   }, [objects]);
 
   useEffect(() => {
     if (sortedObjects.length === 0) return;
-    if (!stateStore.getState().objects.has(selectedObject)) {
+    if (!stateStore.getState().objects.some(o => o.id === selectedObject)) {
       const fallback = sortedObjects[sortedObjects.length - 1];
       stateStore.reducers.setSelectedObject(fallback.id);
     }
@@ -57,10 +57,9 @@ export const ObjectsSection = ({
   const addObject = React.useCallback(() => {
     stateStore.reducers.addObject(projectId);
     const newObjects = stateStore.getState().objects;
-    const sorted = [...newObjects.values()].sort((a, b) => a.index - b.index);
-    const added = sorted[sorted.length - 1];
+    const added = newObjects[newObjects.length - 1];
     if (added) {
-      editHistory.addObjectAdd(added);
+      editHistory.addObjectAdd(added, newObjects.length - 1);
     }
   }, [projectId]);
 
@@ -78,13 +77,13 @@ export const ObjectsSection = ({
           });
         }
       }
-      const previousIndex = obj.index;
+      const previousIndex = stateStore.getState().objects.findIndex(o => o.id === obj.id);
 
       stateStore.reducers.deleteObject(obj.id);
       editHistory.addObjectDelete(obj, previousIndex, chunks);
 
       if (selectedObject === obj.id) {
-        const remaining = [...stateStore.getState().objects.values()].sort((a, b) => a.index - b.index);
+        const remaining = stateStore.getState().objects;
         if (remaining.length > 0) {
           const newIdx = Math.min(previousIndex, remaining.length - 1);
           stateStore.reducers.setSelectedObject(remaining[newIdx].id);

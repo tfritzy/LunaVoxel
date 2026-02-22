@@ -7,19 +7,19 @@ describe("stateStore renameObject reducer", () => {
   });
 
   it("renames the target object", () => {
-    const object = [...stateStore.getState().objects.values()][0];
+    const object = stateStore.getState().objects[0];
 
     stateStore.reducers.renameObject(object.id, "Renamed Object");
 
-    expect([...stateStore.getState().objects.values()][0].name).toBe("Renamed Object");
+    expect(stateStore.getState().objects[0].name).toBe("Renamed Object");
   });
 
   it("adds an object to the objects map", () => {
-    const beforeSize = stateStore.getState().objects.size;
+    const beforeSize = stateStore.getState().objects.length;
 
     stateStore.reducers.addObject("local-project");
 
-    const afterSize = stateStore.getState().objects.size;
+    const afterSize = stateStore.getState().objects.length;
     expect(afterSize).toBe(beforeSize + 1);
   });
 
@@ -61,15 +61,15 @@ describe("selectAllVoxels and deleteSelectedVoxels", () => {
 
   it("selects all then deletes all voxels in the current object", () => {
     const { project } = stateStore.getState();
-    const objectId = [...stateStore.getState().objects.values()][0].id;
+    const objectId = stateStore.getState().objects[0].id;
     const chunkBefore = Array.from(stateStore.getState().chunks.values()).find(
       (chunk) => chunk.objectId === objectId
     );
     expect(chunkBefore).toBeDefined();
     expect(chunkBefore?.voxels.some((v) => v !== 0)).toBe(true);
 
-    stateStore.reducers.selectAllVoxels(project.id, 0);
-    stateStore.reducers.deleteSelectedVoxels(project.id, 0);
+    stateStore.reducers.selectAllVoxels(project.id, objectId);
+    stateStore.reducers.deleteSelectedVoxels(project.id, objectId);
 
     const chunkAfter = Array.from(stateStore.getState().chunks.values()).find(
       (chunk) => chunk.objectId === objectId
@@ -78,11 +78,12 @@ describe("selectAllVoxels and deleteSelectedVoxels", () => {
   });
 
   it("does nothing when object has no voxels", () => {
-    stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.deleteSelectedVoxels("local-project", 0);
+    const objectId = stateStore.getState().objects[0].id;
+    stateStore.reducers.selectAllVoxels("local-project", objectId);
+    stateStore.reducers.deleteSelectedVoxels("local-project", objectId);
 
-    stateStore.reducers.selectAllVoxels("local-project", 0);
-    stateStore.reducers.deleteSelectedVoxels("local-project", 0);
+    stateStore.reducers.selectAllVoxels("local-project", objectId);
+    stateStore.reducers.deleteSelectedVoxels("local-project", objectId);
 
     const chunks = Array.from(stateStore.getState().chunks.values());
     expect(chunks[0].voxels.every((v) => v === 0)).toBe(true);
@@ -92,8 +93,8 @@ describe("selectAllVoxels and deleteSelectedVoxels", () => {
     const chunksBefore = Array.from(stateStore.getState().chunks.values());
     const voxelsBefore = chunksBefore[0].voxels.slice();
 
-    stateStore.reducers.selectAllVoxels("local-project", 999);
-    stateStore.reducers.deleteSelectedVoxels("local-project", 999);
+    stateStore.reducers.selectAllVoxels("local-project", "invalid-id");
+    stateStore.reducers.deleteSelectedVoxels("local-project", "invalid-id");
 
     const chunksAfter = Array.from(stateStore.getState().chunks.values());
     expect(chunksAfter[0].voxels).toEqual(voxelsBefore);
@@ -107,13 +108,13 @@ describe("selection chunk rebuild behavior", () => {
 
   it("clears and restores chunk selection when toggling object visibility", () => {
     const initialState = stateStore.getState();
-    const object = [...initialState.objects.values()][0];
+    const object = initialState.objects[0];
     const chunk = Array.from(initialState.chunks.values()).find(
       (candidate) => candidate.objectId === object.id
     );
     expect(chunk).toBeDefined();
 
-    stateStore.reducers.selectAllVoxels(initialState.project.id, object.index);
+    stateStore.reducers.selectAllVoxels(initialState.project.id, object.id);
     expect(chunk!.selection.isEmpty()).toBe(false);
 
     stateStore.reducers.toggleObjectVisibility(object.id);

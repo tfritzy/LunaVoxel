@@ -42,7 +42,7 @@ export class BlockPickerTool implements Tool {
     if (!obj) return;
     const blockValue = context.projectManager.getBlockAtPosition(
       event.currentGridPosition,
-      obj.index
+      obj.id
     );
     if (blockValue === null) return;
     const blockType = getBlockType(blockValue);

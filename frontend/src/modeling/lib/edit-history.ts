@@ -5,7 +5,7 @@ type VoxelEditEntry = {
   type: "voxelEdit";
   beforeDiff: Uint8Array;
   afterDiff: Uint8Array;
-  object: number;
+  objectId: string;
 };
 
 type ColorChangeEntry = {
@@ -38,6 +38,7 @@ type ObjectDeleteEntry = {
 type ObjectAddEntry = {
   type: "objectAdd";
   object: VoxelObject;
+  atIndex: number;
 };
 
 type ObjectReorderEntry = {
@@ -74,7 +75,7 @@ export class EditHistory {
     this.entries.length = headIndex + 1;
   }
 
-  addEntry(previous: Uint8Array, updated: Uint8Array, object: number) {
+  addEntry(previous: Uint8Array, updated: Uint8Array, objectId: string) {
     this.truncateAtHead();
 
     for (let i = 0; i < previous.length; i++) {
@@ -89,7 +90,7 @@ export class EditHistory {
         type: "voxelEdit",
         beforeDiff: previous,
         afterDiff: updated,
-        object: object,
+        objectId,
       },
       isUndone: false,
     });
@@ -131,10 +132,10 @@ export class EditHistory {
     });
   }
 
-  addObjectAdd(object: VoxelObject) {
+  addObjectAdd(object: VoxelObject, atIndex: number) {
     this.truncateAtHead();
     this.entries.push({
-      data: { type: "objectAdd", object: { ...object, selection: null } },
+      data: { type: "objectAdd", object: { ...object, selection: null }, atIndex },
       isUndone: false,
     });
   }
@@ -173,9 +174,9 @@ export class EditHistory {
     switch (data.type) {
       case "voxelEdit":
         if (direction === "undo") {
-          reducers.undoEdit(this.projectId, data.beforeDiff, data.afterDiff, data.object);
+          reducers.undoEdit(this.projectId, data.beforeDiff, data.afterDiff, data.objectId);
         } else {
-          reducers.undoEdit(this.projectId, data.afterDiff, data.beforeDiff, data.object);
+          reducers.undoEdit(this.projectId, data.afterDiff, data.beforeDiff, data.objectId);
         }
         break;
 
@@ -215,7 +216,7 @@ export class EditHistory {
         if (direction === "undo") {
           reducers.deleteObject(data.object.id);
         } else {
-          reducers.restoreObject(data.object, data.object.index, new Map());
+          reducers.restoreObject(data.object, data.atIndex, new Map());
         }
         break;
 

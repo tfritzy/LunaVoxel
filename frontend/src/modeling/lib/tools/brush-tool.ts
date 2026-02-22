@@ -22,7 +22,7 @@ export class BrushTool implements Tool {
   private isStrokeActive: boolean = false;
   private strokeMode: BlockModificationMode | null = null;
   private strokeSelectedBlock: number = 0;
-  private strokeSelectedObject: number = 0;
+  private strokeSelectedObjectId: string = '';
 
   getType(): ToolType {
     return "Brush";
@@ -116,7 +116,7 @@ export class BrushTool implements Tool {
     this.isStrokeActive = true;
     this.strokeMode = context.mode;
     this.strokeSelectedBlock = context.selectedBlock;
-    this.strokeSelectedObject = getSelectedObject(context)?.index ?? 0;
+    this.strokeSelectedObjectId = getSelectedObject(context)?.id ?? '';
     this.lastAppliedPosition = event.gridPosition.clone();
 
     this.stampAtPosition(context, event.gridPosition);
@@ -143,7 +143,7 @@ export class BrushTool implements Tool {
         this.strokeMode!,
         this.strokeSelectedBlock,
         frame,
-        this.strokeSelectedObject
+        this.strokeSelectedObjectId
       );
 
       context.previewBuffer.fill(0);

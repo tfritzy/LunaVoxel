@@ -22,7 +22,6 @@ export type AccessLevel = {
 export type VoxelObject = {
   id: string;
   projectId: string;
-  index: number;
   name: string;
   visible: boolean;
   locked: boolean;
