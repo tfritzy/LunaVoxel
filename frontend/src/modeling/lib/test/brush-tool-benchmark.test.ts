@@ -40,7 +40,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     updateBlockColor: () => {},
     setBlockColors: () => {},
     restoreObject: () => {},
-    setSelectedObject: () => {},
+    setActiveObject: () => {},
   };
 
   const chunkBounds: Map<string, { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number }> = new Map();
@@ -121,14 +121,14 @@ function createBenchmarkContext(dimensions: Vector3): {
     locked: false,
     position: { x: 0, y: 0, z: 0 },
     dimensions,
-    selection: null,
   }]]);
 
   const mockStateStore = {
     getState: () => ({
       project: { id: "test-project", dimensions },
       objects: mockObjects,
-      selectedObject: "bench-obj",
+      activeObjectId: "bench-obj",
+      voxelSelection: null,
       blocks: { projectId: "test-project", colors: [] },
       chunks: new Map(),
     }),

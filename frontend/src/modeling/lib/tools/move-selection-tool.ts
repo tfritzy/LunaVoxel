@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { getSelectedObject } from "../tool-interface";
+import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 
 export class MoveSelectionTool implements Tool {
@@ -42,8 +42,8 @@ export class MoveSelectionTool implements Tool {
     this.snappedAxis = null;
     this.appliedOffset.set(0, 0, 0);
 
-    const object = getSelectedObject(context);
-    this.movingObject = !!(object && !object.selection);
+    const object = getActiveObject(context);
+    this.movingObject = !!(object && !context.stateStore.getState().voxelSelection);
 
     this.cachedBounds = this.computeBounds(context);
 
@@ -72,7 +72,7 @@ export class MoveSelectionTool implements Tool {
 
     if (incrementalOffset.lengthSq() > 0) {
       if (this.movingObject) {
-        const obj = getSelectedObject(context);
+        const obj = getActiveObject(context);
         if (obj) {
           context.reducers.moveObject(context.projectId, obj.index, {
             x: incrementalOffset.x,
@@ -112,7 +112,7 @@ export class MoveSelectionTool implements Tool {
 
     if (incrementalOffset.lengthSq() > 0) {
       if (this.movingObject) {
-        const obj = getSelectedObject(context);
+        const obj = getActiveObject(context);
         if (obj) {
           context.reducers.moveObject(context.projectId, obj.index, {
             x: incrementalOffset.x,
@@ -151,13 +151,14 @@ export class MoveSelectionTool implements Tool {
   }
 
   private computeBounds(context: ToolContext): { min: Vector3; max: Vector3 } | null {
-    const object = getSelectedObject(context);
+    const object = getActiveObject(context);
     if (!object) return null;
 
-    if (object.selection) {
+    const voxelSelection = context.stateStore.getState().voxelSelection;
+    if (voxelSelection && voxelSelection.objectId === object.id) {
       return {
-        min: object.selection.getMinPos(),
-        max: object.selection.getMaxPos(),
+        min: voxelSelection.frame.getMinPos(),
+        max: voxelSelection.frame.getMaxPos(),
       };
     }
 

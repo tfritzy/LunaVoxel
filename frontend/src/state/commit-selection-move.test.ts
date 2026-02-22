@@ -73,7 +73,7 @@ describe("moveSelection", () => {
     stateStore.reducers.selectAllVoxels("local-project", 0);
     stateStore.reducers.moveSelection("local-project", { x: 5, y: 0, z: 0 });
 
-    const sel = [...stateStore.getState().objects.values()][0].selection;
+    const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
   });
 
