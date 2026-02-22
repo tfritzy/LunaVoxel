@@ -26,7 +26,7 @@ export class FillTool implements Tool {
     return [
       {
         name: "Fill Pattern",
-        values: ["Solid", "Shell"],
+        values: ["Solid", "Shell", "Dots", "Stripes", "Slice", "Lines"],
         currentValue: this.fillPattern,
       },
       {
@@ -147,7 +147,7 @@ export class FillTool implements Tool {
     const dirNY = this.enabledDirections.has("-y");
     const dirPZ = this.enabledDirections.has("+z");
     const dirNZ = this.enabledDirections.has("-z");
-    const isShellMode = this.fillPattern === "Shell";
+    const fillPattern = this.fillPattern;
 
     for (let i = 0; i < queue.length; i += 3) {
       const x = queue[i], y = queue[i + 1], z = queue[i + 2];
@@ -156,7 +156,7 @@ export class FillTool implements Tool {
           (!dirPY && y > startY) || (!dirNY && y < startY) ||
           (!dirPZ && z > startZ) || (!dirNZ && z < startZ)) continue;
 
-      if (isShellMode) {
+      if (fillPattern === "Shell") {
         let isOnShell = false;
         for (const [dx, dy, dz] of NEIGHBORS) {
           const nx = x + dx, ny = y + dy, nz = z + dz;
@@ -166,6 +166,14 @@ export class FillTool implements Tool {
           if (!inFill[nx * dimY * dimZ + ny * dimZ + nz]) { isOnShell = true; break; }
         }
         if (!isOnShell) continue;
+      } else if (fillPattern === "Dots") {
+        if ((x + y + z) % 2 !== 0) continue;
+      } else if (fillPattern === "Stripes") {
+        if (Math.abs(y - startY) % 2 !== 0) continue;
+      } else if (fillPattern === "Slice") {
+        if (y !== startY) continue;
+      } else if (fillPattern === "Lines") {
+        if ((x - startX) % 2 !== 0 || (z - startZ) % 2 !== 0) continue;
       }
 
       const index = x * dimY * dimZ + y * dimZ + z;

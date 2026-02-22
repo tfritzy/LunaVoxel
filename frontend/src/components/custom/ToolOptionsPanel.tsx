@@ -2,6 +2,7 @@ import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DirectionPicker } from "./DirectionPicker";
+import { AxisArrowMultiPicker } from "./AxisArrowMultiPicker";
 import type { ShapeDirection } from "@/modeling/lib/tool-type";
 import {
   Square,
@@ -147,31 +148,19 @@ export const ToolOptionsPanel = ({
           const enabledDirs = new Set(option.currentValue.split(",").filter(Boolean));
           return (
             <div key={option.name} className="mt-2">
-              <div className="text-sm text-muted-foreground mb-2">{option.name}</div>
-              <div className="grid grid-cols-3 gap-1">
-                {option.values.map((dir) => (
-                  <Button
-                    key={dir}
-                    variant="ghost"
-                    onClick={() => {
-                      const newDirs = new Set(enabledDirs);
-                      if (newDirs.has(dir)) {
-                        newDirs.delete(dir);
-                      } else {
-                        newDirs.add(dir);
-                      }
-                      onOptionChange(option.name, [...newDirs].join(","));
-                    }}
-                    className={`h-8 p-0 text-xs border-2 rounded-none ${
-                      enabledDirs.has(dir)
-                        ? "border-accent text-accent"
-                        : "border-secondary text-secondary"
-                    }`}
-                  >
-                    {dir}
-                  </Button>
-                ))}
-              </div>
+              <AxisArrowMultiPicker
+                label={option.name}
+                enabledDirections={enabledDirs}
+                onToggle={(dir) => {
+                  const newDirs = new Set(enabledDirs);
+                  if (newDirs.has(dir)) {
+                    newDirs.delete(dir);
+                  } else {
+                    newDirs.add(dir);
+                  }
+                  onOptionChange(option.name, [...newDirs].join(","));
+                }}
+              />
             </div>
           );
         })}

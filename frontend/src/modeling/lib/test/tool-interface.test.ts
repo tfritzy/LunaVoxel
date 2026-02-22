@@ -796,6 +796,7 @@ describe("Tool Interface", () => {
       const options = tool.getOptions();
       expect(options).toHaveLength(2);
       expect(options[0].name).toBe("Fill Pattern");
+      expect(options[0].values).toEqual(["Solid", "Shell", "Dots", "Stripes", "Slice", "Lines"]);
       expect(options[1].name).toBe("Fill Direction");
       expect(options[1].type).toBe("multi-direction");
     });
