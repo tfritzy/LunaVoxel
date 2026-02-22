@@ -17,11 +17,11 @@ describe("magicSelect reducer", () => {
       z: 12,
     });
 
-    const sel = obj.selection;
+    const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
-    expect(sel!.isSet(12, 1, 12)).toBe(true);
-    expect(sel!.isSet(10, 0, 10)).toBe(true);
-    expect(sel!.isSet(14, 3, 14)).toBe(true);
+    expect(sel!.frame.isSet(12, 1, 12)).toBe(true);
+    expect(sel!.frame.isSet(10, 0, 10)).toBe(true);
+    expect(sel!.frame.isSet(14, 3, 14)).toBe(true);
   });
 
   it("should not select voxels of a different block type", () => {
@@ -34,9 +34,9 @@ describe("magicSelect reducer", () => {
       z: 12,
     });
 
-    const sel = obj.selection;
+    const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
-    expect(sel!.isSet(12, 5, 12)).toBe(false);
+    expect(sel!.frame.isSet(12, 5, 12)).toBe(false);
   });
 
   it("should select the type 2 block region when clicking on it", () => {
@@ -49,16 +49,16 @@ describe("magicSelect reducer", () => {
       z: 12,
     });
 
-    const sel = obj.selection;
+    const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
-    const dims = sel!.getDimensions();
+    const dims = sel!.frame.getDimensions();
     expect(dims).toEqual({ x: 3, y: 3, z: 3 });
-    const minPos = sel!.getMinPos();
+    const minPos = sel!.frame.getMinPos();
     expect(minPos).toEqual({ x: 11, y: 4, z: 11 });
 
-    expect(sel!.isSet(11, 4, 11)).toBe(true);
-    expect(sel!.isSet(13, 6, 13)).toBe(true);
-    expect(sel!.isSet(10, 0, 10)).toBe(false);
+    expect(sel!.frame.isSet(11, 4, 11)).toBe(true);
+    expect(sel!.frame.isSet(13, 6, 13)).toBe(true);
+    expect(sel!.frame.isSet(10, 0, 10)).toBe(false);
   });
 
   it("should set selection to null when clicking on empty space", () => {
@@ -71,7 +71,7 @@ describe("magicSelect reducer", () => {
       z: 0,
     });
 
-    expect(obj.selection).toBeNull();
+    expect(stateStore.getState().voxelSelection).toBeNull();
   });
 
   it("should produce a tight bounding box for the selection frame", () => {
@@ -84,9 +84,9 @@ describe("magicSelect reducer", () => {
       z: 12,
     });
 
-    const sel = obj.selection!;
-    const dims = sel.getDimensions();
-    const minPos = sel.getMinPos();
+    const sel = stateStore.getState().voxelSelection!;
+    const dims = sel.frame.getDimensions();
+    const minPos = sel.frame.getMinPos();
     expect(minPos).toEqual({ x: 10, y: 0, z: 10 });
     expect(dims).toEqual({ x: 5, y: 4, z: 5 });
   });
@@ -104,22 +104,20 @@ describe("magicSelect reducer", () => {
       z: 1,
     });
 
-    const sel = obj.selection!;
-    expect(sel.getDimensions()).toEqual({ x: 1, y: 1, z: 1 });
-    expect(sel.getMinPos()).toEqual({ x: 1, y: 1, z: 1 });
-    expect(sel.isSet(1, 1, 1)).toBe(true);
+    const sel = stateStore.getState().voxelSelection!;
+    expect(sel.frame.getDimensions()).toEqual({ x: 1, y: 1, z: 1 });
+    expect(sel.frame.getMinPos()).toEqual({ x: 1, y: 1, z: 1 });
+    expect(sel.frame.isSet(1, 1, 1)).toBe(true);
   });
 
   it("should handle invalid object index gracefully", () => {
-    const state = stateStore.getState();
-
-    stateStore.reducers.magicSelect(state.project.id, 999, {
+    stateStore.reducers.magicSelect("local-project", "999", {
       x: 12,
       y: 1,
       z: 12,
     });
 
-    expect(state.objects[0].selection).toBeNull();
+    expect(stateStore.getState().voxelSelection).toBeNull();
   });
 
   it("should select all 100 voxels in the block type 1 region", () => {
@@ -132,12 +130,12 @@ describe("magicSelect reducer", () => {
       z: 10,
     });
 
-    const sel = obj.selection!;
+    const sel = stateStore.getState().voxelSelection!;
     let count = 0;
     for (let x = 10; x <= 14; x++) {
       for (let y = 0; y <= 3; y++) {
         for (let z = 10; z <= 14; z++) {
-          if (sel.isSet(x, y, z)) count++;
+          if (sel.frame.isSet(x, y, z)) count++;
         }
       }
     }
@@ -154,12 +152,12 @@ describe("magicSelect reducer", () => {
       z: 12,
     });
 
-    const sel = obj.selection!;
+    const sel = stateStore.getState().voxelSelection!;
     let count = 0;
     for (let x = 11; x <= 13; x++) {
       for (let y = 4; y <= 6; y++) {
         for (let z = 11; z <= 13; z++) {
-          if (sel.isSet(x, y, z)) count++;
+          if (sel.frame.isSet(x, y, z)) count++;
         }
       }
     }

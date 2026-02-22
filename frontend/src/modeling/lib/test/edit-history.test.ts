@@ -117,7 +117,7 @@ describe("EditHistory", () => {
     it("undoes an object add", () => {
       stateStore.reducers.addObject("local-project");
       const added = stateStore.getState().objects[1];
-      history.addObjectAdd(added);
+      history.addObjectAdd(added, 1);
 
       expect(stateStore.getState().objects.length).toBe(2);
 
@@ -128,7 +128,7 @@ describe("EditHistory", () => {
     it("redoes an object add", () => {
       stateStore.reducers.addObject("local-project");
       const added = stateStore.getState().objects[1];
-      history.addObjectAdd(added);
+      history.addObjectAdd(added, 1);
 
       history.undo();
       expect(stateStore.getState().objects.length).toBe(1);

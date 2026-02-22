@@ -189,12 +189,12 @@ export const Builder = class {
   }
 
   public setSelectedObject(objectId: string): void {
-    this.stateStore.reducers.setSelectedObject(objectId);
+    this.stateStore.reducers.setActiveObject(objectId);
     this.currentTool.onActivate?.(this.toolContext);
   }
 
   public getSelectedObject(): string {
-    return this.stateStore.getState().selectedObject;
+    return this.stateStore.getState().activeObjectId;
   }
 
   public updateCamera(camera: THREE.Camera): void {

@@ -27,7 +27,6 @@ export type VoxelObject = {
   locked: boolean;
   position: Vector3;
   dimensions: Vector3;
-  selection: VoxelFrame | null;
 };
 
 export type ProjectBlocks = {

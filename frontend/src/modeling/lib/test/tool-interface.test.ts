@@ -45,7 +45,7 @@ describe("Tool Interface", () => {
       updateBlockColor: () => {},
       setBlockColors: () => {},
       restoreObject: () => {},
-      setSelectedObject: () => {},
+      setActiveObject: () => {},
     };
 
     const previewBuffer = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
@@ -58,14 +58,14 @@ describe("Tool Interface", () => {
       locked: false,
       position: { x: 0, y: 0, z: 0 },
       dimensions,
-      selection: null,
     }];
 
     const mockStateStore = {
       getState: () => ({
         project: { id: "test-project", dimensions },
         objects: mockObjects,
-        selectedObject: "test-obj",
+        activeObjectId: "test-obj",
+        voxelSelection: null,
         blocks: { projectId: "test-project", colors: [] },
         chunks: new Map(),
       }),
@@ -835,7 +835,7 @@ describe("Tool Interface", () => {
       
       mockContext.reducers = {
         ...mockContext.reducers,
-        moveObject: (_projectId: string, _objectIndex: number, offset: Vector3) => {
+        moveObject: (_projectId: string, _objectId: string, offset: Vector3) => {
           moveObjectCalled = true;
           passedOffset = offset;
         },
@@ -855,7 +855,6 @@ describe("Tool Interface", () => {
             locked: false,
             position: { x: 0, y: 0, z: 0 },
             dimensions: { x: 64, y: 64, z: 64 },
-            selection: null,
           }),
           getObjectContentBounds: () => ({
             min: { x: 0, y: 0, z: 0 },
@@ -930,7 +929,6 @@ describe("Tool Interface", () => {
             locked: false,
             position: { x: 0, y: 0, z: 0 },
             dimensions: { x: 64, y: 64, z: 64 },
-            selection: null,
           }),
           getObjectContentBounds: () => ({
             min: { x: 10, y: 0, z: 10 },
@@ -971,14 +969,14 @@ describe("Tool Interface", () => {
         locked: false,
         position: { x: 0, y: 0, z: 0 },
         dimensions: { x: 64, y: 64, z: 64 },
-        selection,
       };
 
       const stateWithSelection = {
         getState: () => ({
           project: { id: "test-project", dimensions },
           objects: [objWithSelection],
-          selectedObject: "test-obj",
+          activeObjectId: "test-obj",
+          voxelSelection: { objectId: "test-obj", frame: selection },
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
         }),
@@ -1020,7 +1018,6 @@ describe("Tool Interface", () => {
             locked: false,
             position: { x: 0, y: 0, z: 0 },
             dimensions: { x: 64, y: 64, z: 64 },
-            selection: null,
           }),
           getObjectContentBounds: () => contentBounds,
         },
@@ -1045,7 +1042,8 @@ describe("Tool Interface", () => {
         getState: () => ({
           project: { id: "test-project", dimensions },
           objects: [] as VoxelObject[],
-          selectedObject: "nonexistent",
+          activeObjectId: "nonexistent",
+          voxelSelection: null,
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
         }),
@@ -1080,7 +1078,6 @@ describe("Tool Interface", () => {
             locked: false,
             position: { x: 0, y: 0, z: 0 },
             dimensions: { x: 64, y: 64, z: 64 },
-            selection: null,
           }),
           getObjectContentBounds: () => contentBounds,
         },
@@ -1306,14 +1303,14 @@ describe("Tool Interface", () => {
         locked: false,
         position: { x: 0, y: 0, z: 0 },
         dimensions: benchDimensions,
-        selection: null,
       }];
 
       const benchStateStore = {
         getState: () => ({
           project: { id: "test-project", dimensions: benchDimensions },
           objects: benchMockObjects,
-          selectedObject: "bench-obj",
+          activeObjectId: "bench-obj",
+          voxelSelection: null,
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
         }),
