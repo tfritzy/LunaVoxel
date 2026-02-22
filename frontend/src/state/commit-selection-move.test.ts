@@ -1,19 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetState, stateStore, getChunkKey, registerEditHistory } from "./store";
 import { EditHistory } from "@/modeling/lib/edit-history";
-import { CHUNK_SIZE } from "./constants";
+import { getBlockAt } from "@/lib/chunk-utils";
 
 function getVoxelAt(objectId: string, wx: number, wy: number, wz: number): number {
-  const cx = Math.floor(wx / CHUNK_SIZE) * CHUNK_SIZE;
-  const cy = Math.floor(wy / CHUNK_SIZE) * CHUNK_SIZE;
-  const cz = Math.floor(wz / CHUNK_SIZE) * CHUNK_SIZE;
-  const key = getChunkKey(objectId, { x: cx, y: cy, z: cz });
-  const chunk = stateStore.getState().chunks.get(key);
-  if (!chunk) return 0;
-  const lx = wx - cx;
-  const ly = wy - cy;
-  const lz = wz - cz;
-  return chunk.voxels[lx * chunk.size.y * chunk.size.z + ly * chunk.size.z + lz];
+  return getBlockAt(stateStore.getState().chunks, objectId, wx, wy, wz);
 }
 
 describe("moveSelection", () => {

@@ -4,6 +4,9 @@ import type { Vector3 } from "@/state/types";
 export const getChunkKey = (objectId: string, minPos: Vector3) =>
   `${objectId}:${minPos.x},${minPos.y},${minPos.z}`;
 
+export const getChunkPosKey = (minPos: Vector3) =>
+  `${minPos.x},${minPos.y},${minPos.z}`;
+
 export const getChunkMinPos = (worldPos: Vector3): Vector3 => ({
   x: Math.floor(worldPos.x / CHUNK_SIZE) * CHUNK_SIZE,
   y: Math.floor(worldPos.y / CHUNK_SIZE) * CHUNK_SIZE,

@@ -13,6 +13,7 @@ import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 import {
   getChunkKey as _getChunkKey,
+  getChunkPosKey,
   getChunkMinPos as _getChunkMinPos,
   getBlockAt,
 } from "@/lib/chunk-utils";
@@ -86,9 +87,6 @@ const createId = () =>
 export const getChunkKey = _getChunkKey;
 
 const getChunkMinPos = _getChunkMinPos;
-
-const getChunkPosKey = (minPos: Vector3) =>
-  `${minPos.x},${minPos.y},${minPos.z}`;
 
 const createChunkData = (
   projectId: string,
