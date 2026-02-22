@@ -9,6 +9,7 @@ import { BlockPickerTool } from "./tools/block-picker-tool";
 import { SelectTool } from "./tools/select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
 import { BrushTool } from "./tools/brush-tool";
+import { FillTool } from "./tools/fill-tool";
 import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
 
@@ -157,6 +158,8 @@ export const Builder = class {
         return new BlockPickerTool();
       case "Select":
         return new SelectTool();
+      case "Fill":
+        return new FillTool();
       default:
         throw new Error(
           `Unknown tool type: ${JSON.stringify(toolType)}`

@@ -8,6 +8,7 @@ import {
   Move,
   RectangleHorizontal,
   Pen,
+  PaintBucket,
   BoxSelect,
   Circle,
   Lasso,
@@ -112,6 +113,9 @@ export const FloatingToolbar = ({
         case "s":
           onToolChange("Select");
           break;
+        case "f":
+          onToolChange("Fill");
+          break;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -197,6 +201,18 @@ export const FloatingToolbar = ({
           >
             <Pen className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">B</div>
+          </Button>
+          <Button
+            onClick={() => onToolChange("Fill")}
+            className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
+              currentTool === "Fill"
+                ? "border-accent text-accent"
+                : "border-secondary text-secondary"
+            }`}
+            title="Fill Tool (F)"
+          >
+            <PaintBucket className="min-w-8 min-h-8" />
+            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">F</div>
           </Button>
           <Button
             onClick={() => onToolChange("BlockPicker")}

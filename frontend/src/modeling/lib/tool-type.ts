@@ -4,6 +4,7 @@ export type ToolType =
   | "Brush"
   | "BlockPicker"
   | "Select"
+  | "Fill"
 
 export type FillShape = "Rect" | "Sphere" | "Cylinder" | "Triangle" | "Diamond" | "Cone" | "Pyramid" | "Hexagon";
 
