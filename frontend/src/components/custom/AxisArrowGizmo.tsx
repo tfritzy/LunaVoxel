@@ -28,10 +28,10 @@ const DIRECTIONS: {
 }[] = [
   { dir: "+y", screenAngleDeg: -90, axis: "y", label: "+Y" },
   { dir: "-y", screenAngleDeg: 90, axis: "y", label: "−Y" },
-  { dir: "+x", screenAngleDeg: 30, axis: "x", label: "+X" },
-  { dir: "-x", screenAngleDeg: 210, axis: "x", label: "−X" },
-  { dir: "+z", screenAngleDeg: 150, axis: "z", label: "+Z" },
-  { dir: "-z", screenAngleDeg: -30, axis: "z", label: "−Z" },
+  { dir: "+x", screenAngleDeg: 24, axis: "x", label: "+X" },
+  { dir: "-x", screenAngleDeg: 204, axis: "x", label: "−X" },
+  { dir: "+z", screenAngleDeg: 156, axis: "z", label: "+Z" },
+  { dir: "-z", screenAngleDeg: -24, axis: "z", label: "−Z" },
 ];
 
 export const AxisArrowGizmo = ({
