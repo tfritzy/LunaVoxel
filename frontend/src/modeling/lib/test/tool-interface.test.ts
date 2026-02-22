@@ -976,7 +976,7 @@ describe("Tool Interface", () => {
           project: { id: "test-project", dimensions },
           objects: [objWithSelection],
           activeObjectId: "test-obj",
-          voxelSelection: { objectId: "test-obj", frame: selection },
+          voxelSelection: { frame: selection },
           blocks: { projectId: "test-project", colors: [] },
           chunks: new Map(),
         }),
@@ -1291,7 +1291,7 @@ describe("Tool Interface", () => {
       const currentState = mockContext.stateStore.getState();
       (mockContext.stateStore as unknown as { getState: () => typeof currentState }).getState = () => ({
         ...currentState,
-        voxelSelection: { objectId: "test-obj", frame },
+        voxelSelection: { frame },
       });
     }
 
@@ -1382,7 +1382,7 @@ describe("Tool Interface", () => {
       const currentState = mockContext.stateStore.getState();
       (mockContext.stateStore as unknown as { getState: () => typeof currentState }).getState = () => ({
         ...currentState,
-        voxelSelection: { objectId: "other-obj", frame: selFrame },
+        voxelSelection: { frame: selFrame },
       });
 
       const tool = new RectTool();
