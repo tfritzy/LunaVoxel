@@ -160,10 +160,7 @@ export class ProjectManager {
     position: THREE.Vector3,
     objectId: string
   ): number | null {
-    const obj = this.chunkManager.getObjectById(objectId);
-    if (!obj) return null;
-
-    return this.chunkManager.getBlockAtPosition(position, obj);
+    return this.chunkManager.getBlockAtPosition(position, objectId);
   }
 
   dispose(): void {

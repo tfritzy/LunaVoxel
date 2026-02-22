@@ -11,6 +11,7 @@ export class ChunkManager {
   private stateStore: StateStore;
   private projectId: string;
   private objects: VoxelObject[] = [];
+  private objectSlotMap: Map<string, number> = new Map();
   private objectVisibilityMap: Map<number, boolean> = new Map();
   private chunks: Map<string, Chunk> = new Map();
   private atlasData: AtlasData | undefined;
@@ -93,8 +94,10 @@ export class ChunkManager {
     this.objects = current.objects
       .filter((obj) => obj.projectId === this.projectId);
 
+    this.objectSlotMap.clear();
     this.objectVisibilityMap.clear();
     for (let i = 0; i < this.objects.length; i++) {
+      this.objectSlotMap.set(this.objects[i].id, i);
       this.objectVisibilityMap.set(i, this.objects[i].visible);
     }
   }
@@ -104,8 +107,8 @@ export class ChunkManager {
 
     for (const chunkData of current.chunks.values()) {
       if (chunkData.projectId !== this.projectId) continue;
-      const objSlot = this.objects.findIndex(o => o.id === chunkData.objectId);
-      if (objSlot === -1) continue;
+      const objSlot = this.objectSlotMap.get(chunkData.objectId);
+      if (objSlot === undefined) continue;
       const obj = this.objects[objSlot];
 
       const worldMinPos = {
@@ -145,12 +148,14 @@ export class ChunkManager {
   }
 
   public getObjectById(objectId: string): VoxelObject | undefined {
-    return this.objects.find((o) => o.id === objectId);
+    const slot = this.objectSlotMap.get(objectId);
+    return slot !== undefined ? this.objects[slot] : undefined;
   }
 
   public getObjectContentBounds(objectId: string): { min: Vector3; max: Vector3 } | null {
-    const object = this.objects.find(o => o.id === objectId);
-    if (!object) return null;
+    const slot = this.objectSlotMap.get(objectId);
+    if (slot === undefined) return null;
+    const object = this.objects[slot];
 
     const state = this.stateStore.getState();
     let minX = Infinity, minY = Infinity, minZ = Infinity;
@@ -230,14 +235,15 @@ export class ChunkManager {
     }
   }
 
-  public getBlockAtPosition(position: THREE.Vector3, obj: VoxelObject): number | null {
+  public getBlockAtPosition(position: THREE.Vector3, objectId: string): number | null {
     const chunkMinPos = this.getChunkMinPos(position);
     const key = this.getChunkKey(chunkMinPos);
     const chunk = this.chunks.get(key);
     
     if (!chunk) return 0;
     
-    const objSlot = this.objects.findIndex(o => o.id === obj.id);
+    const objSlot = this.objectSlotMap.get(objectId);
+    if (objSlot === undefined) return 0;
     const objectChunk = chunk.getObjectChunk(objSlot);
     if (!objectChunk) return 0;
     
@@ -305,7 +311,7 @@ export class ChunkManager {
           const localMaxZ = Math.min(chunk.size.z - 1, maxZ - chunkZ);
 
           chunk.applyOptimisticRect(
-            this.objects.findIndex(o => o.id === obj.id),
+            this.objectSlotMap.get(obj.id) ?? -1,
             mode,
             localMinX, localMaxX,
             localMinY, localMaxY,
