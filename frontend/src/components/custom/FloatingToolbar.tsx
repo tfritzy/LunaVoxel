@@ -97,7 +97,7 @@ export const FloatingToolbar = ({
           onToolChange("BlockPicker");
           break;
         case "s":
-          onToolChange("MagicSelect");
+          onToolChange("Select");
           break;
       }
     };
@@ -195,13 +195,13 @@ export const FloatingToolbar = ({
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">C</div>
           </Button>
           <Button
-            onClick={() => onToolChange("MagicSelect")}
+            onClick={() => onToolChange("Select")}
             className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
-              currentTool === "MagicSelect"
+              currentTool === "Select"
                 ? "border-accent text-accent"
                 : "border-secondary text-secondary"
             }`}
-            title="Magic Select (S)"
+            title="Select (S)"
           >
             <Wand2 className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">S</div>

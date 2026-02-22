@@ -6,7 +6,7 @@ import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import { RectTool } from "./tools/rect-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
-import { MagicSelectTool } from "./tools/magic-select-tool";
+import { SelectTool } from "./tools/select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
 import { BrushTool } from "./tools/brush-tool";
 import type { Tool, ToolOption } from "./tool-interface";
@@ -142,8 +142,8 @@ export const Builder = class {
         return new BrushTool();
       case "BlockPicker":
         return new BlockPickerTool();
-      case "MagicSelect":
-        return new MagicSelectTool();
+      case "Select":
+        return new SelectTool();
       default:
         throw new Error(
           `Unknown tool type: ${JSON.stringify(toolType)}`

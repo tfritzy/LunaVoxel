@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { RectTool } from "../tools/rect-tool";
 import { BlockPickerTool } from "../tools/block-picker-tool";
-import { MagicSelectTool } from "../tools/magic-select-tool";
+import { SelectTool } from "../tools/select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
 import { BrushTool } from "../tools/brush-tool";
 import type { Tool, ToolContext } from "../tool-interface";
@@ -36,6 +36,7 @@ describe("Tool Interface", () => {
       undoEdit: () => {},
       updateCursorPos: () => {},
       magicSelect: () => {},
+      setVoxelSelection: () => {},
       moveSelection: () => {},
       moveObject: () => {},
       beginSelectionMove: () => {},
@@ -110,9 +111,9 @@ describe("Tool Interface", () => {
       expect(tool.getType()).toEqual("BlockPicker");
     });
 
-    it("should create MagicSelect tool", () => {
-      const tool = new MagicSelectTool();
-      expect(tool.getType()).toEqual("MagicSelect");
+    it("should create Select tool", () => {
+      const tool = new SelectTool();
+      expect(tool.getType()).toEqual("Select");
     });
 
     it("should create MoveSelection tool", () => {
@@ -173,9 +174,13 @@ describe("Tool Interface", () => {
       expect(tool.getOptions()).toHaveLength(0);
     });
 
-    it("should return empty options for MagicSelect", () => {
-      const tool = new MagicSelectTool();
-      expect(tool.getOptions()).toHaveLength(0);
+    it("should return Select Shape option for Select tool", () => {
+      const tool = new SelectTool();
+      const options = tool.getOptions();
+      expect(options).toHaveLength(1);
+      expect(options[0].name).toBe("Select Shape");
+      expect(options[0].values).toEqual(["Magic", "Rectangle", "Circle", "Lasso"]);
+      expect(options[0].currentValue).toBe("Magic");
     });
 
     it("should return empty options for MoveSelection", () => {
@@ -770,11 +775,11 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("MagicSelect Tool", () => {
+  describe("Select Tool", () => {
     let tool: Tool;
 
     beforeEach(() => {
-      tool = new MagicSelectTool();
+      tool = new SelectTool();
     });
 
     it("should calculate grid position at hit voxel", () => {

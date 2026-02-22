@@ -52,6 +52,7 @@ export type Reducers = {
     normal: Vector3
   ) => void;
   magicSelect: (projectId: string, objectId: string, pos: Vector3) => void;
+  setVoxelSelection: (objectId: string, frame: VoxelFrame | null) => void;
   moveSelection: (projectId: string, offset: Vector3) => void;
   moveObject: (projectId: string, objectId: string, offset: Vector3) => void;
   beginSelectionMove: (projectId: string) => void;
@@ -597,6 +598,15 @@ const reducers: Reducers = {
       objectId: obj.id,
       frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData),
     };
+    rebuildSelectionChunks();
+    notify();
+  },
+  setVoxelSelection: (objectId, frame) => {
+    if (!frame) {
+      state.voxelSelection = null;
+    } else {
+      state.voxelSelection = { objectId, frame };
+    }
     rebuildSelectionChunks();
     notify();
   },
