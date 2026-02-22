@@ -18,16 +18,11 @@ import {
   getBlockAt,
 } from "@/lib/chunk-utils";
 
-export type VoxelSelection = {
-  objectId: string;
-  frame: VoxelFrame;
-};
-
 export type GlobalState = {
   project: Project;
   objects: VoxelObject[];
   activeObjectId: string;
-  voxelSelection: VoxelSelection | null;
+  voxelSelection: VoxelFrame | null;
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -299,29 +294,26 @@ const rebuildSelectionChunks = () => {
   };
 
   if (state.voxelSelection) {
-    const obj = getObjectById(state.voxelSelection.objectId);
-    if (obj && obj.visible) {
-      const sel = state.voxelSelection.frame;
-      const selDims = sel.getDimensions();
-      const selMin = sel.getMinPos();
-      const dims = state.project.dimensions;
+    const sel = state.voxelSelection;
+    const selDims = sel.getDimensions();
+    const selMin = sel.getMinPos();
+    const dims = state.project.dimensions;
 
-      for (let lx = 0; lx < selDims.x; lx++) {
-        const wx = selMin.x + lx;
-        if (wx < 0 || wx >= dims.x) continue;
-        for (let ly = 0; ly < selDims.y; ly++) {
-          const wy = selMin.y + ly;
-          if (wy < 0 || wy >= dims.y) continue;
-          for (let lz = 0; lz < selDims.z; lz++) {
-            const wz = selMin.z + lz;
-            if (wz < 0 || wz >= dims.z) continue;
-            const val = sel.get(wx, wy, wz);
-            if (val === 0) continue;
-            const worldPos = { x: wx, y: wy, z: wz };
-            const chunkOrigin = getChunkMinPos(worldPos);
-            const frame = getOrCreateSelectionFrame(chunkOrigin, dims);
-            setSelectionVoxel(frame, worldPos, chunkOrigin, val);
-          }
+    for (let lx = 0; lx < selDims.x; lx++) {
+      const wx = selMin.x + lx;
+      if (wx < 0 || wx >= dims.x) continue;
+      for (let ly = 0; ly < selDims.y; ly++) {
+        const wy = selMin.y + ly;
+        if (wy < 0 || wy >= dims.y) continue;
+        for (let lz = 0; lz < selDims.z; lz++) {
+          const wz = selMin.z + lz;
+          if (wz < 0 || wz >= dims.z) continue;
+          const val = sel.get(wx, wy, wz);
+          if (val === 0) continue;
+          const worldPos = { x: wx, y: wy, z: wz };
+          const chunkOrigin = getChunkMinPos(worldPos);
+          const frame = getOrCreateSelectionFrame(chunkOrigin, dims);
+          setSelectionVoxel(frame, worldPos, chunkOrigin, val);
         }
       }
     }
@@ -358,20 +350,12 @@ const reducers: Reducers = {
     updateState((current) => {
       const idx = current.objects.findIndex(o => o.id === objectId);
       if (idx === -1) return;
-      const hadSelection = current.voxelSelection?.objectId === objectId;
-      if (hadSelection) {
-        current.voxelSelection = null;
-      }
       current.objects.splice(idx, 1);
 
       for (const [key, chunk] of current.chunks.entries()) {
         if (chunk.objectId === objectId) {
           current.chunks.delete(key);
         }
-      }
-
-      if (hadSelection) {
-        rebuildSelectionChunks();
       }
     });
   },
@@ -388,9 +372,6 @@ const reducers: Reducers = {
       const obj = current.objects.find(o => o.id === objectId);
       if (obj) {
         obj.visible = !obj.visible;
-        if (current.voxelSelection?.objectId === objectId) {
-          rebuildSelectionChunks();
-        }
       }
     });
   },
@@ -579,10 +560,7 @@ const reducers: Reducers = {
       }
     }
 
-    state.voxelSelection = {
-      objectId: obj.id,
-      frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData),
-    };
+    state.voxelSelection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     rebuildSelectionChunks();
     notify();
   },
@@ -597,10 +575,10 @@ const reducers: Reducers = {
   },
   moveSelection: (_projectId, offset) => {
     if (!state.voxelSelection) return;
-    const obj = getObjectById(state.voxelSelection.objectId);
+    const obj = getObjectById(state.activeObjectId);
     if (!obj) return;
 
-    const sel = state.voxelSelection.frame;
+    const sel = state.voxelSelection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
     const dims = obj.dimensions;
@@ -687,10 +665,7 @@ const reducers: Reducers = {
           }
         }
       }
-      state.voxelSelection = {
-        objectId: obj.id,
-        frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: newMinX, y: newMinY, z: newMinZ }, frameData),
-      };
+      state.voxelSelection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: newMinX, y: newMinY, z: newMinZ }, frameData);
     } else {
       state.voxelSelection = null;
     }
@@ -713,7 +688,7 @@ const reducers: Reducers = {
       selectionMoveSnapshot = null;
       return;
     }
-    const obj = getObjectById(state.voxelSelection.objectId);
+    const obj = getObjectById(state.activeObjectId);
     if (!obj) {
       selectionMoveSnapshot = null;
       return;
@@ -791,18 +766,15 @@ const reducers: Reducers = {
       }
     }
 
-    state.voxelSelection = {
-      objectId: obj.id,
-      frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData),
-    };
+    state.voxelSelection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     rebuildSelectionChunks();
     notify();
   },
   deleteSelectedVoxels: (_projectId, objectId) => {
     const obj = getObjectById(objectId);
-    if (!obj || !state.voxelSelection || state.voxelSelection.objectId !== obj.id) return;
+    if (!obj || !state.voxelSelection) return;
 
-    const sel = state.voxelSelection.frame;
+    const sel = state.voxelSelection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
 

@@ -106,7 +106,7 @@ describe("selection chunk rebuild behavior", () => {
     resetState();
   });
 
-  it("clears and restores chunk selection when toggling object visibility", () => {
+  it("keeps chunk selection when toggling object visibility", () => {
     const initialState = stateStore.getState();
     const object = initialState.objects[0];
     const chunk = Array.from(initialState.chunks.values()).find(
@@ -118,7 +118,7 @@ describe("selection chunk rebuild behavior", () => {
     expect(chunk!.selection.isEmpty()).toBe(false);
 
     stateStore.reducers.toggleObjectVisibility(object.id);
-    expect(chunk!.selection.isEmpty()).toBe(true);
+    expect(chunk!.selection.isEmpty()).toBe(false);
 
     stateStore.reducers.toggleObjectVisibility(object.id);
     expect(chunk!.selection.isEmpty()).toBe(false);

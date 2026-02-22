@@ -3,6 +3,7 @@ import type { BlockModificationMode, Vector3 } from "@/state/types";
 import type { Reducers, StateStore } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
+import type { VoxelFrame } from "./voxel-frame";
 
 export interface ToolContext {
   stateStore: StateStore;
@@ -80,4 +81,8 @@ export interface Tool {
 export function getActiveObject(context: ToolContext) {
   const activeObjectId = context.stateStore.getState().activeObjectId;
   return context.stateStore.getState().objects.find(o => o.id === activeObjectId);
+}
+
+export function getActiveSelectionFrame(context: ToolContext): VoxelFrame | null {
+  return context.stateStore.getState().voxelSelection;
 }

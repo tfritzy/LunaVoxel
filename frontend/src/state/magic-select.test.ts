@@ -19,9 +19,9 @@ describe("magicSelect reducer", () => {
 
     const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
-    expect(sel!.frame.isSet(12, 1, 12)).toBe(true);
-    expect(sel!.frame.isSet(10, 0, 10)).toBe(true);
-    expect(sel!.frame.isSet(14, 3, 14)).toBe(true);
+    expect(sel!.isSet(12, 1, 12)).toBe(true);
+    expect(sel!.isSet(10, 0, 10)).toBe(true);
+    expect(sel!.isSet(14, 3, 14)).toBe(true);
   });
 
   it("should not select voxels of a different block type", () => {
@@ -36,7 +36,7 @@ describe("magicSelect reducer", () => {
 
     const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
-    expect(sel!.frame.isSet(12, 5, 12)).toBe(false);
+    expect(sel!.isSet(12, 5, 12)).toBe(false);
   });
 
   it("should select the type 2 block region when clicking on it", () => {
@@ -51,14 +51,14 @@ describe("magicSelect reducer", () => {
 
     const sel = stateStore.getState().voxelSelection;
     expect(sel).not.toBeNull();
-    const dims = sel!.frame.getDimensions();
+    const dims = sel!.getDimensions();
     expect(dims).toEqual({ x: 3, y: 3, z: 3 });
-    const minPos = sel!.frame.getMinPos();
+    const minPos = sel!.getMinPos();
     expect(minPos).toEqual({ x: 11, y: 4, z: 11 });
 
-    expect(sel!.frame.isSet(11, 4, 11)).toBe(true);
-    expect(sel!.frame.isSet(13, 6, 13)).toBe(true);
-    expect(sel!.frame.isSet(10, 0, 10)).toBe(false);
+    expect(sel!.isSet(11, 4, 11)).toBe(true);
+    expect(sel!.isSet(13, 6, 13)).toBe(true);
+    expect(sel!.isSet(10, 0, 10)).toBe(false);
   });
 
   it("should set selection to null when clicking on empty space", () => {
@@ -85,8 +85,8 @@ describe("magicSelect reducer", () => {
     });
 
     const sel = stateStore.getState().voxelSelection!;
-    const dims = sel.frame.getDimensions();
-    const minPos = sel.frame.getMinPos();
+    const dims = sel.getDimensions();
+    const minPos = sel.getMinPos();
     expect(minPos).toEqual({ x: 10, y: 0, z: 10 });
     expect(dims).toEqual({ x: 5, y: 4, z: 5 });
   });
@@ -105,9 +105,9 @@ describe("magicSelect reducer", () => {
     });
 
     const sel = stateStore.getState().voxelSelection!;
-    expect(sel.frame.getDimensions()).toEqual({ x: 1, y: 1, z: 1 });
-    expect(sel.frame.getMinPos()).toEqual({ x: 1, y: 1, z: 1 });
-    expect(sel.frame.isSet(1, 1, 1)).toBe(true);
+    expect(sel.getDimensions()).toEqual({ x: 1, y: 1, z: 1 });
+    expect(sel.getMinPos()).toEqual({ x: 1, y: 1, z: 1 });
+    expect(sel.isSet(1, 1, 1)).toBe(true);
   });
 
   it("should handle invalid object index gracefully", () => {
@@ -135,7 +135,7 @@ describe("magicSelect reducer", () => {
     for (let x = 10; x <= 14; x++) {
       for (let y = 0; y <= 3; y++) {
         for (let z = 10; z <= 14; z++) {
-          if (sel.frame.isSet(x, y, z)) count++;
+          if (sel.isSet(x, y, z)) count++;
         }
       }
     }
@@ -157,7 +157,7 @@ describe("magicSelect reducer", () => {
     for (let x = 11; x <= 13; x++) {
       for (let y = 4; y <= 6; y++) {
         for (let z = 11; z <= 13; z++) {
-          if (sel.frame.isSet(x, y, z)) count++;
+          if (sel.isSet(x, y, z)) count++;
         }
       }
     }
