@@ -130,7 +130,7 @@ describe("SelectTool", () => {
     const options = tool.getOptions();
     expect(options).toHaveLength(1);
     expect(options[0].name).toBe("Select Shape");
-    expect(options[0].values).toEqual(["Magic", "Rectangle", "Circle", "Lasso"]);
+    expect(options[0].values).toEqual(["Rectangle", "Circle", "Lasso", "Magic"]);
     expect(options[0].currentValue).toBe("Rectangle");
   });
 

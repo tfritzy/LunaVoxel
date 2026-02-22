@@ -31,7 +31,7 @@ export class SelectTool implements Tool {
     return [
       {
         name: "Select Shape",
-        values: ["Magic", "Rectangle", "Circle", "Lasso"],
+        values: ["Rectangle", "Circle", "Lasso", "Magic"],
         currentValue: this.selectShape,
       },
     ];
