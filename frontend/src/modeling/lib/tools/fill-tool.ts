@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
-import type { ToolType } from "../tool-type";
+import type { ToolType, FillPattern } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject, getActiveSelectionFrame } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
@@ -15,15 +15,36 @@ const NEIGHBORS: [number, number, number][] = [
 ];
 
 export class FillTool implements Tool {
+  private fillPattern: FillPattern = "Solid";
+  private enabledDirections = new Set(["+x", "-x", "+y", "-y", "+z", "-z"]);
+
   getType(): ToolType {
     return "Fill";
   }
 
   getOptions(): ToolOption[] {
-    return [];
+    return [
+      {
+        name: "Fill Pattern",
+        values: ["Solid", "Shell"],
+        currentValue: this.fillPattern,
+      },
+      {
+        name: "Fill Direction",
+        values: ["+x", "+y", "+z", "-x", "-y", "-z"],
+        currentValue: [...this.enabledDirections].join(","),
+        type: "multi-direction",
+      },
+    ];
   }
 
-  setOption(): void {}
+  setOption(name: string, value: string): void {
+    if (name === "Fill Pattern") {
+      this.fillPattern = value as FillPattern;
+    } else if (name === "Fill Direction") {
+      this.enabledDirections = new Set(value.split(",").filter(Boolean));
+    }
+  }
 
   calculateGridPosition(
     gridPosition: THREE.Vector3,
@@ -77,15 +98,13 @@ export class FillTool implements Tool {
 
     const totalSize = dims.x * dimY * dimZ;
     const visited = new Uint8Array(totalSize);
+    const inFill = new Uint8Array(totalSize);
     const queue: number[] = [];
 
     const startIndex = pos.x * dimY * dimZ + pos.y * dimZ + pos.z;
     visited[startIndex] = 1;
+    inFill[startIndex] = 1;
     queue.push(pos.x, pos.y, pos.z);
-
-    let minX = pos.x, maxX = pos.x;
-    let minY = pos.y, maxY = pos.y;
-    let minZ = pos.z, maxZ = pos.z;
 
     const tmpVec = new THREE.Vector3();
 
@@ -94,19 +113,6 @@ export class FillTool implements Tool {
       const x = queue[head++];
       const y = queue[head++];
       const z = queue[head++];
-
-      const index = x * dimY * dimZ + y * dimZ + z;
-
-      if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
-        context.previewBuffer[index] = blockValue;
-      }
-
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-      if (z < minZ) minZ = z;
-      if (z > maxZ) maxZ = z;
 
       for (const [dx, dy, dz] of NEIGHBORS) {
         const nx = x + dx;
@@ -124,9 +130,55 @@ export class FillTool implements Tool {
         );
 
         if (neighborBlock !== null && getBlockType(neighborBlock) === targetType) {
+          inFill[nIndex] = 1;
           queue.push(nx, ny, nz);
         }
       }
+    }
+
+    let minX = pos.x, maxX = pos.x;
+    let minY = pos.y, maxY = pos.y;
+    let minZ = pos.z, maxZ = pos.z;
+
+    const startX = pos.x, startY = pos.y, startZ = pos.z;
+    const dirPX = this.enabledDirections.has("+x");
+    const dirNX = this.enabledDirections.has("-x");
+    const dirPY = this.enabledDirections.has("+y");
+    const dirNY = this.enabledDirections.has("-y");
+    const dirPZ = this.enabledDirections.has("+z");
+    const dirNZ = this.enabledDirections.has("-z");
+    const isShellMode = this.fillPattern === "Shell";
+
+    for (let i = 0; i < queue.length; i += 3) {
+      const x = queue[i], y = queue[i + 1], z = queue[i + 2];
+
+      if ((!dirPX && x > startX) || (!dirNX && x < startX) ||
+          (!dirPY && y > startY) || (!dirNY && y < startY) ||
+          (!dirPZ && z > startZ) || (!dirNZ && z < startZ)) continue;
+
+      if (isShellMode) {
+        let isOnShell = false;
+        for (const [dx, dy, dz] of NEIGHBORS) {
+          const nx = x + dx, ny = y + dy, nz = z + dz;
+          if (nx < 0 || nx >= dims.x || ny < 0 || ny >= dimY || nz < 0 || nz >= dimZ) {
+            isOnShell = true; break;
+          }
+          if (!inFill[nx * dimY * dimZ + ny * dimZ + nz]) { isOnShell = true; break; }
+        }
+        if (!isOnShell) continue;
+      }
+
+      const index = x * dimY * dimZ + y * dimZ + z;
+      if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
+        context.previewBuffer[index] = blockValue;
+      }
+
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
     }
 
     context.projectManager.chunkManager.updatePreview(minX, minY, minZ, maxX, maxY, maxZ);

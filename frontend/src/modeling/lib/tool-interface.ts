@@ -35,7 +35,7 @@ export interface ToolOption {
   name: string;
   values: string[];
   currentValue: string;
-  type?: "slider" | "direction" | "checkbox";
+  type?: "slider" | "direction" | "checkbox" | "multi-direction";
   min?: number;
   max?: number;
 }
