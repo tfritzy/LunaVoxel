@@ -1376,7 +1376,7 @@ describe("Tool Interface", () => {
       expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBeGreaterThan(0);
     });
 
-    it("should not constrain tools when selection is for a different object", () => {
+    it("should constrain tools even when selection is for a different object", () => {
       const selFrame = new VoxelFrame(dimensions, { x: 0, y: 0, z: 0 });
       selFrame.set(1, 1, 1, 1);
       const currentState = mockContext.stateStore.getState();
@@ -1396,8 +1396,9 @@ describe("Tool Interface", () => {
       });
 
       const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
-      expect(mockContext.previewBuffer[idx(0, 0, 0)]).toBeGreaterThan(0);
-      expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(1, 1, 1)]).toBeGreaterThan(0);
+      expect(mockContext.previewBuffer[idx(0, 0, 0)]).toBe(0);
+      expect(mockContext.previewBuffer[idx(2, 2, 2)]).toBe(0);
     });
   });
 
