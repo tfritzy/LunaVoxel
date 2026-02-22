@@ -12,15 +12,11 @@ import { BLOCK_TYPE_MASK, RAYCASTABLE_BIT } from "@/modeling/lib/voxel-constants
 import { VoxelFrame } from "@/modeling/lib/voxel-frame";
 import { colorPalettes, EMPTY_COLOR } from "@/components/custom/colorPalettes";
 
-export type VoxelSelection = {
-  frame: VoxelFrame;
-};
-
 export type GlobalState = {
   project: Project;
   objects: VoxelObject[];
   activeObjectId: string;
-  voxelSelection: VoxelSelection | null;
+  voxelSelection: VoxelFrame | null;
   blocks: ProjectBlocks;
   chunks: Map<string, ChunkData>;
 };
@@ -299,7 +295,7 @@ const rebuildSelectionChunks = () => {
   };
 
   if (state.voxelSelection) {
-    const sel = state.voxelSelection.frame;
+    const sel = state.voxelSelection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
     const dims = state.project.dimensions;
@@ -578,9 +574,7 @@ const reducers: Reducers = {
       }
     }
 
-    state.voxelSelection = {
-      frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData),
-    };
+    state.voxelSelection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     rebuildSelectionChunks();
     notify();
   },
@@ -589,7 +583,7 @@ const reducers: Reducers = {
     const obj = getObjectById(state.activeObjectId);
     if (!obj) return;
 
-    const sel = state.voxelSelection.frame;
+    const sel = state.voxelSelection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
     const dims = obj.dimensions;
@@ -676,9 +670,7 @@ const reducers: Reducers = {
           }
         }
       }
-      state.voxelSelection = {
-        frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: newMinX, y: newMinY, z: newMinZ }, frameData),
-      };
+      state.voxelSelection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: newMinX, y: newMinY, z: newMinZ }, frameData);
     } else {
       state.voxelSelection = null;
     }
@@ -779,9 +771,7 @@ const reducers: Reducers = {
       }
     }
 
-    state.voxelSelection = {
-      frame: new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData),
-    };
+    state.voxelSelection = new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
     rebuildSelectionChunks();
     notify();
   },
@@ -789,7 +779,7 @@ const reducers: Reducers = {
     const obj = getObjectById(objectId);
     if (!obj || !state.voxelSelection) return;
 
-    const sel = state.voxelSelection.frame;
+    const sel = state.voxelSelection;
     const selDims = sel.getDimensions();
     const selMin = sel.getMinPos();
 

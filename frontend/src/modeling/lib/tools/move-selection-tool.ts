@@ -157,8 +157,8 @@ export class MoveSelectionTool implements Tool {
     const voxelSelection = context.stateStore.getState().voxelSelection;
     if (voxelSelection) {
       return {
-        min: voxelSelection.frame.getMinPos(),
-        max: voxelSelection.frame.getMaxPos(),
+        min: voxelSelection.getMinPos(),
+        max: voxelSelection.getMaxPos(),
       };
     }
 

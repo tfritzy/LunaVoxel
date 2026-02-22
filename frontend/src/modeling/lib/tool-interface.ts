@@ -84,7 +84,5 @@ export function getActiveObject(context: ToolContext) {
 }
 
 export function getActiveSelectionFrame(context: ToolContext): VoxelFrame | null {
-  const state = context.stateStore.getState();
-  if (!state.voxelSelection) return null;
-  return state.voxelSelection.frame;
+  return context.stateStore.getState().voxelSelection;
 }
