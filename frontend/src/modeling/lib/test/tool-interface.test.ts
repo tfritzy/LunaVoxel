@@ -1075,6 +1075,9 @@ describe("Tool Interface", () => {
 
       expect(appliedFrame).not.toBeNull();
       expect(appliedFrame!.get(1, 1, 1)).toBe(2);
+      expect(appliedFrame!.get(1, 2, 1)).toBe(0);
+      expect(appliedFrame!.get(2, 2, 1)).toBe(0);
+      expect(appliedFrame!.get(3, 2, 1)).toBe(0);
       expect(appliedFrame!.get(3, 1, 1)).toBe(0);
     });
 
