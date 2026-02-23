@@ -80,6 +80,13 @@ export class FillTool implements Tool {
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
     const dimY = dims.y;
     const dimZ = dims.z;
+    const startX = pos.x, startY = pos.y, startZ = pos.z;
+    const dirPX = this.enabledDirections.has("+x");
+    const dirNX = this.enabledDirections.has("-x");
+    const dirPY = this.enabledDirections.has("+y");
+    const dirNY = this.enabledDirections.has("-y");
+    const dirPZ = this.enabledDirections.has("+z");
+    const dirNZ = this.enabledDirections.has("-z");
 
     const totalSize = dims.x * dimY * dimZ;
     const visited = new Uint8Array(totalSize);
@@ -98,6 +105,10 @@ export class FillTool implements Tool {
       const z = queue[head++];
 
       for (const [dx, dy, dz] of NEIGHBORS) {
+        if ((dx > 0 && !dirPX) || (dx < 0 && !dirNX) ||
+            (dy > 0 && !dirPY) || (dy < 0 && !dirNY) ||
+            (dz > 0 && !dirPZ) || (dz < 0 && !dirNZ)) continue;
+
         const nx = x + dx;
         const ny = y + dy;
         const nz = z + dz;
@@ -125,14 +136,6 @@ export class FillTool implements Tool {
     }
 
     const selectionFrame = context.stateStore.getState().voxelSelection;
-
-    const startX = pos.x, startY = pos.y, startZ = pos.z;
-    const dirPX = this.enabledDirections.has("+x");
-    const dirNX = this.enabledDirections.has("-x");
-    const dirPY = this.enabledDirections.has("+y");
-    const dirNY = this.enabledDirections.has("-y");
-    const dirPZ = this.enabledDirections.has("+z");
-    const dirNZ = this.enabledDirections.has("-z");
 
     let minX = pos.x, maxX = pos.x;
     let minY = pos.y, maxY = pos.y;
