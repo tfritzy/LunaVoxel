@@ -92,6 +92,7 @@ export class VoxelEngine {
     renderer.domElement.style.maxHeight = "100%";
 
     renderer.domElement.draggable = false;
+    renderer.domElement.addEventListener("dragstart", (e) => e.preventDefault());
     renderer.domElement.style.userSelect = "none";
     renderer.domElement.style.webkitUserSelect = "none";
     renderer.domElement.style.pointerEvents = "auto";
