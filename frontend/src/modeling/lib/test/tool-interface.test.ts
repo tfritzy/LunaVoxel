@@ -799,10 +799,28 @@ describe("Tool Interface", () => {
       expect(options[0].type).toBe("multi-direction");
     });
 
-    it("should calculate grid position under cursor", () => {
+    it("should calculate grid position above cursor in attach mode", () => {
       const gridPosition = new THREE.Vector3(1, 2, 3);
       const normal = new THREE.Vector3(0, 1, 0);
       const gridPos = tool.calculateGridPosition(gridPosition, normal, attachMode);
+      expect(gridPos.x).toBe(1);
+      expect(gridPos.y).toBe(3);
+      expect(gridPos.z).toBe(3);
+    });
+
+    it("should calculate grid position under cursor in paint mode", () => {
+      const gridPosition = new THREE.Vector3(1, 2, 3);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(gridPosition, normal, paintMode);
+      expect(gridPos.x).toBe(1);
+      expect(gridPos.y).toBe(2);
+      expect(gridPos.z).toBe(3);
+    });
+
+    it("should calculate grid position under cursor in erase mode", () => {
+      const gridPosition = new THREE.Vector3(1, 2, 3);
+      const normal = new THREE.Vector3(0, 1, 0);
+      const gridPos = tool.calculateGridPosition(gridPosition, normal, eraseMode);
       expect(gridPos.x).toBe(1);
       expect(gridPos.y).toBe(2);
       expect(gridPos.z).toBe(3);
@@ -883,8 +901,9 @@ describe("Tool Interface", () => {
       expect(appliedFrame!.get(4, 2, 2)).toBe(0);
     });
 
-    it("should not fill empty space", () => {
+    it("should not fill empty space in paint mode", () => {
       mockContext.projectManager.getBlockAtPosition = () => 0;
+      mockContext.mode = paintMode;
 
       let appliedFrame: VoxelFrame | null = null;
       mockContext.reducers = {
@@ -900,6 +919,118 @@ describe("Tool Interface", () => {
       });
 
       expect(appliedFrame).toBeNull();
+    });
+
+    it("should not fill empty space in erase mode", () => {
+      mockContext.projectManager.getBlockAtPosition = () => 0;
+      mockContext.mode = eraseMode;
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).toBeNull();
+    });
+
+    it("should fill void region in attach mode", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(1, 2, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(3, 2, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(2, 1, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(2, 3, 2)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(2, 2, 1)] = RAYCASTABLE_BIT | 3;
+      voxelData[idx(2, 2, 3)] = RAYCASTABLE_BIT | 3;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = attachMode;
+      mockContext.selectedBlock = 5;
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      expect(appliedFrame!.get(2, 2, 2)).toBe(5);
+      expect(appliedFrame!.get(1, 2, 2)).toBe(0);
+      expect(appliedFrame!.get(3, 2, 2)).toBe(0);
+    });
+
+    it("should fill connected void region in attach mode", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      for (let x = 0; x < 5; x++) {
+        for (let z = 0; z < 5; z++) {
+          voxelData[idx(x, 0, z)] = RAYCASTABLE_BIT | 1;
+        }
+      }
+      for (let x = 0; x < 5; x++) {
+        for (let y = 0; y < 4; y++) {
+          voxelData[idx(x, y, 0)] = RAYCASTABLE_BIT | 1;
+          voxelData[idx(x, y, 4)] = RAYCASTABLE_BIT | 1;
+        }
+      }
+      for (let z = 0; z < 5; z++) {
+        for (let y = 0; y < 4; y++) {
+          voxelData[idx(0, y, z)] = RAYCASTABLE_BIT | 1;
+          voxelData[idx(4, y, z)] = RAYCASTABLE_BIT | 1;
+        }
+      }
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = attachMode;
+      mockContext.selectedBlock = 2;
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      for (let x = 1; x <= 3; x++) {
+        for (let y = 1; y <= 3; y++) {
+          for (let z = 1; z <= 3; z++) {
+            expect(appliedFrame!.get(x, y, z)).toBe(2);
+          }
+        }
+      }
+      expect(appliedFrame!.get(0, 0, 0)).toBe(0);
     });
 
     it("should erase connected voxels in erase mode", () => {
