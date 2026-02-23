@@ -837,11 +837,9 @@ describe("Tool Interface", () => {
       mockContext.mode = paintMode;
       mockContext.selectedBlock = 5;
 
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(2, 2, 2),
-        currentGridPosition: new THREE.Vector3(2, 2, 2),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0, 0),
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(appliedFrame).not.toBeNull();
@@ -876,11 +874,9 @@ describe("Tool Interface", () => {
       mockContext.mode = paintMode;
       mockContext.selectedBlock = 5;
 
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(2, 2, 2),
-        currentGridPosition: new THREE.Vector3(2, 2, 2),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0, 0),
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(appliedFrame).not.toBeNull();
@@ -900,11 +896,9 @@ describe("Tool Interface", () => {
         },
       };
 
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(2, 2, 2),
-        currentGridPosition: new THREE.Vector3(2, 2, 2),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0, 0),
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 2, 2),
+        mousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(appliedFrame).toBeNull();
@@ -932,11 +926,9 @@ describe("Tool Interface", () => {
 
       mockContext.mode = eraseMode;
 
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 1, 1),
-        currentGridPosition: new THREE.Vector3(1, 1, 1),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0, 0),
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 1, 1),
+        mousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(appliedFrame).not.toBeNull();
@@ -981,11 +973,9 @@ describe("Tool Interface", () => {
       mockContext.mode = paintMode;
       mockContext.selectedBlock = 7;
 
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 1, 1),
-        currentGridPosition: new THREE.Vector3(1, 1, 1),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0, 0),
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 1, 1),
+        mousePosition: new THREE.Vector2(0, 0),
       });
 
       expect(appliedFrame).not.toBeNull();

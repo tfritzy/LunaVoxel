@@ -67,20 +67,10 @@ export class FillTool implements Tool {
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
-    void context;
-    void event;
-  }
-
-  onDrag(context: ToolContext, event: ToolDragEvent): void {
-    void context;
-    void event;
-  }
-
-  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
     const obj = getActiveObject(context);
     if (!obj) return;
 
-    const pos = event.currentGridPosition;
+    const pos = event.gridPosition;
     const dims = obj.dimensions;
 
     if (pos.x < 0 || pos.x >= dims.x || pos.y < 0 || pos.y >= dims.y || pos.z < 0 || pos.z >= dims.z) return;
@@ -136,10 +126,6 @@ export class FillTool implements Tool {
       }
     }
 
-    let minX = pos.x, maxX = pos.x;
-    let minY = pos.y, maxY = pos.y;
-    let minZ = pos.z, maxZ = pos.z;
-
     const startX = pos.x, startY = pos.y, startZ = pos.z;
     const dirPX = this.enabledDirections.has("+x");
     const dirNX = this.enabledDirections.has("-x");
@@ -148,6 +134,12 @@ export class FillTool implements Tool {
     const dirPZ = this.enabledDirections.has("+z");
     const dirNZ = this.enabledDirections.has("-z");
     const fillPattern = this.fillPattern;
+
+    let minX = pos.x, maxX = pos.x;
+    let minY = pos.y, maxY = pos.y;
+    let minZ = pos.z, maxZ = pos.z;
+
+    const toWrite: [number, number, number][] = [];
 
     for (let i = 0; i < queue.length; i += 3) {
       const x = queue[i], y = queue[i + 1], z = queue[i + 2];
@@ -176,10 +168,9 @@ export class FillTool implements Tool {
         if ((x - startX) % 2 !== 0 || (z - startZ) % 2 !== 0) continue;
       }
 
-      const index = x * dimY * dimZ + y * dimZ + z;
-      if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
-        context.previewBuffer[index] = blockValue;
-      }
+      if (selectionFrame && !selectionFrame.isSet(x, y, z)) continue;
+
+      toWrite.push([x, y, z]);
 
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
@@ -189,11 +180,24 @@ export class FillTool implements Tool {
       if (z > maxZ) maxZ = z;
     }
 
-    context.projectManager.chunkManager.updatePreview(minX, minY, minZ, maxX, maxY, maxZ);
+    if (toWrite.length === 0) return;
 
-    const frame = new VoxelFrame(dims, { x: 0, y: 0, z: 0 }, new Uint8Array(context.previewBuffer));
+    const frameDims = { x: maxX - minX + 1, y: maxY - minY + 1, z: maxZ - minZ + 1 };
+    const frame = new VoxelFrame(frameDims, { x: minX, y: minY, z: minZ });
+    for (const [x, y, z] of toWrite) {
+      frame.set(x, y, z, blockValue);
+    }
+
     context.reducers.applyFrame(context.mode, context.selectedBlock, frame, obj.id);
-    context.previewBuffer.fill(0);
-    context.projectManager.chunkManager.clearPreview();
+  }
+
+  onDrag(context: ToolContext, event: ToolDragEvent): void {
+    void context;
+    void event;
+  }
+
+  onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    void context;
+    void event;
   }
 }
