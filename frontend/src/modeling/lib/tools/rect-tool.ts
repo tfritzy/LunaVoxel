@@ -237,7 +237,9 @@ export class RectTool implements Tool {
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
     const bounds = this.buildFrame(context, event);
-    this.renderBoundsBox(context, bounds);
+    if (this.adjustBeforeApply) {
+      this.renderBoundsBox(context, bounds);
+    }
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
