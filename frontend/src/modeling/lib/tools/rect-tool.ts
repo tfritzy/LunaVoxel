@@ -5,7 +5,7 @@ import type { FillShape, ShapeDirection } from "../tool-type";
 import { calculateRectBounds, snapBoundsToEqual } from "@/lib/rect-utils";
 import type { RectBounds } from "@/lib/rect-utils";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { getActiveObject, getActiveSelectionFrame } from "../tool-interface";
+import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
@@ -128,15 +128,12 @@ export class RectTool implements Tool {
     const dims = getActiveObject(context)!.dimensions;
     const dimY = dims.y;
     const dimZ = dims.z;
-    const selectionFrame = getActiveSelectionFrame(context);
 
     if (fillShape === "Rect") {
       for (let x = bounds.minX; x <= bounds.maxX; x++) {
         for (let y = bounds.minY; y <= bounds.maxY; y++) {
           for (let z = bounds.minZ; z <= bounds.maxZ; z++) {
-            if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
-              context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
-            }
+            context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
           }
         }
       }
@@ -187,9 +184,7 @@ export class RectTool implements Tool {
             }
 
             if (isInsideFillShapePrecomputed(fillShape, sx, sy, sz, shapeParams)) {
-              if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
-                context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
-              }
+              context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = previewValue;
             }
           }
         }

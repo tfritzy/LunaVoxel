@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
-import { getActiveObject, getActiveSelectionFrame } from "../tool-interface";
+import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { getBlockType } from "../voxel-data-utils";
@@ -73,7 +73,6 @@ export class FillTool implements Tool {
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
     const dimY = dims.y;
     const dimZ = dims.z;
-    const selectionFrame = getActiveSelectionFrame(context);
 
     const totalSize = dims.x * dimY * dimZ;
     const visited = new Uint8Array(totalSize);
@@ -97,9 +96,7 @@ export class FillTool implements Tool {
 
       const index = x * dimY * dimZ + y * dimZ + z;
 
-      if (!selectionFrame || selectionFrame.isSet(x, y, z)) {
-        context.previewBuffer[index] = blockValue;
-      }
+      context.previewBuffer[index] = blockValue;
 
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
