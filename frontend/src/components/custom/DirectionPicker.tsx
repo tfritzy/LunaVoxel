@@ -12,7 +12,7 @@ export const DirectionPicker = ({
 }: DirectionPickerProps) => {
   return (
     <AxisArrowGizmo
-      label="Direction"
+      label="Up Direction"
       isActive={(dir) => dir === currentDirection}
       onSelect={onDirectionChange}
     />
