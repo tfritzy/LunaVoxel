@@ -12,8 +12,9 @@ export const DirectionPicker = ({
 }: DirectionPickerProps) => {
   return (
     <AxisArrowGizmo
-      currentDirection={currentDirection}
-      onDirectionChange={onDirectionChange}
+      label="Direction"
+      isActive={(dir) => dir === currentDirection}
+      onSelect={onDirectionChange}
     />
   );
 };
