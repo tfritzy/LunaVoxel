@@ -37,6 +37,8 @@ const ShadedBlock = memo(
         height="100%"
         viewBox="0 0 100 100"
         className="absolute inset-0"
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
       >
         <polygon points={topFace} fill={top} />
         <polygon points={rightFace} fill={right} />
