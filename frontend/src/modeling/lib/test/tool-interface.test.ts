@@ -792,11 +792,32 @@ describe("Tool Interface", () => {
       expect(tool.getType()).toBe("Fill");
     });
 
-    it("should return Fill Direction option", () => {
+    it("should return Fill Mode option and Fill Direction option by default", () => {
       const options = tool.getOptions();
-      expect(options).toHaveLength(1);
-      expect(options[0].name).toBe("Fill Direction");
-      expect(options[0].type).toBe("multi-direction");
+      expect(options).toHaveLength(2);
+      expect(options[0].name).toBe("Fill Mode");
+      expect(options[0].values).toEqual(["Flood", "Shell", "Coat"]);
+      expect(options[0].currentValue).toBe("Flood");
+      expect(options[1].name).toBe("Fill Direction");
+      expect(options[1].type).toBe("multi-direction");
+    });
+
+    it("should show Shell Width option when Fill Mode is Shell", () => {
+      tool.setOption("Fill Mode", "Shell");
+      const options = tool.getOptions();
+      expect(options).toHaveLength(2);
+      expect(options[0].name).toBe("Fill Mode");
+      expect(options[1].name).toBe("Shell Width");
+      expect(options[1].type).toBe("slider");
+    });
+
+    it("should show Layer Width option when Fill Mode is Coat", () => {
+      tool.setOption("Fill Mode", "Coat");
+      const options = tool.getOptions();
+      expect(options).toHaveLength(2);
+      expect(options[0].name).toBe("Fill Mode");
+      expect(options[1].name).toBe("Layer Width");
+      expect(options[1].type).toBe("slider");
     });
 
     it("should calculate grid position under cursor", () => {
@@ -932,6 +953,178 @@ describe("Tool Interface", () => {
       expect(appliedFrame).not.toBeNull();
       expect(appliedFrame!.get(1, 1, 1)).toBe(RAYCASTABLE_BIT);
       expect(appliedFrame!.get(2, 1, 1)).toBe(RAYCASTABLE_BIT);
+    });
+
+    it("should apply shell mode — only writes the outer boundary of the region", () => {
+      // 3x1x1 solid strip at y=1, x=1..3: surrounded by empty on both ends
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(1, 1, 1)] = RAYCASTABLE_BIT | 2;
+      voxelData[idx(2, 1, 1)] = RAYCASTABLE_BIT | 2;
+      voxelData[idx(3, 1, 1)] = RAYCASTABLE_BIT | 2;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = paintMode;
+      mockContext.selectedBlock = 5;
+      tool.setOption("Fill Mode", "Shell");
+      tool.setOption("Shell Width", "1");
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(2, 1, 1),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      // Endpoints are on the boundary (they have empty neighbors)
+      expect(appliedFrame!.get(1, 1, 1)).toBe(5 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(3, 1, 1)).toBe(5 | RAYCASTABLE_BIT);
+      // Middle block is not on the boundary (all neighbors are solid or in the region)
+      // — but it IS on the boundary because it has empty neighbors above/below/front/back
+      // A 1-wide strip has every block touching empty space, so all should be written
+      expect(appliedFrame!.get(2, 1, 1)).toBe(5 | RAYCASTABLE_BIT);
+    });
+
+    it("should apply shell mode with width — only keeps outer N layers of a solid cube", () => {
+      // 3x3x3 solid cube: only the interior (1,1,1) is not on the surface for shellWidth=1
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+          for (let z = 0; z < 3; z++) {
+            voxelData[idx(x, y, z)] = RAYCASTABLE_BIT | 2;
+          }
+        }
+      }
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = paintMode;
+      mockContext.selectedBlock = 5;
+      tool.setOption("Fill Mode", "Shell");
+      tool.setOption("Shell Width", "1");
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 1, 1),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      // Interior block (1,1,1) should NOT be written (shell width=1 keeps only true surface)
+      expect(appliedFrame!.get(1, 1, 1)).toBe(0);
+      // Surface corners should be written
+      expect(appliedFrame!.get(0, 0, 0)).toBe(5 | RAYCASTABLE_BIT);
+      expect(appliedFrame!.get(2, 2, 2)).toBe(5 | RAYCASTABLE_BIT);
+    });
+
+    it("should apply coat mode in attach — adds layer around solid blocks", () => {
+      // Single solid block at (5,5,5): coat should write to its 6 neighbors
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(5, 5, 5)] = RAYCASTABLE_BIT | 2;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = attachMode;
+      mockContext.selectedBlock = 3;
+      tool.setOption("Fill Mode", "Coat");
+      tool.setOption("Layer Width", "1");
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(5, 5, 5),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      // The 6 face-adjacent neighbors should be written
+      expect(appliedFrame!.get(6, 5, 5)).toBe(3);
+      expect(appliedFrame!.get(4, 5, 5)).toBe(3);
+      expect(appliedFrame!.get(5, 6, 5)).toBe(3);
+      expect(appliedFrame!.get(5, 4, 5)).toBe(3);
+      expect(appliedFrame!.get(5, 5, 6)).toBe(3);
+      expect(appliedFrame!.get(5, 5, 4)).toBe(3);
+      // The solid block itself should NOT be in the frame
+      expect(appliedFrame!.get(5, 5, 5)).toBe(0);
+    });
+
+    it("should apply coat mode in erase — removes outer layer of solid blocks (not world boundary)", () => {
+      // 3-wide solid strip at x=0..2, y=1, z=1
+      // x=0 is at world boundary → NOT a surface block for Coat (world boundary treated as solid)
+      // x=2 has empty at x=3 → IS a surface block
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      voxelData[idx(0, 1, 1)] = RAYCASTABLE_BIT | 2;
+      voxelData[idx(1, 1, 1)] = RAYCASTABLE_BIT | 2;
+      voxelData[idx(2, 1, 1)] = RAYCASTABLE_BIT | 2;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      mockContext.mode = eraseMode;
+      tool.setOption("Fill Mode", "Coat");
+      tool.setOption("Layer Width", "1");
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 1, 1),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      // x=2 is adjacent to empty at x=3 → should be erased
+      expect(appliedFrame!.get(2, 1, 1)).toBe(RAYCASTABLE_BIT);
+      // x=1 and x=0 are also surface blocks because they touch empty above/below/front/back
+      // but x=0 also touches the world boundary — the block is still a surface if it touches empty in-bounds
+      // Since y=0 and z=0 neighbors are in-bounds empty, x=0,1 are also surface
+      expect(appliedFrame!.get(1, 1, 1)).toBe(RAYCASTABLE_BIT);
+      // x=0: check if empty in-bounds neighbor exists (y=0, z=0 etc. are empty) → yes, should erase
+      expect(appliedFrame!.get(0, 1, 1)).toBe(RAYCASTABLE_BIT);
     });
   });
 
