@@ -43,7 +43,9 @@ export class FillTool implements Tool {
     normal: THREE.Vector3,
     mode?: BlockModificationMode
   ): THREE.Vector3 {
-    void mode;
+    if (mode?.tag === "Attach") {
+      return calculateGridPositionWithMode(gridPosition, normal, "above");
+    }
     return calculateGridPositionWithMode(gridPosition, normal, "under");
   }
 
@@ -68,10 +70,12 @@ export class FillTool implements Tool {
     if (pos.x < 0 || pos.x >= dims.x || pos.y < 0 || pos.y >= dims.y || pos.z < 0 || pos.z >= dims.z) return;
 
     const clickedBlock = context.projectManager.getBlockAtPosition(pos, obj.id);
-    if (clickedBlock === null || clickedBlock === 0) return;
+    if (clickedBlock === null) return;
 
     const targetType = getBlockType(clickedBlock);
-    if (targetType === 0) return;
+    const fillingVoid = targetType === 0;
+
+    if (fillingVoid && context.mode.tag !== "Attach") return;
 
     const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
     const dimY = dims.y;
@@ -108,8 +112,14 @@ export class FillTool implements Tool {
           tmpVec.set(nx, ny, nz), obj.id
         );
 
-        if (neighborBlock !== null && getBlockType(neighborBlock) === targetType) {
-          queue.push(nx, ny, nz);
+        if (fillingVoid) {
+          if (neighborBlock === null || getBlockType(neighborBlock) === 0) {
+            queue.push(nx, ny, nz);
+          }
+        } else {
+          if (neighborBlock !== null && getBlockType(neighborBlock) === targetType) {
+            queue.push(nx, ny, nz);
+          }
         }
       }
     }
