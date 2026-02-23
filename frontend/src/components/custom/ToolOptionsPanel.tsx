@@ -2,6 +2,7 @@ import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DirectionPicker } from "./DirectionPicker";
+import { AxisArrowGizmo } from "./AxisArrowGizmo";
 import type { ShapeDirection } from "@/modeling/lib/tool-type";
 import {
   Square,
@@ -46,6 +47,10 @@ function isCheckboxOption(option: ToolOption): boolean {
   return option.type === "checkbox";
 }
 
+function isMultiDirectionOption(option: ToolOption): boolean {
+  return option.type === "multi-direction";
+}
+
 interface ToolOptionsPanelProps {
   options: ToolOption[];
   onOptionChange: (name: string, value: string) => void;
@@ -57,10 +62,11 @@ export const ToolOptionsPanel = ({
 }: ToolOptionsPanelProps) => {
   if (options.length === 0) return null;
 
-  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o) && !isCheckboxOption(o));
+  const regularOptions = options.filter((o) => !isSliderOption(o) && !isDirectionOption(o) && !isCheckboxOption(o) && !isMultiDirectionOption(o));
   const sliderOptions = options.filter((o) => isSliderOption(o));
   const directionOptions = options.filter((o) => isDirectionOption(o));
   const checkboxOptions = options.filter((o) => isCheckboxOption(o));
+  const multiDirectionOptions = options.filter((o) => isMultiDirectionOption(o));
 
   return (
     <div className="border-t border-border">
@@ -138,6 +144,26 @@ export const ToolOptionsPanel = ({
             </div>
           </div>
         )}
+        {multiDirectionOptions.map((option) => {
+          const enabledDirs = new Set(option.currentValue.split(",").filter(Boolean));
+          return (
+            <div key={option.name} className="mt-2">
+              <AxisArrowGizmo
+                label={option.name}
+                isActive={(dir) => enabledDirs.has(dir)}
+                onSelect={(dir) => {
+                  const newDirs = new Set(enabledDirs);
+                  if (newDirs.has(dir)) {
+                    newDirs.delete(dir);
+                  } else {
+                    newDirs.add(dir);
+                  }
+                  onOptionChange(option.name, [...newDirs].join(","));
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
