@@ -10,6 +10,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
 import { VoxelFrame } from "../voxel-frame";
+import { createBoundsLineSegments, updateBoundsLineSegments } from "./bounds-box-helper";
 
 type ResizeCorner = {
   xSide: "min" | "max";
@@ -32,10 +33,14 @@ export class RectTool implements Tool {
   private lastBounds: RectBounds | null = null;
   private resizingCorner: ResizeCorner | null = null;
   private resizeBaseBounds: RectBounds | null = null;
-  private boundsBoxHelper: THREE.Box3Helper | null = null;
+  private boundsBoxHelper: THREE.LineSegments | null = null;
   private handleMeshes: THREE.Mesh[] = [];
   private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.25, 8, 8);
-  private static readonly HANDLE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+  private static readonly HANDLE_MATERIAL = new THREE.MeshBasicMaterial({
+    color: 0xffaa00,
+    depthTest: false,
+    depthWrite: false,
+  });
 
   private static readonly HANDLE_SCREEN_THRESHOLD = 0.04;
 
@@ -522,16 +527,15 @@ export class RectTool implements Tool {
 
   private renderBoundsBox(context: ToolContext, bounds: RectBounds): void {
     if (!this.boundsBoxHelper) {
-      this.boundsBoxHelper = new THREE.Box3Helper(
-        new THREE.Box3(),
-        0xffaa00
-      );
+      this.boundsBoxHelper = createBoundsLineSegments(0xffaa00);
       context.scene.add(this.boundsBoxHelper);
     }
 
-    this.boundsBoxHelper.box.min.set(bounds.minX, bounds.minY, bounds.minZ);
-    this.boundsBoxHelper.box.max.set(bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1);
-    this.boundsBoxHelper.updateMatrixWorld(true);
+    updateBoundsLineSegments(
+      this.boundsBoxHelper,
+      bounds.minX, bounds.minY, bounds.minZ,
+      bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1
+    );
 
     this.updateHandleMeshes(context, bounds);
   }
@@ -543,6 +547,7 @@ export class RectTool implements Tool {
           RectTool.HANDLE_SPHERE_GEOMETRY,
           RectTool.HANDLE_MATERIAL
         );
+        mesh.renderOrder = 999;
         this.handleMeshes.push(mesh);
         context.scene.add(mesh);
       }

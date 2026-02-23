@@ -4,6 +4,7 @@ import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
+import { createBoundsLineSegments, updateBoundsLineSegments } from "./bounds-box-helper";
 
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
@@ -175,44 +176,15 @@ export class MoveSelectionTool implements Tool {
     }
 
     if (!this.boundsBoxHelper) {
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute(
-        "position",
-        new THREE.BufferAttribute(new Float32Array(72), 3)
-      );
-      this.boundsBoxHelper = new THREE.LineSegments(
-        geometry,
-        new THREE.LineDashedMaterial({
-          color: 0x44ff88,
-          dashSize: 0.3,
-          gapSize: 0.15,
-          depthTest: false,
-          depthWrite: false,
-        })
-      );
-      this.boundsBoxHelper.renderOrder = 999;
+      this.boundsBoxHelper = createBoundsLineSegments(0x44ff88);
       context.scene.add(this.boundsBoxHelper);
     }
 
-    const { min, max } = bounds;
-    const pos = (this.boundsBoxHelper.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
-    // Bottom face
-    pos[ 0] = min.x; pos[ 1] = min.y; pos[ 2] = min.z; pos[ 3] = max.x; pos[ 4] = min.y; pos[ 5] = min.z;
-    pos[ 6] = max.x; pos[ 7] = min.y; pos[ 8] = min.z; pos[ 9] = max.x; pos[10] = min.y; pos[11] = max.z;
-    pos[12] = max.x; pos[13] = min.y; pos[14] = max.z; pos[15] = min.x; pos[16] = min.y; pos[17] = max.z;
-    pos[18] = min.x; pos[19] = min.y; pos[20] = max.z; pos[21] = min.x; pos[22] = min.y; pos[23] = min.z;
-    // Top face
-    pos[24] = min.x; pos[25] = max.y; pos[26] = min.z; pos[27] = max.x; pos[28] = max.y; pos[29] = min.z;
-    pos[30] = max.x; pos[31] = max.y; pos[32] = min.z; pos[33] = max.x; pos[34] = max.y; pos[35] = max.z;
-    pos[36] = max.x; pos[37] = max.y; pos[38] = max.z; pos[39] = min.x; pos[40] = max.y; pos[41] = max.z;
-    pos[42] = min.x; pos[43] = max.y; pos[44] = max.z; pos[45] = min.x; pos[46] = max.y; pos[47] = min.z;
-    // Vertical edges
-    pos[48] = min.x; pos[49] = min.y; pos[50] = min.z; pos[51] = min.x; pos[52] = max.y; pos[53] = min.z;
-    pos[54] = max.x; pos[55] = min.y; pos[56] = min.z; pos[57] = max.x; pos[58] = max.y; pos[59] = min.z;
-    pos[60] = max.x; pos[61] = min.y; pos[62] = max.z; pos[63] = max.x; pos[64] = max.y; pos[65] = max.z;
-    pos[66] = min.x; pos[67] = min.y; pos[68] = max.z; pos[69] = min.x; pos[70] = max.y; pos[71] = max.z;
-    (this.boundsBoxHelper.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
-    this.boundsBoxHelper.computeLineDistances();
+    updateBoundsLineSegments(
+      this.boundsBoxHelper,
+      bounds.min.x, bounds.min.y, bounds.min.z,
+      bounds.max.x, bounds.max.y, bounds.max.z
+    );
   }
 
   private calculateOffsetFromMouseDelta(
