@@ -8,8 +8,6 @@ export type ToolType =
 
 export type FillShape = "Rect" | "Sphere" | "Cylinder" | "Triangle" | "Diamond" | "Cone" | "Pyramid" | "Hexagon";
 
-export type FillPattern = "Solid" | "Shell" | "Dots" | "Stripes" | "Slice" | "Lines";
-
 export type ShapeDirection = "+x" | "-x" | "+y" | "-y" | "+z" | "-z";
 
 export type BrushShape = "Sphere" | "Cube" | "Cylinder" | "Diamond";

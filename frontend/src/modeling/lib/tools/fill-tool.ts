@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { BlockModificationMode } from "@/state/types";
-import type { ToolType, FillPattern } from "../tool-type";
+import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject, getActiveSelectionFrame } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
@@ -15,7 +15,6 @@ const NEIGHBORS: [number, number, number][] = [
 ];
 
 export class FillTool implements Tool {
-  private fillPattern: FillPattern = "Solid";
   private enabledDirections = new Set(["+x", "-x", "+y", "-y", "+z", "-z"]);
 
   getType(): ToolType {
@@ -24,11 +23,6 @@ export class FillTool implements Tool {
 
   getOptions(): ToolOption[] {
     return [
-      {
-        name: "Fill Pattern",
-        values: ["Solid", "Shell", "Dots", "Stripes", "Slice", "Lines"],
-        currentValue: this.fillPattern,
-      },
       {
         name: "Fill Direction",
         values: ["+x", "+y", "+z", "-x", "-y", "-z"],
@@ -39,9 +33,7 @@ export class FillTool implements Tool {
   }
 
   setOption(name: string, value: string): void {
-    if (name === "Fill Pattern") {
-      this.fillPattern = value as FillPattern;
-    } else if (name === "Fill Direction") {
+    if (name === "Fill Direction") {
       this.enabledDirections = new Set(value.split(",").filter(Boolean));
     }
   }
@@ -88,12 +80,10 @@ export class FillTool implements Tool {
 
     const totalSize = dims.x * dimY * dimZ;
     const visited = new Uint8Array(totalSize);
-    const inFill = new Uint8Array(totalSize);
     const queue: number[] = [];
 
     const startIndex = pos.x * dimY * dimZ + pos.y * dimZ + pos.z;
     visited[startIndex] = 1;
-    inFill[startIndex] = 1;
     queue.push(pos.x, pos.y, pos.z);
 
     const tmpVec = new THREE.Vector3();
@@ -120,7 +110,6 @@ export class FillTool implements Tool {
         );
 
         if (neighborBlock !== null && getBlockType(neighborBlock) === targetType) {
-          inFill[nIndex] = 1;
           queue.push(nx, ny, nz);
         }
       }
@@ -133,7 +122,6 @@ export class FillTool implements Tool {
     const dirNY = this.enabledDirections.has("-y");
     const dirPZ = this.enabledDirections.has("+z");
     const dirNZ = this.enabledDirections.has("-z");
-    const fillPattern = this.fillPattern;
 
     let minX = pos.x, maxX = pos.x;
     let minY = pos.y, maxY = pos.y;
@@ -147,26 +135,6 @@ export class FillTool implements Tool {
       if ((!dirPX && x > startX) || (!dirNX && x < startX) ||
           (!dirPY && y > startY) || (!dirNY && y < startY) ||
           (!dirPZ && z > startZ) || (!dirNZ && z < startZ)) continue;
-
-      if (fillPattern === "Shell") {
-        let isOnShell = false;
-        for (const [dx, dy, dz] of NEIGHBORS) {
-          const nx = x + dx, ny = y + dy, nz = z + dz;
-          if (nx < 0 || nx >= dims.x || ny < 0 || ny >= dimY || nz < 0 || nz >= dimZ) {
-            isOnShell = true; break;
-          }
-          if (!inFill[nx * dimY * dimZ + ny * dimZ + nz]) { isOnShell = true; break; }
-        }
-        if (!isOnShell) continue;
-      } else if (fillPattern === "Dots") {
-        if ((x + y + z) % 2 !== 0) continue;
-      } else if (fillPattern === "Stripes") {
-        if (Math.abs(y - startY) % 2 !== 0) continue;
-      } else if (fillPattern === "Slice") {
-        if (y !== startY) continue;
-      } else if (fillPattern === "Lines") {
-        if ((x - startX) % 2 !== 0 || (z - startZ) % 2 !== 0) continue;
-      }
 
       if (selectionFrame && !selectionFrame.isSet(x, y, z)) continue;
 

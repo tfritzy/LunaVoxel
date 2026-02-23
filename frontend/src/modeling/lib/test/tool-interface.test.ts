@@ -792,13 +792,11 @@ describe("Tool Interface", () => {
       expect(tool.getType()).toBe("Fill");
     });
 
-    it("should return Fill Pattern and Fill Direction options", () => {
+    it("should return Fill Direction option", () => {
       const options = tool.getOptions();
-      expect(options).toHaveLength(2);
-      expect(options[0].name).toBe("Fill Pattern");
-      expect(options[0].values).toEqual(["Solid", "Shell", "Dots", "Stripes", "Slice", "Lines"]);
-      expect(options[1].name).toBe("Fill Direction");
-      expect(options[1].type).toBe("multi-direction");
+      expect(options).toHaveLength(1);
+      expect(options[0].name).toBe("Fill Direction");
+      expect(options[0].type).toBe("multi-direction");
     });
 
     it("should calculate grid position under cursor", () => {
