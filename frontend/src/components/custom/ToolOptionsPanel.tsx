@@ -2,7 +2,7 @@ import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DirectionPicker } from "./DirectionPicker";
-import { AxisArrowMultiPicker } from "./AxisArrowMultiPicker";
+import { AxisArrowGizmo } from "./AxisArrowGizmo";
 import type { ShapeDirection } from "@/modeling/lib/tool-type";
 import {
   Square,
@@ -148,10 +148,10 @@ export const ToolOptionsPanel = ({
           const enabledDirs = new Set(option.currentValue.split(",").filter(Boolean));
           return (
             <div key={option.name} className="mt-2">
-              <AxisArrowMultiPicker
+              <AxisArrowGizmo
                 label={option.name}
-                enabledDirections={enabledDirs}
-                onToggle={(dir) => {
+                isActive={(dir) => enabledDirs.has(dir)}
+                onSelect={(dir) => {
                   const newDirs = new Set(enabledDirs);
                   if (newDirs.has(dir)) {
                     newDirs.delete(dir);

@@ -1,8 +1,9 @@
 import type { ShapeDirection } from "@/modeling/lib/tool-type";
 
 interface AxisArrowGizmoProps {
-  currentDirection: ShapeDirection;
-  onDirectionChange: (direction: ShapeDirection) => void;
+  label: string;
+  isActive: (dir: ShapeDirection) => boolean;
+  onSelect: (dir: ShapeDirection) => void;
 }
 
 const CX = 75;
@@ -35,15 +36,16 @@ const DIRECTIONS: {
 ];
 
 export const AxisArrowGizmo = ({
-  currentDirection,
-  onDirectionChange,
+  label,
+  isActive,
+  onSelect,
 }: AxisArrowGizmoProps) => {
   return (
     <div>
-      <div className="text-sm text-muted-foreground mb-2">Direction</div>
+      <div className="text-sm text-muted-foreground mb-2">{label}</div>
       <svg width="150" height="150" viewBox="0 0 150 150">
         <circle cx={CX} cy={CY} r="3" fill="#45475a" />
-        {DIRECTIONS.map(({ dir, screenAngleDeg, axis, label }) => {
+        {DIRECTIONS.map(({ dir, screenAngleDeg, axis, label: dirLabel }) => {
           const rad = (screenAngleDeg * Math.PI) / 180;
           const dx = Math.cos(rad);
           const dy = Math.sin(rad);
@@ -63,24 +65,24 @@ export const AxisArrowGizmo = ({
           const labelX = CX + dx * (STEM_LENGTH + HEAD_LENGTH + LABEL_OFFSET);
           const labelY = CY + dy * (STEM_LENGTH + HEAD_LENGTH + LABEL_OFFSET);
 
-          const isSelected = currentDirection === dir;
-          const color = isSelected ? AXIS_COLORS[axis] : DISABLED_COLOR;
+          const active = isActive(dir);
+          const color = active ? AXIS_COLORS[axis] : DISABLED_COLOR;
 
           return (
             <g
               key={dir}
-              onClick={() => onDirectionChange(dir)}
+              onClick={() => onSelect(dir)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  onDirectionChange(dir);
+                  onSelect(dir);
                 }
               }}
               tabIndex={0}
               style={{ cursor: "pointer" }}
               role="button"
               aria-label={`Select ${dir} direction`}
-              aria-pressed={isSelected}
+              aria-pressed={active}
             >
               <line
                 x1={CX}
@@ -103,7 +105,7 @@ export const AxisArrowGizmo = ({
                 fontFamily="inherit"
                 fill={color}
               >
-                {label}
+                {dirLabel}
               </text>
               <line
                 x1={CX}
