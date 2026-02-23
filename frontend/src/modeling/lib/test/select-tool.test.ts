@@ -117,6 +117,7 @@ describe("SelectTool", () => {
       mode: { tag: "Attach" } as BlockModificationMode,
       camera,
       scene: new THREE.Scene(),
+      overlayCanvas: { getContext: () => null, width: 0, height: 0 } as unknown as HTMLCanvasElement,
     };
   });
 

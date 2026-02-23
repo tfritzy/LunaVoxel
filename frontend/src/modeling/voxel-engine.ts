@@ -220,6 +220,7 @@ export class VoxelEngine {
       this.container.clientWidth,
       this.container.clientHeight
     );
+    this.projectManager.builder.resizeOverlayCanvas();
   };
 
   private lastFrameTime: number = 0;

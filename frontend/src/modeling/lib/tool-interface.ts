@@ -14,6 +14,7 @@ export interface ToolContext {
   mode: BlockModificationMode;
   camera: THREE.Camera;
   scene: THREE.Scene;
+  overlayCanvas: HTMLCanvasElement;
 }
 
 export interface ToolMouseEvent {
@@ -72,6 +73,8 @@ export interface Tool {
   updatePending?(context: ToolContext): void;
 
   onActivate?(context: ToolContext): void;
+
+  usesScreenSpaceEvents?(): boolean;
 
   dispose?(): void;
 }

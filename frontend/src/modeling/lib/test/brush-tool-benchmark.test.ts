@@ -156,6 +156,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     mode: attachMode,
     camera,
     scene: new THREE.Scene(),
+    overlayCanvas: { getContext: () => null, width: 0, height: 0 } as unknown as HTMLCanvasElement,
   };
 
   return { context, updatePreviewTimes };
