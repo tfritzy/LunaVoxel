@@ -142,7 +142,7 @@ describe("Tool Interface", () => {
       expect(options[0].name).toBe("Fill Shape");
       expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"]);
       expect(options[0].currentValue).toBe("Rect");
-      expect(options[1].name).toBe("Direction");
+      expect(options[1].name).toBe("Up Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
       expect(options[1].currentValue).toBe("+y");
       expect(options[2].name).toBe("Adjust Before Apply");
@@ -161,7 +161,7 @@ describe("Tool Interface", () => {
 
     it("should update direction option on RectTool", () => {
       const tool = new RectTool();
-      tool.setOption("Direction", "-y");
+      tool.setOption("Up Direction", "-y");
       
       const options = tool.getOptions();
       expect(options[1].currentValue).toBe("-y");
@@ -612,6 +612,38 @@ describe("Tool Interface", () => {
       tool.commitPendingOperation(mockContext);
 
       expect(committedBlock).toBe(9);
+    });
+
+    it("should update pending mode when mode is changed during editing phase", () => {
+      mockContext.mode = attachMode;
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const previewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
+      expect(previewValue).toBe(1);
+
+      mockContext.mode = eraseMode;
+      tool.updatePending!(mockContext);
+
+      const updatedPreviewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
+      expect(updatedPreviewValue).toBe(RAYCASTABLE_BIT);
+
+      let committedMode: BlockModificationMode | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (mode) => {
+          committedMode = mode;
+        },
+      };
+
+      tool.commitPendingOperation(mockContext);
+
+      expect(committedMode!.tag).toBe("Erase");
     });
 
     it("should use updated shape when resizing pending bounds after shape change", () => {

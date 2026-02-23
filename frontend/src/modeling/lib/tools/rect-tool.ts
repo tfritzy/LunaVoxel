@@ -51,7 +51,7 @@ export class RectTool implements Tool {
         currentValue: this.fillShape,
       },
       {
-        name: "Direction",
+        name: "Up Direction",
         values: ["+x", "-x", "+y", "-y", "+z", "-z"],
         currentValue: this.direction,
         type: "direction",
@@ -71,7 +71,7 @@ export class RectTool implements Tool {
       if (this.pending) {
         this.pending.fillShape = this.fillShape;
       }
-    } else if (name === "Direction") {
+    } else if (name === "Up Direction") {
       this.direction = value as ShapeDirection;
       if (this.pending) {
         this.pending.direction = this.direction;
@@ -454,6 +454,7 @@ export class RectTool implements Tool {
     this.pending.fillShape = this.fillShape;
     this.pending.direction = this.direction;
     this.pending.selectedBlock = context.selectedBlock;
+    this.pending.mode = context.mode;
     this.buildFrameFromBounds(context, this.pending.bounds);
     this.updateBoundsBox(context);
   }

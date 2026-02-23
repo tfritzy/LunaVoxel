@@ -170,6 +170,9 @@ export const Builder = class {
   public setMode(mode: BlockModificationMode): void {
     this.currentMode = mode;
     this.toolContext.mode = mode;
+    if (this.currentTool.hasPendingOperation?.()) {
+      this.currentTool.updatePending?.(this.toolContext);
+    }
   }
 
   public getMode(): BlockModificationMode {
