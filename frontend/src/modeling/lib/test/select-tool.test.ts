@@ -306,4 +306,96 @@ describe("SelectTool", () => {
     expect(voxelSelection).not.toBeNull();
     expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
   });
+
+  it("should use screen space events for Rectangle but not Magic", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Rectangle");
+    expect(tool.usesScreenSpaceEvents()).toBe(true);
+
+    tool.setOption("Select Shape", "Circle");
+    expect(tool.usesScreenSpaceEvents()).toBe(true);
+
+    tool.setOption("Select Shape", "Lasso");
+    expect(tool.usesScreenSpaceEvents()).toBe(true);
+
+    tool.setOption("Select Shape", "Magic");
+    expect(tool.usesScreenSpaceEvents()).toBe(false);
+  });
+
+  it("should select voxels via rectangle even with dummy grid positions", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Rectangle");
+
+    const topLeft = new THREE.Vector3(2.5, 2.5, 0.5);
+    topLeft.project(mockContext.camera);
+    const bottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
+    bottomRight.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(0, 0, 0),
+      mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+    });
+
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(0, 0, 0),
+      currentGridPosition: new THREE.Vector3(0, 0, 0),
+      startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+      currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
+    });
+
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
+  });
+
+  it("should collect lasso points during drag even without grid intersection", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Lasso");
+
+    const p1 = new THREE.Vector3(2.5, 2.5, 0.5);
+    p1.project(mockContext.camera);
+    const p2 = new THREE.Vector3(7.5, 2.5, 0.5);
+    p2.project(mockContext.camera);
+    const p3 = new THREE.Vector3(7.5, 7.5, 0.5);
+    p3.project(mockContext.camera);
+    const p4 = new THREE.Vector3(2.5, 7.5, 0.5);
+    p4.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(0, 0, 0),
+      mousePosition: new THREE.Vector2(p1.x, p1.y),
+    });
+
+    const dummyPos = new THREE.Vector3(0, 0, 0);
+
+    tool.onDrag(mockContext, {
+      startGridPosition: dummyPos,
+      currentGridPosition: dummyPos,
+      startMousePosition: new THREE.Vector2(p1.x, p1.y),
+      currentMousePosition: new THREE.Vector2(p2.x, p2.y),
+    });
+
+    tool.onDrag(mockContext, {
+      startGridPosition: dummyPos,
+      currentGridPosition: dummyPos,
+      startMousePosition: new THREE.Vector2(p1.x, p1.y),
+      currentMousePosition: new THREE.Vector2(p3.x, p3.y),
+    });
+
+    tool.onDrag(mockContext, {
+      startGridPosition: dummyPos,
+      currentGridPosition: dummyPos,
+      startMousePosition: new THREE.Vector2(p1.x, p1.y),
+      currentMousePosition: new THREE.Vector2(p4.x, p4.y),
+    });
+
+    tool.onMouseUp(mockContext, {
+      startGridPosition: dummyPos,
+      currentGridPosition: dummyPos,
+      startMousePosition: new THREE.Vector2(p1.x, p1.y),
+      currentMousePosition: new THREE.Vector2(p1.x, p1.y),
+    });
+
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
+  });
 });
