@@ -4,12 +4,13 @@ import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
+import { createBoundsBox, updateBoundsBox, disposeBoundsBox, type BoundsBox } from "./bounds-box-helper";
 
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
   private appliedOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private cachedBounds: { min: Vector3; max: Vector3 } | null = null;
-  private boundsBoxHelper: THREE.Box3Helper | null = null;
+  private boundsBoxHelper: BoundsBox | null = null;
   private dragReferencePoint: THREE.Vector3 | null = null;
   private movingObject: boolean = false;
 
@@ -143,9 +144,7 @@ export class MoveSelectionTool implements Tool {
 
   dispose(): void {
     if (this.boundsBoxHelper) {
-      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
-      this.boundsBoxHelper.geometry.dispose();
-      (this.boundsBoxHelper.material as THREE.Material).dispose();
+      disposeBoundsBox(this.boundsBoxHelper);
       this.boundsBoxHelper = null;
     }
   }
@@ -175,16 +174,15 @@ export class MoveSelectionTool implements Tool {
     }
 
     if (!this.boundsBoxHelper) {
-      this.boundsBoxHelper = new THREE.Box3Helper(
-        new THREE.Box3(),
-        0x44ff88
-      );
-      context.scene.add(this.boundsBoxHelper);
+      this.boundsBoxHelper = createBoundsBox(0x44ff88);
+      context.scene.add(this.boundsBoxHelper.group);
     }
 
-    this.boundsBoxHelper.box.min.set(bounds.min.x, bounds.min.y, bounds.min.z);
-    this.boundsBoxHelper.box.max.set(bounds.max.x, bounds.max.y, bounds.max.z);
-    this.boundsBoxHelper.updateMatrixWorld(true);
+    updateBoundsBox(
+      this.boundsBoxHelper,
+      bounds.min.x, bounds.min.y, bounds.min.z,
+      bounds.max.x, bounds.max.y, bounds.max.z
+    );
   }
 
   private calculateOffsetFromMouseDelta(
