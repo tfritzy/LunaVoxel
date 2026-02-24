@@ -301,12 +301,11 @@ export const Builder = class {
         this.commitPendingIfNeeded();
       }
 
-      this.isMouseDown = true;
-      this.startMousePos = this.mouse.clone();
-
       const gridPos = this.checkIntersection();
       const position = gridPos || this.lastHoveredPosition;
       if (position) {
+        this.isMouseDown = true;
+        this.startMousePos = this.mouse.clone();
         this.startPosition = position.clone();
         this.currentTool.onMouseDown(this.toolContext, {
           gridPosition: position,
