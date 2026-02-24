@@ -59,6 +59,7 @@ export class FillTool implements Tool {
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    if (!event.gridPosition) return;
     const obj = getActiveObject(context);
     if (!obj) return;
 

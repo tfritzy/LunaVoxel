@@ -18,13 +18,13 @@ export interface ToolContext {
 }
 
 export interface ToolMouseEvent {
-  gridPosition: THREE.Vector3;
+  gridPosition: THREE.Vector3 | null;
   mousePosition: THREE.Vector2;
 }
 
 export interface ToolDragEvent {
-  startGridPosition: THREE.Vector3;
-  currentGridPosition: THREE.Vector3;
+  startGridPosition: THREE.Vector3 | null;
+  currentGridPosition: THREE.Vector3 | null;
   startMousePosition: THREE.Vector2;
   currentMousePosition: THREE.Vector2;
   shiftKey?: boolean;
@@ -73,8 +73,6 @@ export interface Tool {
   updatePending?(context: ToolContext): void;
 
   onActivate?(context: ToolContext): void;
-
-  usesScreenSpaceEvents?(): boolean;
 
   dispose?(): void;
 }

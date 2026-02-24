@@ -307,22 +307,7 @@ describe("SelectTool", () => {
     expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
   });
 
-  it("should use screen space events for Rectangle but not Magic", () => {
-    const tool = new SelectTool();
-    tool.setOption("Select Shape", "Rectangle");
-    expect(tool.usesScreenSpaceEvents()).toBe(true);
-
-    tool.setOption("Select Shape", "Circle");
-    expect(tool.usesScreenSpaceEvents()).toBe(true);
-
-    tool.setOption("Select Shape", "Lasso");
-    expect(tool.usesScreenSpaceEvents()).toBe(true);
-
-    tool.setOption("Select Shape", "Magic");
-    expect(tool.usesScreenSpaceEvents()).toBe(false);
-  });
-
-  it("should select voxels via rectangle even with dummy grid positions", () => {
+  it("should select voxels via rectangle even with null grid positions", () => {
     const tool = new SelectTool();
     tool.setOption("Select Shape", "Rectangle");
 
@@ -332,13 +317,13 @@ describe("SelectTool", () => {
     bottomRight.project(mockContext.camera);
 
     tool.onMouseDown(mockContext, {
-      gridPosition: new THREE.Vector3(0, 0, 0),
+      gridPosition: null,
       mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
     });
 
     tool.onMouseUp(mockContext, {
-      startGridPosition: new THREE.Vector3(0, 0, 0),
-      currentGridPosition: new THREE.Vector3(0, 0, 0),
+      startGridPosition: null,
+      currentGridPosition: null,
       startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
       currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
     });
@@ -361,36 +346,34 @@ describe("SelectTool", () => {
     p4.project(mockContext.camera);
 
     tool.onMouseDown(mockContext, {
-      gridPosition: new THREE.Vector3(0, 0, 0),
+      gridPosition: null,
       mousePosition: new THREE.Vector2(p1.x, p1.y),
     });
 
-    const dummyPos = new THREE.Vector3(0, 0, 0);
-
     tool.onDrag(mockContext, {
-      startGridPosition: dummyPos,
-      currentGridPosition: dummyPos,
+      startGridPosition: null,
+      currentGridPosition: null,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p2.x, p2.y),
     });
 
     tool.onDrag(mockContext, {
-      startGridPosition: dummyPos,
-      currentGridPosition: dummyPos,
+      startGridPosition: null,
+      currentGridPosition: null,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p3.x, p3.y),
     });
 
     tool.onDrag(mockContext, {
-      startGridPosition: dummyPos,
-      currentGridPosition: dummyPos,
+      startGridPosition: null,
+      currentGridPosition: null,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p4.x, p4.y),
     });
 
     tool.onMouseUp(mockContext, {
-      startGridPosition: dummyPos,
-      currentGridPosition: dummyPos,
+      startGridPosition: null,
+      currentGridPosition: null,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p1.x, p1.y),
     });

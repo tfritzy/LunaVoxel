@@ -257,17 +257,14 @@ export const Builder = class {
       return;
     }
 
-    const isScreenSpace = this.currentTool.usesScreenSpaceEvents?.();
-
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
     if (gridPos) {
       this.handleMouseDrag(gridPos, event.shiftKey);
-    } else if (isScreenSpace && this.isMouseDown && this.startMousePos) {
-      const fallbackPos = this.startPosition || this.lastHoveredPosition || new THREE.Vector3(0, 0, 0);
+    } else if (this.isMouseDown && this.startMousePos) {
       this.currentTool.onDrag(this.toolContext, {
-        startGridPosition: fallbackPos,
-        currentGridPosition: fallbackPos,
+        startGridPosition: this.startPosition,
+        currentGridPosition: null,
         startMousePosition: this.startMousePos,
         currentMousePosition: this.mouse.clone(),
         shiftKey: event.shiftKey,
@@ -289,14 +286,13 @@ export const Builder = class {
       return;
     }
 
-    const isScreenSpace = this.currentTool.usesScreenSpaceEvents?.();
     const gridPos = this.checkIntersection();
 
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
       this.handleMouseUp(position, event.shiftKey);
-    } else if (isScreenSpace && this.isMouseDown) {
-      this.handleMouseUp(new THREE.Vector3(0, 0, 0), event.shiftKey);
+    } else if (this.isMouseDown) {
+      this.handleMouseUp(null, event.shiftKey);
     }
   }
 
@@ -321,16 +317,11 @@ export const Builder = class {
       const gridPos = this.checkIntersection();
       if (gridPos) {
         this.startPosition = gridPos.clone();
-        this.currentTool.onMouseDown(this.toolContext, {
-          gridPosition: gridPos,
-          mousePosition: this.mouse.clone()
-        });
-      } else if (this.currentTool.usesScreenSpaceEvents?.()) {
-        this.currentTool.onMouseDown(this.toolContext, {
-          gridPosition: new THREE.Vector3(0, 0, 0),
-          mousePosition: this.mouse.clone()
-        });
       }
+      this.currentTool.onMouseDown(this.toolContext, {
+        gridPosition: gridPos,
+        mousePosition: this.mouse.clone()
+      });
     }
   }
 
@@ -466,9 +457,9 @@ export const Builder = class {
     }
   }
 
-  private handleMouseUp(position: THREE.Vector3, shiftKey: boolean): void {
+  private handleMouseUp(position: THREE.Vector3 | null, shiftKey: boolean): void {
     const endPos = position;
-    const startPos = this.startPosition || position;
+    const startPos = this.startPosition;
     const startMousePos = this.startMousePos || this.mouse.clone();
     const endMousePos = this.mouse.clone();
 
