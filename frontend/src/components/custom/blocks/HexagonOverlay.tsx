@@ -23,6 +23,8 @@ export const HexagonOverlay = ({
           clipPath: `polygon(50% ${points.top}%, ${points.topRight.x}% ${points.topRight.y}%, ${points.bottomRight.x}% ${points.bottomRight.y}%, 50% ${points.bottom}%, ${points.bottomLeft.x}% ${points.bottomLeft.y}%, ${points.topLeft.x}% ${points.topLeft.y}%)`,
         }}
         onMouseDown={onClick}
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
       />
       {(stroke || dashed) && (
         <svg
