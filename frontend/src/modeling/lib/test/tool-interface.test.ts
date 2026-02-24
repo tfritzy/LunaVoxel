@@ -1033,7 +1033,7 @@ describe("Tool Interface", () => {
       expect(appliedFrame!.get(0, 0, 0)).toBe(0);
     });
 
-    it("should respect fill direction bounds while traversing voids", () => {
+    it("should traverse through disabled direction but clamp writes to start plane", () => {
       const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
       const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
 
@@ -1078,7 +1078,7 @@ describe("Tool Interface", () => {
       expect(appliedFrame!.get(1, 2, 1)).toBe(0);
       expect(appliedFrame!.get(2, 2, 1)).toBe(0);
       expect(appliedFrame!.get(3, 2, 1)).toBe(0);
-      expect(appliedFrame!.get(3, 1, 1)).toBe(0);
+      expect(appliedFrame!.get(3, 1, 1)).toBe(2);
     });
 
     it("should erase connected voxels in erase mode", () => {

@@ -105,10 +105,6 @@ export class FillTool implements Tool {
       const z = queue[head++];
 
       for (const [dx, dy, dz] of NEIGHBORS) {
-        if ((dx > 0 && !dirPX) || (dx < 0 && !dirNX) ||
-            (dy > 0 && !dirPY) || (dy < 0 && !dirNY) ||
-            (dz > 0 && !dirPZ) || (dz < 0 && !dirNZ)) continue;
-
         const nx = x + dx;
         const ny = y + dy;
         const nz = z + dz;
