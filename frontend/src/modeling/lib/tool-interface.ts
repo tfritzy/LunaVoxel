@@ -14,6 +14,7 @@ export interface ToolContext {
   mode: BlockModificationMode;
   camera: THREE.Camera;
   scene: THREE.Scene;
+  overlayCanvas: HTMLCanvasElement;
 }
 
 export interface ToolMouseEvent {

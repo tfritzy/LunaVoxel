@@ -41,6 +41,7 @@ export const Builder = class {
     mode: BlockModificationMode;
     camera: THREE.Camera;
     scene: THREE.Scene;
+    overlayCanvas: HTMLCanvasElement;
   };
   private startPosition: THREE.Vector3 | null = null;
   private startMousePos: THREE.Vector2 | null = null;
@@ -60,6 +61,7 @@ export const Builder = class {
   private readonly CURSOR_UPDATE_THROTTLE_MS = 16;
   private lastSentCursorPos: THREE.Vector3 | null = null;
   private lastSentCursorNormal: THREE.Vector3 | null = null;
+  private overlayCanvas: HTMLCanvasElement;
 
   constructor(
     stateStore: StateStore,
@@ -84,6 +86,17 @@ export const Builder = class {
     this.raycaster.layers.set(layers.raycast);
     this.mouse = new THREE.Vector2();
 
+    this.overlayCanvas = document.createElement("canvas");
+    this.overlayCanvas.style.position = "absolute";
+    this.overlayCanvas.style.top = "0";
+    this.overlayCanvas.style.left = "0";
+    this.overlayCanvas.style.width = "100%";
+    this.overlayCanvas.style.height = "100%";
+    this.overlayCanvas.style.pointerEvents = "none";
+    domElement.style.position = "relative";
+    domElement.appendChild(this.overlayCanvas);
+    this.resizeOverlayCanvas();
+
     this.currentTool = this.createTool("Rect");
 
     this.toolContext = {
@@ -97,6 +110,7 @@ export const Builder = class {
       mode: this.currentMode,
       camera: this.camera,
       scene: this.scene,
+      overlayCanvas: this.overlayCanvas,
     };
 
     this.boundMouseMove = this.onMouseMove.bind(this);
@@ -136,6 +150,7 @@ export const Builder = class {
     }
     this.savedToolOptions.set(oldType, optionsToSave);
     this.currentTool.dispose?.();
+    this.clearOverlay();
     this.currentTool = this.createTool(tool);
     const saved = this.savedToolOptions.get(tool);
     if (saved) {
@@ -247,8 +262,9 @@ export const Builder = class {
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-    if (gridPos) {
-      this.handleMouseDrag(gridPos, event.shiftKey);
+    const position = gridPos || this.lastHoveredPosition;
+    if (position) {
+      this.handleMouseDrag(position, event.shiftKey);
     }
   }
 
@@ -267,7 +283,6 @@ export const Builder = class {
     }
 
     const gridPos = this.checkIntersection();
-
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
       this.handleMouseUp(position, event.shiftKey);
@@ -289,14 +304,14 @@ export const Builder = class {
         this.commitPendingIfNeeded();
       }
 
-      this.isMouseDown = true;
-      this.startMousePos = this.mouse.clone();
-
       const gridPos = this.checkIntersection();
-      if (gridPos) {
-        this.startPosition = gridPos.clone();
+      const position = gridPos || this.lastHoveredPosition;
+      if (position) {
+        this.isMouseDown = true;
+        this.startMousePos = this.mouse.clone();
+        this.startPosition = position.clone();
         this.currentTool.onMouseDown(this.toolContext, {
-          gridPosition: gridPos,
+          gridPosition: position,
           mousePosition: this.mouse.clone()
         });
       }
@@ -410,7 +425,6 @@ export const Builder = class {
   private handleMouseDrag(gridPos: THREE.Vector3, shiftKey: boolean): void {
     if (this.isMouseDown && !this.startPosition) {
       this.startPosition = gridPos.clone();
-      this.startMousePos = this.mouse.clone();
     }
 
     if (
@@ -471,9 +485,25 @@ export const Builder = class {
     );
   }
 
+  private clearOverlay(): void {
+    const ctx = this.overlayCanvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+    }
+  }
+
   public dispose(): void {
     this.commitPendingIfNeeded();
     this.currentTool.dispose?.();
     this.removeEventListeners();
+    if (this.overlayCanvas.parentElement) {
+      this.overlayCanvas.parentElement.removeChild(this.overlayCanvas);
+    }
+  }
+
+  public resizeOverlayCanvas(): void {
+    const rect = this.domElement.getBoundingClientRect();
+    this.overlayCanvas.width = rect.width * window.devicePixelRatio;
+    this.overlayCanvas.height = rect.height * window.devicePixelRatio;
   }
 };

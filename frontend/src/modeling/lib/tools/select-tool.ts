@@ -64,10 +64,12 @@ export class SelectTool implements Tool {
         y: event.currentMousePosition.y,
       });
     }
-    void context;
+    this.renderOverlay(context, event);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
+    this.clearOverlay(context);
+
     const obj = getActiveObject(context);
     if (!obj) return;
 
@@ -94,6 +96,10 @@ export class SelectTool implements Tool {
         this.lassoPoints = [];
         break;
     }
+  }
+
+  dispose(): void {
+    this.lassoPoints = [];
   }
 
   private selectVoxelsByScreenTest(
@@ -189,5 +195,70 @@ export class SelectTool implements Tool {
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
       isPointInPolygon(sx, sy, polygon)
     );
+  }
+
+  private ndcToPixel(ndcX: number, ndcY: number, canvas: HTMLCanvasElement): { x: number; y: number } {
+    return {
+      x: (ndcX + 1) / 2 * canvas.width,
+      y: (1 - ndcY) / 2 * canvas.height,
+    };
+  }
+
+  private renderOverlay(context: ToolContext, event: ToolDragEvent): void {
+    const canvas = context.overlayCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.lineWidth = 1.5;
+
+    switch (this.selectShape) {
+      case "Rectangle": {
+        const start = this.ndcToPixel(event.startMousePosition.x, event.startMousePosition.y, canvas);
+        const end = this.ndcToPixel(event.currentMousePosition.x, event.currentMousePosition.y, canvas);
+        const x = Math.min(start.x, end.x);
+        const y = Math.min(start.y, end.y);
+        const w = Math.abs(end.x - start.x);
+        const h = Math.abs(end.y - start.y);
+        ctx.strokeRect(x, y, w, h);
+        break;
+      }
+      case "Circle": {
+        const start = this.ndcToPixel(event.startMousePosition.x, event.startMousePosition.y, canvas);
+        const end = this.ndcToPixel(event.currentMousePosition.x, event.currentMousePosition.y, canvas);
+        const cx = (start.x + end.x) / 2;
+        const cy = (start.y + end.y) / 2;
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const radius = Math.sqrt(dx * dx + dy * dy) / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
+      case "Lasso": {
+        if (this.lassoPoints.length < 2) break;
+        ctx.beginPath();
+        const first = this.ndcToPixel(this.lassoPoints[0].x, this.lassoPoints[0].y, canvas);
+        ctx.moveTo(first.x, first.y);
+        for (let i = 1; i < this.lassoPoints.length; i++) {
+          const pt = this.ndcToPixel(this.lassoPoints[i].x, this.lassoPoints[i].y, canvas);
+          ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+        break;
+      }
+    }
+  }
+
+  private clearOverlay(context: ToolContext): void {
+    const canvas = context.overlayCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 }
