@@ -1,31 +1,55 @@
 import * as THREE from "three";
 
-export function createBoundsLineSegments(color: number): THREE.LineSegments {
+export type BoundsBox = {
+  group: THREE.Group;
+  geometry: THREE.BufferGeometry;
+  dashedLines: THREE.LineSegments;
+  solidLines: THREE.LineSegments;
+};
+
+export function createBoundsBox(color: number): BoundsBox {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
     "position",
     new THREE.BufferAttribute(new Float32Array(72), 3)
   );
-  const ls = new THREE.LineSegments(
-    geometry,
-    new THREE.LineDashedMaterial({
-      color,
-      dashSize: 0.3,
-      gapSize: 0.15,
-      depthTest: false,
-      depthWrite: false,
-    })
-  );
-  ls.renderOrder = 999;
-  return ls;
+
+  // Solid pass: normal depth test — renders only the unoccluded parts
+  const solidMaterial = new THREE.LineBasicMaterial({
+    color,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const solidLines = new THREE.LineSegments(geometry, solidMaterial);
+  solidLines.renderOrder = 999;
+
+  // Dashed pass: GreaterDepth — renders only the occluded parts
+  const dashedMaterial = new THREE.LineDashedMaterial({
+    color,
+    dashSize: 0.3,
+    gapSize: 0.15,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.4,
+  });
+  dashedMaterial.depthFunc = THREE.GreaterDepth;
+  const dashedLines = new THREE.LineSegments(geometry, dashedMaterial);
+  dashedLines.renderOrder = 999;
+
+  const group = new THREE.Group();
+  group.add(solidLines);
+  group.add(dashedLines);
+
+  return { group, geometry, solidLines, dashedLines };
 }
 
-export function updateBoundsLineSegments(
-  ls: THREE.LineSegments,
+export function updateBoundsBox(
+  box: BoundsBox,
   minX: number, minY: number, minZ: number,
   maxX: number, maxY: number, maxZ: number
 ): void {
-  const pos = (ls.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
+  const pos = (box.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
   // Bottom face
   pos[ 0] = minX; pos[ 1] = minY; pos[ 2] = minZ; pos[ 3] = maxX; pos[ 4] = minY; pos[ 5] = minZ;
   pos[ 6] = maxX; pos[ 7] = minY; pos[ 8] = minZ; pos[ 9] = maxX; pos[10] = minY; pos[11] = maxZ;
@@ -41,6 +65,13 @@ export function updateBoundsLineSegments(
   pos[54] = maxX; pos[55] = minY; pos[56] = minZ; pos[57] = maxX; pos[58] = maxY; pos[59] = minZ;
   pos[60] = maxX; pos[61] = minY; pos[62] = maxZ; pos[63] = maxX; pos[64] = maxY; pos[65] = maxZ;
   pos[66] = minX; pos[67] = minY; pos[68] = maxZ; pos[69] = minX; pos[70] = maxY; pos[71] = maxZ;
-  (ls.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
-  ls.computeLineDistances();
+  (box.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+  box.dashedLines.computeLineDistances();
+}
+
+export function disposeBoundsBox(box: BoundsBox): void {
+  box.group.parent?.remove(box.group);
+  box.geometry.dispose();
+  (box.solidLines.material as THREE.Material).dispose();
+  (box.dashedLines.material as THREE.Material).dispose();
 }

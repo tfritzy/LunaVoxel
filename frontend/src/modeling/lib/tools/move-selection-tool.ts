@@ -4,13 +4,13 @@ import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
 import { calculateGridPositionWithMode } from "./tool-utils";
-import { createBoundsLineSegments, updateBoundsLineSegments } from "./bounds-box-helper";
+import { createBoundsBox, updateBoundsBox, disposeBoundsBox, type BoundsBox } from "./bounds-box-helper";
 
 export class MoveSelectionTool implements Tool {
   private snappedAxis: THREE.Vector3 | null = null;
   private appliedOffset: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private cachedBounds: { min: Vector3; max: Vector3 } | null = null;
-  private boundsBoxHelper: THREE.LineSegments | null = null;
+  private boundsBoxHelper: BoundsBox | null = null;
   private dragReferencePoint: THREE.Vector3 | null = null;
   private movingObject: boolean = false;
 
@@ -144,9 +144,7 @@ export class MoveSelectionTool implements Tool {
 
   dispose(): void {
     if (this.boundsBoxHelper) {
-      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
-      this.boundsBoxHelper.geometry.dispose();
-      (this.boundsBoxHelper.material as THREE.Material).dispose();
+      disposeBoundsBox(this.boundsBoxHelper);
       this.boundsBoxHelper = null;
     }
   }
@@ -176,11 +174,11 @@ export class MoveSelectionTool implements Tool {
     }
 
     if (!this.boundsBoxHelper) {
-      this.boundsBoxHelper = createBoundsLineSegments(0x44ff88);
-      context.scene.add(this.boundsBoxHelper);
+      this.boundsBoxHelper = createBoundsBox(0x44ff88);
+      context.scene.add(this.boundsBoxHelper.group);
     }
 
-    updateBoundsLineSegments(
+    updateBoundsBox(
       this.boundsBoxHelper,
       bounds.min.x, bounds.min.y, bounds.min.z,
       bounds.max.x, bounds.max.y, bounds.max.z

@@ -10,7 +10,7 @@ import { calculateGridPositionWithMode } from "./tool-utils";
 import { RAYCASTABLE_BIT } from "../voxel-constants";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
 import { VoxelFrame } from "../voxel-frame";
-import { createBoundsLineSegments, updateBoundsLineSegments } from "./bounds-box-helper";
+import { createBoundsBox, updateBoundsBox, disposeBoundsBox, type BoundsBox } from "./bounds-box-helper";
 
 type ResizeCorner = {
   xSide: "min" | "max";
@@ -33,7 +33,7 @@ export class RectTool implements Tool {
   private lastBounds: RectBounds | null = null;
   private resizingCorner: ResizeCorner | null = null;
   private resizeBaseBounds: RectBounds | null = null;
-  private boundsBoxHelper: THREE.LineSegments | null = null;
+  private boundsBoxHelper: BoundsBox | null = null;
   private handleMeshes: THREE.Mesh[] = [];
   private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.25, 8, 8);
   private static readonly HANDLE_MATERIAL = new THREE.MeshBasicMaterial({
@@ -465,9 +465,7 @@ export class RectTool implements Tool {
 
   dispose(): void {
     if (this.boundsBoxHelper) {
-      this.boundsBoxHelper.parent?.remove(this.boundsBoxHelper);
-      this.boundsBoxHelper.geometry.dispose();
-      (this.boundsBoxHelper.material as THREE.Material).dispose();
+      disposeBoundsBox(this.boundsBoxHelper);
       this.boundsBoxHelper = null;
     }
     this.clearHandleMeshes();
@@ -527,11 +525,11 @@ export class RectTool implements Tool {
 
   private renderBoundsBox(context: ToolContext, bounds: RectBounds): void {
     if (!this.boundsBoxHelper) {
-      this.boundsBoxHelper = createBoundsLineSegments(0xffaa00);
-      context.scene.add(this.boundsBoxHelper);
+      this.boundsBoxHelper = createBoundsBox(0xffaa00);
+      context.scene.add(this.boundsBoxHelper.group);
     }
 
-    updateBoundsLineSegments(
+    updateBoundsBox(
       this.boundsBoxHelper,
       bounds.minX, bounds.minY, bounds.minZ,
       bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1
