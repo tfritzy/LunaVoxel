@@ -564,12 +564,8 @@ const reducers: Reducers = {
     rebuildSelectionChunks();
     notify();
   },
-  setVoxelSelection: (objectId, frame) => {
-    if (!frame) {
-      state.voxelSelection = null;
-    } else {
-      state.voxelSelection = { objectId, frame };
-    }
+  setVoxelSelection: (_objectId, frame) => {
+    state.voxelSelection = frame;
     rebuildSelectionChunks();
     notify();
   },
