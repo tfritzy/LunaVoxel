@@ -259,16 +259,9 @@ export const Builder = class {
 
     const gridPos = this.checkIntersection();
     this.lastHoveredPosition = gridPos || this.lastHoveredPosition;
-    if (gridPos) {
-      this.handleMouseDrag(gridPos, event.shiftKey);
-    } else if (this.isMouseDown && this.startMousePos) {
-      this.currentTool.onDrag(this.toolContext, {
-        startGridPosition: this.startPosition,
-        currentGridPosition: null,
-        startMousePosition: this.startMousePos,
-        currentMousePosition: this.mouse.clone(),
-        shiftKey: event.shiftKey,
-      });
+    const position = gridPos || this.lastHoveredPosition;
+    if (position) {
+      this.handleMouseDrag(position, event.shiftKey);
     }
   }
 
@@ -287,12 +280,9 @@ export const Builder = class {
     }
 
     const gridPos = this.checkIntersection();
-
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
       this.handleMouseUp(position, event.shiftKey);
-    } else if (this.isMouseDown) {
-      this.handleMouseUp(null, event.shiftKey);
     }
   }
 
@@ -315,13 +305,14 @@ export const Builder = class {
       this.startMousePos = this.mouse.clone();
 
       const gridPos = this.checkIntersection();
-      if (gridPos) {
-        this.startPosition = gridPos.clone();
+      const position = gridPos || this.lastHoveredPosition;
+      if (position) {
+        this.startPosition = position.clone();
+        this.currentTool.onMouseDown(this.toolContext, {
+          gridPosition: position,
+          mousePosition: this.mouse.clone()
+        });
       }
-      this.currentTool.onMouseDown(this.toolContext, {
-        gridPosition: gridPos,
-        mousePosition: this.mouse.clone()
-      });
     }
   }
 
@@ -457,9 +448,9 @@ export const Builder = class {
     }
   }
 
-  private handleMouseUp(position: THREE.Vector3 | null, shiftKey: boolean): void {
+  private handleMouseUp(position: THREE.Vector3, shiftKey: boolean): void {
     const endPos = position;
-    const startPos = this.startPosition;
+    const startPos = this.startPosition || position;
     const startMousePos = this.startMousePos || this.mouse.clone();
     const endMousePos = this.mouse.clone();
 

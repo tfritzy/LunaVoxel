@@ -75,7 +75,6 @@ export class SelectTool implements Tool {
 
     switch (this.selectShape) {
       case "Magic":
-        if (!event.currentGridPosition) return;
         context.reducers.magicSelect(
           context.projectId,
           obj.id,

@@ -236,13 +236,11 @@ export class RectTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    if (!event.startGridPosition || !event.currentGridPosition) return;
     const bounds = this.buildFrame(context, event);
     this.renderBoundsBox(context, bounds);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
-    if (!event.startGridPosition || !event.currentGridPosition) return;
     let bounds = calculateRectBounds(
       event.startGridPosition,
       event.currentGridPosition,

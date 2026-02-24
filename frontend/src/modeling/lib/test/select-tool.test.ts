@@ -307,7 +307,7 @@ describe("SelectTool", () => {
     expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
   });
 
-  it("should select voxels via rectangle even with null grid positions", () => {
+  it("should select voxels via rectangle using fallback grid positions", () => {
     const tool = new SelectTool();
     tool.setOption("Select Shape", "Rectangle");
 
@@ -316,14 +316,16 @@ describe("SelectTool", () => {
     const bottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
     bottomRight.project(mockContext.camera);
 
+    const fallbackPos = new THREE.Vector3(0, 0, 0);
+
     tool.onMouseDown(mockContext, {
-      gridPosition: null,
+      gridPosition: fallbackPos,
       mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
     });
 
     tool.onMouseUp(mockContext, {
-      startGridPosition: null,
-      currentGridPosition: null,
+      startGridPosition: fallbackPos,
+      currentGridPosition: fallbackPos,
       startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
       currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
     });
@@ -332,7 +334,7 @@ describe("SelectTool", () => {
     expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
   });
 
-  it("should collect lasso points during drag even without grid intersection", () => {
+  it("should collect lasso points during drag with fallback grid positions", () => {
     const tool = new SelectTool();
     tool.setOption("Select Shape", "Lasso");
 
@@ -345,35 +347,37 @@ describe("SelectTool", () => {
     const p4 = new THREE.Vector3(2.5, 7.5, 0.5);
     p4.project(mockContext.camera);
 
+    const fallbackPos = new THREE.Vector3(0, 0, 0);
+
     tool.onMouseDown(mockContext, {
-      gridPosition: null,
+      gridPosition: fallbackPos,
       mousePosition: new THREE.Vector2(p1.x, p1.y),
     });
 
     tool.onDrag(mockContext, {
-      startGridPosition: null,
-      currentGridPosition: null,
+      startGridPosition: fallbackPos,
+      currentGridPosition: fallbackPos,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p2.x, p2.y),
     });
 
     tool.onDrag(mockContext, {
-      startGridPosition: null,
-      currentGridPosition: null,
+      startGridPosition: fallbackPos,
+      currentGridPosition: fallbackPos,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p3.x, p3.y),
     });
 
     tool.onDrag(mockContext, {
-      startGridPosition: null,
-      currentGridPosition: null,
+      startGridPosition: fallbackPos,
+      currentGridPosition: fallbackPos,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p4.x, p4.y),
     });
 
     tool.onMouseUp(mockContext, {
-      startGridPosition: null,
-      currentGridPosition: null,
+      startGridPosition: fallbackPos,
+      currentGridPosition: fallbackPos,
       startMousePosition: new THREE.Vector2(p1.x, p1.y),
       currentMousePosition: new THREE.Vector2(p1.x, p1.y),
     });

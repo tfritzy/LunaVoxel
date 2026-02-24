@@ -113,7 +113,6 @@ export class BrushTool implements Tool {
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
-    if (!event.gridPosition) return;
     this.isStrokeActive = true;
     this.strokeMode = context.mode;
     this.strokeSelectedBlock = context.selectedBlock;
@@ -124,7 +123,6 @@ export class BrushTool implements Tool {
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    if (!event.currentGridPosition) return;
     if (
       this.lastAppliedPosition &&
       this.lastAppliedPosition.equals(event.currentGridPosition)
