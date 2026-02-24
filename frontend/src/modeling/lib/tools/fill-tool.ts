@@ -109,6 +109,10 @@ export class FillTool implements Tool {
         const ny = y + dy;
         const nz = z + dz;
 
+        if ((!dirPX && nx > startX) || (!dirNX && nx < startX) ||
+            (!dirPY && ny > startY) || (!dirNY && ny < startY) ||
+            (!dirPZ && nz > startZ) || (!dirNZ && nz < startZ)) continue;
+
         if (nx < 0 || nx >= dims.x || ny < 0 || ny >= dimY || nz < 0 || nz >= dimZ) continue;
 
         const nIndex = nx * dimY * dimZ + ny * dimZ + nz;

@@ -1033,7 +1033,7 @@ describe("Tool Interface", () => {
       expect(appliedFrame!.get(0, 0, 0)).toBe(0);
     });
 
-    it("should traverse through disabled direction but clamp writes to start plane", () => {
+    it("should treat disabled-direction region as traversal boundary", () => {
       const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
       const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
 
@@ -1078,6 +1078,53 @@ describe("Tool Interface", () => {
       expect(appliedFrame!.get(1, 2, 1)).toBe(0);
       expect(appliedFrame!.get(2, 2, 1)).toBe(0);
       expect(appliedFrame!.get(3, 2, 1)).toBe(0);
+      expect(appliedFrame!.get(3, 1, 1)).toBe(0);
+    });
+
+    it("should allow movement in disabled direction when remaining within allowed region", () => {
+      const voxelData = new Uint8Array(dimensions.x * dimensions.y * dimensions.z);
+      const idx = (x: number, y: number, z: number) => x * dimensions.y * dimensions.z + y * dimensions.z + z;
+
+      for (let x = 0; x < dimensions.x; x++) {
+        for (let y = 0; y < dimensions.y; y++) {
+          for (let z = 0; z < dimensions.z; z++) {
+            voxelData[idx(x, y, z)] = RAYCASTABLE_BIT | 1;
+          }
+        }
+      }
+
+      voxelData[idx(1, 1, 1)] = 0;
+      voxelData[idx(1, 0, 1)] = 0;
+      voxelData[idx(2, 0, 1)] = 0;
+      voxelData[idx(2, 1, 1)] = 0;
+      voxelData[idx(3, 1, 1)] = 0;
+
+      mockContext.projectManager.getBlockAtPosition = (pos: THREE.Vector3) => {
+        const i = idx(pos.x, pos.y, pos.z);
+        return voxelData[i] || 0;
+      };
+
+      let appliedFrame: VoxelFrame | null = null;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: (_mode: BlockModificationMode, _block: number, frame: VoxelFrame) => {
+          appliedFrame = frame;
+        },
+      };
+
+      tool.setOption("Fill Direction", "+x,-x,-y,+z,-z");
+      mockContext.mode = attachMode;
+      mockContext.selectedBlock = 2;
+
+      tool.onMouseDown(mockContext, {
+        gridPosition: new THREE.Vector3(1, 1, 1),
+        mousePosition: new THREE.Vector2(0, 0),
+      });
+
+      expect(appliedFrame).not.toBeNull();
+      expect(appliedFrame!.get(1, 0, 1)).toBe(2);
+      expect(appliedFrame!.get(2, 0, 1)).toBe(2);
+      expect(appliedFrame!.get(2, 1, 1)).toBe(2);
       expect(appliedFrame!.get(3, 1, 1)).toBe(2);
     });
 
