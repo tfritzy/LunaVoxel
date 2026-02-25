@@ -7,6 +7,47 @@ import { BLOCK_TYPE_MASK } from "../voxel-constants";
 import { VoxelFrame } from "../voxel-frame";
 import { getBlockAt } from "@/lib/chunk-utils";
 
+function mergeVoxelFrames(a: VoxelFrame, b: VoxelFrame): VoxelFrame {
+  const aMin = a.getMinPos();
+  const aDims = a.getDimensions();
+  const bMin = b.getMinPos();
+  const bDims = b.getDimensions();
+
+  const minX = Math.min(aMin.x, bMin.x);
+  const minY = Math.min(aMin.y, bMin.y);
+  const minZ = Math.min(aMin.z, bMin.z);
+  const maxX = Math.max(aMin.x + aDims.x, bMin.x + bDims.x);
+  const maxY = Math.max(aMin.y + aDims.y, bMin.y + bDims.y);
+  const maxZ = Math.max(aMin.z + aDims.z, bMin.z + bDims.z);
+
+  const sdx = maxX - minX;
+  const sdy = maxY - minY;
+  const sdz = maxZ - minZ;
+  const frameData = new Uint8Array(sdx * sdy * sdz);
+
+  for (let x = aMin.x; x < aMin.x + aDims.x; x++) {
+    for (let y = aMin.y; y < aMin.y + aDims.y; y++) {
+      for (let z = aMin.z; z < aMin.z + aDims.z; z++) {
+        if (a.get(x, y, z) !== 0) {
+          frameData[(x - minX) * sdy * sdz + (y - minY) * sdz + (z - minZ)] = 1;
+        }
+      }
+    }
+  }
+
+  for (let x = bMin.x; x < bMin.x + bDims.x; x++) {
+    for (let y = bMin.y; y < bMin.y + bDims.y; y++) {
+      for (let z = bMin.z; z < bMin.z + bDims.z; z++) {
+        if (b.get(x, y, z) !== 0) {
+          frameData[(x - minX) * sdy * sdz + (y - minY) * sdz + (z - minZ)] = 1;
+        }
+      }
+    }
+  }
+
+  return new VoxelFrame({ x: sdx, y: sdy, z: sdz }, { x: minX, y: minY, z: minZ }, frameData);
+}
+
 function isPointInPolygon(px: number, py: number, polygon: { x: number; y: number }[]): boolean {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -74,13 +115,29 @@ export class SelectTool implements Tool {
     if (!obj) return;
 
     switch (this.selectShape) {
-      case "Magic":
-        context.reducers.magicSelect(
-          context.projectId,
-          obj.id,
-          event.currentGridPosition
-        );
+      case "Magic": {
+        if (event.shiftKey) {
+          const before = context.stateStore.getState().voxelSelection;
+          context.reducers.magicSelect(
+            context.projectId,
+            obj.id,
+            event.currentGridPosition
+          );
+          const after = context.stateStore.getState().voxelSelection;
+          if (before && after) {
+            context.reducers.setVoxelSelection(obj.id, mergeVoxelFrames(before, after));
+          } else if (before && !after) {
+            context.reducers.setVoxelSelection(obj.id, before);
+          }
+        } else {
+          context.reducers.magicSelect(
+            context.projectId,
+            obj.id,
+            event.currentGridPosition
+          );
+        }
         break;
+      }
       case "Rectangle":
         this.selectByScreenRect(context, obj.id, event, event.shiftKey);
         break;
@@ -92,7 +149,7 @@ export class SelectTool implements Tool {
           x: event.currentMousePosition.x,
           y: event.currentMousePosition.y,
         });
-        this.selectByScreenLasso(context, obj.id);
+        this.selectByScreenLasso(context, obj.id, event.shiftKey);
         this.lassoPoints = [];
         break;
     }
@@ -105,7 +162,8 @@ export class SelectTool implements Tool {
   private selectVoxelsByScreenTest(
     context: ToolContext,
     objectId: string,
-    testFn: (screenX: number, screenY: number) => boolean
+    testFn: (screenX: number, screenY: number) => boolean,
+    append?: boolean
   ): void {
     const obj = getActiveObject(context);
     if (!obj) return;
@@ -143,7 +201,9 @@ export class SelectTool implements Tool {
     }
 
     if (selected.length === 0) {
-      context.reducers.setVoxelSelection(objectId, null);
+      if (!append) {
+        context.reducers.setVoxelSelection(objectId, null);
+      }
       return;
     }
 
@@ -155,11 +215,15 @@ export class SelectTool implements Tool {
       frameData[(x - minX) * sdy * sdz + (y - minY) * sdz + (z - minZ)] = 1;
     }
 
-    const frame = new VoxelFrame(
+    const newFrame = new VoxelFrame(
       { x: sdx, y: sdy, z: sdz },
       { x: minX, y: minY, z: minZ },
       frameData
     );
+
+    const existing = append ? context.stateStore.getState().voxelSelection : null;
+    const frame = existing ? mergeVoxelFrames(existing, newFrame) : newFrame;
+
     context.reducers.setVoxelSelection(objectId, frame);
   }
 
@@ -179,7 +243,8 @@ export class SelectTool implements Tool {
     const y2 = Math.max(event.startMousePosition.y, event.startMousePosition.y + dy);
 
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
-      sx >= x1 && sx <= x2 && sy >= y1 && sy <= y2
+      sx >= x1 && sx <= x2 && sy >= y1 && sy <= y2,
+      shiftKey
     );
   }
 
@@ -204,15 +269,16 @@ export class SelectTool implements Tool {
       const nx = (sx - cx) / rx;
       const ny = (sy - cy) / ry;
       return nx * nx + ny * ny <= 1;
-    });
+    }, shiftKey);
   }
 
-  private selectByScreenLasso(context: ToolContext, objectId: string): void {
+  private selectByScreenLasso(context: ToolContext, objectId: string, shiftKey?: boolean): void {
     if (this.lassoPoints.length < 3) return;
     const polygon = this.lassoPoints;
 
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
-      isPointInPolygon(sx, sy, polygon)
+      isPointInPolygon(sx, sy, polygon),
+      shiftKey
     );
   }
 

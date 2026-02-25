@@ -15,9 +15,11 @@ describe("SelectTool", () => {
   const dimensions: Vector3 = { x: 10, y: 10, z: 10 };
   let voxels: Uint8Array;
   let voxelSelection: VoxelSelection | null;
+  let currentVoxelFrame: VoxelFrame | null;
 
   beforeEach(() => {
     voxelSelection = null;
+    currentVoxelFrame = null;
     const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
     camera.position.set(5, 5, 20);
     camera.lookAt(5, 5, 0);
@@ -59,6 +61,7 @@ describe("SelectTool", () => {
       updateCursorPos: () => {},
       magicSelect: () => {},
       setVoxelSelection: (_objectId: string, frame: VoxelFrame | null) => {
+        currentVoxelFrame = frame;
         if (!frame) {
           voxelSelection = null;
         } else {
@@ -92,7 +95,7 @@ describe("SelectTool", () => {
         project: { id: "test-project", dimensions },
         objects: mockObjects,
         activeObjectId: "test-obj",
-        voxelSelection: null,
+        voxelSelection: currentVoxelFrame,
         blocks: { projectId: "test-project", colors: [] },
         chunks,
       }),
@@ -432,6 +435,95 @@ describe("SelectTool", () => {
       currentMousePosition: new THREE.Vector2(p1.x, p1.y),
     });
 
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
+  });
+
+  it("should append to existing selection when shift is held (Rectangle)", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Rectangle");
+
+    // First selection: top-left region
+    const firstTopLeft = new THREE.Vector3(2.5, 2.5, 0.5);
+    firstTopLeft.project(mockContext.camera);
+    const firstBottomRight = new THREE.Vector3(4.5, 4.5, 0.5);
+    firstBottomRight.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(2, 2, 0),
+      mousePosition: new THREE.Vector2(firstTopLeft.x, firstTopLeft.y),
+    });
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(2, 2, 0),
+      currentGridPosition: new THREE.Vector3(4, 4, 0),
+      startMousePosition: new THREE.Vector2(firstTopLeft.x, firstTopLeft.y),
+      currentMousePosition: new THREE.Vector2(firstBottomRight.x, firstBottomRight.y),
+    });
+
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(3, 3, 3)).toBe(true);
+
+    // Second selection: bottom-right region with shift held
+    const secondTopLeft = new THREE.Vector3(5.5, 5.5, 0.5);
+    secondTopLeft.project(mockContext.camera);
+    const secondBottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
+    secondBottomRight.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(5, 5, 0),
+      mousePosition: new THREE.Vector2(secondTopLeft.x, secondTopLeft.y),
+    });
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(5, 5, 0),
+      currentGridPosition: new THREE.Vector3(7, 7, 0),
+      startMousePosition: new THREE.Vector2(secondTopLeft.x, secondTopLeft.y),
+      currentMousePosition: new THREE.Vector2(secondBottomRight.x, secondBottomRight.y),
+      shiftKey: true,
+    });
+
+    // Both regions should now be selected
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(3, 3, 3)).toBe(true);
+    expect(voxelSelection!.frame.isSet(6, 6, 3)).toBe(true);
+  });
+
+  it("should not clear existing selection when shift is held and new region is empty (Rectangle)", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Rectangle");
+
+    // First selection
+    const topLeft = new THREE.Vector3(2.5, 2.5, 0.5);
+    topLeft.project(mockContext.camera);
+    const bottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
+    bottomRight.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(2, 2, 0),
+      mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+    });
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(2, 2, 0),
+      currentGridPosition: new THREE.Vector3(7, 7, 0),
+      startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+      currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
+    });
+
+    expect(voxelSelection).not.toBeNull();
+
+    // Shift-select an empty region
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(0, 0, 0),
+      mousePosition: new THREE.Vector2(-0.99, -0.99),
+    });
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(0, 0, 0),
+      currentGridPosition: new THREE.Vector3(0, 0, 0),
+      startMousePosition: new THREE.Vector2(-0.99, -0.99),
+      currentMousePosition: new THREE.Vector2(-0.98, -0.98),
+      shiftKey: true,
+    });
+
+    // Existing selection should be preserved
     expect(voxelSelection).not.toBeNull();
     expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
   });
