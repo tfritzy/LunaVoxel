@@ -115,45 +115,58 @@ export class SprayPaintTool implements Tool {
 
     const centerPx = this.ndcToPixel(mousePos.x, mousePos.y, canvas);
     const radiusPx = this.computeScreenRadius(context, hitPos, canvas);
+    const radiusPxSq = radiusPx * radiusPx;
 
-    const blockValue = getBlockValue(context.mode, context.selectedBlock);
-    const numSamples = Math.max(1, Math.ceil(this.density / 5));
+    const step = Math.max(1, radiusPx / this.size);
 
     const raycaster = new THREE.Raycaster();
+    const candidates = new Map<number, { wx: number; wy: number; wz: number }>();
+
+    for (let dy = -radiusPx; dy <= radiusPx; dy += step) {
+      for (let dx = -radiusPx; dx <= radiusPx; dx += step) {
+        if (dx * dx + dy * dy > radiusPxSq) continue;
+
+        const px = centerPx.x + dx;
+        const py = centerPx.y + dy;
+        const ndcX = (px / canvas.width) * 2 - 1;
+        const ndcY = 1 - (py / canvas.height) * 2;
+
+        raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), context.camera);
+        const result = raycastVoxels(
+          raycaster.ray.origin,
+          raycaster.ray.direction,
+          dims,
+          context.projectManager.chunkManager.getVoxelAtWorldPos.bind(context.projectManager.chunkManager)
+        );
+
+        if (!result) continue;
+
+        let wx = result.gridPosition.x;
+        let wy = result.gridPosition.y;
+        let wz = result.gridPosition.z;
+
+        if (context.mode.tag === "Attach") {
+          wx += result.normal.x;
+          wy += result.normal.y;
+          wz += result.normal.z;
+        }
+
+        if (wx < 0 || wx >= dims.x || wy < 0 || wy >= dims.y || wz < 0 || wz >= dims.z) continue;
+
+        const key = wx * dimY * dimZ + wy * dimZ + wz;
+        if (!candidates.has(key)) candidates.set(key, { wx, wy, wz });
+      }
+    }
+
+    if (candidates.size === 0) return;
+
+    const blockValue = getBlockValue(context.mode, context.selectedBlock);
+    const densityFactor = this.density / 100;
     let minX = Infinity, minY = Infinity, minZ = Infinity;
     let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
-    for (let i = 0; i < numSamples; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const r = radiusPx * Math.sqrt(Math.random());
-      const px = centerPx.x + Math.cos(angle) * r;
-      const py = centerPx.y + Math.sin(angle) * r;
-
-      const ndcX = (px / canvas.width) * 2 - 1;
-      const ndcY = 1 - (py / canvas.height) * 2;
-
-      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), context.camera);
-      const result = raycastVoxels(
-        raycaster.ray.origin,
-        raycaster.ray.direction,
-        dims,
-        context.projectManager.chunkManager.getVoxelAtWorldPos.bind(context.projectManager.chunkManager)
-      );
-
-      if (!result) continue;
-
-      let wx = result.gridPosition.x;
-      let wy = result.gridPosition.y;
-      let wz = result.gridPosition.z;
-
-      if (context.mode.tag === "Attach") {
-        wx += result.normal.x;
-        wy += result.normal.y;
-        wz += result.normal.z;
-      }
-
-      if (wx < 0 || wx >= dims.x || wy < 0 || wy >= dims.y || wz < 0 || wz >= dims.z) continue;
-
+    for (const { wx, wy, wz } of candidates.values()) {
+      if (Math.random() > densityFactor) continue;
       context.previewBuffer[wx * dimY * dimZ + wy * dimZ + wz] = blockValue;
       if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
       if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
