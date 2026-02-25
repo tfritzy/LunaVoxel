@@ -211,27 +211,77 @@ describe("SelectTool", () => {
     expect(voxelSelection!.frame.isSet(2, 2, 0)).toBe(false);
   });
 
-  it("should select voxels within a screen-space circle", () => {
+  it("should select voxels within a screen-space ellipse", () => {
     const tool = new SelectTool();
     tool.setOption("Select Shape", "Circle");
 
-    const center = new THREE.Vector3(5.5, 5.5, 0.5);
-    center.project(mockContext.camera);
-    const edge = new THREE.Vector3(7.5, 5.5, 0.5);
-    edge.project(mockContext.camera);
-    const startX = 2 * center.x - edge.x;
-    const startY = 2 * center.y - edge.y;
+    const topLeft = new THREE.Vector3(3.5, 3.5, 0.5);
+    topLeft.project(mockContext.camera);
+    const bottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
+    bottomRight.project(mockContext.camera);
 
     tool.onMouseDown(mockContext, {
-      gridPosition: new THREE.Vector3(3, 5, 0),
-      mousePosition: new THREE.Vector2(startX, startY),
+      gridPosition: new THREE.Vector3(3, 3, 0),
+      mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
     });
 
     tool.onMouseUp(mockContext, {
-      startGridPosition: new THREE.Vector3(3, 5, 0),
-      currentGridPosition: new THREE.Vector3(7, 5, 0),
-      startMousePosition: new THREE.Vector2(startX, startY),
-      currentMousePosition: new THREE.Vector2(edge.x, edge.y),
+      startGridPosition: new THREE.Vector3(3, 3, 0),
+      currentGridPosition: new THREE.Vector3(7, 7, 0),
+      startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+      currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
+    });
+
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
+  });
+
+  it("should select voxels within a screen-space circle when shift is held", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Circle");
+
+    const topLeft = new THREE.Vector3(3.5, 3.5, 0.5);
+    topLeft.project(mockContext.camera);
+    const bottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
+    bottomRight.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(3, 3, 0),
+      mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+    });
+
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(3, 3, 0),
+      currentGridPosition: new THREE.Vector3(7, 7, 0),
+      startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+      currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
+      shiftKey: true,
+    });
+
+    expect(voxelSelection).not.toBeNull();
+    expect(voxelSelection!.frame.isSet(5, 5, 3)).toBe(true);
+  });
+
+  it("should constrain rectangle to square when shift is held", () => {
+    const tool = new SelectTool();
+    tool.setOption("Select Shape", "Rectangle");
+
+    const topLeft = new THREE.Vector3(3.5, 3.5, 0.5);
+    topLeft.project(mockContext.camera);
+    const bottomRight = new THREE.Vector3(7.5, 7.5, 0.5);
+    bottomRight.project(mockContext.camera);
+
+    tool.onMouseDown(mockContext, {
+      gridPosition: new THREE.Vector3(3, 3, 0),
+      mousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+    });
+
+    tool.onMouseUp(mockContext, {
+      startGridPosition: new THREE.Vector3(3, 3, 0),
+      currentGridPosition: new THREE.Vector3(7, 7, 0),
+      startMousePosition: new THREE.Vector2(topLeft.x, topLeft.y),
+      currentMousePosition: new THREE.Vector2(bottomRight.x, bottomRight.y),
+      shiftKey: true,
     });
 
     expect(voxelSelection).not.toBeNull();
