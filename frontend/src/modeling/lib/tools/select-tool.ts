@@ -64,7 +64,7 @@ export class SelectTool implements Tool {
         y: event.currentMousePosition.y,
       });
     }
-    this.renderOverlay(context, event, event.shiftKey);
+    this.renderOverlay(context, event);
   }
 
   onMouseUp(context: ToolContext, event: ToolDragEvent): void {
@@ -92,7 +92,7 @@ export class SelectTool implements Tool {
           x: event.currentMousePosition.x,
           y: event.currentMousePosition.y,
         });
-        this.selectByScreenLasso(context, obj.id);
+        this.selectByScreenLasso(context, obj.id, event.shiftKey);
         this.lassoPoints = [];
         break;
     }
@@ -105,7 +105,8 @@ export class SelectTool implements Tool {
   private selectVoxelsByScreenTest(
     context: ToolContext,
     objectId: string,
-    testFn: (screenX: number, screenY: number) => boolean
+    testFn: (screenX: number, screenY: number) => boolean,
+    append?: boolean
   ): void {
     const obj = getActiveObject(context);
     if (!obj) return;
@@ -142,8 +143,53 @@ export class SelectTool implements Tool {
       }
     }
 
+    const existing = append ? context.stateStore.getState().voxelSelection : null;
+
     if (selected.length === 0) {
-      context.reducers.setVoxelSelection(objectId, null);
+      if (!append) {
+        context.reducers.setVoxelSelection(objectId, null);
+      }
+      return;
+    }
+
+    if (existing && !existing.isEmpty()) {
+      const existingMin = existing.getMinPos();
+      const existingMax = existing.getMaxPos();
+      const mergedMinX = Math.min(minX, existingMin.x);
+      const mergedMinY = Math.min(minY, existingMin.y);
+      const mergedMinZ = Math.min(minZ, existingMin.z);
+      const mergedMaxX = Math.max(maxX + 1, existingMax.x);
+      const mergedMaxY = Math.max(maxY + 1, existingMax.y);
+      const mergedMaxZ = Math.max(maxZ + 1, existingMax.z);
+      const mdx = mergedMaxX - mergedMinX;
+      const mdy = mergedMaxY - mergedMinY;
+      const mdz = mergedMaxZ - mergedMinZ;
+      const mergedData = new Uint8Array(mdx * mdy * mdz);
+
+      const existingDims = existing.getDimensions();
+      for (let ex = 0; ex < existingDims.x; ex++) {
+        for (let ey = 0; ey < existingDims.y; ey++) {
+          for (let ez = 0; ez < existingDims.z; ez++) {
+            const wx = existingMin.x + ex;
+            const wy = existingMin.y + ey;
+            const wz = existingMin.z + ez;
+            if (existing.isSet(wx, wy, wz)) {
+              mergedData[(wx - mergedMinX) * mdy * mdz + (wy - mergedMinY) * mdz + (wz - mergedMinZ)] = 1;
+            }
+          }
+        }
+      }
+
+      for (const { x, y, z } of selected) {
+        mergedData[(x - mergedMinX) * mdy * mdz + (y - mergedMinY) * mdz + (z - mergedMinZ)] = 1;
+      }
+
+      const mergedFrame = new VoxelFrame(
+        { x: mdx, y: mdy, z: mdz },
+        { x: mergedMinX, y: mergedMinY, z: mergedMinZ },
+        mergedData
+      );
+      context.reducers.setVoxelSelection(objectId, mergedFrame);
       return;
     }
 
@@ -163,15 +209,9 @@ export class SelectTool implements Tool {
     context.reducers.setVoxelSelection(objectId, frame);
   }
 
-  private selectByScreenRect(context: ToolContext, objectId: string, event: ToolDragEvent, shiftKey?: boolean): void {
-    let dx = event.currentMousePosition.x - event.startMousePosition.x;
-    let dy = event.currentMousePosition.y - event.startMousePosition.y;
-
-    if (shiftKey) {
-      const side = Math.min(Math.abs(dx), Math.abs(dy));
-      dx = Math.sign(dx) * side;
-      dy = Math.sign(dy) * side;
-    }
+  private selectByScreenRect(context: ToolContext, objectId: string, event: ToolDragEvent, append?: boolean): void {
+    const dx = event.currentMousePosition.x - event.startMousePosition.x;
+    const dy = event.currentMousePosition.y - event.startMousePosition.y;
 
     const x1 = Math.min(event.startMousePosition.x, event.startMousePosition.x + dx);
     const x2 = Math.max(event.startMousePosition.x, event.startMousePosition.x + dx);
@@ -179,19 +219,14 @@ export class SelectTool implements Tool {
     const y2 = Math.max(event.startMousePosition.y, event.startMousePosition.y + dy);
 
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
-      sx >= x1 && sx <= x2 && sy >= y1 && sy <= y2
+      sx >= x1 && sx <= x2 && sy >= y1 && sy <= y2,
+      append
     );
   }
 
-  private selectByScreenCircle(context: ToolContext, objectId: string, event: ToolDragEvent, shiftKey?: boolean): void {
-    let dx = event.currentMousePosition.x - event.startMousePosition.x;
-    let dy = event.currentMousePosition.y - event.startMousePosition.y;
-
-    if (shiftKey) {
-      const side = Math.min(Math.abs(dx), Math.abs(dy));
-      dx = Math.sign(dx) * side;
-      dy = Math.sign(dy) * side;
-    }
+  private selectByScreenCircle(context: ToolContext, objectId: string, event: ToolDragEvent, append?: boolean): void {
+    const dx = event.currentMousePosition.x - event.startMousePosition.x;
+    const dy = event.currentMousePosition.y - event.startMousePosition.y;
 
     const cx = event.startMousePosition.x + dx / 2;
     const cy = event.startMousePosition.y + dy / 2;
@@ -204,15 +239,16 @@ export class SelectTool implements Tool {
       const nx = (sx - cx) / rx;
       const ny = (sy - cy) / ry;
       return nx * nx + ny * ny <= 1;
-    });
+    }, append);
   }
 
-  private selectByScreenLasso(context: ToolContext, objectId: string): void {
+  private selectByScreenLasso(context: ToolContext, objectId: string, append?: boolean): void {
     if (this.lassoPoints.length < 3) return;
     const polygon = this.lassoPoints;
 
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
-      isPointInPolygon(sx, sy, polygon)
+      isPointInPolygon(sx, sy, polygon),
+      append
     );
   }
 
@@ -223,7 +259,7 @@ export class SelectTool implements Tool {
     };
   }
 
-  private renderOverlay(context: ToolContext, event: ToolDragEvent, shiftKey?: boolean): void {
+  private renderOverlay(context: ToolContext, event: ToolDragEvent): void {
     const canvas = context.overlayCanvas;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -238,13 +274,8 @@ export class SelectTool implements Tool {
       case "Rectangle": {
         const start = this.ndcToPixel(event.startMousePosition.x, event.startMousePosition.y, canvas);
         const end = this.ndcToPixel(event.currentMousePosition.x, event.currentMousePosition.y, canvas);
-        let w = end.x - start.x;
-        let h = end.y - start.y;
-        if (shiftKey) {
-          const side = Math.min(Math.abs(w), Math.abs(h));
-          w = Math.sign(w) * side;
-          h = Math.sign(h) * side;
-        }
+        const w = end.x - start.x;
+        const h = end.y - start.y;
         const x = Math.min(start.x, start.x + w);
         const y = Math.min(start.y, start.y + h);
         ctx.strokeRect(x, y, Math.abs(w), Math.abs(h));
@@ -253,13 +284,8 @@ export class SelectTool implements Tool {
       case "Circle": {
         const start = this.ndcToPixel(event.startMousePosition.x, event.startMousePosition.y, canvas);
         const end = this.ndcToPixel(event.currentMousePosition.x, event.currentMousePosition.y, canvas);
-        let w = end.x - start.x;
-        let h = end.y - start.y;
-        if (shiftKey) {
-          const side = Math.min(Math.abs(w), Math.abs(h));
-          w = Math.sign(w) * side;
-          h = Math.sign(h) * side;
-        }
+        const w = end.x - start.x;
+        const h = end.y - start.y;
         const cx = start.x + w / 2;
         const cy = start.y + h / 2;
         const rx = Math.abs(w) / 2;
