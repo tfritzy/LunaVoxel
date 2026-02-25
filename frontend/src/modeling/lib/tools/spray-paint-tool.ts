@@ -3,19 +3,19 @@ import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
-import { calculateGridPositionWithMode } from "./tool-utils";
-import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { calculateGridPositionWithMode, getBlockValue } from "./tool-utils";
+import { raycastVoxels } from "../voxel-raycast";
 import { VoxelFrame } from "../voxel-frame";
 
 export class SprayPaintTool implements Tool {
   private size: number = 5;
   private density: number = 50;
-  private lastAppliedPosition: THREE.Vector3 | null = null;
   private isStrokeActive: boolean = false;
   private strokeMode: BlockModificationMode | null = null;
   private strokeSelectedBlock: number = 0;
   private strokeSelectedObjectId: string = "";
-  private lastGridPos: THREE.Vector3 | null = null;
+  private lastHitPos: THREE.Vector3 | null = null;
+  private lastMousePos: THREE.Vector2 | null = null;
 
   getType(): ToolType {
     return "SprayPaint";
@@ -59,54 +59,6 @@ export class SprayPaintTool implements Tool {
     return calculateGridPositionWithMode(gridPosition, normal, direction);
   }
 
-  private getBlockValue(mode: BlockModificationMode, selectedBlock: number): number {
-    switch (mode.tag) {
-      case "Attach":
-        return selectedBlock;
-      case "Paint":
-        return selectedBlock | RAYCASTABLE_BIT;
-      case "Erase":
-        return RAYCASTABLE_BIT;
-    }
-  }
-
-  private stampAtPosition(context: ToolContext, center: THREE.Vector3): void {
-    const obj = getActiveObject(context);
-    if (!obj) return;
-    const dims = obj.dimensions;
-    const r = this.size;
-    const densityFactor = this.density / 100;
-
-    const minX = Math.max(0, Math.floor(center.x - r));
-    const minY = Math.max(0, Math.floor(center.y - r));
-    const minZ = Math.max(0, Math.floor(center.z - r));
-    const maxX = Math.min(dims.x - 1, Math.ceil(center.x + r));
-    const maxY = Math.min(dims.y - 1, Math.ceil(center.y + r));
-    const maxZ = Math.min(dims.z - 1, Math.ceil(center.z + r));
-
-    const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
-    const dimY = dims.y;
-    const dimZ = dims.z;
-    const r2 = r * r;
-
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        for (let z = minZ; z <= maxZ; z++) {
-          const dx = x - center.x;
-          const dy = y - center.y;
-          const dz = z - center.z;
-          if (dx * dx + dy * dy + dz * dz <= r2) {
-            if (Math.random() < densityFactor) {
-              context.previewBuffer[x * dimY * dimZ + y * dimZ + z] = blockValue;
-            }
-          }
-        }
-      }
-    }
-
-    context.projectManager.chunkManager.updatePreview(minX, minY, minZ, maxX, maxY, maxZ);
-  }
-
   private ndcToPixel(ndcX: number, ndcY: number, canvas: HTMLCanvasElement): { x: number; y: number } {
     return {
       x: ((ndcX + 1) / 2) * canvas.width,
@@ -120,7 +72,7 @@ export class SprayPaintTool implements Tool {
     const offsetNdc = offsetWorld.clone().project(context.camera);
     const dx = ((offsetNdc.x - centerNdc.x) * canvas.width) / 2;
     const dy = ((offsetNdc.y - centerNdc.y) * canvas.height) / 2;
-    return Math.sqrt(dx * dx + dy * dy);
+    return Math.max(2, Math.sqrt(dx * dx + dy * dy));
   }
 
   private drawBrushCircle(context: ToolContext, mousePos: THREE.Vector2): void {
@@ -131,15 +83,9 @@ export class SprayPaintTool implements Tool {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const center = this.ndcToPixel(mousePos.x, mousePos.y, canvas);
-
-    let radiusPx: number;
-    if (this.lastGridPos) {
-      radiusPx = this.computeScreenRadius(context, this.lastGridPos, canvas);
-    } else {
-      radiusPx = this.size * (canvas.height / 64);
-    }
-
-    radiusPx = Math.max(2, radiusPx);
+    const radiusPx = this.lastHitPos
+      ? this.computeScreenRadius(context, this.lastHitPos, canvas)
+      : Math.max(2, this.size * (canvas.height / 64));
 
     ctx.beginPath();
     ctx.arc(center.x, center.y, radiusPx, 0, Math.PI * 2);
@@ -158,7 +104,69 @@ export class SprayPaintTool implements Tool {
     }
   }
 
+  private sprayAtScreenPos(context: ToolContext, mousePos: THREE.Vector2, hitPos: THREE.Vector3): void {
+    const obj = getActiveObject(context);
+    if (!obj) return;
+
+    const canvas = context.overlayCanvas;
+    const dims = obj.dimensions;
+    const dimY = dims.y;
+    const dimZ = dims.z;
+
+    const centerPx = this.ndcToPixel(mousePos.x, mousePos.y, canvas);
+    const radiusPx = this.computeScreenRadius(context, hitPos, canvas);
+
+    const blockValue = getBlockValue(context.mode, context.selectedBlock);
+    const numSamples = Math.max(1, Math.ceil(this.density / 5));
+
+    const raycaster = new THREE.Raycaster();
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+    for (let i = 0; i < numSamples; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = radiusPx * Math.sqrt(Math.random());
+      const px = centerPx.x + Math.cos(angle) * r;
+      const py = centerPx.y + Math.sin(angle) * r;
+
+      const ndcX = (px / canvas.width) * 2 - 1;
+      const ndcY = 1 - (py / canvas.height) * 2;
+
+      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), context.camera);
+      const result = raycastVoxels(
+        raycaster.ray.origin,
+        raycaster.ray.direction,
+        dims,
+        context.projectManager.chunkManager.getVoxelAtWorldPos.bind(context.projectManager.chunkManager)
+      );
+
+      if (!result) continue;
+
+      let wx = result.gridPosition.x;
+      let wy = result.gridPosition.y;
+      let wz = result.gridPosition.z;
+
+      if (context.mode.tag === "Attach") {
+        wx += result.normal.x;
+        wy += result.normal.y;
+        wz += result.normal.z;
+      }
+
+      if (wx < 0 || wx >= dims.x || wy < 0 || wy >= dims.y || wz < 0 || wz >= dims.z) continue;
+
+      context.previewBuffer[wx * dimY * dimZ + wy * dimZ + wz] = blockValue;
+      if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
+      if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
+      if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+    }
+
+    if (minX !== Infinity) {
+      context.projectManager.chunkManager.updatePreview(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+  }
+
   onMouseMove(context: ToolContext, mousePos: THREE.Vector2): void {
+    this.lastMousePos = mousePos;
     this.drawBrushCircle(context, mousePos);
   }
 
@@ -167,26 +175,18 @@ export class SprayPaintTool implements Tool {
     this.strokeMode = context.mode;
     this.strokeSelectedBlock = context.selectedBlock;
     this.strokeSelectedObjectId = getActiveObject(context)?.id ?? "";
-    this.lastAppliedPosition = event.gridPosition.clone();
-    this.lastGridPos = event.gridPosition.clone();
+    this.lastHitPos = event.gridPosition.clone();
+    this.lastMousePos = event.mousePosition.clone();
 
-    this.stampAtPosition(context, event.gridPosition);
+    this.sprayAtScreenPos(context, event.mousePosition, event.gridPosition);
     this.drawBrushCircle(context, event.mousePosition);
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
-    this.lastGridPos = event.currentGridPosition.clone();
+    this.lastHitPos = event.currentGridPosition.clone();
+    this.lastMousePos = event.currentMousePosition.clone();
     this.drawBrushCircle(context, event.currentMousePosition);
-
-    if (
-      this.lastAppliedPosition &&
-      this.lastAppliedPosition.equals(event.currentGridPosition)
-    ) {
-      return;
-    }
-
-    this.lastAppliedPosition = event.currentGridPosition.clone();
-    this.stampAtPosition(context, event.currentGridPosition);
+    this.sprayAtScreenPos(context, event.currentMousePosition, event.currentGridPosition);
   }
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
@@ -206,12 +206,13 @@ export class SprayPaintTool implements Tool {
       }
     }
 
-    this.lastAppliedPosition = null;
     this.isStrokeActive = false;
     this.strokeMode = null;
   }
 
   dispose(): void {
-    this.lastGridPos = null;
+    this.lastHitPos = null;
+    this.lastMousePos = null;
   }
 }
+

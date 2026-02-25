@@ -3,8 +3,7 @@ import type { BlockModificationMode } from "@/state/types";
 import type { ToolType } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
-import { calculateGridPositionWithMode } from "./tool-utils";
-import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { calculateGridPositionWithMode, getBlockValue } from "./tool-utils";
 import { getBlockType } from "../voxel-data-utils";
 import { VoxelFrame } from "../voxel-frame";
 
@@ -49,17 +48,6 @@ export class FillTool implements Tool {
     return calculateGridPositionWithMode(gridPosition, normal, "under");
   }
 
-  private getBlockValue(mode: BlockModificationMode, selectedBlock: number): number {
-    switch (mode.tag) {
-      case "Attach":
-        return selectedBlock;
-      case "Paint":
-        return selectedBlock | RAYCASTABLE_BIT;
-      case "Erase":
-        return RAYCASTABLE_BIT;
-    }
-  }
-
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
     const obj = getActiveObject(context);
     if (!obj) return;
@@ -77,7 +65,7 @@ export class FillTool implements Tool {
 
     if (fillingVoid && context.mode.tag !== "Attach") return;
 
-    const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
+    const blockValue = getBlockValue(context.mode, context.selectedBlock);
     const dimY = dims.y;
     const dimZ = dims.z;
     const startX = pos.x, startY = pos.y, startZ = pos.z;

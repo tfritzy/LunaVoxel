@@ -3,8 +3,7 @@ import type { BlockModificationMode } from "@/state/types";
 import type { ToolType, BrushShape, FillShape } from "../tool-type";
 import type { Tool, ToolOption, ToolContext, ToolMouseEvent, ToolDragEvent } from "../tool-interface";
 import { getActiveObject } from "../tool-interface";
-import { calculateGridPositionWithMode } from "./tool-utils";
-import { RAYCASTABLE_BIT } from "../voxel-constants";
+import { calculateGridPositionWithMode, getBlockValue } from "./tool-utils";
 import { isInsideFillShapePrecomputed, precomputeShapeParams } from "../fill-shape-utils";
 import { VoxelFrame } from "../voxel-frame";
 
@@ -63,17 +62,6 @@ export class BrushTool implements Tool {
     return calculateGridPositionWithMode(gridPosition, normal, direction);
   }
 
-  private getBlockValue(mode: BlockModificationMode, selectedBlock: number): number {
-    switch (mode.tag) {
-      case "Attach":
-        return selectedBlock;
-      case "Paint":
-        return selectedBlock | RAYCASTABLE_BIT;
-      case "Erase":
-        return RAYCASTABLE_BIT;
-    }
-  }
-
   private stampAtPosition(context: ToolContext, center: THREE.Vector3): void {
     const dims = getActiveObject(context)!.dimensions;
     const halfBelow = Math.ceil(this.size / 2) - 1;
@@ -94,7 +82,7 @@ export class BrushTool implements Tool {
     const maxZ = Math.min(dims.z - 1, boundsMaxZ);
 
     const fillShape = BRUSH_SHAPE_TO_FILL_SHAPE[this.brushShape];
-    const blockValue = this.getBlockValue(context.mode, context.selectedBlock);
+    const blockValue = getBlockValue(context.mode, context.selectedBlock);
     const dimY = dims.y;
     const dimZ = dims.z;
     const shapeParams = precomputeShapeParams(boundsMinX, boundsMaxX, boundsMinY, boundsMaxY, boundsMinZ, boundsMaxZ);
