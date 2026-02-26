@@ -87,7 +87,15 @@ export class SprayPaintTool implements Tool {
     ctx.setLineDash([]);
   }
 
-  private sprayAtScreenPos(context: ToolContext, mousePos: THREE.Vector2): void {
+  private voxelScreenSize(context: ToolContext, hitPos: THREE.Vector3, canvas: HTMLCanvasElement): number {
+    const a = hitPos.clone().project(context.camera);
+    const b = hitPos.clone().add(new THREE.Vector3(1, 0, 0)).project(context.camera);
+    const pxW = Math.abs((b.x - a.x) * canvas.width / 2);
+    const pxH = Math.abs((b.y - a.y) * canvas.height / 2);
+    return Math.max(0.5, Math.sqrt(pxW * pxW + pxH * pxH));
+  }
+
+  private sprayAtScreenPos(context: ToolContext, mousePos: THREE.Vector2, hitPos: THREE.Vector3): void {
     const obj = getActiveObject(context);
     if (!obj) return;
 
@@ -100,7 +108,7 @@ export class SprayPaintTool implements Tool {
     const radiusPx = this.getScreenRadius(canvas);
     const radiusPxSq = radiusPx * radiusPx;
 
-    const step = Math.max(1, canvas.height / 100);
+    const step = this.voxelScreenSize(context, hitPos, canvas);
 
     const raycaster = new THREE.Raycaster();
     const candidates = new Map<number, { wx: number; wy: number; wz: number }>();
@@ -171,13 +179,13 @@ export class SprayPaintTool implements Tool {
     this.strokeSelectedBlock = context.selectedBlock;
     this.strokeSelectedObjectId = getActiveObject(context)?.id ?? "";
 
-    this.sprayAtScreenPos(context, event.mousePosition);
+    this.sprayAtScreenPos(context, event.mousePosition, event.gridPosition);
     this.drawBrushCircle(context, event.mousePosition);
   }
 
   onDrag(context: ToolContext, event: ToolDragEvent): void {
     this.drawBrushCircle(context, event.currentMousePosition);
-    this.sprayAtScreenPos(context, event.currentMousePosition);
+    this.sprayAtScreenPos(context, event.currentMousePosition, event.currentGridPosition);
   }
 
   onMouseUp(context: ToolContext, _event: ToolDragEvent): void {
