@@ -268,6 +268,7 @@ describe("SelectTool", () => {
     tool.onMouseDown(mockContext, {
       gridPosition: new THREE.Vector3(5, 5, 0),
       mousePosition: new THREE.Vector2(topLeft2.x, topLeft2.y),
+      shiftKey: true,
     });
 
     tool.onMouseUp(mockContext, {
@@ -275,7 +276,6 @@ describe("SelectTool", () => {
       currentGridPosition: new THREE.Vector3(7, 7, 0),
       startMousePosition: new THREE.Vector2(topLeft2.x, topLeft2.y),
       currentMousePosition: new THREE.Vector2(bottomRight2.x, bottomRight2.y),
-      shiftKey: true,
     });
 
     expect(voxelSelection).not.toBeNull();
@@ -316,6 +316,7 @@ describe("SelectTool", () => {
     tool.onMouseDown(mockContext, {
       gridPosition: new THREE.Vector3(5, 5, 0),
       mousePosition: new THREE.Vector2(topLeft2.x, topLeft2.y),
+      shiftKey: true,
     });
 
     tool.onMouseUp(mockContext, {
@@ -323,7 +324,6 @@ describe("SelectTool", () => {
       currentGridPosition: new THREE.Vector3(7, 7, 0),
       startMousePosition: new THREE.Vector2(topLeft2.x, topLeft2.y),
       currentMousePosition: new THREE.Vector2(bottomRight2.x, bottomRight2.y),
-      shiftKey: true,
     });
 
     expect(voxelSelection).not.toBeNull();

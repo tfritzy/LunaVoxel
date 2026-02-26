@@ -312,7 +312,8 @@ export const Builder = class {
         this.startPosition = position.clone();
         this.currentTool.onMouseDown(this.toolContext, {
           gridPosition: position,
-          mousePosition: this.mouse.clone()
+          mousePosition: this.mouse.clone(),
+          shiftKey: event.shiftKey,
         });
       }
     }

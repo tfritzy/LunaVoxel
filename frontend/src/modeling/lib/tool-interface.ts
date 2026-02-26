@@ -20,6 +20,7 @@ export interface ToolContext {
 export interface ToolMouseEvent {
   gridPosition: THREE.Vector3;
   mousePosition: THREE.Vector2;
+  shiftKey?: boolean;
 }
 
 export interface ToolDragEvent {
