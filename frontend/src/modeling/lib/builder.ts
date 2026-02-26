@@ -5,6 +5,7 @@ import type { StateStore } from "@/state/store";
 import type { ToolType } from "./tool-type";
 import type { ProjectManager } from "./project-manager";
 import { RectTool } from "./tools/rect-tool";
+import { ShapeTool } from "./tools/shape-tool";
 import { BlockPickerTool } from "./tools/block-picker-tool";
 import { SelectTool } from "./tools/select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
@@ -168,6 +169,8 @@ export const Builder = class {
         return new MoveSelectionTool();
       case "Rect":
         return new RectTool();
+      case "Shape":
+        return new ShapeTool();
       case "Brush":
         return new BrushTool();
       case "SprayPaint":

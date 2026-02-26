@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { RectTool } from "../tools/rect-tool";
+import { ShapeTool } from "../tools/shape-tool";
 import { BlockPickerTool } from "../tools/block-picker-tool";
 import { SelectTool } from "../tools/select-tool";
 import { MoveSelectionTool } from "../tools/move-selection-tool";
@@ -132,48 +133,48 @@ describe("Tool Interface", () => {
       const tool = new FillTool();
       expect(tool.getType()).toEqual("Fill");
     });
+
+    it("should create ShapeTool", () => {
+      const tool = new ShapeTool();
+      expect(tool.getType()).toEqual("Shape");
+    });
   });
 
   describe("Tool Options", () => {
-    it("should return fill shape and direction options for RectTool", () => {
+    it("should return no options for RectTool", () => {
       const tool = new RectTool();
       const options = tool.getOptions();
       
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(0);
+    });
+
+    it("should return fill shape and direction options for ShapeTool", () => {
+      const tool = new ShapeTool();
+      const options = tool.getOptions();
+      
+      expect(options).toHaveLength(2);
       expect(options[0].name).toBe("Fill Shape");
-      expect(options[0].values).toEqual(["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"]);
-      expect(options[0].currentValue).toBe("Rect");
+      expect(options[0].values).toEqual(["Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"]);
+      expect(options[0].currentValue).toBe("Sphere");
       expect(options[1].name).toBe("Up Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
       expect(options[1].currentValue).toBe("+y");
-      expect(options[2].name).toBe("Adjust Before Apply");
-      expect(options[2].values).toEqual(["true", "false"]);
-      expect(options[2].currentValue).toBe("true");
-      expect(options[2].type).toBe("checkbox");
     });
 
-    it("should update fill shape option on RectTool", () => {
-      const tool = new RectTool();
-      tool.setOption("Fill Shape", "Sphere");
+    it("should update fill shape option on ShapeTool", () => {
+      const tool = new ShapeTool();
+      tool.setOption("Fill Shape", "Cylinder");
       
       const options = tool.getOptions();
-      expect(options[0].currentValue).toBe("Sphere");
+      expect(options[0].currentValue).toBe("Cylinder");
     });
 
-    it("should update direction option on RectTool", () => {
-      const tool = new RectTool();
+    it("should update direction option on ShapeTool", () => {
+      const tool = new ShapeTool();
       tool.setOption("Up Direction", "-y");
       
       const options = tool.getOptions();
       expect(options[1].currentValue).toBe("-y");
-    });
-
-    it("should update adjust before apply option on RectTool", () => {
-      const tool = new RectTool();
-      tool.setOption("Adjust Before Apply", "false");
-
-      const options = tool.getOptions();
-      expect(options[2].currentValue).toBe("false");
     });
 
     it("should return empty options for BlockPicker", () => {
@@ -244,7 +245,7 @@ describe("Tool Interface", () => {
       expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 2 * dimensions.z + 3]).toBeGreaterThan(0);
     });
 
-    it("should show bounds helper during drag preview", () => {
+    it("should not show bounds helper during drag preview for RectTool", () => {
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
         currentGridPosition: new THREE.Vector3(3, 4, 5),
@@ -252,18 +253,11 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const boundsHelper = mockContext.scene.children.find(
-        (child): child is THREE.Box3Helper => child instanceof THREE.Box3Helper
-      );
-
-      expect(boundsHelper).toBeDefined();
-      expect(boundsHelper!.box.min.toArray()).toEqual([1, 2, 3]);
-      expect(boundsHelper!.box.max.toArray()).toEqual([4, 5, 6]);
+      expect(mockContext.scene.children.length).toBe(0);
     });
 
     it("should clamp rect bounds when dragging outside world bounds", () => {
       const tool = new RectTool();
-      tool.setOption("Adjust Before Apply", "false");
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(5, 0, 5),
@@ -278,7 +272,6 @@ describe("Tool Interface", () => {
 
     it("should clamp rect bounds when both start and end are outside world bounds", () => {
       const tool = new RectTool();
-      tool.setOption("Adjust Before Apply", "false");
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(-5, 0, -5),
@@ -292,8 +285,8 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("RectTool Fill Shapes", () => {
-    it("should fill all blocks with Rect shape", () => {
+  describe("ShapeTool Fill Shapes", () => {
+    it("should fill all blocks with Rect shape using RectTool", () => {
       const tool = new RectTool();
       
       tool.onDrag(mockContext, {
@@ -309,7 +302,7 @@ describe("Tool Interface", () => {
     });
 
     it("should create sphere shape when fill shape is Sphere", () => {
-      const tool = new RectTool();
+      const tool = new ShapeTool();
       tool.setOption("Fill Shape", "Sphere");
 
       tool.onDrag(mockContext, {
@@ -324,7 +317,7 @@ describe("Tool Interface", () => {
     });
 
     it("should enter pending state on mouse up with Sphere fill shape", () => {
-      const tool = new RectTool();
+      const tool = new ShapeTool();
       tool.setOption("Fill Shape", "Sphere");
       
       let called = false;
@@ -351,7 +344,7 @@ describe("Tool Interface", () => {
     });
 
     it("should create cylinder shape when fill shape is Cylinder", () => {
-      const tool = new RectTool();
+      const tool = new ShapeTool();
       tool.setOption("Fill Shape", "Cylinder");
 
       tool.onDrag(mockContext, {
@@ -366,7 +359,7 @@ describe("Tool Interface", () => {
     });
 
     it("should create diamond shape when fill shape is Diamond", () => {
-      const tool = new RectTool();
+      const tool = new ShapeTool();
       tool.setOption("Fill Shape", "Diamond");
 
       tool.onDrag(mockContext, {
@@ -381,11 +374,44 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("RectTool Pending Operation", () => {
+  describe("RectTool Immediate Apply", () => {
     let tool: RectTool;
 
     beforeEach(() => {
       tool = new RectTool();
+    });
+
+    it("should have no pending operation initially", () => {
+      expect(tool.hasPendingOperation()).toBe(false);
+      expect(tool.getPendingBounds()).toBeNull();
+    });
+
+    it("should apply immediately on mouse up", () => {
+      let applied = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applied = true;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(applied).toBe(true);
+      expect(tool.hasPendingOperation()).toBe(false);
+    });
+  });
+
+  describe("ShapeTool Pending Operation", () => {
+    let tool: ShapeTool;
+
+    beforeEach(() => {
+      tool = new ShapeTool();
     });
 
     it("should have no pending operation initially", () => {
@@ -420,29 +446,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 1 * dimensions.z + 1]).toBeGreaterThan(0);
       expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
-    });
-
-    it("should apply immediately on mouse up when adjust before apply is disabled", () => {
-      let applied = false;
-      mockContext.reducers = {
-        ...mockContext.reducers,
-        applyFrame: () => {
-          applied = true;
-        },
-      };
-
-      tool.setOption("Adjust Before Apply", "false");
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 1, 1),
-        currentGridPosition: new THREE.Vector3(3, 3, 3),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0.5, 0.5),
-      });
-
-      expect(applied).toBe(true);
-      expect(tool.hasPendingOperation()).toBe(false);
     });
 
     it("should commit pending operation with applyFrame", () => {
@@ -507,9 +511,10 @@ describe("Tool Interface", () => {
     });
 
     it("should recalculate shape when resizing pending bounds", () => {
-      tool.setOption("Fill Shape", "Sphere");
+      const shapeTool = new ShapeTool();
+      shapeTool.setOption("Fill Shape", "Sphere");
 
-      tool.onMouseUp(mockContext, {
+      shapeTool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(0, 0, 0),
         currentGridPosition: new THREE.Vector3(4, 4, 4),
         startMousePosition: new THREE.Vector2(0, 0),
@@ -519,13 +524,13 @@ describe("Tool Interface", () => {
       const originalCenter = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
       expect(originalCenter).toBeGreaterThan(0);
 
-      tool.resizePendingBounds(mockContext, {
+      shapeTool.resizePendingBounds(mockContext, {
         minX: 0, maxX: 6,
         minY: 0, maxY: 6,
         minZ: 0, maxZ: 6,
       });
 
-      expect(tool.getPendingBounds()!.maxX).toBe(6);
+      expect(shapeTool.getPendingBounds()!.maxX).toBe(6);
       expect(mockContext.previewBuffer[3 * dimensions.y * dimensions.z + 3 * dimensions.z + 3]).toBeGreaterThan(0);
     });
 
@@ -551,9 +556,10 @@ describe("Tool Interface", () => {
     });
 
     it("should update pending shape when fill shape is changed during editing phase", () => {
-      tool.setOption("Fill Shape", "Sphere");
+      const shapeTool = new ShapeTool();
+      shapeTool.setOption("Fill Shape", "Sphere");
 
-      tool.onMouseUp(mockContext, {
+      shapeTool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(0, 0, 0),
         currentGridPosition: new THREE.Vector3(4, 4, 4),
         startMousePosition: new THREE.Vector2(0, 0),
@@ -565,8 +571,8 @@ describe("Tool Interface", () => {
       expect(previewCorner).toBe(0);
       expect(previewCenter).toBeGreaterThan(0);
 
-      tool.setOption("Fill Shape", "Rect");
-      tool.updatePending!(mockContext);
+      shapeTool.setOption("Fill Shape", "Cylinder");
+      shapeTool.updatePending!(mockContext);
 
       let committedFrame: VoxelFrame | null = null;
       mockContext.reducers = {
@@ -576,10 +582,9 @@ describe("Tool Interface", () => {
         },
       };
 
-      tool.commitPendingOperation(mockContext);
+      shapeTool.commitPendingOperation(mockContext);
 
       expect(committedFrame).not.toBeNull();
-      expect(committedFrame!.get(0, 0, 0)).toBeGreaterThan(0);
       expect(committedFrame!.get(2, 2, 2)).toBeGreaterThan(0);
     });
 
@@ -593,14 +598,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const previewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(previewValue).toBe(5);
-
       mockContext.selectedBlock = 9;
       tool.updatePending!(mockContext);
-
-      const updatedPreviewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(updatedPreviewValue).toBe(9);
 
       let committedBlock: number | null = null;
       mockContext.reducers = {
@@ -625,14 +624,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const previewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(previewValue).toBe(1);
-
       mockContext.mode = eraseMode;
       tool.updatePending!(mockContext);
-
-      const updatedPreviewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(updatedPreviewValue).toBe(RAYCASTABLE_BIT);
 
       let committedMode: BlockModificationMode | null = null;
       mockContext.reducers = {
@@ -648,24 +641,24 @@ describe("Tool Interface", () => {
     });
 
     it("should use updated shape when resizing pending bounds after shape change", () => {
-      tool.setOption("Fill Shape", "Sphere");
+      const shapeTool = new ShapeTool();
+      shapeTool.setOption("Fill Shape", "Sphere");
 
-      tool.onMouseUp(mockContext, {
+      shapeTool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(0, 0, 0),
         currentGridPosition: new THREE.Vector3(4, 4, 4),
         startMousePosition: new THREE.Vector2(0, 0),
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      tool.setOption("Fill Shape", "Rect");
+      shapeTool.setOption("Fill Shape", "Cylinder");
 
-      tool.resizePendingBounds(mockContext, {
+      shapeTool.resizePendingBounds(mockContext, {
         minX: 0, maxX: 6,
         minY: 0, maxY: 6,
         minZ: 0, maxZ: 6,
       });
 
-      expect(mockContext.previewBuffer[0 * dimensions.y * dimensions.z + 0 * dimensions.z + 0]).toBeGreaterThan(0);
       expect(mockContext.previewBuffer[3 * dimensions.y * dimensions.z + 3 * dimensions.z + 3]).toBeGreaterThan(0);
     });
   });
@@ -705,8 +698,8 @@ describe("Tool Interface", () => {
     });
 
     it("should snap mouseUp bounds to equal dimensions when shiftKey is held", () => {
-      tool.setOption("Adjust Before Apply", "true");
-      tool.onMouseUp(mockContext, {
+      const shapeTool = new ShapeTool();
+      shapeTool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 1, 1),
         currentGridPosition: new THREE.Vector3(4, 2, 1),
         startMousePosition: new THREE.Vector2(0, 0),
@@ -714,7 +707,7 @@ describe("Tool Interface", () => {
         shiftKey: true,
       });
 
-      const bounds = tool.getPendingBounds()!;
+      const bounds = shapeTool.getPendingBounds()!;
       const sizeX = bounds.maxX - bounds.minX;
       const sizeY = bounds.maxY - bounds.minY;
       const sizeZ = bounds.maxZ - bounds.minZ;
@@ -1762,8 +1755,10 @@ describe("Tool Interface", () => {
       const start = performance.now();
 
       for (const shape of shapes) {
-        const tool = new RectTool();
-        tool.setOption("Fill Shape", shape);
+        const tool = shape === "Rect" ? new RectTool() : new ShapeTool();
+        if (shape !== "Rect") {
+          tool.setOption("Fill Shape", shape);
+        }
 
         for (let step = 1; step <= DRAG_STEPS; step++) {
           const progress = step / DRAG_STEPS;

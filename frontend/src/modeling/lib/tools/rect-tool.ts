@@ -19,10 +19,10 @@ type ResizeCorner = {
 };
 
 export class RectTool implements Tool {
-  private fillShape: FillShape = "Rect";
-  private direction: ShapeDirection = "+y";
-  private adjustBeforeApply = true;
-  private pending: {
+  protected fillShape: FillShape = "Rect";
+  protected direction: ShapeDirection = "+y";
+  protected adjustBeforeApply = false;
+  protected pending: {
     bounds: RectBounds;
     mode: BlockModificationMode;
     selectedBlock: number;
@@ -49,41 +49,10 @@ export class RectTool implements Tool {
   }
 
   getOptions(): ToolOption[] {
-    return [
-      {
-        name: "Fill Shape",
-        values: ["Rect", "Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"],
-        currentValue: this.fillShape,
-      },
-      {
-        name: "Up Direction",
-        values: ["+x", "-x", "+y", "-y", "+z", "-z"],
-        currentValue: this.direction,
-        type: "direction",
-      },
-      {
-        name: "Adjust Before Apply",
-        values: ["true", "false"],
-        currentValue: this.adjustBeforeApply ? "true" : "false",
-        type: "checkbox",
-      },
-    ];
+    return [];
   }
 
-  setOption(name: string, value: string): void {
-    if (name === "Fill Shape") {
-      this.fillShape = value as FillShape;
-      if (this.pending) {
-        this.pending.fillShape = this.fillShape;
-      }
-    } else if (name === "Up Direction") {
-      this.direction = value as ShapeDirection;
-      if (this.pending) {
-        this.pending.direction = this.direction;
-      }
-    } else if (name === "Adjust Before Apply") {
-      this.adjustBeforeApply = value === "true";
-    }
+  setOption(_name: string, _value: string): void {
   }
 
   calculateGridPosition(
