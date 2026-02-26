@@ -2,6 +2,7 @@ export type ToolType =
   | "MoveSelection"
   | "Rect"
   | "Brush"
+  | "SprayPaint"
   | "BlockPicker"
   | "Select"
   | "Fill"

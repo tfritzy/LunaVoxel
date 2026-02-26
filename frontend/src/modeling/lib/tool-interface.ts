@@ -72,6 +72,8 @@ export interface Tool {
 
   updatePending?(context: ToolContext): void;
 
+  onMouseMove?(context: ToolContext, mousePos: THREE.Vector2): void;
+
   onActivate?(context: ToolContext): void;
 
   dispose?(): void;

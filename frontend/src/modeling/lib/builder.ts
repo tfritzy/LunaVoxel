@@ -10,6 +10,7 @@ import { SelectTool } from "./tools/select-tool";
 import { MoveSelectionTool } from "./tools/move-selection-tool";
 import { BrushTool } from "./tools/brush-tool";
 import { FillTool } from "./tools/fill-tool";
+import { SprayPaintTool } from "./tools/spray-paint-tool";
 import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
 
@@ -169,6 +170,8 @@ export const Builder = class {
         return new RectTool();
       case "Brush":
         return new BrushTool();
+      case "SprayPaint":
+        return new SprayPaintTool();
       case "BlockPicker":
         return new BlockPickerTool();
       case "Select":
@@ -265,6 +268,10 @@ export const Builder = class {
     const position = gridPos || this.lastHoveredPosition;
     if (position) {
       this.handleMouseDrag(position, event.shiftKey);
+    }
+
+    if (!this.isMouseDown) {
+      this.currentTool.onMouseMove?.(this.toolContext, this.mouse.clone());
     }
   }
 
