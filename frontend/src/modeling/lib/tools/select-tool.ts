@@ -22,6 +22,7 @@ function isPointInPolygon(px: number, py: number, polygon: { x: number; y: numbe
 export class SelectTool implements Tool {
   private selectShape: SelectShape = "Rectangle";
   private lassoPoints: { x: number; y: number }[] = [];
+  private appendMode: boolean = false;
 
   getType(): ToolType {
     return "Select";
@@ -51,6 +52,7 @@ export class SelectTool implements Tool {
   }
 
   onMouseDown(context: ToolContext, event: ToolMouseEvent): void {
+    this.appendMode = !!event.shiftKey;
     if (this.selectShape === "Lasso") {
       this.lassoPoints = [{ x: event.mousePosition.x, y: event.mousePosition.y }];
     }
@@ -82,17 +84,17 @@ export class SelectTool implements Tool {
         );
         break;
       case "Rectangle":
-        this.selectByScreenRect(context, obj.id, event, event.shiftKey);
+        this.selectByScreenRect(context, obj.id, event, event.shiftKey, this.appendMode);
         break;
       case "Circle":
-        this.selectByScreenCircle(context, obj.id, event, event.shiftKey);
+        this.selectByScreenCircle(context, obj.id, event, event.shiftKey, this.appendMode);
         break;
       case "Lasso":
         this.lassoPoints.push({
           x: event.currentMousePosition.x,
           y: event.currentMousePosition.y,
         });
-        this.selectByScreenLasso(context, obj.id);
+        this.selectByScreenLasso(context, obj.id, this.appendMode);
         this.lassoPoints = [];
         break;
     }
@@ -105,7 +107,8 @@ export class SelectTool implements Tool {
   private selectVoxelsByScreenTest(
     context: ToolContext,
     objectId: string,
-    testFn: (screenX: number, screenY: number) => boolean
+    testFn: (screenX: number, screenY: number) => boolean,
+    append?: boolean
   ): void {
     const obj = getActiveObject(context);
     if (!obj) return;
@@ -142,8 +145,34 @@ export class SelectTool implements Tool {
       }
     }
 
+    const existing = append ? context.stateStore.getState().voxelSelection : null;
+
     if (selected.length === 0) {
-      context.reducers.setVoxelSelection(objectId, null);
+      if (!append) {
+        context.reducers.setVoxelSelection(objectId, null);
+      }
+      return;
+    }
+
+    if (existing && !existing.isEmpty()) {
+      const existingMin = existing.getMinPos();
+      const existingMax = existing.getMaxPos();
+      const mergedMinX = Math.min(minX, existingMin.x);
+      const mergedMinY = Math.min(minY, existingMin.y);
+      const mergedMinZ = Math.min(minZ, existingMin.z);
+      const mergedMaxX = Math.max(maxX + 1, existingMax.x);
+      const mergedMaxY = Math.max(maxY + 1, existingMax.y);
+      const mergedMaxZ = Math.max(maxZ + 1, existingMax.z);
+
+      const merged = existing.clone();
+      merged.resize(
+        { x: mergedMaxX - mergedMinX, y: mergedMaxY - mergedMinY, z: mergedMaxZ - mergedMinZ },
+        { x: mergedMinX, y: mergedMinY, z: mergedMinZ }
+      );
+      for (const { x, y, z } of selected) {
+        merged.set(x, y, z, 1);
+      }
+      context.reducers.setVoxelSelection(objectId, merged);
       return;
     }
 
@@ -163,7 +192,7 @@ export class SelectTool implements Tool {
     context.reducers.setVoxelSelection(objectId, frame);
   }
 
-  private selectByScreenRect(context: ToolContext, objectId: string, event: ToolDragEvent, shiftKey?: boolean): void {
+  private selectByScreenRect(context: ToolContext, objectId: string, event: ToolDragEvent, shiftKey?: boolean, append?: boolean): void {
     let dx = event.currentMousePosition.x - event.startMousePosition.x;
     let dy = event.currentMousePosition.y - event.startMousePosition.y;
 
@@ -179,11 +208,12 @@ export class SelectTool implements Tool {
     const y2 = Math.max(event.startMousePosition.y, event.startMousePosition.y + dy);
 
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
-      sx >= x1 && sx <= x2 && sy >= y1 && sy <= y2
+      sx >= x1 && sx <= x2 && sy >= y1 && sy <= y2,
+      append
     );
   }
 
-  private selectByScreenCircle(context: ToolContext, objectId: string, event: ToolDragEvent, shiftKey?: boolean): void {
+  private selectByScreenCircle(context: ToolContext, objectId: string, event: ToolDragEvent, shiftKey?: boolean, append?: boolean): void {
     let dx = event.currentMousePosition.x - event.startMousePosition.x;
     let dy = event.currentMousePosition.y - event.startMousePosition.y;
 
@@ -204,15 +234,16 @@ export class SelectTool implements Tool {
       const nx = (sx - cx) / rx;
       const ny = (sy - cy) / ry;
       return nx * nx + ny * ny <= 1;
-    });
+    }, append);
   }
 
-  private selectByScreenLasso(context: ToolContext, objectId: string): void {
+  private selectByScreenLasso(context: ToolContext, objectId: string, append?: boolean): void {
     if (this.lassoPoints.length < 3) return;
     const polygon = this.lassoPoints;
 
     this.selectVoxelsByScreenTest(context, objectId, (sx, sy) =>
-      isPointInPolygon(sx, sy, polygon)
+      isPointInPolygon(sx, sy, polygon),
+      append
     );
   }
 
