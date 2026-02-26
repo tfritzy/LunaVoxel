@@ -5,15 +5,15 @@ import {
   PlusSquare,
   Pipette,
   Wand2,
-  Move,
+  Hand,
   RectangleHorizontal,
-  Pen,
+  Pencil,
   PaintBucket,
   BoxSelect,
   Circle,
   Lasso,
   SprayCan,
-  Shapes,
+  Box,
   type LucideProps,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -183,7 +183,7 @@ export const FloatingToolbar = ({
             }`}
             title="Move Selection (M)"
           >
-            <Move className="min-w-8 min-h-8" />
+            <Hand className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">M</div>
           </Button>
           <Button
@@ -207,7 +207,7 @@ export const FloatingToolbar = ({
             }`}
             title="Shape Tool (H)"
           >
-            <Shapes className="min-w-8 min-h-8" />
+            <Box className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">H</div>
           </Button>
           <Button
@@ -219,7 +219,7 @@ export const FloatingToolbar = ({
             }`}
             title="Brush Tool (B)"
           >
-            <Pen className="min-w-8 min-h-8" />
+            <Pencil className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">B</div>
           </Button>
           <Button
