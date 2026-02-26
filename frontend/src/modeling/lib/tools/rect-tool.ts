@@ -21,7 +21,7 @@ type ResizeCorner = {
 export class RectTool implements Tool {
   protected fillShape: FillShape = "Rect";
   protected direction: ShapeDirection = "+y";
-  protected adjustBeforeApply = true;
+  protected adjustBeforeApply = false;
   protected pending: {
     bounds: RectBounds;
     mode: BlockModificationMode;
@@ -49,20 +49,10 @@ export class RectTool implements Tool {
   }
 
   getOptions(): ToolOption[] {
-    return [
-      {
-        name: "Adjust Before Apply",
-        values: ["true", "false"],
-        currentValue: this.adjustBeforeApply ? "true" : "false",
-        type: "checkbox",
-      },
-    ];
+    return [];
   }
 
-  setOption(name: string, value: string): void {
-    if (name === "Adjust Before Apply") {
-      this.adjustBeforeApply = value === "true";
-    }
+  setOption(_name: string, _value: string): void {
   }
 
   calculateGridPosition(

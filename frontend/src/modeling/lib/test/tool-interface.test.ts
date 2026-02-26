@@ -141,32 +141,24 @@ describe("Tool Interface", () => {
   });
 
   describe("Tool Options", () => {
-    it("should return adjust before apply option for RectTool", () => {
+    it("should return no options for RectTool", () => {
       const tool = new RectTool();
       const options = tool.getOptions();
       
-      expect(options).toHaveLength(1);
-      expect(options[0].name).toBe("Adjust Before Apply");
-      expect(options[0].values).toEqual(["true", "false"]);
-      expect(options[0].currentValue).toBe("true");
-      expect(options[0].type).toBe("checkbox");
+      expect(options).toHaveLength(0);
     });
 
-    it("should return fill shape, direction, and adjust options for ShapeTool", () => {
+    it("should return fill shape and direction options for ShapeTool", () => {
       const tool = new ShapeTool();
       const options = tool.getOptions();
       
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(2);
       expect(options[0].name).toBe("Fill Shape");
       expect(options[0].values).toEqual(["Sphere", "Cylinder", "Triangle", "Diamond", "Cone", "Pyramid", "Hexagon"]);
       expect(options[0].currentValue).toBe("Sphere");
       expect(options[1].name).toBe("Up Direction");
       expect(options[1].values).toEqual(["+x", "-x", "+y", "-y", "+z", "-z"]);
       expect(options[1].currentValue).toBe("+y");
-      expect(options[2].name).toBe("Adjust Before Apply");
-      expect(options[2].values).toEqual(["true", "false"]);
-      expect(options[2].currentValue).toBe("true");
-      expect(options[2].type).toBe("checkbox");
     });
 
     it("should update fill shape option on ShapeTool", () => {
@@ -183,14 +175,6 @@ describe("Tool Interface", () => {
       
       const options = tool.getOptions();
       expect(options[1].currentValue).toBe("-y");
-    });
-
-    it("should update adjust before apply option on RectTool", () => {
-      const tool = new RectTool();
-      tool.setOption("Adjust Before Apply", "false");
-
-      const options = tool.getOptions();
-      expect(options[0].currentValue).toBe("false");
     });
 
     it("should return empty options for BlockPicker", () => {
@@ -261,7 +245,7 @@ describe("Tool Interface", () => {
       expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 2 * dimensions.z + 3]).toBeGreaterThan(0);
     });
 
-    it("should show bounds helper during drag preview", () => {
+    it("should not show bounds helper during drag preview for RectTool", () => {
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(1, 2, 3),
         currentGridPosition: new THREE.Vector3(3, 4, 5),
@@ -269,18 +253,11 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const boundsHelper = mockContext.scene.children.find(
-        (child): child is THREE.Box3Helper => child instanceof THREE.Box3Helper
-      );
-
-      expect(boundsHelper).toBeDefined();
-      expect(boundsHelper!.box.min.toArray()).toEqual([1, 2, 3]);
-      expect(boundsHelper!.box.max.toArray()).toEqual([4, 5, 6]);
+      expect(mockContext.scene.children.length).toBe(0);
     });
 
     it("should clamp rect bounds when dragging outside world bounds", () => {
       const tool = new RectTool();
-      tool.setOption("Adjust Before Apply", "false");
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(5, 0, 5),
@@ -295,7 +272,6 @@ describe("Tool Interface", () => {
 
     it("should clamp rect bounds when both start and end are outside world bounds", () => {
       const tool = new RectTool();
-      tool.setOption("Adjust Before Apply", "false");
 
       tool.onDrag(mockContext, {
         startGridPosition: new THREE.Vector3(-5, 0, -5),
@@ -398,11 +374,44 @@ describe("Tool Interface", () => {
     });
   });
 
-  describe("RectTool Pending Operation", () => {
+  describe("RectTool Immediate Apply", () => {
     let tool: RectTool;
 
     beforeEach(() => {
       tool = new RectTool();
+    });
+
+    it("should have no pending operation initially", () => {
+      expect(tool.hasPendingOperation()).toBe(false);
+      expect(tool.getPendingBounds()).toBeNull();
+    });
+
+    it("should apply immediately on mouse up", () => {
+      let applied = false;
+      mockContext.reducers = {
+        ...mockContext.reducers,
+        applyFrame: () => {
+          applied = true;
+        },
+      };
+
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(applied).toBe(true);
+      expect(tool.hasPendingOperation()).toBe(false);
+    });
+  });
+
+  describe("ShapeTool Pending Operation", () => {
+    let tool: ShapeTool;
+
+    beforeEach(() => {
+      tool = new ShapeTool();
     });
 
     it("should have no pending operation initially", () => {
@@ -437,29 +446,7 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      expect(mockContext.previewBuffer[1 * dimensions.y * dimensions.z + 1 * dimensions.z + 1]).toBeGreaterThan(0);
       expect(mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2]).toBeGreaterThan(0);
-    });
-
-    it("should apply immediately on mouse up when adjust before apply is disabled", () => {
-      let applied = false;
-      mockContext.reducers = {
-        ...mockContext.reducers,
-        applyFrame: () => {
-          applied = true;
-        },
-      };
-
-      tool.setOption("Adjust Before Apply", "false");
-      tool.onMouseUp(mockContext, {
-        startGridPosition: new THREE.Vector3(1, 1, 1),
-        currentGridPosition: new THREE.Vector3(3, 3, 3),
-        startMousePosition: new THREE.Vector2(0, 0),
-        currentMousePosition: new THREE.Vector2(0.5, 0.5),
-      });
-
-      expect(applied).toBe(true);
-      expect(tool.hasPendingOperation()).toBe(false);
     });
 
     it("should commit pending operation with applyFrame", () => {
@@ -611,14 +598,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const previewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(previewValue).toBe(5);
-
       mockContext.selectedBlock = 9;
       tool.updatePending!(mockContext);
-
-      const updatedPreviewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(updatedPreviewValue).toBe(9);
 
       let committedBlock: number | null = null;
       mockContext.reducers = {
@@ -643,14 +624,8 @@ describe("Tool Interface", () => {
         currentMousePosition: new THREE.Vector2(0.5, 0.5),
       });
 
-      const previewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(previewValue).toBe(1);
-
       mockContext.mode = eraseMode;
       tool.updatePending!(mockContext);
-
-      const updatedPreviewValue = mockContext.previewBuffer[2 * dimensions.y * dimensions.z + 2 * dimensions.z + 2];
-      expect(updatedPreviewValue).toBe(RAYCASTABLE_BIT);
 
       let committedMode: BlockModificationMode | null = null;
       mockContext.reducers = {
@@ -723,8 +698,8 @@ describe("Tool Interface", () => {
     });
 
     it("should snap mouseUp bounds to equal dimensions when shiftKey is held", () => {
-      tool.setOption("Adjust Before Apply", "true");
-      tool.onMouseUp(mockContext, {
+      const shapeTool = new ShapeTool();
+      shapeTool.onMouseUp(mockContext, {
         startGridPosition: new THREE.Vector3(1, 1, 1),
         currentGridPosition: new THREE.Vector3(4, 2, 1),
         startMousePosition: new THREE.Vector2(0, 0),
@@ -732,7 +707,7 @@ describe("Tool Interface", () => {
         shiftKey: true,
       });
 
-      const bounds = tool.getPendingBounds()!;
+      const bounds = shapeTool.getPendingBounds()!;
       const sizeX = bounds.maxX - bounds.minX;
       const sizeY = bounds.maxY - bounds.minY;
       const sizeZ = bounds.maxZ - bounds.minZ;

@@ -7,6 +7,7 @@ export class ShapeTool extends RectTool {
   constructor() {
     super();
     this.fillShape = "Sphere";
+    this.adjustBeforeApply = true;
   }
 
   getType(): ToolType {
@@ -26,12 +27,6 @@ export class ShapeTool extends RectTool {
         currentValue: this.direction,
         type: "direction",
       },
-      {
-        name: "Adjust Before Apply",
-        values: ["true", "false"],
-        currentValue: this.adjustBeforeApply ? "true" : "false",
-        type: "checkbox",
-      },
     ];
   }
 
@@ -46,8 +41,6 @@ export class ShapeTool extends RectTool {
       if (this.pending) {
         this.pending.direction = this.direction;
       }
-    } else if (name === "Adjust Before Apply") {
-      this.adjustBeforeApply = value === "true";
     }
   }
 }
