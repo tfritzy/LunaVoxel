@@ -5,6 +5,7 @@ import { layers } from "./lib/layers";
 import type { Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { ProjectManager } from "./lib/project-manager";
+import { WebGPURayTracer } from "./lib/webgpu-ray-tracer";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
@@ -25,11 +26,17 @@ export class VoxelEngine {
   private stateStore: StateStore;
   private project: Project;
   private boundsEdges: ReturnType<typeof addGroundPlane>["boundsEdges"] = [];
+  private rayTracer: WebGPURayTracer | null = null;
+  private rayTracingEnabled = false;
+  private rayTraceCanvas: HTMLCanvasElement | null = null;
+  private voxelWorldBuffer: Uint8Array;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
     this.stateStore = options.stateStore;
     this.project = options.project;
+    const d = this.project.dimensions;
+    this.voxelWorldBuffer = new Uint8Array(d.x * d.y * d.z);
 
     this.renderer = this.setupRenderer(this.container);
     this.scene = new THREE.Scene();
@@ -222,7 +229,80 @@ export class VoxelEngine {
       this.container.clientHeight
     );
     this.projectManager.builder.resizeOverlayCanvas();
+
+    if (this.rayTracer && this.rayTraceCanvas) {
+      const w = this.container.clientWidth * window.devicePixelRatio;
+      const h = this.container.clientHeight * window.devicePixelRatio;
+      this.rayTracer.resize(Math.floor(w), Math.floor(h));
+    }
   };
+
+  async setRayTracingEnabled(enabled: boolean): Promise<void> {
+    if (enabled === this.rayTracingEnabled) return;
+
+    if (enabled) {
+      if (!WebGPURayTracer.isSupported()) {
+        console.warn("WebGPU is not supported in this browser");
+        return;
+      }
+
+      this.rayTraceCanvas = document.createElement("canvas");
+      const w = this.container.clientWidth * window.devicePixelRatio;
+      const h = this.container.clientHeight * window.devicePixelRatio;
+      this.rayTraceCanvas.width = Math.floor(w);
+      this.rayTraceCanvas.height = Math.floor(h);
+      this.rayTraceCanvas.style.display = "block";
+      this.rayTraceCanvas.style.width = "100%";
+      this.rayTraceCanvas.style.height = "100%";
+      this.rayTraceCanvas.style.position = "absolute";
+      this.rayTraceCanvas.style.top = "0";
+      this.rayTraceCanvas.style.left = "0";
+
+      this.rayTracer = await WebGPURayTracer.create(
+        this.rayTraceCanvas,
+        this.project.dimensions
+      );
+
+      const state = this.stateStore.getState();
+      if (state.blocks.colors.length > 0) {
+        this.rayTracer.updatePalette(state.blocks.colors);
+      }
+
+      this.renderer.domElement.style.display = "none";
+      this.container.appendChild(this.rayTraceCanvas);
+      this.rayTracingEnabled = true;
+    } else {
+      this.rayTracingEnabled = false;
+      this.renderer.domElement.style.display = "block";
+
+      if (this.rayTraceCanvas && this.container.contains(this.rayTraceCanvas)) {
+        this.container.removeChild(this.rayTraceCanvas);
+      }
+      this.rayTraceCanvas = null;
+
+      if (this.rayTracer) {
+        this.rayTracer.dispose();
+        this.rayTracer = null;
+      }
+    }
+  }
+
+  isRayTracingActive(): boolean {
+    return this.rayTracingEnabled;
+  }
+
+  private gatherVoxelData(): void {
+    const d = this.project.dimensions;
+    const cm = this.projectManager.chunkManager;
+    for (let x = 0; x < d.x; x++) {
+      for (let y = 0; y < d.y; y++) {
+        for (let z = 0; z < d.z; z++) {
+          this.voxelWorldBuffer[x * d.y * d.z + y * d.z + z] =
+            cm.getVoxelAtWorldPos(x, y, z);
+        }
+      }
+    }
+  }
 
   private lastFrameTime: number = 0;
   private animate = (currentTime: number = 0): void => {
@@ -231,7 +311,28 @@ export class VoxelEngine {
     this.lastFrameTime = currentTime;
     this.controls.update(deltaTime);
     updateBoundsVisibility(this.camera.position, this.boundsEdges);
-    this.renderer.render(this.scene, this.camera);
+
+    if (this.rayTracingEnabled && this.rayTracer) {
+      this.gatherVoxelData();
+      this.rayTracer.updateVoxels(this.voxelWorldBuffer);
+
+      const pos = this.camera.position;
+      const target = this.controls.getTarget();
+      this.rayTracer.updateCamera(
+        [pos.x, pos.y, pos.z],
+        [target.x, target.y, target.z],
+        this.camera.fov
+      );
+
+      const state = this.stateStore.getState();
+      if (state.blocks.colors.length > 0) {
+        this.rayTracer.updatePalette(state.blocks.colors);
+      }
+
+      this.rayTracer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   };
 
   public dispose(): void {
@@ -242,6 +343,16 @@ export class VoxelEngine {
     window.removeEventListener("resize", this.handleResize);
     this.renderer.dispose();
     this.projectManager.dispose();
+
+    if (this.rayTracer) {
+      this.rayTracer.dispose();
+      this.rayTracer = null;
+    }
+    if (this.rayTraceCanvas && this.container.contains(this.rayTraceCanvas)) {
+      this.container.removeChild(this.rayTraceCanvas);
+    }
+    this.rayTraceCanvas = null;
+
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }

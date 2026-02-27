@@ -21,6 +21,8 @@ interface ProjectLayoutProps {
   children: React.ReactNode;
   toolOptions: ToolOption[];
   onToolOptionChange: (name: string, value: string) => void;
+  rayTracingEnabled?: boolean;
+  onRayTracingToggle?: (enabled: boolean) => void;
 }
 
 export const ProjectLayout = ({
@@ -37,6 +39,8 @@ export const ProjectLayout = ({
   children,
   toolOptions,
   onToolOptionChange,
+  rayTracingEnabled,
+  onRayTracingToggle,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
@@ -44,6 +48,8 @@ export const ProjectLayout = ({
         onExport={onExport}
         onUndo={onUndo}
         onRedo={onRedo}
+        rayTracingEnabled={rayTracingEnabled}
+        onRayTracingToggle={onRayTracingToggle}
       />
 
       <div className="flex flex-1 min-h-0">
