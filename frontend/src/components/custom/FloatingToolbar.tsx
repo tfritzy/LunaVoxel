@@ -6,7 +6,6 @@ import {
   Pipette,
   Wand2,
   Move,
-  RectangleHorizontal,
   Pen,
   PaintBucket,
   BoxSelect,
@@ -16,6 +15,7 @@ import {
   Shapes,
   type LucideProps,
 } from "lucide-react";
+import { RectToolIcon } from "./RectToolIcon";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
@@ -195,7 +195,7 @@ export const FloatingToolbar = ({
             }`}
             title="Rect Tool (R)"
           >
-            <RectangleHorizontal className="min-w-8 min-h-8" />
+            <RectToolIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">R</div>
           </Button>
           <Button
