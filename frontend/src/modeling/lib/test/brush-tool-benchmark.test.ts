@@ -34,6 +34,7 @@ function createBenchmarkContext(dimensions: Vector3): {
     setVoxelSelection: () => {},
     moveSelection: () => {},
     moveObject: () => {},
+    resizeObject: () => {},
     beginSelectionMove: () => {},
     commitSelectionMove: () => {},
     selectAllVoxels: () => {},

@@ -67,6 +67,7 @@ describe("SelectTool", () => {
       },
       moveSelection: () => {},
       moveObject: () => {},
+      resizeObject: () => {},
       beginSelectionMove: () => {},
       commitSelectionMove: () => {},
       selectAllVoxels: () => {},
