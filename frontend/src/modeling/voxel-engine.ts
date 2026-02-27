@@ -5,7 +5,8 @@ import { layers } from "./lib/layers";
 import type { Project } from "@/state/types";
 import type { StateStore } from "@/state/store";
 import { ProjectManager } from "./lib/project-manager";
-import { WebGPURayTracer } from "./lib/webgpu-ray-tracer";
+import { WebGPURayTracer, defaultRenderSettings } from "./lib/webgpu-ray-tracer";
+import type { RenderSettings } from "./lib/webgpu-ray-tracer";
 
 export interface VoxelEngineOptions {
   container: HTMLElement;
@@ -33,6 +34,7 @@ export class VoxelEngine {
   private rtVoxelsDirty = true;
   private rtPaletteDirty = true;
   private rtUnsubscribe: (() => void) | null = null;
+  private renderSettings: RenderSettings = { ...defaultRenderSettings };
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
@@ -302,6 +304,14 @@ export class VoxelEngine {
     return this.rayTracingEnabled;
   }
 
+  setRenderSettings(settings: RenderSettings): void {
+    this.renderSettings = { ...settings };
+  }
+
+  getRenderSettings(): RenderSettings {
+    return { ...this.renderSettings };
+  }
+
   private gatherVoxelData(): void {
     const d = this.project.dimensions;
     const cm = this.projectManager.chunkManager;
@@ -343,7 +353,8 @@ export class VoxelEngine {
       this.rayTracer.updateCamera(
         [pos.x, pos.y, pos.z],
         [target.x, target.y, target.z],
-        this.camera.fov
+        this.camera.fov,
+        this.renderSettings
       );
 
       this.rayTracer.render();

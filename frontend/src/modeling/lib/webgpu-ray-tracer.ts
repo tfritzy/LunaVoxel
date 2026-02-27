@@ -1,5 +1,27 @@
 import type { Vector3 } from "@/state/types";
 
+export interface RenderSettings {
+  sunAzimuth: number;
+  sunElevation: number;
+  sunIntensity: number;
+  sunColorR: number;
+  sunColorG: number;
+  sunColorB: number;
+  ambientIntensity: number;
+  shadowDarkness: number;
+}
+
+export const defaultRenderSettings: RenderSettings = {
+  sunAzimuth: 135,
+  sunElevation: 55,
+  sunIntensity: 1.4,
+  sunColorR: 1.0,
+  sunColorG: 0.95,
+  sunColorB: 0.9,
+  ambientIntensity: 0.35,
+  shadowDarkness: 0.7,
+};
+
 const computeShader = /* wgsl */ `
 struct Uniforms {
   eye: vec3f,
@@ -14,6 +36,14 @@ struct Uniforms {
   dimY: u32,
   dimZ: u32,
   numColors: u32,
+  sunDir: vec3f,
+  sunIntensity: f32,
+  sunColor: vec3f,
+  ambientIntensity: f32,
+  shadowDarkness: f32,
+  _pad0: f32,
+  _pad1: f32,
+  _pad2: f32,
 }
 
 @group(0) @binding(0) var<storage, read> voxels: array<u32>;
@@ -40,17 +70,6 @@ fn blockColor(blockType: u32) -> vec3f {
   let g = f32((packed >> 8u) & 0xFFu) / 255.0;
   let b = f32(packed & 0xFFu) / 255.0;
   return vec3f(r, g, b);
-}
-
-fn shadeFace(normal: vec3f) -> f32 {
-  if (abs(normal.y - 1.0) < 0.1) {
-    return 0.95;
-  } else if (abs(normal.y + 1.0) < 0.1) {
-    return 0.6;
-  } else if (abs(normal.x) > 0.9) {
-    return 0.9;
-  }
-  return 0.8;
 }
 
 struct HitResult {
@@ -138,6 +157,67 @@ fn traceRay(origin: vec3f, dir: vec3f) -> HitResult {
   return result;
 }
 
+fn traceShadow(origin: vec3f, dir: vec3f) -> bool {
+  let invDir = 1.0 / dir;
+  let gridMin = vec3f(0.0);
+  let gridMax = vec3f(f32(uniforms.dimX), f32(uniforms.dimY), f32(uniforms.dimZ));
+
+  let t1 = (gridMin - origin) * invDir;
+  let t2 = (gridMax - origin) * invDir;
+  let tmin_v = min(t1, t2);
+  let tmax_v = max(t1, t2);
+  let tEnter = max(max(tmin_v.x, tmin_v.y), tmin_v.z);
+  let tExit = min(min(tmax_v.x, tmax_v.y), tmax_v.z);
+
+  if (tExit < 0.0 || tEnter > tExit) {
+    return false;
+  }
+
+  let startT = max(tEnter + 0.001, 0.0);
+  var pos = origin + dir * startT;
+
+  var mapPos = vec3i(floor(pos));
+  let stepI = vec3i(sign(dir));
+  let stepF = sign(dir);
+  let deltaDist = abs(invDir);
+  var sideDist = (stepF * (vec3f(f32(mapPos.x), f32(mapPos.y), f32(mapPos.z)) - pos) + stepF * 0.5 + 0.5) * deltaDist;
+
+  let maxSteps = i32(uniforms.dimX + uniforms.dimY + uniforms.dimZ) * 2;
+
+  for (var i = 0; i < maxSteps; i++) {
+    if (mapPos.x < 0 || u32(mapPos.x) >= uniforms.dimX ||
+        mapPos.y < 0 || u32(mapPos.y) >= uniforms.dimY ||
+        mapPos.z < 0 || u32(mapPos.z) >= uniforms.dimZ) {
+      return false;
+    }
+
+    let voxel = getVoxel(mapPos.x, mapPos.y, mapPos.z);
+    if ((voxel & 0x7Fu) != 0u) {
+      return true;
+    }
+
+    if (sideDist.x < sideDist.y) {
+      if (sideDist.x < sideDist.z) {
+        sideDist.x += deltaDist.x;
+        mapPos.x += stepI.x;
+      } else {
+        sideDist.z += deltaDist.z;
+        mapPos.z += stepI.z;
+      }
+    } else {
+      if (sideDist.y < sideDist.z) {
+        sideDist.y += deltaDist.y;
+        mapPos.y += stepI.y;
+      } else {
+        sideDist.z += deltaDist.z;
+        mapPos.z += stepI.z;
+      }
+    }
+  }
+
+  return false;
+}
+
 fn groundPlane(origin: vec3f, dir: vec3f) -> vec4f {
   if (abs(dir.y) < 0.0001) {
     return vec4f(0.0);
@@ -147,17 +227,34 @@ fn groundPlane(origin: vec3f, dir: vec3f) -> vec4f {
     return vec4f(0.0);
   }
   let p = origin + dir * t;
-  if (p.x < -0.5 || p.x > f32(uniforms.dimX) + 0.5 ||
-      p.z < -0.5 || p.z > f32(uniforms.dimZ) + 0.5) {
+  if (p.x < -1.0 || p.x > f32(uniforms.dimX) + 1.0 ||
+      p.z < -1.0 || p.z > f32(uniforms.dimZ) + 1.0) {
     return vec4f(0.0);
   }
   let fx = fract(p.x);
   let fz = fract(p.z);
   let lineW = 0.02;
   let grid = f32(fx < lineW || fx > 1.0 - lineW || fz < lineW || fz > 1.0 - lineW);
-  let base = vec3f(0.12, 0.12, 0.18);
-  let line = vec3f(0.22, 0.22, 0.30);
+  var base = vec3f(0.14, 0.14, 0.20);
+
+  let groundNdotL = max(dot(vec3f(0.0, 1.0, 0.0), uniforms.sunDir), 0.0);
+  let groundSunLight = uniforms.sunColor * uniforms.sunIntensity * groundNdotL * 0.3;
+  base = base * (uniforms.ambientIntensity + groundSunLight);
+
+  let inShadow = traceShadow(p + vec3f(0.0, 0.01, 0.0), uniforms.sunDir);
+  if (inShadow) {
+    base = base * (1.0 - uniforms.shadowDarkness);
+  }
+
+  let line = base + vec3f(0.08, 0.08, 0.10);
   return vec4f(mix(base, line, grid * 0.6), t);
+}
+
+fn skyColor(dir: vec3f) -> vec3f {
+  let t = dir.y * 0.5 + 0.5;
+  let bottom = vec3f(0.094, 0.094, 0.149);
+  let top = vec3f(0.12, 0.13, 0.22);
+  return mix(bottom, top, clamp(t, 0.0, 1.0));
 }
 
 @compute @workgroup_size(8, 8, 1)
@@ -185,17 +282,32 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var color: vec3f;
   if (hit.hit) {
     let baseColor = blockColor(hit.blockType);
-    let shade = shadeFace(hit.normal);
-    color = baseColor * shade;
+
+    let hitCenter = hit.pos + vec3f(0.5);
+    let shadowOrigin = hitCenter + hit.normal * 0.51;
+    let inShadow = traceShadow(shadowOrigin, uniforms.sunDir);
+
+    let ndotl = max(dot(hit.normal, uniforms.sunDir), 0.0);
+    let diffuse = uniforms.sunColor * uniforms.sunIntensity * ndotl;
+
+    var lighting = vec3f(uniforms.ambientIntensity);
+    if (!inShadow) {
+      lighting = lighting + diffuse;
+    } else {
+      lighting = lighting * (1.0 - uniforms.shadowDarkness);
+    }
+
+    color = baseColor * lighting;
   } else {
     let gp = groundPlane(uniforms.eye, dir);
     if (gp.w > 0.0) {
       color = gp.xyz;
     } else {
-      color = vec3f(0.094, 0.094, 0.149);
+      color = skyColor(dir);
     }
   }
 
+  color = clamp(color, vec3f(0.0), vec3f(1.0));
   textureStore(output, vec2i(i32(px), i32(py)), vec4f(color, 1.0));
 }
 `;
@@ -227,7 +339,7 @@ fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
 }
 `;
 
-const UNIFORM_SIZE = 80;
+const UNIFORM_SIZE = 128;
 
 export function packVoxelData(voxels: Uint8Array): Uint32Array {
   const wordCount = Math.ceil(voxels.length / 4);
@@ -248,6 +360,17 @@ export function packPalette(colors: number[]): Uint32Array {
   return packed;
 }
 
+export function sunDirFromAngles(azimuth: number, elevation: number): [number, number, number] {
+  const azRad = (azimuth * Math.PI) / 180;
+  const elRad = (elevation * Math.PI) / 180;
+  const cosEl = Math.cos(elRad);
+  return [
+    cosEl * Math.sin(azRad),
+    Math.sin(elRad),
+    cosEl * Math.cos(azRad),
+  ];
+}
+
 export function buildUniformData(
   eye: [number, number, number],
   forward: [number, number, number],
@@ -257,7 +380,8 @@ export function buildUniformData(
   aspect: number,
   width: number,
   height: number,
-  dims: Vector3
+  dims: Vector3,
+  settings: RenderSettings
 ): Float32Array {
   const buf = new Float32Array(UNIFORM_SIZE / 4);
   buf[0] = eye[0]; buf[1] = eye[1]; buf[2] = eye[2]; buf[3] = fov;
@@ -270,6 +394,14 @@ export function buildUniformData(
   u32View[17] = dims.y;
   u32View[18] = dims.z;
   u32View[19] = 0;
+
+  const sunDir = sunDirFromAngles(settings.sunAzimuth, settings.sunElevation);
+  buf[20] = sunDir[0]; buf[21] = sunDir[1]; buf[22] = sunDir[2];
+  buf[23] = settings.sunIntensity;
+  buf[24] = settings.sunColorR; buf[25] = settings.sunColorG; buf[26] = settings.sunColorB;
+  buf[27] = settings.ambientIntensity;
+  buf[28] = settings.shadowDarkness;
+  buf[29] = 0; buf[30] = 0; buf[31] = 0;
 
   return buf;
 }
@@ -444,7 +576,8 @@ export class WebGPURayTracer {
   updateCamera(
     eye: [number, number, number],
     target: [number, number, number],
-    fov: number
+    fov: number,
+    settings: RenderSettings
   ): void {
     if (this.disposed) return;
 
@@ -473,11 +606,9 @@ export class WebGPURayTracer {
       eye, forward, right, up,
       fovRad, aspect,
       this.width, this.height,
-      this.dimensions
+      this.dimensions,
+      settings
     );
-
-    const u32View = new Uint32Array(data.buffer);
-    u32View[19] = 0;
 
     this.device.queue.writeBuffer(this.uniformBuffer, 0, data);
   }

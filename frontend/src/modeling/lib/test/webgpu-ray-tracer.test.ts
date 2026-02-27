@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { packVoxelData, packPalette, buildUniformData } from "../webgpu-ray-tracer";
+import { packVoxelData, packPalette, buildUniformData, sunDirFromAngles, defaultRenderSettings } from "../webgpu-ray-tracer";
 
 describe("WebGPU Ray Tracer utilities", () => {
   describe("packVoxelData", () => {
@@ -72,7 +72,32 @@ describe("WebGPU Ray Tracer utilities", () => {
     });
   });
 
+  describe("sunDirFromAngles", () => {
+    it("should point straight up at 90 degree elevation", () => {
+      const dir = sunDirFromAngles(0, 90);
+      expect(dir[0]).toBeCloseTo(0);
+      expect(dir[1]).toBeCloseTo(1);
+      expect(dir[2]).toBeCloseTo(0);
+    });
+
+    it("should point along +z at 0 elevation 0 azimuth", () => {
+      const dir = sunDirFromAngles(0, 0);
+      expect(dir[0]).toBeCloseTo(0);
+      expect(dir[1]).toBeCloseTo(0);
+      expect(dir[2]).toBeCloseTo(1);
+    });
+
+    it("should point along +x at 0 elevation 90 azimuth", () => {
+      const dir = sunDirFromAngles(90, 0);
+      expect(dir[0]).toBeCloseTo(1);
+      expect(dir[1]).toBeCloseTo(0);
+      expect(dir[2]).toBeCloseTo(0, 5);
+    });
+  });
+
   describe("buildUniformData", () => {
+    const settings = { ...defaultRenderSettings };
+
     it("should produce correctly sized buffer", () => {
       const data = buildUniformData(
         [0, 5, 10],
@@ -83,10 +108,11 @@ describe("WebGPU Ray Tracer utilities", () => {
         1.5,
         800,
         600,
-        { x: 32, y: 32, z: 32 }
+        { x: 32, y: 32, z: 32 },
+        settings
       );
-      expect(data.length).toBe(20);
-      expect(data.byteLength).toBe(80);
+      expect(data.length).toBe(32);
+      expect(data.byteLength).toBe(128);
     });
 
     it("should pack eye position at offset 0", () => {
@@ -99,7 +125,8 @@ describe("WebGPU Ray Tracer utilities", () => {
         1.0,
         100,
         100,
-        { x: 16, y: 16, z: 16 }
+        { x: 16, y: 16, z: 16 },
+        settings
       );
       expect(data[0]).toBeCloseTo(1.5);
       expect(data[1]).toBeCloseTo(2.5);
@@ -110,7 +137,7 @@ describe("WebGPU Ray Tracer utilities", () => {
       const fov = 1.2;
       const data = buildUniformData(
         [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
-        fov, 1.0, 100, 100, { x: 8, y: 8, z: 8 }
+        fov, 1.0, 100, 100, { x: 8, y: 8, z: 8 }, settings
       );
       expect(data[3]).toBeCloseTo(fov);
     });
@@ -118,7 +145,7 @@ describe("WebGPU Ray Tracer utilities", () => {
     it("should pack dimensions as u32", () => {
       const data = buildUniformData(
         [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
-        1.0, 1.0, 100, 100, { x: 64, y: 32, z: 16 }
+        1.0, 1.0, 100, 100, { x: 64, y: 32, z: 16 }, settings
       );
       const u32View = new Uint32Array(data.buffer);
       expect(u32View[16]).toBe(64);
@@ -129,7 +156,7 @@ describe("WebGPU Ray Tracer utilities", () => {
     it("should pack aspect ratio", () => {
       const data = buildUniformData(
         [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
-        1.0, 1.777, 1920, 1080, { x: 8, y: 8, z: 8 }
+        1.0, 1.777, 1920, 1080, { x: 8, y: 8, z: 8 }, settings
       );
       expect(data[7]).toBeCloseTo(1.777);
     });
@@ -137,10 +164,37 @@ describe("WebGPU Ray Tracer utilities", () => {
     it("should pack width and height", () => {
       const data = buildUniformData(
         [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
-        1.0, 1.0, 1920, 1080, { x: 8, y: 8, z: 8 }
+        1.0, 1.0, 1920, 1080, { x: 8, y: 8, z: 8 }, settings
       );
       expect(data[11]).toBeCloseTo(1920);
       expect(data[15]).toBeCloseTo(1080);
+    });
+
+    it("should pack sun intensity at offset 23", () => {
+      const customSettings = { ...settings, sunIntensity: 2.5 };
+      const data = buildUniformData(
+        [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
+        1.0, 1.0, 100, 100, { x: 8, y: 8, z: 8 }, customSettings
+      );
+      expect(data[23]).toBeCloseTo(2.5);
+    });
+
+    it("should pack ambient intensity at offset 27", () => {
+      const customSettings = { ...settings, ambientIntensity: 0.6 };
+      const data = buildUniformData(
+        [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
+        1.0, 1.0, 100, 100, { x: 8, y: 8, z: 8 }, customSettings
+      );
+      expect(data[27]).toBeCloseTo(0.6);
+    });
+
+    it("should pack shadow darkness at offset 28", () => {
+      const customSettings = { ...settings, shadowDarkness: 0.8 };
+      const data = buildUniformData(
+        [0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0],
+        1.0, 1.0, 100, 100, { x: 8, y: 8, z: 8 }, customSettings
+      );
+      expect(data[28]).toBeCloseTo(0.8);
     });
   });
 });

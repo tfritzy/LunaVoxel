@@ -6,6 +6,7 @@ import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import { ExportType } from "@/modeling/export/model-exporter";
 import { BlockDrawer } from "./blocks/BlockDrawer";
+import type { RenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
 
 interface ProjectLayoutProps {
   projectId: string;
@@ -23,6 +24,8 @@ interface ProjectLayoutProps {
   onToolOptionChange: (name: string, value: string) => void;
   rayTracingEnabled?: boolean;
   onRayTracingToggle?: (enabled: boolean) => void;
+  renderSettings?: RenderSettings;
+  onRenderSettingsChange?: (settings: RenderSettings) => void;
 }
 
 export const ProjectLayout = ({
@@ -41,6 +44,8 @@ export const ProjectLayout = ({
   onToolOptionChange,
   rayTracingEnabled,
   onRayTracingToggle,
+  renderSettings,
+  onRenderSettingsChange,
 }: ProjectLayoutProps) => {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
@@ -48,8 +53,6 @@ export const ProjectLayout = ({
         onExport={onExport}
         onUndo={onUndo}
         onRedo={onRedo}
-        rayTracingEnabled={rayTracingEnabled}
-        onRayTracingToggle={onRayTracingToggle}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -73,6 +76,10 @@ export const ProjectLayout = ({
           projectId={projectId}
           toolOptions={toolOptions}
           onToolOptionChange={onToolOptionChange}
+          rayTracingEnabled={rayTracingEnabled}
+          onRayTracingToggle={onRayTracingToggle}
+          renderSettings={renderSettings}
+          onRenderSettingsChange={onRenderSettingsChange}
         />
       </div>
     </div>

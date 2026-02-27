@@ -8,7 +8,8 @@ import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import type { BlockModificationMode } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
-import { WebGPURayTracer } from "@/modeling/lib/webgpu-ray-tracer";
+import { WebGPURayTracer, defaultRenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
+import type { RenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
 
 export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,6 +20,7 @@ export const ProjectViewPage = () => {
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
   const [rayTracingEnabled, setRayTracingEnabled] = useState(false);
+  const [renderSettings, setRenderSettings] = useState<RenderSettings>({ ...defaultRenderSettings });
   const [webGPUSupported] = useState(() => WebGPURayTracer.isSupported());
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
@@ -167,6 +169,13 @@ export const ProjectViewPage = () => {
     }
   }, []);
 
+  const handleRenderSettingsChange = useCallback((settings: RenderSettings) => {
+    setRenderSettings(settings);
+    if (engineRef.current) {
+      engineRef.current.setRenderSettings(settings);
+    }
+  }, []);
+
   return (
     <ProjectLayout
       projectId={projectId}
@@ -183,6 +192,8 @@ export const ProjectViewPage = () => {
       onToolOptionChange={handleToolOptionChange}
       rayTracingEnabled={rayTracingEnabled}
       onRayTracingToggle={webGPUSupported ? handleRayTracingToggle : undefined}
+      renderSettings={renderSettings}
+      onRenderSettingsChange={webGPUSupported ? handleRenderSettingsChange : undefined}
     >
       <div
         ref={containerCallbackRef}
