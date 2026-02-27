@@ -1,6 +1,5 @@
 export type ToolType =
   | "MoveSelection"
-  | "ObjectTransform"
   | "Rect"
   | "Shape"
   | "Brush"

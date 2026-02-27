@@ -12,7 +12,6 @@ import { MoveSelectionTool } from "./tools/move-selection-tool";
 import { BrushTool } from "./tools/brush-tool";
 import { FillTool } from "./tools/fill-tool";
 import { SprayPaintTool } from "./tools/spray-paint-tool";
-import { ObjectTransformTool } from "./tools/object-transform-tool";
 import type { Tool, ToolOption } from "./tool-interface";
 import { raycastVoxels } from "./voxel-raycast";
 
@@ -168,8 +167,6 @@ export const Builder = class {
     switch (toolType) {
       case "MoveSelection":
         return new MoveSelectionTool();
-      case "ObjectTransform":
-        return new ObjectTransformTool();
       case "Rect":
         return new RectTool();
       case "Shape":
