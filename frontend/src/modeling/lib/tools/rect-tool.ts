@@ -35,7 +35,6 @@ export class RectTool implements Tool {
   private resizeBaseBounds: RectBounds | null = null;
   private isDraggingShape = false;
   private dragStartWorldPos: THREE.Vector3 | null = null;
-  private dragBaseBounds: RectBounds | null = null;
   private boundsBoxHelper: BoundsBox | null = null;
   private handleMeshes: THREE.Mesh[] = [];
   private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.25, 8, 8);
@@ -270,7 +269,7 @@ export class RectTool implements Tool {
 
     if (this.isInsidePendingBounds(context, mousePos)) {
       this.isDraggingShape = true;
-      this.dragBaseBounds = { ...this.pending.bounds };
+      this.resizeBaseBounds = { ...this.pending.bounds };
       this.dragStartWorldPos = this.getMouseWorldOnBoundsPlane(context, mousePos, this.pending.bounds);
       return true;
     }
@@ -279,8 +278,8 @@ export class RectTool implements Tool {
   }
 
   onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2, shiftKey?: boolean): void {
-    if (this.isDraggingShape && this.dragBaseBounds && this.dragStartWorldPos) {
-      const currentWorldPos = this.getMouseWorldOnBoundsPlane(context, mousePos, this.dragBaseBounds);
+    if (this.isDraggingShape && this.resizeBaseBounds && this.dragStartWorldPos) {
+      const currentWorldPos = this.getMouseWorldOnBoundsPlane(context, mousePos, this.resizeBaseBounds);
       if (!currentWorldPos) return;
 
       const diff = currentWorldPos.clone().sub(this.dragStartWorldPos);
@@ -289,12 +288,12 @@ export class RectTool implements Tool {
       const dz = Math.round(diff.z);
 
       const newBounds: RectBounds = {
-        minX: this.dragBaseBounds.minX + dx,
-        maxX: this.dragBaseBounds.maxX + dx,
-        minY: this.dragBaseBounds.minY + dy,
-        maxY: this.dragBaseBounds.maxY + dy,
-        minZ: this.dragBaseBounds.minZ + dz,
-        maxZ: this.dragBaseBounds.maxZ + dz,
+        minX: this.resizeBaseBounds.minX + dx,
+        maxX: this.resizeBaseBounds.maxX + dx,
+        minY: this.resizeBaseBounds.minY + dy,
+        maxY: this.resizeBaseBounds.maxY + dy,
+        minZ: this.resizeBaseBounds.minZ + dz,
+        maxZ: this.resizeBaseBounds.maxZ + dz,
       };
 
       this.movePendingBounds(context, newBounds);
@@ -384,7 +383,6 @@ export class RectTool implements Tool {
     this.resizeBaseBounds = null;
     this.isDraggingShape = false;
     this.dragStartWorldPos = null;
-    this.dragBaseBounds = null;
   }
 
   resizePendingBounds(context: ToolContext, bounds: RectBounds): void {
@@ -488,7 +486,6 @@ export class RectTool implements Tool {
     this.resizeBaseBounds = null;
     this.isDraggingShape = false;
     this.dragStartWorldPos = null;
-    this.dragBaseBounds = null;
     this.clearBoundsBox(context);
   }
 
@@ -514,30 +511,15 @@ export class RectTool implements Tool {
     if (!this.pending) return false;
 
     const bounds = this.pending.bounds;
-    const corners = [
+    const box = new THREE.Box3(
       new THREE.Vector3(bounds.minX, bounds.minY, bounds.minZ),
-      new THREE.Vector3(bounds.minX, bounds.minY, bounds.maxZ + 1),
-      new THREE.Vector3(bounds.minX, bounds.maxY + 1, bounds.minZ),
-      new THREE.Vector3(bounds.minX, bounds.maxY + 1, bounds.maxZ + 1),
-      new THREE.Vector3(bounds.maxX + 1, bounds.minY, bounds.minZ),
-      new THREE.Vector3(bounds.maxX + 1, bounds.minY, bounds.maxZ + 1),
-      new THREE.Vector3(bounds.maxX + 1, bounds.maxY + 1, bounds.minZ),
       new THREE.Vector3(bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1),
-    ];
+    );
 
-    let minScreenX = Infinity, maxScreenX = -Infinity;
-    let minScreenY = Infinity, maxScreenY = -Infinity;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mousePos, context.camera);
 
-    for (const corner of corners) {
-      const screen = corner.project(context.camera);
-      minScreenX = Math.min(minScreenX, screen.x);
-      maxScreenX = Math.max(maxScreenX, screen.x);
-      minScreenY = Math.min(minScreenY, screen.y);
-      maxScreenY = Math.max(maxScreenY, screen.y);
-    }
-
-    return mousePos.x >= minScreenX && mousePos.x <= maxScreenX &&
-           mousePos.y >= minScreenY && mousePos.y <= maxScreenY;
+    return raycaster.ray.intersectBox(box, new THREE.Vector3()) !== null;
   }
 
   private getMouseWorldOnBoundsPlane(context: ToolContext, mousePos: THREE.Vector2, bounds: RectBounds): THREE.Vector3 | null {
