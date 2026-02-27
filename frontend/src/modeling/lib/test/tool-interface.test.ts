@@ -661,6 +661,84 @@ describe("Tool Interface", () => {
 
       expect(mockContext.previewBuffer[3 * dimensions.y * dimensions.z + 3 * dimensions.z + 3]).toBeGreaterThan(0);
     });
+
+    it("should move pending shape when dragging inside bounds", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      expect(tool.hasPendingOperation()).toBe(true);
+      const originalBounds = tool.getPendingBounds()!;
+      expect(originalBounds.minX).toBe(1);
+      expect(originalBounds.minY).toBe(1);
+
+      const centerScreen = new THREE.Vector3(2.5, 2.5, 2.5).project(mockContext.camera);
+      const mousePos = new THREE.Vector2(centerScreen.x, centerScreen.y);
+
+      const handled = tool.onPendingMouseDown(mockContext, mousePos);
+      expect(handled).toBe(true);
+
+      const offsetScreen = new THREE.Vector3(4.5, 4.5, 4.5).project(mockContext.camera);
+      const newMousePos = new THREE.Vector2(offsetScreen.x, offsetScreen.y);
+      tool.onPendingMouseMove(mockContext, newMousePos);
+
+      const movedBounds = tool.getPendingBounds()!;
+      const sizeX = movedBounds.maxX - movedBounds.minX;
+      const sizeY = movedBounds.maxY - movedBounds.minY;
+      const sizeZ = movedBounds.maxZ - movedBounds.minZ;
+      expect(sizeX).toBe(2);
+      expect(sizeY).toBe(2);
+      expect(sizeZ).toBe(2);
+    });
+
+    it("should clamp moved bounds to dimensions", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      tool.resizePendingBounds(mockContext, {
+        minX: -10, maxX: -5,
+        minY: 1, maxY: 3,
+        minZ: 1, maxZ: 3,
+      });
+
+      const bounds = tool.getPendingBounds()!;
+      expect(bounds.minX).toBe(0);
+    });
+
+    it("should clear drag state on pending mouse up", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const centerScreen = new THREE.Vector3(2.5, 2.5, 2.5).project(mockContext.camera);
+      const mousePos = new THREE.Vector2(centerScreen.x, centerScreen.y);
+      tool.onPendingMouseDown(mockContext, mousePos);
+      tool.onPendingMouseUp(mockContext, mousePos);
+
+      expect(tool.hasPendingOperation()).toBe(true);
+    });
+
+    it("should not handle pending mouse down when clicking outside bounds", () => {
+      tool.onMouseUp(mockContext, {
+        startGridPosition: new THREE.Vector3(1, 1, 1),
+        currentGridPosition: new THREE.Vector3(3, 3, 3),
+        startMousePosition: new THREE.Vector2(0, 0),
+        currentMousePosition: new THREE.Vector2(0.5, 0.5),
+      });
+
+      const handled = tool.onPendingMouseDown(mockContext, new THREE.Vector2(-0.99, -0.99));
+      expect(handled).toBe(false);
+    });
   });
 
   describe("RectTool Shift Snap", () => {
