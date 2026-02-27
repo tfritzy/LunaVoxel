@@ -1,5 +1,4 @@
 import type { Vector3 } from "@/state/types";
-import { BLOCK_TYPE_MASK } from "./voxel-constants";
 
 const computeShader = /* wgsl */ `
 struct Uniforms {

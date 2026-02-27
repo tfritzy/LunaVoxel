@@ -30,6 +30,9 @@ export class VoxelEngine {
   private rayTracingEnabled = false;
   private rayTraceCanvas: HTMLCanvasElement | null = null;
   private voxelWorldBuffer: Uint8Array;
+  private rtVoxelsDirty = true;
+  private rtPaletteDirty = true;
+  private rtUnsubscribe: (() => void) | null = null;
 
   constructor(options: VoxelEngineOptions) {
     this.container = options.container;
@@ -268,12 +271,20 @@ export class VoxelEngine {
         this.rayTracer.updatePalette(state.blocks.colors);
       }
 
+      this.rtUnsubscribe = this.stateStore.subscribe(() => {
+        this.rtVoxelsDirty = true;
+        this.rtPaletteDirty = true;
+      });
+
       this.renderer.domElement.style.display = "none";
       this.container.appendChild(this.rayTraceCanvas);
       this.rayTracingEnabled = true;
     } else {
       this.rayTracingEnabled = false;
       this.renderer.domElement.style.display = "block";
+
+      this.rtUnsubscribe?.();
+      this.rtUnsubscribe = null;
 
       if (this.rayTraceCanvas && this.container.contains(this.rayTraceCanvas)) {
         this.container.removeChild(this.rayTraceCanvas);
@@ -313,8 +324,19 @@ export class VoxelEngine {
     updateBoundsVisibility(this.camera.position, this.boundsEdges);
 
     if (this.rayTracingEnabled && this.rayTracer) {
-      this.gatherVoxelData();
-      this.rayTracer.updateVoxels(this.voxelWorldBuffer);
+      if (this.rtVoxelsDirty) {
+        this.gatherVoxelData();
+        this.rayTracer.updateVoxels(this.voxelWorldBuffer);
+        this.rtVoxelsDirty = false;
+      }
+
+      if (this.rtPaletteDirty) {
+        const colors = this.stateStore.getState().blocks.colors;
+        if (colors.length > 0) {
+          this.rayTracer.updatePalette(colors);
+        }
+        this.rtPaletteDirty = false;
+      }
 
       const pos = this.camera.position;
       const target = this.controls.getTarget();
@@ -323,11 +345,6 @@ export class VoxelEngine {
         [target.x, target.y, target.z],
         this.camera.fov
       );
-
-      const state = this.stateStore.getState();
-      if (state.blocks.colors.length > 0) {
-        this.rayTracer.updatePalette(state.blocks.colors);
-      }
 
       this.rayTracer.render();
     } else {
@@ -343,6 +360,9 @@ export class VoxelEngine {
     window.removeEventListener("resize", this.handleResize);
     this.renderer.dispose();
     this.projectManager.dispose();
+
+    this.rtUnsubscribe?.();
+    this.rtUnsubscribe = null;
 
     if (this.rayTracer) {
       this.rayTracer.dispose();
