@@ -282,8 +282,7 @@ export class ObjectTransformTool implements Tool {
       const dy = screenPos.y - mousePos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      const hitRadius = HANDLE_HIT_RADIUS / (context.camera as THREE.PerspectiveCamera).aspect;
-      const normalizedHitRadius = hitRadius * 0.05;
+      const normalizedHitRadius = HANDLE_HIT_RADIUS * 0.05;
 
       if (dist < normalizedHitRadius && dist < closestDist) {
         closestDist = dist;
