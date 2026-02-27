@@ -1,25 +1,25 @@
-import { useEffect, type ComponentType } from "react";
-import {
-  Eraser,
-  Paintbrush,
-  PlusSquare,
-  Pipette,
-  Wand2,
-  Hand,
-  RectangleHorizontal,
-  Pencil,
-  PaintBucket,
-  BoxSelect,
-  Circle,
-  Lasso,
-  SprayCan,
-  Box,
-  type LucideProps,
-} from "lucide-react";
+import { useEffect, type ComponentType, type SVGProps } from "react";
 import { Button } from "@/components/ui/button";
 import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import type { BlockModificationMode } from "@/state/types";
+import {
+  AttachModeIcon,
+  PaintModeIcon,
+  EraseModeIcon,
+  MoveSelectionIcon,
+  RectToolIcon,
+  ShapeToolIcon,
+  BrushToolIcon,
+  SprayPaintToolIcon,
+  FillToolIcon,
+  BlockPickerIcon,
+  SelectBoxIcon,
+  MagicWandIcon,
+  RectSelectIcon,
+  CircleSelectIcon,
+  LassoSelectIcon,
+} from "./ToolIcons";
 
 interface FloatingToolbarProps {
   currentTool: ToolType;
@@ -31,11 +31,11 @@ interface FloatingToolbarProps {
 
 const INACTIVE_LED_COLOR = "hsl(234 13% 31%)";
 
-const selectShapeIcons: Record<string, ComponentType<LucideProps>> = {
-  Magic: Wand2,
-  Rectangle: BoxSelect,
-  Circle: Circle,
-  Lasso: Lasso,
+const selectShapeIcons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+  Magic: MagicWandIcon,
+  Rectangle: RectSelectIcon,
+  Circle: CircleSelectIcon,
+  Lasso: LassoSelectIcon,
 };
 
 const modeConfig: {
@@ -44,7 +44,7 @@ const modeConfig: {
   shortcut: string;
   color: string;
   glowColor: string;
-  icon: ComponentType<LucideProps>;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
 }[] = [
   {
     tag: "Attach",
@@ -52,7 +52,7 @@ const modeConfig: {
     shortcut: "A",
     color: "hsl(115 54% 76%)",
     glowColor: "hsl(115 54% 76% / 0.4)",
-    icon: PlusSquare,
+    icon: AttachModeIcon,
   },
   {
     tag: "Paint",
@@ -60,7 +60,7 @@ const modeConfig: {
     shortcut: "T",
     color: "hsl(217 92% 76%)",
     glowColor: "hsl(217 92% 76% / 0.4)",
-    icon: Paintbrush,
+    icon: PaintModeIcon,
   },
   {
     tag: "Erase",
@@ -68,7 +68,7 @@ const modeConfig: {
     shortcut: "E",
     color: "hsl(343 81% 75%)",
     glowColor: "hsl(343 81% 75% / 0.4)",
-    icon: Eraser,
+    icon: EraseModeIcon,
   },
 ];
 
@@ -131,7 +131,7 @@ export const FloatingToolbar = ({
   }, [onToolChange, onModeChange]);
 
   const selectShapeOption = toolOptions.find((o) => o.name === "Select Shape");
-  const SelectIcon = (selectShapeOption && selectShapeIcons[selectShapeOption.currentValue]) || BoxSelect;
+  const SelectIcon = (selectShapeOption && selectShapeIcons[selectShapeOption.currentValue]) || SelectBoxIcon;
 
   return (
     <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50">
@@ -183,7 +183,7 @@ export const FloatingToolbar = ({
             }`}
             title="Move Selection (M)"
           >
-            <Hand className="min-w-8 min-h-8" />
+            <MoveSelectionIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">M</div>
           </Button>
           <Button
@@ -195,7 +195,7 @@ export const FloatingToolbar = ({
             }`}
             title="Rect Tool (R)"
           >
-            <RectangleHorizontal className="min-w-8 min-h-8" />
+            <RectToolIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">R</div>
           </Button>
           <Button
@@ -207,7 +207,7 @@ export const FloatingToolbar = ({
             }`}
             title="Shape Tool (H)"
           >
-            <Box className="min-w-8 min-h-8" />
+            <ShapeToolIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">H</div>
           </Button>
           <Button
@@ -219,7 +219,7 @@ export const FloatingToolbar = ({
             }`}
             title="Brush Tool (B)"
           >
-            <Pencil className="min-w-8 min-h-8" />
+            <BrushToolIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">B</div>
           </Button>
           <Button
@@ -231,7 +231,7 @@ export const FloatingToolbar = ({
             }`}
             title="Spray Paint Tool (P)"
           >
-            <SprayCan className="min-w-8 min-h-8" />
+            <SprayPaintToolIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">P</div>
           </Button>
           <Button
@@ -243,7 +243,7 @@ export const FloatingToolbar = ({
             }`}
             title="Fill Tool (F)"
           >
-            <PaintBucket className="min-w-8 min-h-8" />
+            <FillToolIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">F</div>
           </Button>
           <Button
@@ -255,7 +255,7 @@ export const FloatingToolbar = ({
             }`}
             title="Block Picker (C)"
           >
-            <Pipette className="min-w-8 min-h-8" />
+            <BlockPickerIcon className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">C</div>
           </Button>
           <Button
