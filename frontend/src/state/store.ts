@@ -56,6 +56,7 @@ export type Reducers = {
   setVoxelSelection: (objectId: string, frame: VoxelFrame | null) => void;
   moveSelection: (projectId: string, offset: Vector3) => void;
   moveObject: (projectId: string, objectId: string, offset: Vector3) => void;
+  resizeObject: (projectId: string, objectId: string, newDimensions: Vector3, newPosition: Vector3) => void;
   beginSelectionMove: (projectId: string) => void;
   commitSelectionMove: (projectId: string) => void;
   setActiveObject: (objectId: string) => void;
@@ -676,6 +677,21 @@ const reducers: Reducers = {
       x: obj.position.x + offset.x,
       y: obj.position.y + offset.y,
       z: obj.position.z + offset.z,
+    };
+    notify();
+  },
+  resizeObject: (_projectId, objectId, newDimensions, newPosition) => {
+    const obj = getObjectById(objectId);
+    if (!obj) return;
+    obj.dimensions = {
+      x: Math.max(1, Math.round(newDimensions.x)),
+      y: Math.max(1, Math.round(newDimensions.y)),
+      z: Math.max(1, Math.round(newDimensions.z)),
+    };
+    obj.position = {
+      x: Math.round(newPosition.x),
+      y: Math.round(newPosition.y),
+      z: Math.round(newPosition.z),
     };
     notify();
   },

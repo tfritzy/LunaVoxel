@@ -41,6 +41,7 @@ describe("Tool Interface", () => {
       setVoxelSelection: () => {},
       moveSelection: () => {},
       moveObject: () => {},
+      resizeObject: () => {},
       beginSelectionMove: () => {},
       commitSelectionMove: () => {},
       selectAllVoxels: () => {},

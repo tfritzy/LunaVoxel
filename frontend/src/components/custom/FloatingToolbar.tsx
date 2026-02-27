@@ -14,6 +14,7 @@ import {
   Lasso,
   SprayCan,
   Shapes,
+  Scaling,
   type LucideProps,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,9 @@ export const FloatingToolbar = ({
       switch (event.key) {
         case "m":
           onToolChange("MoveSelection");
+          break;
+        case "g":
+          onToolChange("ObjectTransform");
           break;
         case "a":
           onModeChange({ tag: "Attach" });
@@ -185,6 +189,18 @@ export const FloatingToolbar = ({
           >
             <Move className="min-w-8 min-h-8" />
             <div className="absolute bottom-0.5 right-0.5 text-xs px-1">M</div>
+          </Button>
+          <Button
+            onClick={() => onToolChange("ObjectTransform")}
+            className={`relative rounded-none bg-background hover:bg-background hover:border-accent/75 hover:text-accent/75 w-16 h-16 p-0 border-2 transition-all ${
+              currentTool === "ObjectTransform"
+                ? "border-accent text-accent"
+                : "border-secondary text-secondary"
+            }`}
+            title="Object Transform (G)"
+          >
+            <Scaling className="min-w-8 min-h-8" />
+            <div className="absolute bottom-0.5 right-0.5 text-xs px-1">G</div>
           </Button>
           <Button
             onClick={() => onToolChange("Rect")}
