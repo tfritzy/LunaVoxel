@@ -8,6 +8,9 @@ import type { ToolType } from "@/modeling/lib/tool-type";
 import type { ToolOption } from "@/modeling/lib/tool-interface";
 import type { BlockModificationMode } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
+import { WebGPURayTracer, defaultRenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
+import type { RenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
+import type { ViewMode } from "@/components/custom/ProjectHeader";
 
 export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -17,6 +20,9 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>("model");
+  const [renderSettings, setRenderSettings] = useState<RenderSettings>({ ...defaultRenderSettings });
+  const [webGPUSupported] = useState(() => WebGPURayTracer.isSupported());
   const project = useGlobalState((state) => state.project);
   const projectId = project.id;
   const atlasData = useAtlas();
@@ -157,6 +163,28 @@ export const ProjectViewPage = () => {
     }
   }, [currentTool]);
 
+  const handleRayTracingToggle = useCallback(async (enabled: boolean) => {
+    if (engineRef.current) {
+      await engineRef.current.setRayTracingEnabled(enabled);
+    }
+  }, []);
+
+  const handleViewModeChange = useCallback(async (mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode === "render") {
+      await handleRayTracingToggle(true);
+    } else {
+      await handleRayTracingToggle(false);
+    }
+  }, [handleRayTracingToggle]);
+
+  const handleRenderSettingsChange = useCallback((settings: RenderSettings) => {
+    setRenderSettings(settings);
+    if (engineRef.current) {
+      engineRef.current.setRenderSettings(settings);
+    }
+  }, []);
+
   return (
     <ProjectLayout
       projectId={projectId}
@@ -171,6 +199,11 @@ export const ProjectViewPage = () => {
       onRedo={handleRedo}
       toolOptions={toolOptions}
       onToolOptionChange={handleToolOptionChange}
+      viewMode={viewMode}
+      onViewModeChange={handleViewModeChange}
+      renderTabVisible={webGPUSupported}
+      renderSettings={renderSettings}
+      onRenderSettingsChange={webGPUSupported ? handleRenderSettingsChange : undefined}
     >
       <div
         ref={containerCallbackRef}
