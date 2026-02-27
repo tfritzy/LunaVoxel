@@ -17,9 +17,8 @@ export const RectToolIcon = ({
     className={className}
     {...props}
   >
-    <rect x="3" y="3" width="18" height="18" rx="1" strokeDasharray="4 2" />
-    <circle cx="3" cy="3" r="1.5" fill="currentColor" stroke="none" />
-    <line x1="5" y1="5" x2="18" y2="18" strokeWidth="1.5" strokeDasharray="3 2" />
-    <polyline points="14,18 18,18 18,14" strokeWidth="2" />
+    <path d="M3 10 H14 V21 H3 Z" />
+    <path d="M3 10 L9 4 H20 L14 10" />
+    <path d="M14 10 L20 4 V15 L14 21" />
   </svg>
 );
