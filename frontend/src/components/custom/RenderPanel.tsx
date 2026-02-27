@@ -1,19 +1,15 @@
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Sun, Power, RotateCcw } from "lucide-react";
+import { Sun, RotateCcw } from "lucide-react";
 import type { RenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
 import { defaultRenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
 
 interface RenderPanelProps {
-  enabled: boolean;
-  onToggle: (enabled: boolean) => void;
   settings: RenderSettings;
   onSettingsChange: (settings: RenderSettings) => void;
 }
 
 export const RenderPanel = ({
-  enabled,
-  onToggle,
   settings,
   onSettingsChange,
 }: RenderPanelProps) => {
@@ -29,35 +25,24 @@ export const RenderPanel = ({
   }, [onSettingsChange]);
 
   return (
-    <div className="border-t border-border">
+    <div className="h-full bg-background border-l border-border overflow-y-auto w-56 flex flex-col">
       <div className="w-full flex flex-row justify-between items-center px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <Sun className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Render</h2>
+          <h2 className="text-lg font-semibold">Lighting</h2>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={reset}
-            title="Reset to defaults"
-          >
-            <RotateCcw className="h-3 w-3" />
-          </Button>
-          <Button
-            variant={enabled ? "default" : "outline"}
-            size="sm"
-            className="h-6 gap-1 text-xs px-2"
-            onClick={() => onToggle(!enabled)}
-          >
-            <Power className="h-3 w-3" />
-            {enabled ? "On" : "Off"}
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onClick={reset}
+          title="Reset to defaults"
+        >
+          <RotateCcw className="h-3 w-3" />
+        </Button>
       </div>
 
-      <div className={`px-4 pb-4 space-y-3 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className="px-4 pb-4 space-y-3">
         <div>
           <div className="text-sm text-muted-foreground mb-1">
             Sun Direction: {settings.sunAzimuth}°

@@ -10,6 +10,7 @@ import type { BlockModificationMode } from "@/state/types";
 import { stateStore, useGlobalState } from "@/state/store";
 import { WebGPURayTracer, defaultRenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
 import type { RenderSettings } from "@/modeling/lib/webgpu-ray-tracer";
+import type { ViewMode } from "@/components/custom/ProjectHeader";
 
 export const ProjectViewPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,7 +20,7 @@ export const ProjectViewPage = () => {
   const [currentTool, setCurrentTool] = useState<ToolType>("Rect");
   const [currentMode, setCurrentMode] = useState<BlockModificationMode>({ tag: "Attach" });
   const [toolOptions, setToolOptions] = useState<ToolOption[]>([]);
-  const [rayTracingEnabled, setRayTracingEnabled] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("model");
   const [renderSettings, setRenderSettings] = useState<RenderSettings>({ ...defaultRenderSettings });
   const [webGPUSupported] = useState(() => WebGPURayTracer.isSupported());
   const project = useGlobalState((state) => state.project);
@@ -165,9 +166,17 @@ export const ProjectViewPage = () => {
   const handleRayTracingToggle = useCallback(async (enabled: boolean) => {
     if (engineRef.current) {
       await engineRef.current.setRayTracingEnabled(enabled);
-      setRayTracingEnabled(engineRef.current.isRayTracingActive());
     }
   }, []);
+
+  const handleViewModeChange = useCallback(async (mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode === "render") {
+      await handleRayTracingToggle(true);
+    } else {
+      await handleRayTracingToggle(false);
+    }
+  }, [handleRayTracingToggle]);
 
   const handleRenderSettingsChange = useCallback((settings: RenderSettings) => {
     setRenderSettings(settings);
@@ -190,8 +199,9 @@ export const ProjectViewPage = () => {
       onRedo={handleRedo}
       toolOptions={toolOptions}
       onToolOptionChange={handleToolOptionChange}
-      rayTracingEnabled={rayTracingEnabled}
-      onRayTracingToggle={webGPUSupported ? handleRayTracingToggle : undefined}
+      viewMode={viewMode}
+      onViewModeChange={handleViewModeChange}
+      renderTabVisible={webGPUSupported}
       renderSettings={renderSettings}
       onRenderSettingsChange={webGPUSupported ? handleRenderSettingsChange : undefined}
     >
