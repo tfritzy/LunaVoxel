@@ -33,6 +33,8 @@ export class RectTool implements Tool {
   private lastBounds: RectBounds | null = null;
   private resizingCorner: ResizeCorner | null = null;
   private resizeBaseBounds: RectBounds | null = null;
+  private isDraggingShape = false;
+  private dragStartWorldPos: THREE.Vector3 | null = null;
   private boundsBoxHelper: BoundsBox | null = null;
   private handleMeshes: THREE.Mesh[] = [];
   private static readonly HANDLE_SPHERE_GEOMETRY = new THREE.SphereGeometry(0.25, 8, 8);
@@ -265,10 +267,39 @@ export class RectTool implements Tool {
       return true;
     }
 
+    if (this.isInsidePendingBounds(context, mousePos)) {
+      this.isDraggingShape = true;
+      this.resizeBaseBounds = { ...this.pending.bounds };
+      this.dragStartWorldPos = this.getMouseWorldOnBoundsPlane(context, mousePos, this.pending.bounds);
+      return true;
+    }
+
     return false;
   }
 
   onPendingMouseMove(context: ToolContext, mousePos: THREE.Vector2, shiftKey?: boolean): void {
+    if (this.isDraggingShape && this.resizeBaseBounds && this.dragStartWorldPos) {
+      const currentWorldPos = this.getMouseWorldOnBoundsPlane(context, mousePos, this.resizeBaseBounds);
+      if (!currentWorldPos) return;
+
+      const diff = currentWorldPos.clone().sub(this.dragStartWorldPos);
+      const dx = Math.round(diff.x);
+      const dy = Math.round(diff.y);
+      const dz = Math.round(diff.z);
+
+      const newBounds: RectBounds = {
+        minX: this.resizeBaseBounds.minX + dx,
+        maxX: this.resizeBaseBounds.maxX + dx,
+        minY: this.resizeBaseBounds.minY + dy,
+        maxY: this.resizeBaseBounds.maxY + dy,
+        minZ: this.resizeBaseBounds.minZ + dz,
+        maxZ: this.resizeBaseBounds.maxZ + dz,
+      };
+
+      this.movePendingBounds(context, newBounds);
+      return;
+    }
+
     if (!this.resizingCorner || !this.resizeBaseBounds) return;
 
     const raycaster = new THREE.Raycaster();
@@ -350,6 +381,8 @@ export class RectTool implements Tool {
   onPendingMouseUp(_context: ToolContext, _mousePos: THREE.Vector2): void {
     this.resizingCorner = null;
     this.resizeBaseBounds = null;
+    this.isDraggingShape = false;
+    this.dragStartWorldPos = null;
   }
 
   resizePendingBounds(context: ToolContext, bounds: RectBounds): void {
@@ -366,6 +399,35 @@ export class RectTool implements Tool {
       maxY: clamp(bounds.maxY, dims.y),
       minZ: clamp(bounds.minZ, dims.z),
       maxZ: clamp(bounds.maxZ, dims.z),
+    };
+
+    this.buildFrameFromBounds(context, this.pending.bounds);
+    this.updateBoundsBox(context);
+  }
+
+  private movePendingBounds(context: ToolContext, bounds: RectBounds): void {
+    if (!this.pending) return;
+
+    const dims = getActiveObject(context)!.dimensions;
+    const sizeX = bounds.maxX - bounds.minX;
+    const sizeY = bounds.maxY - bounds.minY;
+    const sizeZ = bounds.maxZ - bounds.minZ;
+
+    let minX = bounds.minX;
+    let minY = bounds.minY;
+    let minZ = bounds.minZ;
+
+    if (minX < 0) minX = 0;
+    if (minY < 0) minY = 0;
+    if (minZ < 0) minZ = 0;
+    if (minX + sizeX > dims.x - 1) minX = dims.x - 1 - sizeX;
+    if (minY + sizeY > dims.y - 1) minY = dims.y - 1 - sizeY;
+    if (minZ + sizeZ > dims.z - 1) minZ = dims.z - 1 - sizeZ;
+
+    this.pending.bounds = {
+      minX, maxX: minX + sizeX,
+      minY, maxY: minY + sizeY,
+      minZ, maxZ: minZ + sizeZ,
     };
 
     this.buildFrameFromBounds(context, this.pending.bounds);
@@ -422,6 +484,8 @@ export class RectTool implements Tool {
     this.pending = null;
     this.resizingCorner = null;
     this.resizeBaseBounds = null;
+    this.isDraggingShape = false;
+    this.dragStartWorldPos = null;
     this.clearBoundsBox(context);
   }
 
@@ -441,6 +505,56 @@ export class RectTool implements Tool {
       this.boundsBoxHelper = null;
     }
     this.clearHandleMeshes();
+  }
+
+  private isInsidePendingBounds(context: ToolContext, mousePos: THREE.Vector2): boolean {
+    if (!this.pending) return false;
+
+    const bounds = this.pending.bounds;
+    const box = new THREE.Box3(
+      new THREE.Vector3(bounds.minX, bounds.minY, bounds.minZ),
+      new THREE.Vector3(bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1),
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mousePos, context.camera);
+
+    return raycaster.ray.intersectBox(box, new THREE.Vector3()) !== null;
+  }
+
+  private getMouseWorldOnBoundsPlane(context: ToolContext, mousePos: THREE.Vector2, bounds: RectBounds): THREE.Vector3 | null {
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mousePos, context.camera);
+
+    const center = new THREE.Vector3(
+      (bounds.minX + bounds.maxX + 1) / 2,
+      (bounds.minY + bounds.maxY + 1) / 2,
+      (bounds.minZ + bounds.maxZ + 1) / 2,
+    );
+
+    const viewDir = new THREE.Vector3();
+    context.camera.getWorldDirection(viewDir);
+
+    const normal = new THREE.Vector3();
+    const absX = Math.abs(viewDir.x);
+    const absY = Math.abs(viewDir.y);
+    const absZ = Math.abs(viewDir.z);
+
+    if (absX >= absY && absX >= absZ) {
+      normal.set(Math.sign(viewDir.x), 0, 0);
+    } else if (absY >= absX && absY >= absZ) {
+      normal.set(0, Math.sign(viewDir.y), 0);
+    } else {
+      normal.set(0, 0, Math.sign(viewDir.z));
+    }
+
+    const plane = new THREE.Plane();
+    plane.setFromNormalAndCoplanarPoint(normal, center);
+
+    const intersection = new THREE.Vector3();
+    if (!raycaster.ray.intersectPlane(plane, intersection)) return null;
+
+    return intersection;
   }
 
   private findResizeHandle(context: ToolContext, mousePos: THREE.Vector2): ResizeCorner | null {
